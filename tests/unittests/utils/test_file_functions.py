@@ -4,6 +4,8 @@ import json
 import os
 import pathlib
 
+from _asyncio import Future
+from collections.abc import Iterator
 from os import PathLike
 from typing import List
 
@@ -11,6 +13,8 @@ import aiofiles
 import pandas as pd
 
 import pytest
+
+from pytest_mock.plugin import MockerFixture
 
 from democracy_exe.utils.file_functions import (
     aio_json_loads,
@@ -63,21 +67,21 @@ HERE = os.path.dirname(__file__)
 # from democracy_exe.services.chroma_service import CHROMA_PATH, DATA_PATH
 
 
-def test_sort_dir_by_mtime(mocker):
+def test_sort_dir_by_mtime(mocker: MockerFixture):
     mocker.patch("pathlib.Path.iterdir", return_value=[pathlib.Path("file1"), pathlib.Path("file2")])
     mocker.patch("os.path.getmtime", side_effect=[2, 1])
     result = sort_dir_by_mtime("test_dir")
     assert result == [pathlib.Path("file2"), pathlib.Path("file1")]
 
 
-def test_sort_dir_by_ctime(mocker):
+def test_sort_dir_by_ctime(mocker: MockerFixture):
     mocker.patch("pathlib.Path.iterdir", return_value=[pathlib.Path("file1"), pathlib.Path("file2")])
     mocker.patch("os.path.getctime", side_effect=[2, 1])
     result = sort_dir_by_ctime("test_dir")
     assert result == [pathlib.Path("file2"), pathlib.Path("file1")]
 
 
-def test_get_all_media_files_to_upload(mocker):
+def test_get_all_media_files_to_upload(mocker: MockerFixture):
     mock_tree = mocker.patch("democracy_exe.utils.file_functions.tree", return_value=["file1", "file2"])
     mock_filter_media = mocker.patch("democracy_exe.utils.file_functions.filter_media", return_value=["file1"])
     result = get_all_media_files_to_upload("test_dir")
@@ -87,7 +91,7 @@ def test_get_all_media_files_to_upload(mocker):
 
 
 @pytest.mark.asyncio()
-async def test_aio_read_jsonfile(tmp_path):
+async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -98,7 +102,7 @@ async def test_aio_read_jsonfile(tmp_path):
 
 
 @pytest.mark.asyncio()
-async def test_aio_json_loads(tmp_path):
+async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -109,7 +113,7 @@ async def test_aio_json_loads(tmp_path):
 
 
 @pytest.mark.asyncio()
-async def test_run_aio_json_loads(tmp_path):
+async def test_run_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -133,7 +137,7 @@ async def test_run_aio_json_loads(tmp_path):
 #         assert i.name in expected
 
 
-def test_filter_media(mocker):
+def test_filter_media(mocker: MockerFixture):
     mock_filter_images = mocker.patch("democracy_exe.utils.file_functions.filter_images", return_value=["file1.png"])
     mock_filter_videos = mocker.patch("democracy_exe.utils.file_functions.filter_videos", return_value=["file2.mp4"])
     result = filter_media(["file1.png", "file2.mp4", "file3.txt"])
@@ -142,7 +146,7 @@ def test_filter_media(mocker):
     mock_filter_videos.assert_called_once_with(["file1.png", "file2.mp4", "file3.txt"])
 
 
-def test_get_dataframe_from_csv(mocker):
+def test_get_dataframe_from_csv(mocker: MockerFixture):
     mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame({"col1": [1], "col2": [2]}))
     result = get_dataframe_from_csv("/Users/malcolm/dev/bossjones/democracy_exe/test.csv")
     assert result.equals(pd.DataFrame({"col1": [1], "col2": [2]})), (
@@ -157,7 +161,7 @@ def test_rich_format_followers():
 
 
 @pytest.mark.asyncio()
-async def test_aiowrite_file(tmp_path):
+async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
     test_data = "Test content"
     test_file = tmp_path / "test.txt"
     await aiowrite_file(test_data, str(tmp_path), "test", "txt")
@@ -165,7 +169,7 @@ async def test_aiowrite_file(tmp_path):
 
 
 @pytest.mark.asyncio()
-async def test_aioread_file(tmp_path):
+async def test_aioread_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
     test_data = "Test content"
     test_file = tmp_path / "test.txt"
     test_file.write_text(test_data)
@@ -179,7 +183,7 @@ def test_rich_likes_or_comments():
     assert result == "[bold bright_yellow]10000[/bold bright_yellow]"
 
 
-def test_rich_display_meme_pull_list(mocker):
+def test_rich_display_meme_pull_list(mocker: MockerFixture):
     mock_console = mocker.patch("democracy_exe.utils.file_functions.Console.print")
     df = pd.DataFrame({
         "Account": ["acc1"],
@@ -200,7 +204,7 @@ def test_rich_display_meme_pull_list(mocker):
     mock_console.assert_called_once()
 
 
-def test_rich_display_popstars_analytics(mocker):
+def test_rich_display_popstars_analytics(mocker: MockerFixture):
     mock_console = mocker.patch("democracy_exe.utils.file_functions.Console.print")
     df = pd.DataFrame({
         "Social": ["soc1"],
@@ -217,14 +221,14 @@ def test_rich_display_popstars_analytics(mocker):
     mock_console.assert_called_once()
 
 
-def test_glob_file_by_extension(mocker):
+def test_glob_file_by_extension(mocker: MockerFixture):
     mock_glob = mocker.patch("glob.glob", return_value=["file1.mp4"])
     result = glob_file_by_extension("test_dir", "*.mp4", recursive=False)
     assert result == ["file1.mp4"]
     mock_glob.assert_called_once_with("test_dir/*.mp4", recursive=False)
 
 
-def test_unlink_orig_file(tmp_path):
+def test_unlink_orig_file(tmp_path: pathlib.PosixPath):
     test_file = tmp_path / "test.txt"
     test_file.write_text("Test content")
     assert test_file.exists()
@@ -233,7 +237,7 @@ def test_unlink_orig_file(tmp_path):
     assert not test_file.exists()
 
 
-def test_get_files_to_upload(tmp_path):
+def test_get_files_to_upload(tmp_path: pathlib.PosixPath):
     image_file = tmp_path / "image.jpg"
     video_file = tmp_path / "video.mp4"
     text_file = tmp_path / "text.txt"
@@ -249,7 +253,7 @@ def test_get_files_to_upload(tmp_path):
     assert str(text_file) not in result
 
 
-def test_run_tree(tmp_path):
+def test_run_tree(tmp_path: pathlib.PosixPath):
     image_file = tmp_path / "image.jpg"
     video_file = tmp_path / "video.mp4"
     text_file = tmp_path / "text.txt"
@@ -265,7 +269,7 @@ def test_run_tree(tmp_path):
     assert str(text_file) not in result
 
 
-def test_print_and_append(mocker):
+def test_print_and_append(mocker: MockerFixture):
     mock_print = mocker.patch("builtins.print")
     dir_listing = []
     print_and_append(dir_listing, "test_str", silent=False)
@@ -273,48 +277,48 @@ def test_print_and_append(mocker):
     mock_print.assert_called_once_with("test_str")
 
 
-def test_check_file_size(mocker):
+def test_check_file_size(mocker: MockerFixture):
     mock_stat = mocker.patch("pathlib.Path.stat", return_value=mocker.Mock(st_size=1024))
     result = check_file_size("/Users/malcolm/dev/bossjones/democracy_exe/test_file")
     assert result == (False, "Is file size greater than 50000000: False")
 
 
-def test_is_file(mocker):
+def test_is_file(mocker: MockerFixture):
     mock_is_file = mocker.patch("pathlib.Path.is_file", return_value=True)
     result = is_file("test_file")
     assert result is True
     mock_is_file.assert_called_once_with()
 
 
-def test_is_directory(mocker):
+def test_is_directory(mocker: MockerFixture):
     mock_is_dir = mocker.patch("pathlib.Path.is_dir", return_value=True)
     result = is_directory("test_dir")
     assert result is True
     mock_is_dir.assert_called_once_with()
 
 
-def test_is_a_symlink(mocker):
+def test_is_a_symlink(mocker: MockerFixture):
     mock_is_symlink = mocker.patch("pathlib.Path.is_symlink", return_value=True)
     result = is_a_symlink("test_symlink")
     assert result is True
     mock_is_symlink.assert_called_once_with()
 
 
-def test_expand_path_str(mocker):
+def test_expand_path_str(mocker: MockerFixture):
     mock_expanduser = mocker.patch("pathlib.Path.expanduser", return_value=pathlib.Path("/home/user"))
     result = expand_path_str("~")
     assert result == pathlib.Path("/home/user")
     mock_expanduser.assert_called_once_with()
 
 
-def test_tilda(mocker):
+def test_tilda(mocker: MockerFixture):
     mock_expanduser = mocker.patch("pathlib.Path.expanduser", return_value=pathlib.Path("/home/user"))
     result = tilda("~")
     assert result == "/home/user"
     mock_expanduser.assert_called_once_with()
 
 
-def test_fix_path(mocker):
+def test_fix_path(mocker: MockerFixture):
     mock_is_file = mocker.patch("democracy_exe.utils.file_functions.is_file", return_value=True)
     mock_tilda = mocker.patch("democracy_exe.utils.file_functions.tilda", return_value="/home/user/file")
     result = fix_path("~")
@@ -323,7 +327,7 @@ def test_fix_path(mocker):
     mock_tilda.assert_called_once_with("~")
 
 
-def test_filter_pth(tmp_path):
+def test_filter_pth(tmp_path: pathlib.PosixPath):
     pth_file = tmp_path / "model.pth"
     txt_file = tmp_path / "text.txt"
     pth_file.touch()
@@ -333,7 +337,7 @@ def test_filter_pth(tmp_path):
     assert result == [str(pth_file)]
 
 
-def test_filter_json(tmp_path):
+def test_filter_json(tmp_path: pathlib.PosixPath):
     json_file = tmp_path / "data.json"
     txt_file = tmp_path / "text.txt"
     json_file.touch()
@@ -343,7 +347,7 @@ def test_filter_json(tmp_path):
     assert result == [str(json_file)]
 
 
-def test_rename_without_cachebuster(tmp_path):
+def test_rename_without_cachebuster(tmp_path: pathlib.PosixPath):
     file_with_cb = tmp_path / "image.jpg?updatedAt=123456"
     file_with_cb.touch()
 
@@ -352,7 +356,7 @@ def test_rename_without_cachebuster(tmp_path):
     assert (tmp_path / "image.jpg").exists()
 
 
-def test_filter_videos(tmp_path):
+def test_filter_videos(tmp_path: pathlib.PosixPath):
     video_file = tmp_path / "video.mp4"
     txt_file = tmp_path / "text.txt"
     video_file.touch()
@@ -362,7 +366,7 @@ def test_filter_videos(tmp_path):
     assert result == [str(video_file)]
 
 
-def test_filter_audio(tmp_path):
+def test_filter_audio(tmp_path: pathlib.PosixPath):
     audio_file = tmp_path / "audio.mp3"
     txt_file = tmp_path / "text.txt"
     audio_file.touch()
@@ -372,7 +376,7 @@ def test_filter_audio(tmp_path):
     assert result == [str(audio_file)]
 
 
-def test_filter_gif(tmp_path):
+def test_filter_gif(tmp_path: pathlib.PosixPath):
     gif_file = tmp_path / "image.gif"
     txt_file = tmp_path / "text.txt"
     gif_file.touch()
@@ -382,7 +386,7 @@ def test_filter_gif(tmp_path):
     assert result == [str(gif_file)]
 
 
-def test_filter_mkv(tmp_path):
+def test_filter_mkv(tmp_path: pathlib.PosixPath):
     mkv_file = tmp_path / "video.mkv"
     txt_file = tmp_path / "text.txt"
     mkv_file.touch()
@@ -392,7 +396,7 @@ def test_filter_mkv(tmp_path):
     assert result == [str(mkv_file)]
 
 
-def test_filter_m3u8(tmp_path):
+def test_filter_m3u8(tmp_path: pathlib.PosixPath):
     m3u8_file = tmp_path / "playlist.m3u8"
     txt_file = tmp_path / "text.txt"
     m3u8_file.touch()
@@ -402,7 +406,7 @@ def test_filter_m3u8(tmp_path):
     assert result == [str(m3u8_file)]
 
 
-def test_filter_webm(tmp_path):
+def test_filter_webm(tmp_path: pathlib.PosixPath):
     webm_file = tmp_path / "video.webm"
     txt_file = tmp_path / "text.txt"
     webm_file.touch()
@@ -412,7 +416,7 @@ def test_filter_webm(tmp_path):
     assert result == [str(webm_file)]
 
 
-def test_filter_images(tmp_path):
+def test_filter_images(tmp_path: pathlib.PosixPath):
     image_file = tmp_path / "image.jpg"
     txt_file = tmp_path / "text.txt"
     image_file.touch()
@@ -422,7 +426,7 @@ def test_filter_images(tmp_path):
     assert result == [str(image_file)]
 
 
-def test_filter_pdfs(tmp_path):
+def test_filter_pdfs(tmp_path: pathlib.PosixPath):
     pdf_file = tmp_path / "document.pdf"
     txt_file = tmp_path / "text.txt"
     pdf_file.touch()
@@ -432,7 +436,7 @@ def test_filter_pdfs(tmp_path):
     assert result == [str(pdf_file)]
 
 
-def test_filter_txts(tmp_path):
+def test_filter_txts(tmp_path: pathlib.PosixPath):
     txt_file1 = tmp_path / "text1.txt"
     txt_file2 = tmp_path / "text2.txt"
     pdf_file = tmp_path / "document.pdf"
@@ -444,7 +448,7 @@ def test_filter_txts(tmp_path):
     assert set(result) == {str(txt_file1), str(txt_file2)}
 
 
-def test_filter_pdf(tmp_path):
+def test_filter_pdf(tmp_path: pathlib.PosixPath):
     pdf_file = tmp_path / "document.pdf"
     txt_file = tmp_path / "text.txt"
     pdf_file.touch()
@@ -470,7 +474,7 @@ def test_format_size():
     assert format_size(1500000) == "1.43 MB"
 
 
-def test_tree(tmp_path):
+def test_tree(tmp_path: pathlib.PosixPath):
     (tmp_path / "file1.txt").touch()
     (tmp_path / "dir1").mkdir()
     (tmp_path / "dir1" / "file2.txt").touch()

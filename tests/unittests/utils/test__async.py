@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import os
+import typing
 
+from _asyncio import Future
 from asyncio import DefaultEventLoopPolicy
 from collections.abc import Iterable, Iterator
 from pathlib import Path, PosixPath
@@ -64,7 +66,7 @@ class TestUtilsAsync:
     async def test_remember_loop(self):
         TestUtilsAsync.loop = asyncio.get_running_loop()
 
-    async def test_to_async(self):
+    async def test_to_async(self) -> typing.Iterator[Future]:
         loop = asyncio.get_running_loop()
 
         @async_.to_async

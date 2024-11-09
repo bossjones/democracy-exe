@@ -10,10 +10,11 @@ import os
 
 from collections.abc import Iterable, Iterator
 from pathlib import Path, PosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import pytest_asyncio
 
+from _pytest.monkeypatch import MonkeyPatch
 from pydantic import (
     AliasChoices,
     AmqpDsn,
@@ -140,7 +141,9 @@ class TestSettings:
             ),
         ],
     )
-    def test_custom_postgres_url(self, host, port, user, password, driver, database, expected):
+    def test_custom_postgres_url(
+        self, host: str, port: int, user: str, password: str, driver: str, database: str, expected: str
+    ):
         custom_settings = aio_settings.AioSettings(
             postgres_host=host,
             postgres_port=port,
@@ -152,7 +155,7 @@ class TestSettings:
         assert custom_settings.postgres_url == expected
 
     @pytest.mark.asyncio()
-    async def test_postgres_env_variables(self, monkeypatch):
+    async def test_postgres_env_variables(self, monkeypatch: MonkeyPatch):
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_HOST", "envhost")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_PORT", "5555")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_USER", "envuser")
@@ -210,7 +213,9 @@ class TestSettings:
             ),
         ],
     )
-    def test_custom_redis_url(self, host, port, user, password, base, expected):
+    def test_custom_redis_url(
+        self, host: str, port: int, user: str | None, password: str | None, base: int, expected: str
+    ):
         custom_settings = aio_settings.AioSettings(
             redis_host=host,
             redis_port=port,
@@ -221,7 +226,7 @@ class TestSettings:
         assert str(custom_settings.redis_url) == expected
 
     @pytest.mark.asyncio()
-    async def test_redis_env_variables(self, monkeypatch):
+    async def test_redis_env_variables(self, monkeypatch: MonkeyPatch):
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_HOST", "envhost")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_PORT", "7777")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_USER", "envuser")

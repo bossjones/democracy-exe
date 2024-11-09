@@ -157,7 +157,7 @@ def is_dict(obj: object) -> TypeGuard[dict[object, object]]:
     return isinstance(obj, dict)
 
 
-def deduplicate_iterables(*iterables):
+def deduplicate_iterables(*iterables) -> list[int | Any]:
     """
     Returns a list of all unique items in ``iterables``, in the order they
     were first encountered.

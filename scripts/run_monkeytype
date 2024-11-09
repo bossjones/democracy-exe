@@ -43,3 +43,6 @@ while IFS= read -r module; do
 done < <(uv run monkeytype list-modules)
 
 echo "MonkeyType run complete. Stubs have been generated in the 'stubs' directory."
+
+echo "applying stubs"
+uv run monkeytype list-modules | xargs -n1 uv run monkeytype apply
