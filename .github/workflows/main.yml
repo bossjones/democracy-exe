@@ -76,7 +76,7 @@ jobs:
       - name: Set up the environment
         uses: ./.github/actions/setup-python-env
 
-      - name: install tesseract
+      - name: QUALITY install tesseract
         run: |
           sudo apt update
           sudo apt-get -y install --no-install-recommends  python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake
@@ -86,7 +86,7 @@ jobs:
           sudo apt-get install -y tesseract-ocr tesseract-ocr-por zsh
           curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
 
-      - name: install tesseract and ffmpeg
+      - name: QUALITY install tesseract and ffmpeg
         run: |
           sudo apt-get install -y tesseract-ocr tesseract-ocr-por libyaml-dev poppler-utils libomp-dev
           sudo apt install ffmpeg -y
@@ -95,11 +95,12 @@ jobs:
           libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
           xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
 
-      - uses: extractions/setup-just@v1
+      - name: QUALITY install just
+        uses: extractions/setup-just@v1
         with:
           just-version: 1.36.0  # optional semver specification, otherwise latest
 
-      - name: install tesseract and ffmpeg
+      - name: QUALITY install tesseract and ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get -y install --no-install-recommends  python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake
@@ -138,7 +139,7 @@ jobs:
       #     uv run pre-commit run -a
       #     make ci
 
-      - name: Run ci
+      - name: QUALITY Run ci
         run: |
           make ci
 
@@ -169,20 +170,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: install tesseract
+      - name: TYPECHECK install tesseract
         run: |
-          # wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | sudo tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null
-          # echo "deb [arch=all,$(dpkg --print-architecture) signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr $(lsb_release -cs)" | sudo tee /etc/apt/sources.list.d/prebuilt-mpr.list
           sudo apt update
           sudo apt-get -y install --no-install-recommends  python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake
           sudo apt-get install -y --no-install-recommends aria2 aria2
           sudo apt-get update --fix-missing && sudo apt-get install -y --fix-missing build-essential gcc g++ cmake autoconf
           sudo apt-get install -y libmagic-dev poppler-utils libreoffice
           sudo apt-get install -y tesseract-ocr tesseract-ocr-por
-          # sudo apt-get install -y tesseract-ocr tesseract-ocr-por just zsh
+
           curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
 
-      - name: install tesseract and ffmpeg
+      - name: TYPECHECK install tesseract and ffmpeg
         run: |
           sudo apt-get install -y tesseract-ocr tesseract-ocr-por libyaml-dev poppler-utils libomp-dev
           sudo apt install ffmpeg -y
@@ -192,11 +191,12 @@ jobs:
           libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
           xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
 
-      - uses: extractions/setup-just@v1
+      - name: TYPECHECK install just
+        uses: extractions/setup-just@v1
         with:
           just-version: 1.36.0  # optional semver specification, otherwise latest
 
-      - name: install tesseract and ffmpeg
+      - name: TYPECHECK install tesseract and ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get -y install --no-install-recommends  python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake
@@ -213,7 +213,7 @@ jobs:
           sudo apt-get install libpq5 -y
           curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
 
-      - name: Run tests and type check
+      - name: TYPECHECK Run tests and type check
         run: make ci
 
       # - name: Run tests
