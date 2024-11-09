@@ -334,7 +334,7 @@ class AioSettings(BaseSettings):
 
     # add a comment to each line in model_config explaining what it does
     model_config = SettingsConfigDict(
-        env_prefix="democracy_exe_CONFIG_",
+        env_prefix="DEMOCRACY_EXE_CONFIG_",
         env_file=(".env", ".envrc"),
         env_file_encoding="utf-8",
         extra="allow",

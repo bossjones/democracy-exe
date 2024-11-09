@@ -64,7 +64,9 @@ from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
 from democracy_exe.utils.base import print_line_seperator
 from democracy_exe.utils.file_functions import fix_path
-from democracy_exe.utils.files_import import index_file_folder
+
+
+# from democracy_exe.utils.files_import import index_file_folder
 
 
 # from democracy_exe.utils.collections_io import export_collection_data, import_collection_data
@@ -357,7 +359,8 @@ def import_file(
     typer.echo(f"Running import_file with file_path={file_path}, collection={collection}, options={options}")
 
     kwargs = {} if not options else json.loads(options)
-    num = index_file_folder(file_path=file_path, collection=collection, **kwargs)
+    # num = index_file_folder(file_path=file_path, collection=collection, **kwargs)
+    num = 0
     print(f"Collection '{collection}' updated from '{file_path}' with {num} documents.")
 
 

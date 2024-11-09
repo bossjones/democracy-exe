@@ -81,12 +81,12 @@ class TestSettings:
         # import bpdb
         # bpdb.set_trace()
         # paranoid about weird libraries trying to read env vars during testing
-        monkeypatch.setenv("democracy_exe_CONFIG_DISCORD_TOKEN", "fake_discord_token")
-        monkeypatch.setenv("democracy_exe_CONFIG_DISCORD_TOKEN", "fake_discord_token")
-        monkeypatch.setenv("democracy_exe_CONFIG_DISCORD_ADMIN_USER_ID", 1337)
-        monkeypatch.setenv("democracy_exe_CONFIG_DISCORD_SERVER_ID", 1337)
-        monkeypatch.setenv("democracy_exe_CONFIG_DISCORD_CLIENT_ID", 8008)
-        monkeypatch.setenv("democracy_exe_CONFIG_OPENAI_API_KEY", "fake_openai_key")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DISCORD_TOKEN", "fake_discord_token")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DISCORD_TOKEN", "fake_discord_token")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DISCORD_ADMIN_USER_ID", 1337)
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DISCORD_SERVER_ID", 1337)
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DISCORD_CLIENT_ID", 8008)
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_OPENAI_API_KEY", "fake_openai_key")
         monkeypatch.setenv("OPENAI_API_KEY", "fake_openai_key")
         monkeypatch.setenv("PINECONE_API_KEY", "fake_pinecone_key")
         monkeypatch.setenv("PINECONE_INDEX", "fake_test_index")
@@ -153,13 +153,13 @@ class TestSettings:
 
     @pytest.mark.asyncio()
     async def test_postgres_env_variables(self, monkeypatch):
-        monkeypatch.setenv("democracy_exe_CONFIG_POSTGRES_HOST", "envhost")
-        monkeypatch.setenv("democracy_exe_CONFIG_POSTGRES_PORT", "5555")
-        monkeypatch.setenv("democracy_exe_CONFIG_POSTGRES_USER", "envuser")
-        monkeypatch.setenv("democracy_exe_CONFIG_POSTGRES_PASSWORD", "envpass")
-        monkeypatch.setenv("democracy_exe_CONFIG_POSTGRES_DRIVER", "envdriver")
-        monkeypatch.setenv("democracy_exe_CONFIG_POSTGRES_DATABASE", "envdb")
-        monkeypatch.setenv("democracy_exe_CONFIG_ENABLE_POSTGRES", "false")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_HOST", "envhost")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_PORT", "5555")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_USER", "envuser")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_PASSWORD", "envpass")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_DRIVER", "envdriver")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_POSTGRES_DATABASE", "envdb")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_ENABLE_POSTGRES", "false")
 
         test_settings = aio_settings.AioSettings()
         assert test_settings.postgres_host == "envhost"
@@ -222,12 +222,12 @@ class TestSettings:
 
     @pytest.mark.asyncio()
     async def test_redis_env_variables(self, monkeypatch):
-        monkeypatch.setenv("democracy_exe_CONFIG_REDIS_HOST", "envhost")
-        monkeypatch.setenv("democracy_exe_CONFIG_REDIS_PORT", "7777")
-        monkeypatch.setenv("democracy_exe_CONFIG_REDIS_USER", "envuser")
-        monkeypatch.setenv("democracy_exe_CONFIG_REDIS_PASS", "envpass")
-        monkeypatch.setenv("democracy_exe_CONFIG_REDIS_BASE", "2")
-        monkeypatch.setenv("democracy_exe_CONFIG_ENABLE_REDIS", "true")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_HOST", "envhost")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_PORT", "7777")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_USER", "envuser")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_PASS", "envpass")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_BASE", "2")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_ENABLE_REDIS", "true")
 
         test_settings = aio_settings.AioSettings()
         assert test_settings.redis_host == "envhost"
