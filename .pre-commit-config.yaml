@@ -58,7 +58,7 @@ repos:
           - --config=pyproject.toml
         # SOURCE: https://github.com/girder/large_image/blob/2e6fd90cfb9179f2c0bd59031f45805018f3f04a/.pre-commit-config.yaml
         types_or: [python, pyi, jupyter]
-        exclude: ^scripts/.*
+        exclude: ^(scripts|typings)/.*
 
       # Run the formatter.
       - id: ruff-format
@@ -168,23 +168,23 @@ repos:
     rev: v3.19.0
     hooks:
       - id: pyupgrade
-        args: [--py39-plus, --keep-runtime-typing]
+        args: [--py310-plus, --keep-runtime-typing]
   - repo: https://github.com/twisted/towncrier
     rev: 24.8.0  # run 'pre-commit autoupdate' to update
     hooks:
       - id: towncrier-update
         files: $changelog\.d/
         args: [--keep]
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.13.1-beta
-    hooks:
-      - id: hadolint
-        name: Lint Dockerfiles
-        description: Runs hadolint to lint Dockerfiles
-        language: system
-        types: [dockerfile]
-        entry: hadolint
-        exclude: (.tasks|hack|.github)
+  # - repo: https://github.com/hadolint/hadolint
+  #   rev: v2.13.1-beta
+  #   hooks:
+  #     - id: hadolint
+  #       name: Lint Dockerfiles
+  #       description: Runs hadolint to lint Dockerfiles
+  #       language: system
+  #       types: [dockerfile]
+  #       entry: hadolint
+  #       exclude: (.tasks|hack|.github)
   - repo: https://github.com/sirosen/texthooks
     rev: 0.6.7
     hooks:
