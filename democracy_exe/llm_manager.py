@@ -10,31 +10,10 @@ from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch
 from langchain_openai import ChatOpenAI, OpenAI
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
-from loguru import logger as LOGGER
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from democracy_exe.aio_settings import aiosettings
-
-
-# from openai import Client
-
-# NOTE: FIXME: Set these model settings https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
-# NOTE: FIXME: Set these model settings https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
-# NOTE: FIXME: Set these model settings https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
-# NOTE: FIXME: Set these model settings https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
-# NOTE: FIXME: Set these model settings https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
-
-# def get_supported_openai_params(self):
-#     return [
-#         "stream",
-#         "temperature",
-#         "top_p",
-#         "max_tokens",
-#         "tools",
-#         "tool_choice",
-#         "seed",
-#         "response_format",
-#     ]
 
 
 MODELS_MAP = {

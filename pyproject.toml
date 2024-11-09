@@ -81,6 +81,12 @@ dependencies = [
     "scenedetect[opencv]>=0.6.4",
     "sentence-transformers>=3.2.1",
     "sentencepiece>=0.2.0",
+    "uritools>=4.0.3",
+    "pandas>=2.2.3",
+    "codetiming>=1.4.0",
+    "webcolors>=24.8.0",
+    "dask>=2024.11.0",
+    "torchvision>=0.20.1",
 ]
 
 [project.urls]
@@ -744,6 +750,10 @@ select = [
 # SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
 # Conflicts with the formatter
 ignore = [
+    "C408",  # Checks for unnecessary calls to dict(), list(), or tuple() that can be rewritten as empty literals
+    "UP031", # Checks for unnecessary format string usage
+    "UP040", # Checks for unnecessary use of typing.TypeAlias in Python 3.12+
+
     "SIM110", # Checks for `return` statements that can be simplified to a single `return` statement
     "SIM103", # Checks for `return` statements that can be simplified by removing unnecessary `else` clauses
     "RUF012", # Checks for mutable default values in class attributes

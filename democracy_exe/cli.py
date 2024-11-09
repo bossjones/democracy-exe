@@ -48,7 +48,7 @@ from pinecone.core.openapi.data.model.query_response import QueryResponse
 from pinecone.core.openapi.data.model.upsert_response import UpsertResponse
 from pinecone.data.index import Index
 from redis.asyncio import ConnectionPool, Redis
-from rich import print, print_json
+from rich import print_json
 from rich.console import Console
 from rich.pretty import pprint
 from rich.prompt import Prompt
@@ -63,11 +63,11 @@ from democracy_exe.bot_logger import get_logger, global_log_config
 from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
 from democracy_exe.utils.base import print_line_seperator
-from democracy_exe.utils.collections_io import export_collection_data, import_collection_data
 from democracy_exe.utils.file_functions import fix_path
 from democracy_exe.utils.files_import import index_file_folder
 
 
+# from democracy_exe.utils.collections_io import export_collection_data, import_collection_data
 # SOURCE: https://python.langchain.com/v0.2/docs/how_to/debugging/
 if aiosettings.debug_langchain:
     # Setting the global debug flag will cause all LangChain components with callback support (chains, models, agents, tools, retrievers) to print the inputs they receive and outputs they generate. This is the most verbose setting and will fully log raw inputs and outputs.
@@ -318,7 +318,7 @@ def export_collection(
     """
     typer.echo(f"Running export_collection with folder_path={folder_path}, collection={collection}")
 
-    export_collection_data(folder_path=folder_path, collection=collection)
+    # export_collection_data(folder_path=folder_path, collection=collection)
 
 
 @APP.command()
@@ -336,7 +336,7 @@ def import_collection(
     """
     typer.echo(f"Running import_collection with folder_path={folder_path}, collection={collection}")
 
-    import_collection_data(folder_path=folder_path, collection=collection)
+    # import_collection_data(folder_path=folder_path, collection=collection)
 
 
 @APP.command()

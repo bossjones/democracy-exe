@@ -8,7 +8,7 @@ from typing import Any
 
 import rich
 
-from loguru import logger as LOGGER
+from loguru import logger
 from rich import print
 
 

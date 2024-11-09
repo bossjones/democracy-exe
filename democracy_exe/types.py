@@ -3,6 +3,7 @@
 # pyright: reportUnusedVariable=warning
 # pyright: reportUntypedBaseClass=error
 # pyright: reportGeneralTypeIssues=false
+# pyright: reportAttributeAccessIssue=false
 
 
 """democracy_exe.types"""

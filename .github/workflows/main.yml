@@ -143,7 +143,9 @@ jobs:
           xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
           sudo apt-get install libpq5 -y
       - name: Run tests
-        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
+        run: make ci
+      # - name: Run tests
+      #   run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
       - name: Check typing
         run: uv run mypy
       - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11

@@ -315,6 +315,7 @@ aider-claude:
 # SOURCE: https://github.com/RobertCraigie/prisma-client-py/blob/da53c4280756f1a9bddc3407aa3b5f296aa8cc10/Makefile#L77
 # Remove all generated files and caches
 clean:
+	#!/bin/bash
 	rm -rf .cache
 	rm -rf `find . -name __pycache__`
 	rm -rf .tests_cache
@@ -389,7 +390,7 @@ uv_pylint:
 
 # Run pylint with error-only configuration
 uv_pylint_error_only:
-    {{UV_RUN}} pylint --output-format=colorized --generated-members=torch.*,numpy.*,cv2.* --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
+    {{UV_RUN}} pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
 
 # Run pylint on all files
 uv_lint_all:

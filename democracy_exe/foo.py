@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def foo(bar: str) -> str:
     """Summary line.
 
