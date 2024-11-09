@@ -359,3 +359,5 @@ notebooks/travel2.sqlite
 !democracy_exe/vendored/goob_ai
 # !democracy_exe/vendored/brevia
 .env.langraph
+.cursorrules.bak
+.cursorrules.sample

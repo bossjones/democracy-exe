@@ -19,6 +19,7 @@ UV_RUN := "uv run"
 install:
     @echo "🚀 Creating virtual environment using uv"
     uv sync
+    uv tool upgrade pyright
     uv run pre-commit install
 
 # Run code quality tools.

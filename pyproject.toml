@@ -737,9 +737,10 @@ select = [
     # tryceratops
     # "TRY",
 
-    "C90",  # mccabe
-    "I002", # from __future__ import annotations
-    "N812", # lowercase-imported-as-non-lowercase (N812) - Derived from the pep8-naming linter.
+    "C90",    # mccabe
+    "I002",   # from __future__ import annotations
+    "N812",   # lowercase-imported-as-non-lowercase (N812) - Derived from the pep8-naming linter.
+    "NPY001", # numpy-deprecated-type-alias
 ]
 # ignore = [
 #     # LineTooLong
@@ -879,8 +880,8 @@ ignore = [
     'AIR', # airflow
     'CPY', # flake8-copyright (CPY)#
     'D',   # pydocstyle (D)#
-    'NPY', # NumPy-specific rules (NPY)#
-    'PD',  # pandas-vet (PD)
+    # 'NPY', # NumPy-specific rules (NPY)#
+    'PD', # pandas-vet (PD)
 
     # Many projects either don't have type annotations or it would take much effort to satisfy this
     'ANN', # flake8-annotations (ANN).
@@ -894,11 +895,11 @@ ignore = [
     'FURB101', # read-whole-file	open and read should be replaced by Path({filename}).{suggestion}
 
     # Conflicts with type checking
-    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value	✔️ 🛠️
-    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value	✔️ 🛠️
+    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value
+    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value
 
     # Under review https://github.com/astral-sh/ruff/issues/8796
-    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore	✔️ 🛠️
+    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore
     'PT005', # pytest-incorrect-fixture-name-underscore	Fixture {function} returns a value, remove leading underscore
 
     # Buggy https://github.com/astral-sh/ruff/issues/4845
@@ -914,8 +915,8 @@ ignore = [
     'SIM401', # if-else-block-instead-of-dict-get	Use {contents} instead of an if block
 
     # Allow for easy ignores
-    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues	✔️ 🛠️
-    'PGH004', # blanket-noqa	Use specific rule codes when using noqa	✔️ 🛠️
+    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues
+    'PGH004', # blanket-noqa	Use specific rule codes when using noqa
 
     # This is required sometimes, and doesn't matter on Python 3.11+
     'PERF203', # try-except-in-loop	try-except within a loop incurs performance overhead
@@ -1062,7 +1063,7 @@ preview = true
 # Conflicts with the formatter
 exclude = [
     "N999",
-    "D203",    # one-blank-line-before-class	1 blank line required before class docstring	✔️ 🛠️
+    "D203",    # one-blank-line-before-class	1 blank line required before class docstring
     "COM812",
     "ISC001",
     "N804",
@@ -1155,8 +1156,8 @@ exclude = [
     'AIR', # airflow
     'CPY', # flake8-copyright (CPY)#
     'D',   # pydocstyle (D)#
-    'NPY', # NumPy-specific rules (NPY)#
-    'PD',  # pandas-vet (PD)
+    # 'NPY', # NumPy-specific rules (NPY)#
+    'PD', # pandas-vet (PD)
 
     # Many projects either don't have type annotations or it would take much effort to satisfy this
     'ANN', # flake8-annotations (ANN).
@@ -1170,11 +1171,11 @@ exclude = [
     'FURB101', # read-whole-file	open and read should be replaced by Path({filename}).{suggestion}
 
     # Conflicts with type checking
-    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value	✔️ 🛠️
-    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value	✔️ 🛠️
+    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value
+    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value
 
     # Under review https://github.com/astral-sh/ruff/issues/8796
-    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore	✔️ 🛠️
+    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore
     'PT005', # pytest-incorrect-fixture-name-underscore	Fixture {function} returns a value, remove leading underscore
 
     # Buggy https://github.com/astral-sh/ruff/issues/4845
@@ -1190,8 +1191,8 @@ exclude = [
     'SIM401', # if-else-block-instead-of-dict-get	Use {contents} instead of an if block
 
     # Allow for easy ignores
-    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues	✔️ 🛠️
-    'PGH004', # blanket-noqa	Use specific rule codes when using noqa	✔️ 🛠️
+    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues
+    'PGH004', # blanket-noqa	Use specific rule codes when using noqa
 
     # This is required sometimes, and doesn't matter on Python 3.11+
     'PERF203', # try-except-in-loop	try-except within a loop incurs performance overhead

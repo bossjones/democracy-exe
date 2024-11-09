@@ -49,3 +49,19 @@ class InternetSearchAgent(BaseAgent):
         return state
 
 internet_search_agent = InternetSearchAgent()
+
+
+"""
+Key changes in this updated version:
+We've replaced the web scraping approach with the TavilySearchResults tool from LangChain.
+The __init__ method now initializes the TavilySearchResults tool with some configuration options.
+We've added a check to ensure the TAVILY_API_KEY environment variable is set.
+The execute_search method now uses the TavilySearchResults tool to perform the search.
+The process_results method has been updated to work with the structure of results returned by the Tavily search.
+We've removed the BeautifulSoup and requests imports as they're no longer needed.
+This implementation provides several advantages:
+It's more robust and less likely to break due to changes in website structures.
+It complies with the terms of service of the search API.
+It provides more structured and reliable results.
+It's easier to maintain and extend.
+"""

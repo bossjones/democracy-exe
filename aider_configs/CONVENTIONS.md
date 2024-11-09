@@ -716,12 +716,12 @@ jobs:
 
     - name: Lint
       run: |
-        rye run ruff check .
-        rye run ruff format --check .
+        uv run ruff check .
+        uv run ruff format --check .
 
     - name: Test
       run: |
-        rye run pytest tests/ --cov=src --cov-report=xml
+        uv run pytest tests/ --cov=src --cov-report=xml
 
     - name: Upload coverage
       uses: codecov/codecov-action@v3
