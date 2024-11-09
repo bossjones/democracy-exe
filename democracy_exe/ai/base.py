@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any, TypedDict, TypeVar
 
 from langgraph.graph import Graph
@@ -63,13 +64,14 @@ class BaseGraph(ABC):
         """
         pass
 
-    def compile(self) -> Any| CompiledStateGraph:
+    def compile(self) -> Callable[[AgentState], AgentState]:
         """Compile the built graph.
 
         Returns:
             Compiled graph ready for execution
         """
-        return self.build().compile()
+        graph = self.build()
+        return lambda state: graph.compile()(state)
 
 class AgentNode:
     """Wrapper class to use agents as nodes in the graph."""

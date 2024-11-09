@@ -31,8 +31,8 @@ class ResearchGraph(BaseGraph):
         self.graph.add_edge("generate_report", "research")
 
         # Add conditional edges for iterative research
-        self.graph.add_conditional_edge("analyze_information", self.need_more_sources,
-                                        {True: "gather_sources", False: "synthesize_findings"})
+        self.graph.add_conditional_edges("analyze_information", self.need_more_sources,
+                                       {True: "gather_sources", False: "synthesize_findings"})
 
         # Set the entry point
         self.graph.set_entry_point("research")

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -15,7 +15,23 @@ from democracy_exe.ai.base import AgentState, BaseAgent
 
 class ImageVideoProcessingAgent(BaseAgent):
     def __init__(self):
-        pass
+        super().__init__()
+
+    def crop(self, media: Any, params: dict | None = None) -> Any:
+        """Crop the media according to params."""
+        return self.process_image(media) if isinstance(media, str) else media
+
+    def resize(self, media: Any, params: dict | None = None) -> Any:
+        """Resize the media according to params."""
+        return media
+
+    def apply_filters(self, media: Any, params: dict | None = None) -> Any:
+        """Apply filters to the media according to params."""
+        return media
+
+    def encode(self, media: Any, params: dict | None = None) -> Any:
+        """Encode the media according to params."""
+        return media
 
     def process_image(self, image_path: str, target_size: tuple[int, int] = (1080, 1350)) -> str:
         img = Image.open(image_path)
@@ -56,7 +72,7 @@ class ImageVideoProcessingAgent(BaseAgent):
             top = (img.height - new_height) // 2
             img_cropped = img.crop((0, top, img.width, top + new_height))
 
-        return img_cropped.resize(target_size, Image.LANCZOS)
+        return img_cropped.resize(target_size, Image.Resampling.LANCZOS)
 
     def resize_and_crop_cv2(self, img: np.ndarray, target_size: tuple[int, int]) -> np.ndarray:
         img_ratio = img.shape[1] / img.shape[0]

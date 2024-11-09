@@ -4,10 +4,10 @@ import os
 
 from typing import Dict, List
 
-from langchain.chains import LLMChain
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain.chains.llm import LLMChain
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
 from democracy_exe.ai.base import AgentState, BaseAgent
 
@@ -49,6 +49,11 @@ class ResearchAgent(BaseAgent):
         analysis_chain = LLMChain(llm=self.llm, prompt=analysis_prompt)
         sources_text = "\n".join([f"Title: {s['title']}\nContent: {s['snippet']}" for s in sources[:5]])
         return analysis_chain.run(sources=sources_text)
+
+    def need_more_sources(self, analysis: str) -> bool:
+        """Determine if more sources are needed based on analysis."""
+        # Simple implementation - could be made more sophisticated
+        return len(analysis) < 1000
 
     def synthesize_findings(self, analysis: str) -> str:
         synthesis_prompt = ChatPromptTemplate.from_template(
