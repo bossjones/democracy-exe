@@ -22,6 +22,8 @@ test: ## Test the code with pytest
 
 .PHONY: ci
 ci: ## Test the code with pytest
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	@uv lock --locked
 	@echo "🚀 Linting code: mypy"
 	@uv run mypy --config-file=pyproject.toml --html-report typingcov --cobertura-xml-report typingcov_cobertura --xml-report typingcov_xml --txt-report typingcov_txt .
 
