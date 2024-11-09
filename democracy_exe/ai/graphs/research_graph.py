@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Dict, List, Literal, Optional, Union
+
 from langgraph.graph import Graph
 
 from democracy_exe.ai.agents.research_agent import ResearchAgent
@@ -7,11 +9,33 @@ from democracy_exe.ai.base import AgentNode, AgentState, BaseGraph
 
 
 class ResearchGraph(BaseGraph):
-    def __init__(self):
+    """Graph for orchestrating comprehensive research operations.
+
+    This graph manages the flow of research operations through multiple stages:
+    planning, source gathering, analysis, synthesis, and report generation.
+    It coordinates these operations using a directed graph structure where each
+    node represents a specific research stage.
+
+    Attributes:
+        research_agent: Instance of ResearchAgent that performs the actual
+            research operations
+    """
+
+    def __init__(self) -> None:
+        """Initialize the research graph with its agent."""
         super().__init__()
         self.research_agent = ResearchAgent()
 
     def build(self) -> Graph:
+        """Construct the research workflow graph.
+
+        Creates a directed graph with nodes for each research stage and edges
+        defining the flow between stages. Includes conditional edges for
+        iterative research when more sources are needed.
+
+        Returns:
+            Configured LangGraph Graph instance ready for execution
+        """
         # Add research agent node
         self.graph.add_node("research", AgentNode(self.research_agent))
 
@@ -31,8 +55,11 @@ class ResearchGraph(BaseGraph):
         self.graph.add_edge("generate_report", "research")
 
         # Add conditional edges for iterative research
-        self.graph.add_conditional_edges("analyze_information", self.need_more_sources,
-                                       {True: "gather_sources", False: "synthesize_findings"})
+        self.graph.add_conditional_edges(
+            "analyze_information",
+            self.need_more_sources,
+            {True: "gather_sources", False: "synthesize_findings"}
+        )
 
         # Set the entry point
         self.graph.set_entry_point("research")
@@ -40,36 +67,93 @@ class ResearchGraph(BaseGraph):
         return self.graph
 
     def process(self, state: AgentState) -> AgentState:
+        """Process a research request through the research workflow.
+
+        Args:
+            state: Current agent state containing the research query
+
+        Returns:
+            Updated agent state with research results
+        """
         compiled_graph = self.compile()
         return compiled_graph(state)
 
     def plan_research(self, state: AgentState) -> AgentState:
+        """Create a structured research plan from the initial query.
+
+        Args:
+            state: Agent state containing the research query
+
+        Returns:
+            Updated state with research plan
+        """
         research_plan = self.research_agent.plan_research(state["query"])
         state["research_plan"] = research_plan
         return state
 
     def gather_sources(self, state: AgentState) -> AgentState:
+        """Gather relevant sources based on the research plan.
+
+        Args:
+            state: Agent state containing the research plan
+
+        Returns:
+            Updated state with gathered sources
+        """
         sources = self.research_agent.gather_sources(state["research_plan"])
         state["sources"] = sources
         return state
 
     def analyze_information(self, state: AgentState) -> AgentState:
+        """Analyze gathered sources to extract key information.
+
+        Args:
+            state: Agent state containing the sources to analyze
+
+        Returns:
+            Updated state with analysis results
+        """
         analysis = self.research_agent.analyze_information(state["sources"])
         state["analysis"] = analysis
         return state
 
     def need_more_sources(self, state: AgentState) -> bool:
+        """Determine if additional sources are needed for the research.
+
+        Args:
+            state: Agent state containing the current analysis
+
+        Returns:
+            True if more sources are needed, False otherwise
+        """
         return self.research_agent.need_more_sources(state["analysis"])
 
     def synthesize_findings(self, state: AgentState) -> AgentState:
+        """Synthesize analyzed information into coherent findings.
+
+        Args:
+            state: Agent state containing the analysis to synthesize
+
+        Returns:
+            Updated state with synthesized findings
+        """
         synthesis = self.research_agent.synthesize_findings(state["analysis"])
         state["synthesis"] = synthesis
         return state
 
     def generate_report(self, state: AgentState) -> AgentState:
+        """Generate a comprehensive research report.
+
+        Args:
+            state: Agent state containing the synthesized findings
+
+        Returns:
+            Updated state with generated report in the response field
+        """
         report = self.research_agent.generate_report(state["synthesis"])
         state["response"] = report
         return state
+
 
 research_graph = ResearchGraph()
 

@@ -13,6 +13,7 @@ import httpx
 from PIL import Image
 
 from democracy_exe.ai.base import AgentState, BaseAgent
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.clients.tweetpik import TweetPikClient
 from democracy_exe.shell import run_coroutine_subprocess
 
@@ -34,9 +35,7 @@ class SocialMediaAgent(BaseAgent):
         Raises:
             ValueError: If TWEETPIK_API_KEY is not set in environment variables.
         """
-        if "TWEETPIK_API_KEY" not in os.environ:
-            raise ValueError("TWEETPIK_API_KEY environment variable is not set")
-        self.tweetpik_client = TweetPikClient(os.environ["TWEETPIK_API_KEY"])
+        self.tweetpik_client = TweetPikClient(aiosettings.tweetpik_api_key.get_secret_value())
 
     def fetch_tweet(self, tweet_url: str) -> dict[str, Any]:
         """Fetch tweet data from URL.

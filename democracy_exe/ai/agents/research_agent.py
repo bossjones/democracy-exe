@@ -10,6 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 from democracy_exe.ai.base import AgentState, BaseAgent
+from democracy_exe.aio_settings import aiosettings
 
 
 class ResearchAgent(BaseAgent):
@@ -29,13 +30,14 @@ class ResearchAgent(BaseAgent):
         Raises:
             ValueError: If required API keys are not set in environment variables.
         """
-        if "TAVILY_API_KEY" not in os.environ:
-            raise ValueError("TAVILY_API_KEY environment variable is not set")
-        if "OPENAI_API_KEY" not in os.environ:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-
-        self.search_tool = TavilySearchResults(max_results=5)
-        self.llm = ChatOpenAI(temperature=0.7)
+        self.search_tool = TavilySearchResults(
+            api_key=aiosettings.tavily_api_key.get_secret_value(),
+            max_results=5
+        )
+        self.llm = ChatOpenAI(
+            openai_api_key=aiosettings.openai_api_key.get_secret_value(),
+            temperature=0.7
+        )
 
     def plan_research(self, query: str) -> list[str]:
         """Create a structured research plan from the initial query.

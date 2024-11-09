@@ -460,25 +460,18 @@ class AioSettings(BaseSettings):
 
     # Variables for ChromaDB
 
-    # client = chromadb.HttpClient(host="localhost", port="9010", settings=Settings(allow_reset=True))
+
     chroma_host: str = "localhost"
     chroma_port: str = "9010"
     enable_chroma: bool = True
 
     dev_mode: bool = Field(env="DEV_MODE", description="enable dev mode", default=False)
-    # azure_openai_api_key: str
-    # openai_api_type: str
-    # openai_api_version: str
-    # azure_deployment: str
-    # azure_openai_endpoint: str
+
     llm_temperature: float = 0.0
-    # vision_model: str = "gpt-4-turbo"
+
     vision_model: str = "gpt-4o"
     chat_model: str = "gpt-4o-mini"
-    # DISABLED: # vision_model: str = "gpt-4-vision-preview"
-    # DISABLED: # chat_model: str = "gpt-4o-2024-05-13"
-    # chat_model: str = "gpt-3.5-turbo-0125"
-    # chat_model: str = "gpt-3.5-turbo-16k" # note another option
+
     chat_history_buffer: int = 10
 
     retry_stop_after_attempt: int = 3
@@ -502,7 +495,7 @@ class AioSettings(BaseSettings):
     anthropic_api_key: SecretStr = Field(env="ANTHROPIC_API_KEY", description="claude api key", default="")
     groq_api_key: SecretStr = Field(env="GROQ_API_KEY", description="groq api key", default="")
     cohere_api_key: SecretStr = Field(env="COHERE_API_KEY", description="cohere api key", default="")
-    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="tavily api key", default="")
+    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="Tavily API key", default="")
     brave_search_api_key: SecretStr = Field(env="BRAVE_SEARCH_API_KEY", description="Brave Search API key", default="")
 
     langchain_endpoint: str = Field(
@@ -646,16 +639,7 @@ class AioSettings(BaseSettings):
         "max_tokens": 2000
     }"""
 
-    # vectorstore_default_settings: {"sklearn": {"documents":[], "embedding": }}
-    # Variables for Postgres/pgvector
-    # CONNECTION_STRING = PGVector.connection_string_from_db_params(
-    #     driver=os.environ.get("PGVECTOR_DRIVER", "psycopg"),
-    #     host=os.environ.get("PGVECTOR_HOST", "localhost"),
-    #     port=int(os.environ.get("PGVECTOR_PORT", "6432")),
-    #     database=os.environ.get("PGVECTOR_DATABASE", "langchain"),
-    #     user=os.environ.get("PGVECTOR_USER", "langchain"),
-    #     password=os.environ.get("PGVECTOR_PASSWORD", "langchain"),
-    # )
+
     postgres_host: str = "localhost"
     postgres_port: int = 8432
     postgres_password: str | None = "langchain"
@@ -675,30 +659,6 @@ class AioSettings(BaseSettings):
     summ_token_splitter: int = 4000
     summ_token_overlap: int = 500
 
-    # # OpenAI model settings
-    # openai_model_zoo: set[str] = Field(
-    #     env="OPENAI_MODEL_ZOO",
-    #     description="Set of all available models and embeddings",
-    #     default_factory=lambda: MODEL_ZOO,
-    # )
-    # openai_model_config: dict[str, dict[str, Union[int, float]]] = Field(
-    #     env="OPENAI_MODEL_CONFIG", description="Configuration for all models", default_factory=lambda: MODEL_CONFIG
-    # )
-    # openai_model_point: dict[str, str] = Field(
-    #     env="OPENAI_MODEL_POINT",
-    #     description="Mapping of model names to their latest version",
-    #     default_factory=lambda: MODEL_POINT,
-    # )
-    # openai_model_point_config: dict[str, dict[str, Union[int, float]]] = Field(
-    #     env="OPENAI_MODEL_POINT_CONFIG",
-    #     description="Configuration for the latest version of each model",
-    #     default_factory=lambda: _MODEL_POINT_CONFIG,
-    # )
-    # openai_embedding_model_dimensions_data: dict[str, int] = Field(
-    #     env="OPENAI_EMBEDDING_MODEL_DIMENSIONS_DATA",
-    #     description="Dimensions of each embedding model",
-    #     default_factory=lambda: EMBEDDING_MODEL_DIMENSIONS_DATA,
-    # )
     sklearn_persist_path: str = Field(
         env="SKLEARN_PERSIST_PATH",
         description="Path to persist the SKLearn vector store",
@@ -806,6 +766,8 @@ class AioSettings(BaseSettings):
     agent_type: Literal["plan_and_execute", "basic", "advanced", "adaptive_rag"] = Field(
         env="AGENT_TYPE", description="Type of agent to use", default="adaptive_rag"
     )
+
+    tweetpik_api_key: SecretStr = Field(env="TWEETPIK_API_KEY", description="TweetPik API key", default="")
 
     @model_validator(mode="before")
     @classmethod

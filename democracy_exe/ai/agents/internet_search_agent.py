@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import os
-
 from typing import Dict, List
 
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from democracy_exe.ai.base import AgentState, BaseAgent
+from democracy_exe.aio_settings import aiosettings
 
 
 class InternetSearchAgent(BaseAgent):
@@ -20,11 +19,8 @@ class InternetSearchAgent(BaseAgent):
     """
 
     def __init__(self):
-        # Ensure you have set the TAVILY_API_KEY environment variable
-        if "TAVILY_API_KEY" not in os.environ:
-            raise ValueError("TAVILY_API_KEY environment variable is not set")
-
         self.search_tool = TavilySearchResults(
+            api_key=aiosettings.tavily_api_key.get_secret_value(),
             max_results=5,
             include_answer=True,
             include_raw_content=True,

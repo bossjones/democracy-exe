@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from langgraph.graph import Graph
 
 from democracy_exe.ai.agents.internet_search_agent import InternetSearchAgent
@@ -7,11 +9,32 @@ from democracy_exe.ai.base import AgentNode, AgentState, BaseGraph
 
 
 class InternetSearchGraph(BaseGraph):
-    def __init__(self):
+    """Graph for orchestrating internet search operations.
+
+    This graph manages the flow of internet search operations through multiple stages:
+    query parsing, search execution, and results processing. It coordinates these
+    operations using a directed graph structure where each node represents a specific
+    search stage.
+
+    Attributes:
+        search_agent: Instance of InternetSearchAgent that performs the actual
+            search operations
+    """
+
+    def __init__(self) -> None:
+        """Initialize the internet search graph with its agent."""
         super().__init__()
         self.search_agent = InternetSearchAgent()
 
     def build(self) -> Graph:
+        """Construct the internet search workflow graph.
+
+        Creates a directed graph with nodes for each search stage and edges
+        defining the flow between stages.
+
+        Returns:
+            Configured LangGraph Graph instance ready for execution
+        """
         # Add search agent node
         self.graph.add_node("search", AgentNode(self.search_agent))
 
@@ -32,26 +55,63 @@ class InternetSearchGraph(BaseGraph):
         return self.graph
 
     def process(self, state: AgentState) -> AgentState:
+        """Process a search request through the search workflow.
+
+        Args:
+            state: Current agent state containing the search query
+
+        Returns:
+            Updated agent state with search results
+        """
         compiled_graph = self.compile()
         return compiled_graph(state)
 
     def parse_query(self, state: AgentState) -> AgentState:
-        # Implement query parsing logic
+        """Parse and preprocess the search query.
+
+        Processes the raw query string to optimize it for search execution.
+
+        Args:
+            state: Agent state containing the raw query
+
+        Returns:
+            Updated state with parsed query
+        """
         parsed_query = self.search_agent.parse_query(state["query"])
         state["parsed_query"] = parsed_query
         return state
 
     def execute_search(self, state: AgentState) -> AgentState:
-        # Implement search execution logic
+        """Execute the search using the parsed query.
+
+        Performs the actual internet search operation using the search agent.
+
+        Args:
+            state: Agent state containing the parsed query
+
+        Returns:
+            Updated state with search results
+        """
         search_results = self.search_agent.execute_search(state["parsed_query"])
         state["search_results"] = search_results
         return state
 
     def process_results(self, state: AgentState) -> AgentState:
-        # Implement results processing logic
+        """Process and format the search results.
+
+        Processes raw search results into a formatted response suitable for
+        presentation to the user.
+
+        Args:
+            state: Agent state containing the search results
+
+        Returns:
+            Updated state with processed results in the response field
+        """
         processed_results = self.search_agent.process_results(state["search_results"])
         state["response"] = processed_results
         return state
+
 
 internet_search_graph = InternetSearchGraph()
 

@@ -657,3 +657,25 @@ uv_mkdir_site:
 uv_deploy_docs:
     just uv_mkdir_site
     just uv_gh_deploy
+
+# Add bespoke adobe concepts to cursor context
+add-cursor-context:
+	mkdir -p democracy_exe/vendored || true
+	gh repo clone universityofprofessorex/cerebro-bot democracy_exe/vendored/cerebro-bot || true && cd democracy_exe/vendored/cerebro-bot && git checkout feature-discord-utils && cd ../../..
+	gh repo clone bossjones/sandbox_agent democracy_exe/vendored/sandbox_agent || true
+	gh repo clone langchain-ai/retrieval-agent-template democracy_exe/vendored/retrieval-agent-template || true
+	gh repo clone langchain-ai/rag-research-agent-template democracy_exe/vendored/rag-research-agent-template || true
+	gh repo clone langchain-ai/memory-template democracy_exe/vendored/memory-template || true
+	gh repo clone langchain-ai/react-agent democracy_exe/vendored/react-agent || true
+	gh repo clone langchain-ai/chat-langchain democracy_exe/vendored/chat-langchain || true
+	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
+
+# Remove cursor context
+	rm -rf democracy_exe/vendored/cerebro-bot/.git
+	rm -rf democracy_exe/vendored/sandbox_agent/.git
+	rm -rf democracy_exe/vendored/retrieval-agent-template/.git
+	rm -rf democracy_exe/vendored/rag-research-agent-template/.git
+	rm -rf democracy_exe/vendored/memory-template/.git
+	rm -rf democracy_exe/vendored/react-agent/.git
+	rm -rf democracy_exe/vendored/chat-langchain/.git
+	rm -rf democracy_exe/vendored/goob_ai/.git

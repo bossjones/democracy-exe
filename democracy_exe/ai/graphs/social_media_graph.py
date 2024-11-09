@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Dict, Literal, Optional, Union
+
 from langgraph.graph import Graph
 
 from democracy_exe.ai.agents.social_media_agent import SocialMediaAgent
@@ -7,74 +9,142 @@ from democracy_exe.ai.base import AgentNode, AgentState, BaseGraph
 
 
 class SocialMediaGraph(BaseGraph):
-    def __init__(self):
+    """Graph for orchestrating social media content processing operations.
+
+    This graph manages the flow of social media operations through multiple stages:
+    content fetching, media processing (screenshots/videos), and formatting.
+    It coordinates these operations using a directed graph structure where each
+    node represents a specific processing stage.
+
+    Attributes:
+        social_media_agent: Instance of SocialMediaAgent that performs the actual
+            social media operations
+    """
+
+    def __init__(self) -> None:
+        """Initialize the social media graph with its agent."""
         super().__init__()
         self.social_media_agent = SocialMediaAgent()
 
     def build(self) -> Graph:
+        """Construct the social media processing workflow graph.
+
+        Creates a directed graph with nodes for each processing stage and edges
+        defining the flow between stages. Includes conditional edges for
+        different types of media content.
+
+        Returns:
+            Configured LangGraph Graph instance ready for execution
+        """
         # Add social media agent node
-        self.graph.add_node("social_media", AgentNode(self.social_media_agent))
+        self.graph.add_node("process_media", AgentNode(self.social_media_agent))
 
-        # Add nodes for different social media tasks
-        self.graph.add_node("fetch_tweet", self.fetch_tweet)
-        self.graph.add_node("take_screenshot", self.take_screenshot)
-        self.graph.add_node("identify_regions", self.identify_regions)
-        self.graph.add_node("crop_image", self.crop_image)
-        self.graph.add_node("download_video", self.download_video)
+        # Add nodes for different processing stages
+        self.graph.add_node("fetch_content", self.fetch_content)
+        self.graph.add_node("process_video", self.process_video)
+        self.graph.add_node("process_image", self.process_image)
+        self.graph.add_node("format_output", self.format_output)
 
-        # Add edges to create the social media task flow
-        self.graph.add_edge("social_media", "fetch_tweet")
-        self.graph.add_edge("fetch_tweet", "take_screenshot")
-        self.graph.add_edge("take_screenshot", "identify_regions")
-        self.graph.add_edge("identify_regions", "crop_image")
-        self.graph.add_edge("crop_image", "social_media")
+        # Add conditional edges based on content type
+        self.graph.add_conditional_edges(
+            "fetch_content",
+            self.determine_content_type,
+            {
+                "video": "process_video",
+                "image": "process_image"
+            }
+        )
 
-        # Add conditional edge for video download
-        self.graph.add_conditional_edges("fetch_tweet", self.is_video_tweet,
-                                        {True: "download_video", False: "take_screenshot"})
-        self.graph.add_edge("download_video", "social_media")
+        # Add remaining edges
+        self.graph.add_edge("process_media", "fetch_content")
+        self.graph.add_edge("process_video", "format_output")
+        self.graph.add_edge("process_image", "format_output")
+        self.graph.add_edge("format_output", "process_media")
 
         # Set the entry point
-        self.graph.set_entry_point("social_media")
+        self.graph.set_entry_point("process_media")
 
         return self.graph
 
     def process(self, state: AgentState) -> AgentState:
+        """Process a social media content request through the workflow.
+
+        Args:
+            state: Current agent state containing the content URL or data
+
+        Returns:
+            Updated agent state with processing results
+        """
         compiled_graph = self.compile()
         return compiled_graph(state)
 
-    def fetch_tweet(self, state: AgentState) -> AgentState:
-        tweet_data = self.social_media_agent.fetch_tweet(state["tweet_url"])
-        state["tweet_data"] = tweet_data
+    def fetch_content(self, state: AgentState) -> AgentState:
+        """Fetch content data from the provided URL.
+
+        Args:
+            state: Agent state containing the content URL
+
+        Returns:
+            Updated state with fetched content data
+        """
+        content_data = self.social_media_agent.fetch_tweet(state["url"])
+        state["content_data"] = content_data
         return state
 
-    def is_video_tweet(self, state: AgentState) -> bool:
-        return self.social_media_agent.is_video_tweet(state["tweet_data"])
+    def determine_content_type(self, state: AgentState) -> Literal["video", "image"]:
+        """Determine the type of content to be processed.
 
-    def take_screenshot(self, state: AgentState) -> AgentState:
-        screenshot = self.social_media_agent.take_screenshot(state["tweet_data"])
-        state["screenshot"] = screenshot
+        Args:
+            state: Agent state containing the content data
+
+        Returns:
+            String indicating content type ("video" or "image")
+        """
+        is_video = self.social_media_agent.is_video_tweet(state["content_data"])
+        return "video" if is_video else "image"
+
+    async def process_video(self, state: AgentState) -> AgentState:
+        """Process video content from the social media post.
+
+        Args:
+            state: Agent state containing the video content data
+
+        Returns:
+            Updated state with processed video data
+        """
+        video_path = await self.social_media_agent.download_video(state["url"])
+        state["processed_content"] = video_path
         return state
 
-    def identify_regions(self, state: AgentState) -> AgentState:
-        regions = self.social_media_agent.identify_regions(state["screenshot"])
-        state["important_regions"] = regions
+    async def process_image(self, state: AgentState) -> AgentState:
+        """Process image content from the social media post.
+
+        Args:
+            state: Agent state containing the image content data
+
+        Returns:
+            Updated state with processed image data
+        """
+        screenshot = await self.social_media_agent.take_screenshot(state["url"])
+        state["processed_content"] = screenshot
         return state
 
-    def crop_image(self, state: AgentState) -> AgentState:
-        cropped_image = self.social_media_agent.crop_image(
-            state["screenshot"],
-            state["important_regions"],
-            aspect_ratio=(1, 1),
-            target_size=(1080, 1350)
-        )
-        state["response"] = cropped_image
+    def format_output(self, state: AgentState) -> AgentState:
+        """Format the processed content for final output.
+
+        Args:
+            state: Agent state containing the processed content
+
+        Returns:
+            Updated state with formatted content in the response field
+        """
+        content_type = self.determine_content_type(state)
+        if content_type == "video":
+            state["response"] = f"Video processed and saved to: {state['processed_content']}"
+        else:
+            state["response"] = f"Image processed and saved with size: {len(state['processed_content'])} bytes"
         return state
 
-    def download_video(self, state: AgentState) -> AgentState:
-        video_path = self.social_media_agent.download_video(state["tweet_data"])
-        state["response"] = video_path
-        return state
 
 social_media_graph = SocialMediaGraph()
 

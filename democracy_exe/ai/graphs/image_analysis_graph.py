@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from langgraph.graph import Graph
 
 from democracy_exe.ai.agents.image_analysis_agent import ImageAnalysisAgent
@@ -7,11 +9,31 @@ from democracy_exe.ai.base import AgentNode, AgentState, BaseGraph
 
 
 class ImageAnalysisGraph(BaseGraph):
-    def __init__(self):
+    """Graph for orchestrating image analysis workflow.
+
+    This graph manages the flow of image analysis operations through multiple stages:
+    preprocessing, object detection, classification, and description generation.
+    It coordinates these operations using a directed graph structure where each node
+    represents a specific analysis stage.
+
+    Attributes:
+        image_agent: Instance of ImageAnalysisAgent that performs the actual analysis operations
+    """
+
+    def __init__(self) -> None:
+        """Initialize the image analysis graph with its agent."""
         super().__init__()
         self.image_agent = ImageAnalysisAgent()
 
     def build(self) -> Graph:
+        """Construct the image analysis workflow graph.
+
+        Creates a directed graph with nodes for each analysis stage and edges
+        defining the flow between stages.
+
+        Returns:
+            Configured LangGraph Graph instance ready for execution
+        """
         # Add image analysis agent node
         self.graph.add_node("analyze", AgentNode(self.image_agent))
 
@@ -34,32 +56,72 @@ class ImageAnalysisGraph(BaseGraph):
         return self.graph
 
     def process(self, state: AgentState) -> AgentState:
+        """Process an image through the analysis workflow.
+
+        Args:
+            state: Current agent state containing the image to analyze
+
+        Returns:
+            Updated agent state with analysis results
+        """
         compiled_graph = self.compile()
         return compiled_graph(state)
 
     def preprocess_image(self, state: AgentState) -> AgentState:
-        # Implement image preprocessing logic
+        """Preprocess the input image for analysis.
+
+        Performs initial image processing operations like resizing, normalization,
+        or format conversion.
+
+        Args:
+            state: Agent state containing the raw image
+
+        Returns:
+            Updated state with preprocessed image
+        """
         preprocessed_image = self.image_agent.preprocess_image(state["image"])
         state["preprocessed_image"] = preprocessed_image
         return state
 
     def detect_objects(self, state: AgentState) -> AgentState:
-        # Implement object detection logic
+        """Detect and locate objects within the preprocessed image.
+
+        Args:
+            state: Agent state containing the preprocessed image
+
+        Returns:
+            Updated state with detected objects information
+        """
         detected_objects = self.image_agent.detect_objects(state["preprocessed_image"])
         state["detected_objects"] = detected_objects
         return state
 
     def classify_image(self, state: AgentState) -> AgentState:
-        # Implement image classification logic
+        """Classify the image content and identify key elements.
+
+        Args:
+            state: Agent state containing the preprocessed image
+
+        Returns:
+            Updated state with image classification results
+        """
         classification = self.image_agent.classify_image(state["preprocessed_image"])
         state["classification"] = classification
         return state
 
     def generate_description(self, state: AgentState) -> AgentState:
-        # Implement description generation logic
+        """Generate a natural language description of the image analysis results.
+
+        Args:
+            state: Agent state containing classification results
+
+        Returns:
+            Updated state with generated description in the response field
+        """
         description = self.image_agent.generate_description(state["classification"])
         state["response"] = description
         return state
+
 
 image_analysis_graph = ImageAnalysisGraph()
 
