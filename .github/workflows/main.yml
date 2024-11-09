@@ -75,6 +75,30 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Set up the environment
         uses: ./.github/actions/setup-python-env
+
+      - name: install tesseract
+        run: |
+          sudo apt update
+          sudo apt-get -y install --no-install-recommends  python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake
+          sudo apt-get install -y --no-install-recommends aria2 aria2
+          sudo apt-get update --fix-missing && sudo apt-get install -y --fix-missing build-essential gcc g++ cmake autoconf
+          sudo apt-get install -y libmagic-dev poppler-utils libreoffice
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por zsh
+          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
+
+      - name: install tesseract and ffmpeg
+        run: |
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por libyaml-dev poppler-utils libomp-dev
+          sudo apt install ffmpeg -y
+          sudo apt-get install autoconf automake build-essential libtool python3-dev libsqlite3-dev -y
+          sudo apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev \
+          libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+          xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
+
+      - uses: extractions/setup-just@v1
+        with:
+          just-version: 1.36.0  # optional semver specification, otherwise latest
+
       - name: install tesseract and ffmpeg
         run: |
           sudo apt-get update
@@ -100,8 +124,19 @@ jobs:
           # Use registered public SSH key(s)
           # If you have registered one or more public SSH keys with your GitHub profile, tmate will be started such that only those keys are authorized to connect, otherwise anybody can connect to the tmate session. If you want to require a public SSH key to be installed with the tmate session, no matter whether the user who started the workflow has registered any in their GitHub profile, you will need to configure the setting limit-access-to-actor to true, like so:
           limit-access-to-actor: true
-      - name: Run checks
-        run: make check
+
+      # FIXME: enable this again when you have the rest working
+      # - name: Run checks
+      #   run: make check
+
+      - name: Run ci
+        run: |
+          echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+          uv lock --locked
+          echo "🚀 Linting code: Running pre-commit"
+          uv run pre-commit run -a
+          make ci
+
   tests-and-type-check:
     runs-on: ubuntu-latest
     strategy:
@@ -172,15 +207,20 @@ jobs:
           xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
           sudo apt-get install libpq5 -y
           curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
-      - name: Run tests
+
+      - name: Run tests and type check
         run: make ci
+
       # - name: Run tests
       #   run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
-      - name: Check typing
-        run: uv run mypy
-      - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11
-        uses: codecov/codecov-action@v4
-        if: ${{ matrix.python-version == '3.11' }}
+
+      # - name: Check typing
+      #   run: uv run mypy
+
+      # FIXME: enable this again when you have the rest working
+      # - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11
+      #   uses: codecov/codecov-action@v4
+      #   if: ${{ matrix.python-version == '3.11' }}
   check-docs:
     runs-on: ubuntu-latest
     steps:
