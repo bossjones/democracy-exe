@@ -1,24 +1,54 @@
 from __future__ import annotations
 
-from typing import Any, Optional, TypedDict
+from typing import Any, Dict, Optional, TypedDict
 
 from pydantic import BaseModel, Field
 
 
 class AgentState(TypedDict):
+    """State dictionary for tracking agent interactions.
+
+    Attributes:
+        query: The original query text
+        response: The current response text
+        current_agent: Name of the currently active agent
+        context: Additional context dictionary
+    """
     query: str
     response: str
     current_agent: str
     context: dict[str, Any]
 
+
 class Query(BaseModel):
+    """Model representing an input query.
+
+    Attributes:
+        text: The query text
+        context: Optional dictionary of additional context
+    """
     text: str
     context: dict[str, Any] | None = Field(default_factory=dict)
 
+
 class Response(BaseModel):
+    """Model representing the response output.
+
+    Attributes:
+        text: The response text
+    """
     text: str
 
+
 def create_initial_state(query: Query) -> AgentState:
+    """Create initial agent state from a query.
+
+    Args:
+        query: The input Query object
+
+    Returns:
+        AgentState with initialized values
+    """
     return {
         "query": query.text,
         "response": "",
@@ -26,12 +56,32 @@ def create_initial_state(query: Query) -> AgentState:
         "context": query.context
     }
 
+
 def update_state(state: AgentState, key: str, value: Any) -> AgentState:
+    """Update a specific key in the agent state.
+
+    Args:
+        state: Current agent state
+        key: Key to update
+        value: New value for the key
+
+    Returns:
+        New AgentState with updated value
+    """
     new_state = state.copy()
     new_state[key] = value
     return new_state
 
+
 def get_response(state: AgentState) -> Response:
+    """Extract response from final state.
+
+    Args:
+        state: Final agent state
+
+    Returns:
+        Response object containing the response text
+    """
     return Response(text=state["response"])
 
 

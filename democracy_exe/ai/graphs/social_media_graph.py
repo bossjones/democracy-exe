@@ -30,7 +30,7 @@ class SocialMediaGraph(BaseGraph):
         self.graph.add_edge("crop_image", "social_media")
 
         # Add conditional edge for video download
-        self.graph.add_conditional_edge("fetch_tweet", self.is_video_tweet,
+        self.graph.add_conditional_edges("fetch_tweet", self.is_video_tweet,
                                         {True: "download_video", False: "take_screenshot"})
         self.graph.add_edge("download_video", "social_media")
 
