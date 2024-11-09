@@ -57,10 +57,7 @@ class ImageAnalysisGraph(BaseGraph):
 
     def generate_description(self, state: AgentState) -> AgentState:
         # Implement description generation logic
-        description = self.image_agent.generate_description(
-            state["preprocessed_image"],
-            state["detected_objects"]
-        )
+        description = self.image_agent.generate_description(state["classification"])
         state["response"] = description
         return state
 

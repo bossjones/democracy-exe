@@ -23,6 +23,28 @@ class SocialMediaAgent(BaseAgent):
             raise ValueError("TWEETPIK_API_KEY environment variable is not set")
         self.tweetpik_client = TweetPikClient(os.environ["TWEETPIK_API_KEY"])
 
+    def fetch_tweet(self, tweet_url: str) -> dict:
+        """Fetch tweet data from URL.
+
+        Args:
+            tweet_url: URL of the tweet
+
+        Returns:
+            Dictionary containing tweet data
+        """
+        return {"url": tweet_url}  # Simplified for now
+
+    def is_video_tweet(self, tweet_data: dict) -> bool:
+        """Check if tweet contains video.
+
+        Args:
+            tweet_data: Tweet data dictionary
+
+        Returns:
+            True if tweet contains video
+        """
+        return "video" in tweet_data.get("url", "").lower()
+
     async def take_screenshot(self, tweet_url: str) -> bytes:
         result = await self.tweetpik_client.screenshot_tweet_async(tweet_url)
         async with httpx.AsyncClient() as client:

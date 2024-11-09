@@ -37,6 +37,17 @@ class ImageAnalysisAgent(BaseAgent):
         top5_prob, top5_catid = torch.topk(probabilities, 5)
         return [(self.classes[idx], prob.item()) for idx, prob in zip(top5_catid, top5_prob, strict=False)]
 
+    def detect_objects(self, image_tensor: torch.Tensor) -> list[tuple[str, float]]:
+        """Detect objects in the image using the model.
+
+        Args:
+            image_tensor: Preprocessed image tensor
+
+        Returns:
+            List of (object_class, confidence) tuples
+        """
+        return self.classify_image(image_tensor)  # Using classification as object detection for now
+
     def generate_description(self, classifications: list[tuple[str, float]]) -> str:
         description = "This image appears to contain:\n"
         for cls, prob in classifications:
