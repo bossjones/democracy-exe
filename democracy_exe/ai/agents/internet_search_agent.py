@@ -10,6 +10,15 @@ from democracy_exe.ai.base import AgentState, BaseAgent
 
 
 class InternetSearchAgent(BaseAgent):
+    """Agent for performing internet searches using Tavily API.
+
+    This agent uses the TavilySearchResults tool from LangChain to perform web searches
+    and process the results into a readable format.
+
+    Raises:
+        ValueError: If TAVILY_API_KEY environment variable is not set.
+    """
+
     def __init__(self):
         # Ensure you have set the TAVILY_API_KEY environment variable
         if "TAVILY_API_KEY" not in os.environ:
@@ -23,14 +32,39 @@ class InternetSearchAgent(BaseAgent):
         )
 
     def parse_query(self, query: str) -> str:
-        # Implement any query preprocessing here
+        """Preprocess the search query.
+
+        Args:
+            query: Raw search query string.
+
+        Returns:
+            Processed query string with whitespace stripped.
+        """
         return query.strip()
 
     def execute_search(self, query: str) -> list[dict[str, str]]:
+        """Execute search using Tavily API.
+
+        Args:
+            query: Search query string.
+
+        Returns:
+            List of search results, where each result is a dictionary containing
+            'title', 'snippet', and 'url' keys.
+        """
         search_results = self.search_tool.invoke({"query": query})
         return search_results.get("results", [])
 
     def process_results(self, results: list[dict[str, str]]) -> str:
+        """Process search results into a formatted string.
+
+        Args:
+            results: List of search result dictionaries.
+
+        Returns:
+            Formatted string containing numbered search results with titles,
+            descriptions, and URLs.
+        """
         if not results:
             return "I couldn't find any relevant information."
 
@@ -42,6 +76,14 @@ class InternetSearchAgent(BaseAgent):
         return response
 
     def process(self, state: AgentState) -> AgentState:
+        """Process the agent state by performing a search and updating results.
+
+        Args:
+            state: Current agent state containing the search query.
+
+        Returns:
+            Updated agent state with search results in the response field.
+        """
         query = self.parse_query(state["query"])
         search_results = self.execute_search(query)
         processed_results = self.process_results(search_results)

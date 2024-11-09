@@ -6,16 +6,49 @@ from democracy_exe.ai.base import AgentState, BaseAgent
 
 
 class MemoryAgent(BaseAgent):
-    def __init__(self):
+    """Agent for storing and retrieving key-value information in memory.
+
+    This agent provides a simple memory storage system that can remember and recall
+    information based on user queries. It supports commands like 'remember' and 'recall'
+    to store and retrieve values respectively.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the memory agent with an empty storage dictionary."""
         self.memory_storage: dict[str, Any] = {}
 
     def store(self, key: str, value: Any) -> None:
+        """Store a value in memory under the specified key.
+
+        Args:
+            key: The identifier to store the value under
+            value: The value to store
+        """
         self.memory_storage[key] = value
 
     def retrieve(self, key: str) -> Any:
+        """Retrieve a value from memory by its key.
+
+        Args:
+            key: The identifier of the value to retrieve
+
+        Returns:
+            The stored value if found, None otherwise
+        """
         return self.memory_storage.get(key, None)
 
     def process(self, state: AgentState) -> AgentState:
+        """Process user queries to store or retrieve information.
+
+        Handles commands starting with 'remember'/'store' for storing information
+        and 'recall'/'retrieve' for retrieving information.
+
+        Args:
+            state: Current agent state containing the user query
+
+        Returns:
+            Updated agent state with the response message
+        """
         query = state["query"].lower()
         if query.startswith("remember") or query.startswith("store"):
             parts = query.split(maxsplit=2)

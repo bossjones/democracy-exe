@@ -6,7 +6,7 @@ import io
 import json
 import os
 
-from typing import List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -18,34 +18,60 @@ from democracy_exe.shell import run_coroutine_subprocess
 
 
 class SocialMediaAgent(BaseAgent):
-    def __init__(self):
+    """Agent for processing social media content, particularly tweets.
+
+    This agent handles screenshot capture, video downloads, and image processing
+    for social media content. It uses TweetPik for capturing tweet screenshots
+    and gallery-dl for video downloads.
+
+    Raises:
+        ValueError: If TWEETPIK_API_KEY environment variable is not set.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the social media agent with TweetPik client.
+
+        Raises:
+            ValueError: If TWEETPIK_API_KEY is not set in environment variables.
+        """
         if "TWEETPIK_API_KEY" not in os.environ:
             raise ValueError("TWEETPIK_API_KEY environment variable is not set")
         self.tweetpik_client = TweetPikClient(os.environ["TWEETPIK_API_KEY"])
 
-    def fetch_tweet(self, tweet_url: str) -> dict:
+    def fetch_tweet(self, tweet_url: str) -> dict[str, Any]:
         """Fetch tweet data from URL.
 
         Args:
-            tweet_url: URL of the tweet
+            tweet_url: URL of the tweet to fetch
 
         Returns:
             Dictionary containing tweet data
         """
         return {"url": tweet_url}  # Simplified for now
 
-    def is_video_tweet(self, tweet_data: dict) -> bool:
+    def is_video_tweet(self, tweet_data: dict[str, Any]) -> bool:
         """Check if tweet contains video.
 
         Args:
             tweet_data: Tweet data dictionary
 
         Returns:
-            True if tweet contains video
+            True if tweet contains video, False otherwise
         """
         return "video" in tweet_data.get("url", "").lower()
 
     async def take_screenshot(self, tweet_url: str) -> bytes:
+        """Capture a screenshot of the tweet.
+
+        Args:
+            tweet_url: URL of the tweet to screenshot
+
+        Returns:
+            Screenshot image data as bytes
+
+        Raises:
+            httpx.HTTPError: If screenshot request fails
+        """
         result = await self.tweetpik_client.screenshot_tweet_async(tweet_url)
         async with httpx.AsyncClient() as client:
             response = await client.get(result["url"])
@@ -53,36 +79,61 @@ class SocialMediaAgent(BaseAgent):
         return response.content
 
     def identify_regions(self, image: Image.Image) -> list[tuple[int, int, int, int]]:
-        # This is a placeholder. In a real scenario, you'd use an object detection model to identify important regions
-        # For demonstration, we'll return a single region covering the whole image
+        """Identify important regions in the image.
+
+        Args:
+            image: PIL Image object to analyze
+
+        Returns:
+            List of tuples containing region coordinates (x1, y1, x2, y2)
+        """
+        # Placeholder implementation
         return [(0, 0, image.width, image.height)]
 
-    def crop_image(self, image: Image.Image, regions: list[tuple[int, int, int, int]],
-                   aspect_ratio: tuple[int, int], target_size: tuple[int, int]) -> Image.Image:
-        # For simplicity, we'll just crop to the first region and resize
+    def crop_image(
+        self,
+        image: Image.Image,
+        regions: list[tuple[int, int, int, int]],
+        aspect_ratio: tuple[int, int],
+        target_size: tuple[int, int]
+    ) -> Image.Image:
+        """Crop image to specified regions and resize.
+
+        Args:
+            image: PIL Image object to crop
+            regions: List of region coordinates to crop
+            aspect_ratio: Desired aspect ratio as (width, height)
+            target_size: Target size for the output image
+
+        Returns:
+            Cropped and resized PIL Image
+        """
         region = regions[0]
         cropped = image.crop(region)
         return cropped.resize(target_size)
 
-    # async def download_video(self, tweet_url: str) -> str:
-    #     cmd = f"gallery-dl {tweet_url}"
-    #     result = await run_coroutine_subprocess(cmd, tweet_url)
-    #     # Assuming gallery-dl downloads the video to the current directory
-    #     # You might need to parse the output to get the exact file name
-    #     return result.strip()
-
     async def download_video(self, tweet_url: str) -> str:
+        """Download video from tweet URL using gallery-dl.
+
+        Args:
+            tweet_url: URL of the tweet containing video
+
+        Returns:
+            Path to downloaded video file
+
+        Raises:
+            ValueError: If no files were downloaded
+        """
         cmd = f'gallery-dl --no-mtime -v --write-info-json --write-metadata "{tweet_url}"'
         result = await run_coroutine_subprocess(cmd, tweet_url)
 
-        # Parse the output to find the downloaded file
         lines = result.split('\n')
-        downloaded_files = [line.split(' ', 1)[-1] for line in lines if line.startswith('[download] Downloading')]
+        downloaded_files = [line.split(' ', 1)[-1] for line in lines
+                          if line.startswith('[download] Downloading')]
 
         if not downloaded_files:
             raise ValueError("No files were downloaded")
 
-        # Get the last jsonloaded file (assuming it's the video)
         video_path = downloaded_files[-1]
 
         # Read the info JSON file to get additional metadata
@@ -91,16 +142,23 @@ class SocialMediaAgent(BaseAgent):
             with open(info_json_path) as f:
                 info = json.load(f)
 
-            # You can extract additional information from the info JSON if needed
-            # For example: tweet_text = info.get('content', '')
-
         return video_path
 
     async def process(self, state: AgentState) -> AgentState:
+        """Process social media content based on the query.
+
+        Handles both video tweets and regular tweets, downloading videos or
+        capturing and processing screenshots as appropriate.
+
+        Args:
+            state: Current agent state containing the query (tweet URL)
+
+        Returns:
+            Updated agent state with processing results or error message
+        """
         try:
             tweet_url = state["query"]
 
-            # Check if it's a video tweet (this is a simplified check)
             if "video" in tweet_url.lower():
                 video_path = await self.download_video(tweet_url)
                 state["response"] = f"Video downloaded and saved to: {video_path}"
@@ -117,5 +175,6 @@ class SocialMediaAgent(BaseAgent):
             state["response"] = f"An error occurred while processing the tweet: {e!s}"
 
         return state
+
 
 social_media_agent = SocialMediaAgent()

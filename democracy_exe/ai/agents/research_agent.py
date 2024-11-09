@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from langchain.chains.llm import LLMChain
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -13,8 +13,22 @@ from democracy_exe.ai.base import AgentState, BaseAgent
 
 
 class ResearchAgent(BaseAgent):
-    def __init__(self):
-        # Ensure you have set the necessary API keys
+    """Agent for conducting comprehensive research on given topics.
+
+    This agent combines internet search capabilities with language model processing
+    to perform structured research. It follows a multi-step process: planning research,
+    gathering sources, analyzing information, and generating reports.
+
+    Raises:
+        ValueError: If TAVILY_API_KEY or OPENAI_API_KEY environment variables are not set.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the research agent with search tool and language model.
+
+        Raises:
+            ValueError: If required API keys are not set in environment variables.
+        """
         if "TAVILY_API_KEY" not in os.environ:
             raise ValueError("TAVILY_API_KEY environment variable is not set")
         if "OPENAI_API_KEY" not in os.environ:
@@ -24,6 +38,14 @@ class ResearchAgent(BaseAgent):
         self.llm = ChatOpenAI(temperature=0.7)
 
     def plan_research(self, query: str) -> list[str]:
+        """Create a structured research plan from the initial query.
+
+        Args:
+            query: The main research topic or question
+
+        Returns:
+            List of specific questions or subtopics to investigate
+        """
         plan_prompt = ChatPromptTemplate.from_template(
             "Given the research topic: {query}\n"
             "Create a list of 3-5 specific questions or subtopics to investigate."
@@ -33,6 +55,14 @@ class ResearchAgent(BaseAgent):
         return plan.split('\n')
 
     def gather_sources(self, research_plan: list[str]) -> list[dict[str, str]]:
+        """Gather relevant sources for each question in the research plan.
+
+        Args:
+            research_plan: List of research questions to investigate
+
+        Returns:
+            List of source dictionaries containing search results
+        """
         all_sources = []
         for question in research_plan:
             results = self.search_tool.invoke({"query": question})
@@ -40,6 +70,14 @@ class ResearchAgent(BaseAgent):
         return all_sources
 
     def analyze_information(self, sources: list[dict[str, str]]) -> str:
+        """Analyze gathered sources to extract key information.
+
+        Args:
+            sources: List of source dictionaries to analyze
+
+        Returns:
+            Analysis summary highlighting key points and potential conflicts
+        """
         analysis_prompt = ChatPromptTemplate.from_template(
             "Analyze the following information and provide a summary:\n"
             "{sources}\n"
@@ -51,11 +89,25 @@ class ResearchAgent(BaseAgent):
         return analysis_chain.run(sources=sources_text)
 
     def need_more_sources(self, analysis: str) -> bool:
-        """Determine if more sources are needed based on analysis."""
-        # Simple implementation - could be made more sophisticated
+        """Determine if additional research is needed.
+
+        Args:
+            analysis: Current analysis text
+
+        Returns:
+            True if more sources are needed, False otherwise
+        """
         return len(analysis) < 1000
 
     def synthesize_findings(self, analysis: str) -> str:
+        """Synthesize analyzed information into coherent findings.
+
+        Args:
+            analysis: Analyzed information text
+
+        Returns:
+            Synthesized findings with conclusions and suggestions
+        """
         synthesis_prompt = ChatPromptTemplate.from_template(
             "Based on the following analysis:\n"
             "{analysis}\n"
@@ -66,6 +118,14 @@ class ResearchAgent(BaseAgent):
         return synthesis_chain.run(analysis=analysis)
 
     def generate_report(self, synthesis: str) -> str:
+        """Generate a comprehensive research report.
+
+        Args:
+            synthesis: Synthesized findings text
+
+        Returns:
+            Formatted research report with introduction, findings, and conclusion
+        """
         report_prompt = ChatPromptTemplate.from_template(
             "Create a comprehensive research report based on the following synthesis:\n"
             "{synthesis}\n"
@@ -76,6 +136,14 @@ class ResearchAgent(BaseAgent):
         return report_chain.run(synthesis=synthesis)
 
     def process(self, state: AgentState) -> AgentState:
+        """Process the research request and generate a comprehensive report.
+
+        Args:
+            state: Current agent state containing the research query
+
+        Returns:
+            Updated agent state with the research report or error message
+        """
         query = state["query"]
         try:
             research_plan = self.plan_research(query)
@@ -88,17 +156,5 @@ class ResearchAgent(BaseAgent):
             state["response"] = f"An error occurred during the research process: {e!s}"
         return state
 
+
 research_agent = ResearchAgent()
-
-
-"""
-This research_agent.py file defines the ResearchAgent class, which is responsible for conducting in-depth research on a given topic. Here's a breakdown of its components:
-The agent uses both the TavilySearchResults tool for internet searches and the ChatOpenAI model for language processing tasks.
-The plan_research method creates a research plan by generating specific questions or subtopics to investigate.
-The gather_sources method uses the search tool to find relevant information for each question in the research plan.
-The analyze_information method processes the gathered sources and provides a summary and analysis.
-The synthesize_findings method takes the analysis and synthesizes the main findings and conclusions.
-The generate_report method creates a comprehensive research report based on the synthesis.
-The process method orchestrates the entire research process, handling potential errors and updating the state with the final research report.
-This implementation provides a structured approach to conducting research, combining internet search capabilities with language model processing to create more insightful and comprehensive results.
-"""
