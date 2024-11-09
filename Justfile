@@ -12,6 +12,7 @@ grep_cmd := if "{{os()}}" =~ "macos" { "ggrep" } else { "grep" }
 
 # Variables
 PYTHON := "uv run python"
+UV_RUN := "uv run"
 
 # Recipes
 # Install the virtual environment and install the pre-commit hooks
@@ -100,11 +101,11 @@ local-unittest:
 
 # Run all pre-commit hooks on all files
 pre-commit-run-all:
-	pre-commit run --all-files
+	uv run pre-commit run --all-files
 
 # Install pre-commit hooks
 pre-commit-install:
-	pre-commit install
+	uv run pre-commit install
 
 # Display the dependency tree of the project
 pipdep-tree:
@@ -134,7 +135,7 @@ fmt-markdown-pre-commit:
 
 # format pyproject.toml using taplo
 fmt-toml:
-	pre-commit run taplo-format --all-files
+	uv run pre-commit run taplo-format --all-files
 
 # SOURCE: https://github.com/PovertyAction/ipa-data-tech-handbook/blob/ed81492f3917ee8c87f5d8a60a92599a324f2ded/Justfile
 
@@ -191,7 +192,7 @@ sweep-init:
 
 # Download AI models from Dropbox
 download-models:
-	curl -L 'https://www.dropbox.com/s/im6ytahqgbpyjvw/ScreenNetV1.pth?dl=1' > src/democracy_exe/data/ScreenNetV1.pth
+	curl -L 'https://www.dropbox.com/s/im6ytahqgbpyjvw/ScreenNetV1.pth?dl=1' > data/ScreenNetV1.pth
 
 # Perform a dry run of dependency upgrades
 upgrade-dry-run:
@@ -264,11 +265,11 @@ gco:
 
 # Show diff for LangChain migration
 langchain-migrate-diff:
-    langchain-cli migrate --include-ipynb --diff src
+    langchain-cli migrate --include-ipynb --diff democracy_exe
 
 # Perform LangChain migration
 langchain-migrate:
-    langchain-cli migrate --include-ipynb src
+    langchain-cli migrate --include-ipynb democracy_exe
 
 # Get the ruff config
 get-ruff-config:
@@ -304,8 +305,340 @@ init-aicommits:
 
 # Run aider
 aider:
-	aider -c .aider.conf.yml --aiderignore .aiderignore
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore
 
 # Run aider with Claude
 aider-claude:
-	aider -c .aider.conf.yml --aiderignore .aiderignore --model 'anthropic/claude-3-5-sonnet-20241022'
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --model 'anthropic/claude-3-5-sonnet-20241022'
+
+
+
+
+# Create a token for authentication
+uv_create_token:
+    {{PYTHON}} -c "from democracy_exe.cli import create_token; create_token()"
+
+# Show current database state
+uv_db_current:
+    {{PYTHON}} -c "from democracy_exe.cli import db_current; db_current()"
+
+# Upgrade database to latest version
+uv_db_upgrade:
+    {{PYTHON}} -c "from democracy_exe.cli import db_upgrade; db_upgrade()"
+
+# Downgrade database to previous version
+uv_db_downgrade:
+    {{PYTHON}} -c "from democracy_exe.cli import db_downgrade; db_downgrade()"
+
+# Export a collection of data
+uv_export_collection:
+    {{PYTHON}} -c "from democracy_exe.cli import export_collection; export_collection()"
+
+# Import a collection of data
+uv_import_collection:
+    {{PYTHON}} -c "from democracy_exe.cli import import_collection; import_collection()"
+
+# Import a single file
+uv_import_file:
+    {{PYTHON}} -c "from democracy_exe.cli import import_file; import_file()"
+
+# Lint markdown files
+uv_lint_markdown:
+    {{UV_RUN}} pymarkdownlnt --disable-rules=MD013,MD034 scan README.md
+
+# Serve documentation locally
+uv_serve_docs:
+    {{UV_RUN}} mkdocs serve
+
+# Convert pylint configuration to ruff
+uv_pylint_to_ruff:
+    {{UV_RUN}} pylint-to-ruff
+
+# Start a simple HTTP server
+uv_http:
+    {{UV_RUN}} -m http.server 8008
+
+# Display current user
+uv_whoami:
+    whoami
+
+# Install missing mypy type stubs
+uv_mypy_missing:
+    {{UV_RUN}} mypy --install-types
+
+# Run pre-commit hooks on all files
+uv_fmt:
+    {{UV_RUN}} pre-commit run --all-files
+
+# Run pylint checks
+uv_pylint:
+    {{PYTHON}} -m invoke ci.pylint --everything
+
+# Run pylint with error-only configuration
+uv_pylint_error_only:
+    {{UV_RUN}} pylint --output-format=colorized --generated-members=torch.*,numpy.*,cv2.* --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
+
+# Run pylint on all files
+uv_lint_all:
+    {{PYTHON}} -m pylint -j4 --output-format=colorized --rcfile pyproject.toml tests democracy_exe
+
+# Run ruff linter
+uv_lint:
+    {{PYTHON}} -m ruff check --fix . --config=pyproject.toml
+
+# Run all typecheck tasks
+uv_typecheck:
+    just uv_typecheck_pyright
+    just uv_typecheck_mypy
+
+# Run Pyright type checker
+uv_typecheck_pyright:
+    {{UV_RUN}} pyright -p pyproject.toml .
+
+# Verify types using Pyright, ignoring external packages
+uv_typecheck_verify_types:
+    {{UV_RUN}} pyright --verifytypes democracy_exe --ignoreexternal --verbose
+
+# Run MyPy type checker and open coverage report
+uv_typecheck_mypy:
+    just uv_ci_mypy
+    just uv_open_mypy_coverage
+
+# Generate changelog draft
+uv_docs_changelog:
+    {{UV_RUN}} towncrier build --version main --draft
+
+# Run MyPy with various report formats
+uv_ci_mypy:
+    {{UV_RUN}} mypy --config-file=pyproject.toml --html-report typingcov --cobertura-xml-report typingcov_cobertura --xml-report typingcov_xml --txt-report typingcov_txt .
+
+# Open MyPy coverage report
+uv_open_mypy_coverage:
+    open typingcov/index.html
+
+# Open Zipkin UI
+uv_open_zipkin:
+    open http://127.0.0.1:9411
+
+# Open OpenTelemetry endpoint
+uv_open_otel:
+    open http://127.0.0.1:4317
+
+# Open test coverage report
+uv_open_coverage:
+    just local-open-coverage
+
+# Open pgAdmin
+uv_open_pgadmin:
+    open http://127.0.0.1:4000
+
+# Open Prometheus UI
+uv_open_prometheus:
+    open http://127.0.0.1:9999
+
+# Open Grafana UI
+uv_open_grafana:
+    open http://127.0.0.1:3333
+
+# Open Chroma UI
+uv_open_chroma:
+    open http://127.0.0.1:9010
+
+# Open ChromaDB Admin UI
+uv_open_chromadb_admin:
+    open http://127.0.0.1:4001
+
+# Open all UIs and reports
+uv_open_all:
+    just uv_open_mypy_coverage
+    just uv_open_chroma
+    just uv_open_zipkin
+    just uv_open_otel
+    just uv_open_pgadmin
+    just uv_open_prometheus
+    just uv_open_grafana
+    just uv_open_chromadb_admin
+    just uv_open_coverage
+
+
+# Run simple unit tests with coverage
+uv_unittests_simple:
+    {{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests in debug mode with extended output
+uv_unittests_debug:
+    {{UV_RUN}} pytest -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run service-related unit tests in debug mode
+uv_unittests_debug_services:
+    {{UV_RUN}} pytest -m services -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run pgvector-related unit tests in debug mode
+uv_unittests_debug_pgvector:
+    {{UV_RUN}} pytest -m pgvectoronly -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Profile unit tests in debug mode using pyinstrument
+uv_profile_unittests_debug:
+    {{UV_RUN}} pyinstrument -m pytest -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Profile unit tests in debug mode using py-spy
+uv_spy_unittests_debug:
+    {{UV_RUN}} py-spy top -- python -m pytest -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run standard unit tests with coverage
+uv_unittests:
+    {{UV_RUN}} pytest --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests with VCR in record mode
+uv_unittests_vcr_record:
+    {{UV_RUN}} pytest --record-mode=all --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests with VCR in rewrite mode
+uv_unittests_vcr_record_rewrite:
+    {{UV_RUN}} pytest --record-mode=rewrite --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests with VCR in once mode
+uv_unittests_vcr_record_once:
+    {{UV_RUN}} pytest --record-mode=once --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run all VCR recording tests
+uv_unittests_vcr_record_all: uv_unittests_vcr_record
+
+# Run final VCR recording tests (NOTE: this is the only one that works)
+uv_unittests_vcr_record_final: uv_unittests_vcr_record
+
+# Run simple tests without warnings
+uv_test_simple:
+    {{UV_RUN}} pytest -p no:warnings
+
+# Alias for simple tests without warnings
+uv_simple_test:
+    {{UV_RUN}} pytest -p no:warnings
+
+# Run unit tests in debug mode with extended output
+uv_new_unittests_debug:
+    {{UV_RUN}} pytest -s --verbose --pdb --pdbcls bpdb:BPdb --showlocals --tb=short
+
+# Run linting and unit tests
+uv_test:
+    just uv_lint
+    just uv_unittests
+
+# Combine coverage data
+uv_coverage_combine:
+    {{UV_RUN}} python -m coverage combine
+
+# Generate HTML coverage report
+uv_coverage_html:
+    {{UV_RUN}} python -m coverage html --skip-covered --skip-empty
+
+# Run pytest with coverage
+uv_coverage_pytest:
+    {{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest tests
+
+# Run pytest with coverage in debug mode
+uv_coverage_pytest_debug:
+    {{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose -vvv --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no tests
+
+# Run pytest with coverage for evals in debug mode
+uv_coverage_pytest_evals_debug:
+    {{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose -vv --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no -m evals --slow tests
+
+# Run pytest with coverage and memray in debug mode
+uv_memray_coverage_pytest_debug:
+    {{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose -vvv --memray --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no tests
+
+# Run pytest with coverage and memray for evals in debug mode
+uv_memray_coverage_pytest_evals_debug:
+    {{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose --memray -vv --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no -m evals --slow tests
+
+# Generate and view coverage report
+uv_coverage_report:
+    just uv_coverage_pytest
+    just uv_coverage_combine
+    just uv_coverage_show
+    just uv_coverage_html
+    just uv_coverage_open
+
+# Generate and view coverage report in debug mode
+uv_coverage_report_debug:
+    just uv_coverage_pytest_debug
+    just uv_coverage_combine
+    just uv_coverage_show
+    just uv_coverage_html
+    just uv_coverage_open
+
+# Generate and view coverage report for evals in debug mode
+uv_coverage_report_debug_evals:
+    just uv_coverage_pytest_debug
+    just uv_coverage_pytest_evals_debug
+    just uv_coverage_combine
+    just uv_coverage_show
+    just uv_coverage_html
+    just uv_coverage_open
+
+# Run end-to-end tests with coverage in debug mode
+uv_e2e_coverage_pytest_debug:
+    {{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no tests -m e2e
+
+# Generate and view end-to-end coverage report in debug mode
+uv_e2e_coverage_report_debug:
+    just uv_e2e_coverage_pytest_debug
+    just uv_coverage_combine
+    just uv_coverage_show
+    just uv_coverage_html
+    just uv_coverage_open
+
+# Show coverage report
+uv_coverage_show:
+    {{UV_RUN}} python -m coverage report --fail-under=5
+
+# Open coverage report
+uv_coverage_open:
+    just local-open-coverage
+
+# Run linting and tests (CI)
+uv_ci:
+    just uv_lint
+    just uv_test
+
+# Run debug unit tests and open coverage report (CI debug)
+uv_ci_debug:
+    just uv_unittests_debug
+    just uv_coverage_open
+
+# Run simple unit tests and open coverage report (CI simple)
+uv_ci_simple:
+    just uv_unittests_simple
+    just uv_coverage_open
+
+# Run CI with evals
+uv_ci_with_evals:
+    just uv_coverage_pytest_debug
+    just uv_coverage_pytest_evals_debug
+    just uv_coverage_combine
+    just uv_coverage_show
+    just uv_coverage_html
+    just uv_coverage_open
+
+# Run CI with evals and memray
+uv_ci_with_evals_memray:
+    just uv_memray_coverage_pytest_debug
+    just uv_memray_coverage_pytest_evals_debug
+    just uv_coverage_combine
+    just uv_coverage_show
+    just uv_coverage_html
+    just uv_coverage_open
+
+# Deploy documentation to GitHub Pages
+uv_gh_deploy:
+    {{UV_RUN}} mkdocs gh-deploy --force --message '[skip ci] Docs updates'
+
+# Create site directory
+uv_mkdir_site:
+    mkdir site
+
+# Deploy documentation
+uv_deploy_docs:
+    just uv_mkdir_site
+    just uv_gh_deploy
