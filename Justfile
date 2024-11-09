@@ -7,8 +7,6 @@ set dotenv-load := false
 
 CURRENT_DIR := "$(pwd)"
 
-
-# base64_cmd := if "{{os()}}" == "macos" { "base64 -w 0 -i cert.pem -o ca.pem" } else { "base64 -b 0 -i cert.pem -o ca.pem" }
 base64_cmd := if "{{os()}}" == "macos" { "base64 -w 0 -i cert.pem -o ca.pem" } else { "base64 -w 0 -i cert.pem > ca.pem" }
 grep_cmd := if "{{os()}}" =~ "macos" { "ggrep" } else { "grep" }
 
@@ -16,12 +14,14 @@ grep_cmd := if "{{os()}}" =~ "macos" { "ggrep" } else { "grep" }
 PYTHON := "uv run python"
 
 # Recipes
-install: ## Install the virtual environment and install the pre-commit hooks
+# Install the virtual environment and install the pre-commit hooks
+install:
     @echo "🚀 Creating virtual environment using uv"
     uv sync
     uv run pre-commit install
 
-check: ## Run code quality tools.
+# Run code quality tools.
+check:
     @echo "🚀 Checking lock file consistency with 'pyproject.toml'"
     uv lock --locked
     @echo "🚀 Linting code: Running pre-commit"
@@ -31,28 +31,35 @@ check: ## Run code quality tools.
     @echo "🚀 Checking for obsolete dependencies: Running deptry"
     uv run deptry .
 
-test: ## Test the code with pytest
+# Test the code with pytest
+test:
     @echo "🚀 Testing code: Running pytest"
     {{PYTHON}} -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
 
-build: clean-build ## Build wheel file
+# Build wheel file
+build: clean-build
     @echo "🚀 Creating wheel file"
     uvx --from build pyproject-build --installer uv
 
-clean-build: ## Clean build artifacts
+# Clean build artifacts
+clean-build:
     @echo "🚀 Removing build artifacts"
     {{PYTHON}} -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
 
-publish: ## Publish a release to PyPI.
+# Publish a release to PyPI.
+publish:
     @echo "🚀 Publishing."
     uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
-build-and-publish: build publish ## Build and publish.
+# Build and publish.
+build-and-publish: build publish
 
-docs-test: ## Test if documentation can be built without warnings or errors
+# Test if documentation can be built without warnings or errors
+docs-test:
     uv run mkdocs build -s
 
-docs: ## Build and serve the documentation
+# Build and serve the documentation
+docs:
     uv run mkdocs serve
 
 help:
@@ -263,21 +270,28 @@ langchain-migrate-diff:
 langchain-migrate:
     langchain-cli migrate --include-ipynb src
 
+# Get the ruff config
 get-ruff-config:
 	uv run ruff check --show-settings --config pyproject.toml -v -o ruff_config.toml >> ruff.log 2>&1
 
+# Run lint and test
 ci:
 	uv run lint
 	uv run test
 
+# Open a manhole shell
 manhole-shell:
 	./scripts/manhole-shell
 
+# Find the cassettes directories
 find-cassettes-dirs:
 	fd -td cassettes
 
+# Delete the cassettes directories
 delete-cassettes:
 	fd -td cassettes -X rm -ri
+
+# Install brew dependencies
 brew-deps:
 	brew install libmagic poppler tesseract pandoc qpdf tesseract-lang
 	brew install --cask libreoffice
@@ -288,8 +302,10 @@ init-aicommits:
 	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o-mini
 	aicommits hook install
 
+# Run aider
 aider:
 	aider -c .aider.conf.yml --aiderignore .aiderignore
 
+# Run aider with Claude
 aider-claude:
 	aider -c .aider.conf.yml --aiderignore .aiderignore --model 'anthropic/claude-3-5-sonnet-20241022'
