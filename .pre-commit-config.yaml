@@ -201,14 +201,14 @@ repos:
     rev: 0.6.7
     hooks:
       - id: fix-smartquotes
-  - repo: https://github.com/lyz-code/yamlfix
-    rev: 1.17.0
-    hooks:
-      - id: yamlfix
-        args:
-          - -c
-          - pyproject.toml
-        exclude: .*cassettes.*
+  # - repo: https://github.com/lyz-code/yamlfix
+  #   rev: 1.17.0
+  #   hooks:
+  #     - id: yamlfix
+  #       args:
+  #         - -c
+  #         - pyproject.toml
+  #       exclude: .*cassettes.*
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.29.4
     hooks:
