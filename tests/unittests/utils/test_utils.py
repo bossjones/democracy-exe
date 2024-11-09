@@ -6,7 +6,12 @@ from typing import Any
 from _pytest.capture import CaptureFixture
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
-from src.democracy_exe.utils import (
+
+import pytest
+
+from pytest_mock import MockerFixture
+
+from democracy_exe.utils import (
     AsyncFilter,
     assert_never,
     async_run,
@@ -18,10 +23,6 @@ from src.democracy_exe.utils import (
     module_exists,
     temp_env_update,
 )
-
-import pytest
-
-from pytest_mock import MockerFixture
 
 
 @pytest.mark.asyncio()

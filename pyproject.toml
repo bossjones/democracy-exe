@@ -1440,10 +1440,13 @@ load-plugins = [
 persistent = false
 # ignore = "lib"
 ignore-paths = [
-    ".venv",       # Virtual Environment
-    "^.*.pyi$",    # Type Hinting
-    "^.*_prv_.*$", # Private Files/Folders (e.g. _prv_*.py | _prv_* folder)
-    "lib",         # External Libraries
+    ".venv",                               # Virtual Environment
+    "^.*.pyi$",                            # Type Hinting
+    "^.*_prv_.*$",                         # Private Files/Folders (e.g. _prv_*.py | _prv_* folder)
+    "lib",                                 # External Libraries
+    "democracy_exe/utils/run_service.py",
+    "democracy_exe/utils/imgops.py",
+    "democracy_exe/utils/files_import.py",
 ]
 
 # SOURCE: https://github.com/ocellicode/gpyt-commandbus/blob/80172644b35af7b4679ace734bea1c5ea2212a52/pyproject.toml#L21

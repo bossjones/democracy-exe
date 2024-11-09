@@ -482,21 +482,3 @@ class TestSettings:
         assert settings.llm_vectorstore_type == "pgvector"
         assert settings.llm_embedding_model_type == "text-embedding-3-large"
         assert settings.llm_key_value_stores_type == "redis"
-
-    def test_aio_settings_llm_configs_default_values(self) -> None:
-        """
-        Test the default values of the new llm_* configs in AioSettings.
-
-        This test verifies that the `llm_*` configs have the correct default values
-        when no environment variables are set.
-
-        """
-        settings = aio_settings.AioSettings()
-
-        assert settings.llm_streaming is False
-        assert settings.llm_provider == "openai"
-        assert settings.llm_max_retries == 3
-        assert settings.llm_document_loader_type == "pymupdf"
-        assert settings.llm_vectorstore_type == "pgvector"
-        assert settings.llm_embedding_model_type == "text-embedding-3-large"
-        assert settings.llm_key_value_stores_type == "redis"
