@@ -124,44 +124,6 @@ repos:
           - toml
         files: ^pyproject.*$
 
-      #  # SOURCE: https://github.com/wakabame/study_pytorch/blob/327bee3de2c283e1592d806d9b909e8b4af6b9fe/.pre-commit-config.yaml#L31
-      # - id: update requirements.txt for dependabot
-      #   name: update requirements.txt for dependabot
-      #   entry: bash -c 'sed -e "/^-e/d" -e "s/\+cpu//" -e "s/setuptools/# setuptools/" requirements.lock > .github/dependabot/requirements.txt'
-      #   language: system
-      #   require_serial: true
-
-      #  # SOURCE: https://github.com/wakabame/study_pytorch/blob/327bee3de2c283e1592d806d9b909e8b4af6b9fe/.pre-commit-config.yaml#L31
-      # - id: update requirements-dev.txt for dependabot
-      #   name: update requirements-dev.txt for dependabot
-      #   entry: bash -c 'sed -e "/^-e/d" -e "s/\+cpu//" -e "s/setuptools/# setuptools/" requirements-dev.lock > .github/dependabot/requirements-dev.txt'
-      #   language: system
-      #   require_serial: true
-
-      #  # SOURCE: https://github.com/wakabame/study_pytorch/blob/327bee3de2c283e1592d806d9b909e8b4af6b9fe/.pre-commit-config.yaml#L31
-      # - id: update requirements-dev.txt for colaboratory
-      #   name: update requirements-dev.txt for dependabot
-      #   entry: bash -c 'sed -e "/^-e/d" -e "s/2+cpu/0+cu121/" -e "s/setuptools/# setuptools/" requirements.lock > requirements-colab.txt'
-      #   language: system
-      #   require_serial: true
-
-      #  # SOURCE: https://github.com/pypa/pip/blob/main/.pre-commit-config.yaml
-      # - id: news-fragment-filenames
-      #   name: NEWS fragment
-      #   language: fail
-      #   entry: NEWS fragment files must be named *.(process|removal|feature|bugfix|vendor|doc|trivial).rst
-      #   exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
-      #   files: ^news/
-      # - id: commitizen
-      #   name: commitizen
-      #   entry: cz check
-      #   args:
-      #     - --commit-msg-file
-      #   require_serial: true
-      #   language: system
-      #   stages:
-      #     - commit-msg
-
   # SOURCE: https://github.com/3MAH/microgen/blob/0a7b86ccffb6a904443049e475c1c571a94addb5/.pre-commit-config.yaml#L42
   - repo: https://github.com/DanielNoord/pydocstringformatter
     rev: v0.7.3
@@ -187,16 +149,7 @@ repos:
         files: $changelog\.d/
         args:
           - --keep
-  # - repo: https://github.com/hadolint/hadolint
-  #   rev: v2.13.1-beta
-  #   hooks:
-  #     - id: hadolint
-  #       name: Lint Dockerfiles
-  #       description: Runs hadolint to lint Dockerfiles
-  #       language: system
-  #       types: [dockerfile]
-  #       entry: hadolint
-  #       exclude: (.tasks|hack|.github)
+
   - repo: https://github.com/sirosen/texthooks
     rev: 0.6.7
     hooks:
@@ -212,7 +165,7 @@ repos:
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.29.4
     hooks:
-      - id: check-dependabot
+
       - id: check-github-workflows
         exclude: (.tasks|hack|.github/workflows/_python-vulnerability-scan.yml)
       - id: check-readthedocs

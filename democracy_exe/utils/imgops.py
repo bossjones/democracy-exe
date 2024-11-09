@@ -37,7 +37,7 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as FT
 
-from loguru import logger as LOGGER
+from loguru import logger
 from PIL import Image
 from scipy.spatial import KDTree
 from torchvision.transforms.functional import InterpolationMode
@@ -507,9 +507,9 @@ def rgb2hex(r: int, g: int, b: int) -> str:
         '#ff0000'
 
     """
-    LOGGER.info(f"RGB2HEX: {r} {g} {b}")
+    logger.info(f"RGB2HEX: {r} {g} {b}")
     return f"#{r:02x}{g:02x}{b:02x}"
-    # LOGGER.info(f"TYPE RGB2HEX: {type(r)} {type(g)} {type(b)}")
+    # logger.info(f"TYPE RGB2HEX: {type(r)} {type(g)} {type(b)}")
     # return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
 
@@ -969,7 +969,7 @@ async def aio_main():
         test_image.shape[0],
         test_image.shape[1],
     )
-    await LOGGER.complete()
+    await logger.complete()
 
 
 def main():
