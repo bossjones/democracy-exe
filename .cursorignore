@@ -350,12 +350,12 @@ ruff_config.toml
 .virtual_documents/
 notebooks/e2e_evals.ipynb
 tests/services/cassettes/.*
-src/democracy_exe/data/chroma/vectorstorage/
+democracy_exe/data/chroma/vectorstorage/
 typingcov_txt
 notebooks/travel2.backup.sqlite
 notebooks/travel2.sqlite
-!src/democracy_exe/vendored/dpytest
-!src/democracy_exe/vendored/langgraph
-!src/democracy_exe/vendored/goob_ai
-# !src/democracy_exe/vendored/brevia
+!democracy_exe/vendored/dpytest
+!democracy_exe/vendored/langgraph
+!democracy_exe/vendored/goob_ai
+# !democracy_exe/vendored/brevia
 .env.langraph

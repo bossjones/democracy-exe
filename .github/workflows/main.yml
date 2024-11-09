@@ -2,9 +2,14 @@
 name: Main
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
   #  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   # workflow_dispatch:
   #  # Allow this workflow to be run manually (pushing to testpypi instead of pypi)
@@ -15,8 +20,7 @@ on:
         required: false
         default: false
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number||
-    github.sha }}
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number|| github.sha }}
   cancel-in-progress: true
 jobs:
   # https://github.com/astral-sh/uv/blob/75c26229a2d8a9c2f249fd79f5fcf7b4d9ac77bb/.github/workflows/ci.yml#L88
@@ -31,12 +35,9 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}
-          event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by
-          GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository
-          is ${{ github.repository }}."
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository is ${{ github.repository }}."
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -63,12 +64,9 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}
-          event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by
-          GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository
-          is ${{ github.repository }}."
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository is ${{ github.repository }}."
       - name: Check out
         uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -107,7 +105,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version:
+          - '3.11'
+          - '3.12'
+          - '3.13'
       fail-fast: false
     defaults:
       run:
@@ -117,12 +118,9 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}
-          event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by
-          GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository
-          is ${{ github.repository }}."
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository is ${{ github.repository }}."
       - name: Check out
         uses: actions/checkout@v4
       - name: Set up the environment
@@ -158,12 +156,9 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}
-          event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by
-          GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository
-          is ${{ github.repository }}."
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository is ${{ github.repository }}."
       - name: Check out
         uses: actions/checkout@v4
       - name: Set up the environment

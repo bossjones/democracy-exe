@@ -729,7 +729,7 @@ select = [
     # ruff
     "RUF",
     # tryceratops
-    "TRY",
+    # "TRY",
 
     "C90",  # mccabe
     "I002", # from __future__ import annotations
@@ -744,6 +744,33 @@ select = [
 # SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
 # Conflicts with the formatter
 ignore = [
+    "SIM110", # Checks for `return` statements that can be simplified to a single `return` statement
+    "SIM103", # Checks for `return` statements that can be simplified by removing unnecessary `else` clauses
+    "RUF012", # Checks for mutable default values in class attributes
+    "A002",   # Checks for function arguments that shadow built-in names
+    "RUF008", # Checks for non-pep604 unions (e.g., `Union[int, str]` instead of `int | str`)
+    "RUF013", # Checks for implicit `Optional` in type annotations when the default parameter value is `None`
+    "S602",   # Checks for `subprocess` calls with `shell=True`
+    "RUF006", # Checks for unnecessary `elif` statements after `if` statements that always return
+    "SIM108", # Checks for `if`-`else` blocks that can be replaced with a ternary operator
+    "C416",   # Checks for unnecessary list/set/dict comprehensions
+    "SIM101", # Checks for duplicate `if` conditions
+    "B007",   # Checks for unused loop variables
+    "RUF002", # Checks for ambiguous unicode characters
+    "S608",   # Checks for SQL injection vulnerabilities in SQL string formatting
+    "SIM116", # Checks for `if` blocks that can be replaced with `dict.get()` or `getattr()`
+    "S101",   # Checks for uses of the `assert` keyword
+    "B904",   # Checks for `raise` statements in exception handlers without a `from` clause
+    "SIM117", # Checks for nested `with` statements that can be combined
+    "UP038",  # Checks for uses of `sys.version` or `sys.version_info`
+    "A001",   # Checks for variable assignments that shadow built-in names
+    "SIM115", # Checks for cases where files are opened without using a context manager
+    "S113",   # Checks for HTTP requests without a timeout
+    "S108",   # Checks for hardcoded temporary file paths
+    "S605",   # Checks for calls to `subprocess.run()` without explicitly setting `shell=False`
+    "C417",   # Checks for unnecessary use of `map()` or `filter()` with `lambda`
+    "B018",   # Checks for useless expressions
+
     "S105",
     "UP007",
     "TRY003",

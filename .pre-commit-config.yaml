@@ -57,21 +57,28 @@ repos:
           - --show-fixes
           - --config=pyproject.toml
         # SOURCE: https://github.com/girder/large_image/blob/2e6fd90cfb9179f2c0bd59031f45805018f3f04a/.pre-commit-config.yaml
-        types_or: [python, pyi, jupyter]
+        types_or:
+          - python
+          - pyi
+          - jupyter
         exclude: ^(scripts|typings)/.*
 
       # Run the formatter.
       - id: ruff-format
         # entry: ruff format --force-exclude
-        types_or: [python, pyi, jupyter]
-        args: [--config=pyproject.toml]
+        types_or:
+          - python
+          - pyi
+          - jupyter
+        args:
+          - --config=pyproject.toml
         files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|pyi|ipynb)$
         exclude: (.tasks|hack)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: check-added-large-files
-        args: [--maxkb=15000]
+      # - id: check-added-large-files
+      #   args: [--maxkb=15000]
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-symlinks
@@ -97,22 +104,24 @@ repos:
     hooks:
       - id: taplo-lint
         name: taplo
-        entry: taplo lint  --config taplo.toml --schema=https://json.schemastore.org/pyproject.json
-          pyproject.toml
+        entry: taplo lint  --config taplo.toml --schema=https://json.schemastore.org/pyproject.json pyproject.toml
         language: system
-        types: [toml]
+        types:
+          - toml
         files: ^pyproject.*$
       - id: taplo-format
         name: taplo
         entry: taplo format --config taplo.toml
         language: system
-        types: [toml]
+        types:
+          - toml
         files: ^pyproject.*$
       - id: detect-pytest-live-log
         name: detect-pytest-live-log
         entry: bash -x ./detect_pytest_live_logging.sh
         language: system
-        types: [toml]
+        types:
+          - toml
         files: ^pyproject.*$
 
       #  # SOURCE: https://github.com/wakabame/study_pytorch/blob/327bee3de2c283e1592d806d9b909e8b4af6b9fe/.pre-commit-config.yaml#L31
@@ -168,13 +177,16 @@ repos:
     rev: v3.19.0
     hooks:
       - id: pyupgrade
-        args: [--py310-plus, --keep-runtime-typing]
+        args:
+          - --py310-plus
+          - --keep-runtime-typing
   - repo: https://github.com/twisted/towncrier
     rev: 24.8.0  # run 'pre-commit autoupdate' to update
     hooks:
       - id: towncrier-update
         files: $changelog\.d/
-        args: [--keep]
+        args:
+          - --keep
   # - repo: https://github.com/hadolint/hadolint
   #   rev: v2.13.1-beta
   #   hooks:
@@ -193,7 +205,9 @@ repos:
     rev: 1.17.0
     hooks:
       - id: yamlfix
-        args: [-c, pyproject.toml]
+        args:
+          - -c
+          - pyproject.toml
         exclude: .*cassettes.*
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.29.4

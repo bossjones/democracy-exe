@@ -37,7 +37,6 @@ import bpdb
 import discord
 import pysnooper
 import rich
-import sentry_sdk
 import typer
 
 from langchain.globals import set_debug, set_verbose
@@ -58,11 +57,8 @@ from typer import Typer
 
 import democracy_exe
 
-from democracy_exe.ai.services import IndexWebService
 from democracy_exe.aio_settings import aiosettings, get_rich_console
-from democracy_exe.alembic import current, downgrade, upgrade
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
-from democracy_exe.bot import SandboxAgent
 from democracy_exe.bot_logger import get_logger, global_log_config
 from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
@@ -123,7 +119,7 @@ def load_commands(directory: str = "subcommands") -> None:
                 APP.add_typer(module.APP, name=filename[:-7])
 
 
-# APP = AsyncTyper()
+
 APP = AsyncTyperImproved()
 console = Console()
 cprint = console.print
@@ -202,22 +198,22 @@ async def run_bot():
     """
 
     logger.info("Running bot")
-    try:
-        async with SandboxAgent() as bot:
-            # if aiosettings.enable_redis:
-            #     bot.pool = pool
-            await bot.start()
-    except Exception as ex:
-        print(f"{ex}")
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        print(f"Error Class: {ex.__class__}")
-        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-        print(output)
-        print(f"exc_type: {exc_type}")
-        print(f"exc_value: {exc_value}")
-        traceback.print_tb(exc_traceback)
-        if aiosettings.dev_mode:
-            bpdb.pm()
+    # try:
+    #     async with SandboxAgent() as bot:
+    #         # if aiosettings.enable_redis:
+    #         #     bot.pool = pool
+    #         await bot.start()
+    # except Exception as ex:
+    #     print(f"{ex}")
+    #     exc_type, exc_value, exc_traceback = sys.exc_info()
+    #     print(f"Error Class: {ex.__class__}")
+    #     output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+    #     print(output)
+    #     print(f"exc_type: {exc_type}")
+    #     print(f"exc_value: {exc_value}")
+    #     traceback.print_tb(exc_traceback)
+    #     if aiosettings.dev_mode:
+    #         bpdb.pm()
 
     await logger.complete()
 
@@ -275,7 +271,7 @@ def db_current(verbose: Annotated[bool | None, typer.Option("--verbose/-v", help
     """
     typer.echo(f"Running db_current with verbose={verbose}")
 
-    current(verbose)
+    # current(verbose)
 
 
 @APP.command()
@@ -290,7 +286,7 @@ def db_upgrade(revision: Annotated[str, typer.Option(help="Revision target")] = 
     """
     typer.echo(f"Running db_upgrade with revision={revision}")
 
-    upgrade(revision)
+    # upgrade(revision)
 
 
 @APP.command()
@@ -304,7 +300,7 @@ def db_downgrade(revision: Annotated[str, typer.Option(help="Revision target")] 
     """
     typer.echo(f"Running db_downgrade with revision={revision}")
 
-    downgrade(revision)
+    # downgrade(revision)
 
 
 @APP.command()
@@ -381,11 +377,8 @@ def index(
     """
     typer.echo(f"Running index with path={path}, collection={collection}")
 
-    # parsed_url = urlparse(url)
-    # remote = True if parsed_url.scheme not in ['file', ''] else False
-
-    service = IndexWebService()
-    service.run(payload=path)
+    # service = IndexWebService()
+    # service.run(payload=path)
 
 
 def handle_sigterm(signo, frame):

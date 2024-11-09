@@ -312,7 +312,20 @@ aider-claude:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --model 'anthropic/claude-3-5-sonnet-20241022'
 
 
-
+# SOURCE: https://github.com/RobertCraigie/prisma-client-py/blob/da53c4280756f1a9bddc3407aa3b5f296aa8cc10/Makefile#L77
+# Remove all generated files and caches
+clean:
+	rm -rf .cache
+	rm -rf `find . -name __pycache__`
+	rm -rf .tests_cache
+	rm -rf .mypy_cache
+	rm -rf htmlcov
+	rm -rf *.egg-info
+	rm -f .coverage
+	rm -f .coverage.*
+	rm -rf build
+	rm -rf dist
+	rm -f coverage.xml
 
 # Create a token for authentication
 uv_create_token:

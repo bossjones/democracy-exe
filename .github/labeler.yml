@@ -5,7 +5,9 @@ docs:
           - any-glob-to-any-file:
               - docs/**
           # - docs_src/**
-          - all-globs-to-all-files: ['!src/democracy_exe/**', '!pyproject.toml']
+          - all-globs-to-all-files:
+              - '!democracy_exe/**'
+              - '!pyproject.toml'
 internal:
   - all:
       - changed-files:
@@ -18,5 +20,5 @@ internal:
               - requirements*.txt
           - all-globs-to-all-files:
               - '!docs/**'
-              - '!src/democracy_exe/**'
+              - '!democracy_exe/**'
               - '!pyproject.toml'
