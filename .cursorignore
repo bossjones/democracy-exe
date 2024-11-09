@@ -1,8 +1,7 @@
-docs/source
+tests/fixtures/screenshot_image_larger00013.PNG
+# typings
 
-# From https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore
 
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -41,147 +40,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# Vscode config files
-.vscode/
-
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-
-
-# from other prject
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
+# htmlcov/
 .tox/
 .nox/
 .coverage
@@ -265,15 +124,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -298,23 +148,19 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+# # PyCharm
+# #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+# #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+# #  and can be added to the global gitignore or merged into this file.  For a more nuclear
+# #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+# #.idea/
 
 # .env
 .env
 .envrc
 
-# Python virtualenv
-myenv/
-venv/
-
 # local dev
-# docker/
+docker/
 
 # Unit test / coverage reports
 .cache
@@ -331,7 +177,7 @@ venv/
 .tox/
 *,cover
 cov_annotate
-cov.xml
+!cov.xml
 coverage.xml
 htmlcov
 htmlcov/
@@ -368,15 +214,6 @@ celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -433,19 +270,18 @@ database/messages.db
 dbdata
 
 
-cov.xml
 cov_annotate
 
 
 monkeytype.sqlite3
 
-stubs
-colorization_release_v2.caffemodel
+# stubs
+# colorization_release_v2.caffemodel
 .vscode/settings.json
 gallery-dl
 youtube-dl
 machine_learning_with_python/settings_test.toml
-.envrc
+# .envrc
 data.ms
 tests/.vscode
 WIKI_PRICES_212b326a081eacca455e13140d7bb9db.zip
@@ -466,84 +302,60 @@ deeplearning_data/**/*.webp
 *.avi
 *.hdf5
 *.h5
-errbackends/err-backend-discord/
+# errbackends/err-backend-discord/
 
-# persistent data
-data/ACLs.db
-data/Backup.db
-data/ChatRoom.db
-data/CommandNotFoundFilter.db
-data/Flows.db
-data/Health.db
-data/Help.db
-data/Plugins.db
-data/Utils.db
-data/VersionChecker.db
-data/core.db
-data/discord_backend.db
-data/repomgr.db
+# # persistent data
+# data/ACLs.db
+# data/Backup.db
+# data/ChatRoom.db
+# data/CommandNotFoundFilter.db
+# data/Flows.db
+# data/Health.db
+# data/Help.db
+# data/Plugins.db
+# data/Utils.db
+# data/VersionChecker.db
+# data/core.db
+# data/discord_backend.db
+# data/repomgr.db
 
-No_I_Dont_Think_You_Understand_Shorts-*
 .direnv/
 *.pth
 *.zip
-NOTES.md
 
+!typingcov/*
+!typingcov_cobertura/*
+!typingcov_xml/*
 
-# SOURCE: https://github.com/ausboss/DiscordLangAgent/tree/58a7289a49864fdadb3a70d8a106b2fc92c2ee7b
-# PyCharm
-#  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-database/database.db
-database/messages.db
-typingcov/
-diditwork.webp
-temp/
-.aider*
-!.aider.conf.yml
-!.aiderignore
+# diditwork.webp
+# temp/
+*.pdf
 rtdocs
 notebooks/chroma_db
 notebooks/chroma
-PATH.PID
-log.txt
+
+
+__pycache__
+.env
+LICENSE
+.vscode
+projects
+examples/
+.ignore*
+*.log
 25MB_song.mp4
 tests/fixtures/25MB_song.mp3
+.prompts.d
 ruff_config.toml
 .virtual_documents/
 notebooks/e2e_evals.ipynb
-democracy_exe/data/chroma/vectorstorage/
-file.out
-
-typingcov_cobertura/*
-typingcov_xml/*
+tests/services/cassettes/.*
+src/democracy_exe/data/chroma/vectorstorage/
 typingcov_txt
-
-
-# Finder (MacOS) folder config
-.DS_Store
-.aider*
-
-__pycache__/
-
-.venv/
-
-apps/marimo-prompt-library/prompt_executions
-
-.env
-
-scratchpad/
-
-runtime_time_table.jsonl
-
-bup/
 notebooks/travel2.backup.sqlite
 notebooks/travel2.sqlite
-democracy_exe/vendored/dpytest
-democracy_exe/vendored/langgraph
+!src/democracy_exe/vendored/dpytest
+!src/democracy_exe/vendored/langgraph
+!src/democracy_exe/vendored/goob_ai
+# !src/democracy_exe/vendored/brevia
 .env.langraph
-democracy_exe/vendored/goob_ai
-democracy_exe/vendored/brevia

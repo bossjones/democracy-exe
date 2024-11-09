@@ -1,66 +1,85 @@
+---
 name: Main
-
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        types: [opened, synchronize, reopened, ready_for_review]
-
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number
+    || github.sha }}
+  cancel-in-progress: true
 jobs:
-    quality:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out
-              uses: actions/checkout@v4
-
-            - uses: actions/cache@v4
-              with:
-                  path: ~/.cache/pre-commit
-                  key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-
-            - name: Set up the environment
-              uses: ./.github/actions/setup-python-env
-
-            - name: Run checks
-              run: make check
-
-    tests-and-type-check:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
-            fail-fast: false
-        defaults:
-            run:
-                shell: bash
-        steps:
-            - name: Check out
-              uses: actions/checkout@v4
-
-            - name: Set up the environment
-              uses: ./.github/actions/setup-python-env
-              with:
-                  python-version: ${{ matrix.python-version }}
-
-            - name: Run tests
-              run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
-
-            - name: Check typing
-              run: uv run mypy
-
-            - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11
-              uses: codecov/codecov-action@v4
-              if: ${{ matrix.python-version == '3.11' }}
-
-    check-docs:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out
-              uses: actions/checkout@v4
-
-            - name: Set up the environment
-              uses: ./.github/actions/setup-python-env
-
-            - name: Check if documentation can be built
-              run: uv run mkdocs build -s
+  # https://github.com/astral-sh/uv/blob/75c26229a2d8a9c2f249fd79f5fcf7b4d9ac77bb/.github/workflows/ci.yml#L88
+  determine_changes:
+    name: Determine changes
+    runs-on: ubuntu-latest
+    outputs:
+      # Flag that is raised when any code is changed
+      code: ${{ steps.changed.outputs.code_any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: tj-actions/changed-files@v45
+        id: changed
+        with:
+          files_yaml: |
+            code:
+              - "**/*"
+              - "!docs/**/*"
+              - "!mkdocs.*.yml"
+              - "!**/*.md"
+              - "!bin/**"
+              - "!assets/**"
+              # Generated markdown and JSON files are checked during test runs
+              - "docs/reference/cli.md"
+              - "docs/reference/settings.md"
+              - "docs/configuration/environment.md"
+              # - "uv.schema.json"
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+      - name: Run checks
+        run: make check
+  tests-and-type-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run tests
+        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
+      - name: Check typing
+        run: uv run mypy
+      - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11
+        uses: codecov/codecov-action@v4
+        if: ${{ matrix.python-version == '3.11' }}
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+      - name: Check if documentation can be built
+        run: uv run mkdocs build -s

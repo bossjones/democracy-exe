@@ -1,8 +1,8 @@
 [project]
 name = "democracy-exe"
 version = "0.0.1"
-description = "democracy_exe is an advanced, agentic Python application leveraging LangChain and LangGraph to orchestrate and manage a network of AI agents and subgraphs. This system emulates the principles of "managed democracy" from the Helldivers universe, automating decision-making processes and task delegation across multiple AI entities. Based on Helldivers."
-authors = [{ name = "Malcolm Jones", email = "bossjones@theblacktonystark.com" }]
+description = "democracy_exe is an advanced, agentic Python application leveraging LangChain and LangGraph to orchestrate and manage a network of AI agents and subgraphs. This system emulates the principles of 'managed democracy' from the Helldivers universe, automating decision-making processes and task delegation across multiple AI entities. Based on Helldivers."
+authors = [{name = "Malcolm Jones", email = "bossjones@theblacktonystark.com"}]
 readme = "README.md"
 keywords = ['python']
 requires-python = ">=3.9,<4.0"
@@ -83,7 +83,8 @@ select = [
     # mccabe
     "C90",
     # pycodestyle
-    "E", "W",
+    "E",
+    "W",
     # pyflakes
     "F",
     # pygrep-hooks
