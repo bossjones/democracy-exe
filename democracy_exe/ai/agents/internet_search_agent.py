@@ -20,7 +20,7 @@ class InternetSearchAgent(BaseAgent):
 
     def __init__(self):
         self.search_tool = TavilySearchResults(
-            api_key=aiosettings.tavily_api_key.get_secret_value(),
+            api_key=str(aiosettings.tavily_api_key),
             max_results=5,
             include_answer=True,
             include_raw_content=True,

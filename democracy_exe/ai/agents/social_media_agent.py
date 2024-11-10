@@ -35,7 +35,7 @@ class SocialMediaAgent(BaseAgent):
         Raises:
             ValueError: If TWEETPIK_API_KEY is not set in environment variables.
         """
-        self.tweetpik_client = TweetPikClient(aiosettings.tweetpik_api_key.get_secret_value())
+        self.tweetpik_client = TweetPikClient(str(aiosettings.tweetpik_api_key))
 
     def fetch_tweet(self, tweet_url: str) -> dict[str, Any]:
         """Fetch tweet data from URL.

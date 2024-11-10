@@ -670,7 +670,6 @@ add-cursor-context:
 	gh repo clone langchain-ai/chat-langchain democracy_exe/vendored/chat-langchain || true
 	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
 
-# Remove cursor context
 	rm -rf democracy_exe/vendored/cerebro-bot/.git
 	rm -rf democracy_exe/vendored/sandbox_agent/.git
 	rm -rf democracy_exe/vendored/retrieval-agent-template/.git

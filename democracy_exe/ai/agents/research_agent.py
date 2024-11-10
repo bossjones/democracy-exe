@@ -31,11 +31,11 @@ class ResearchAgent(BaseAgent):
             ValueError: If required API keys are not set in environment variables.
         """
         self.search_tool = TavilySearchResults(
-            api_key=aiosettings.tavily_api_key.get_secret_value(),
+            api_key=str(aiosettings.tavily_api_key),
             max_results=5
         )
         self.llm = ChatOpenAI(
-            openai_api_key=aiosettings.openai_api_key.get_secret_value(),
+            openai_api_key=str(aiosettings.openai_api_key),
             temperature=0.7
         )
 
