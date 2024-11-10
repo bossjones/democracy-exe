@@ -301,7 +301,7 @@ brew-deps:
 # install aicommits and configure it
 init-aicommits:
 	npm install -g aicommits
-	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o
+	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o max-length=100
 	aicommits hook install
 
 # Run aider

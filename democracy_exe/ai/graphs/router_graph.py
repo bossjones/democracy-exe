@@ -19,32 +19,49 @@ class RouterGraph(BaseGraph):
         self.specialized_agents[name] = agent
 
     def build(self) -> Graph:
-        # Add router node
-        self.graph.add_node("router", AgentNode(self.router_agent))
+        # Create a new graph
+        self.graph = Graph()
 
-        # Add specialized agent nodes
+        # Always add router node, even for empty graph
+        self.graph.add_node("router", AgentNode(self.router_agent))
+        self.graph.set_entry_point("router")
+
+        # Add specialized agent nodes and edges
         for agent_name, agent_func in self.specialized_agents.items():
             self.graph.add_node(agent_name, agent_func)
-
-        # Add conditional edge from router to specialized agents
-        self.graph.add_conditional_edges(
-            "router",
-            conditional_edge,
-            {agent_name: agent_name for agent_name in self.specialized_agents}
-        )
-
-        # Add edges from specialized agents back to router
-        for agent_name in self.specialized_agents:
+            # Add bidirectional edges
             self.graph.add_edge(agent_name, "router")
-
-        # Set the entry point
-        self.graph.set_entry_point("router")
+            self.graph.add_edge("router", agent_name)
 
         return self.graph
 
-    def process(self, state: AgentState) -> AgentState:
-        compiled_graph = self.compile()
-        return compiled_graph(state)
+    def process(self, state: dict) -> dict:
+        """Process state through the graph.
+
+        Args:
+            state: Initial agent state
+
+        Returns:
+            Final state after processing
+        """
+        # Create base state
+        base_state = {
+            "query": "",
+            "response": "",
+            "current_agent": "",
+            "context": {}
+        }
+
+        # Update with input state
+        if isinstance(state, dict):
+            base_state.update(state)
+
+        # Build and compile graph
+        graph = self.build()
+        compiled = graph.compile()
+
+        # Process state through graph
+        return compiled.invoke(base_state)
 
 router_graph = RouterGraph()
 
