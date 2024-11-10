@@ -26,7 +26,7 @@ class TweetPikClient:
             api_key: TweetPik API authentication key
         """
         if not api_key:
-            api_key = aiosettings.tweetpik_api_key.get_secret_value()
+            api_key = aiosettings.tweetpik_authorization.get_secret_value()  # pylint: disable=no-member
 
         self.api_key = api_key
         self.headers = {
@@ -58,7 +58,7 @@ class TweetPikClient:
             "displayEmbeds": aiosettings.tweetpik_display_embeds,
             "contentScale": aiosettings.tweetpik_content_scale,
             "contentWidth": aiosettings.tweetpik_content_width,
-            "twitterToken": aiosettings.tweetpik_api_key.get_secret_value(),
+            "twitterToken": aiosettings.tweetpik_api_key.get_secret_value(), # pylint: disable=no-member
         }
         payload.update(kwargs)
         return payload
