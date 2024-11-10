@@ -93,7 +93,11 @@ class AgentNode:
         Returns:
             Updated agent state after processing
         """
-        return self.agent.process(state)
+        # Create a copy of the input state
+        state_copy = state.copy()
+
+        # Process the state copy and return new state
+        return self.agent.process(state_copy)
 
 def conditional_edge(state: AgentState) -> str:
     """Determine next agent based on current state.

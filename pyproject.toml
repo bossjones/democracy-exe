@@ -193,6 +193,7 @@ dev-dependencies = [
     "yamlfix>=1.17.0",
     "yamllint>=1.35.1",
     "changelogs",
+    "pylint-pydantic>=0.3.2",
 ]
 
 [tool.uv.sources]
@@ -1437,6 +1438,7 @@ fail-on = ["I"]
 load-plugins = [
     "pylint.extensions.code_style",
     "pylint.extensions.typing",
+    "pylint_pydantic",
 ]
 persistent = false
 # ignore = "lib"
@@ -1791,6 +1793,9 @@ exclude = [
     "**/build",
     "tasks",
     "typings",
+]
+extraPaths = [
+    ".venv",
 ]
 ############################################################################
 # FIXME: THIS MIGHT BREAK SHIT

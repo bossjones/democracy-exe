@@ -1423,6 +1423,7 @@ dev = [
     { name = "pydocstyle" },
     { name = "pylint" },
     { name = "pylint-per-file-ignores" },
+    { name = "pylint-pydantic" },
     { name = "pylint-to-ruff" },
     { name = "pymarkdownlnt" },
     { name = "pyright" },
@@ -1598,6 +1599,7 @@ dev = [
     { name = "pydocstyle", specifier = ">=6.3.0" },
     { name = "pylint", specifier = ">=3.3.1" },
     { name = "pylint-per-file-ignores", specifier = ">=1.3.2" },
+    { name = "pylint-pydantic", specifier = ">=0.3.2" },
     { name = "pylint-to-ruff", specifier = ">=0.3.0" },
     { name = "pymarkdownlnt", specifier = ">=0.9.25" },
     { name = "pyright", specifier = ">=1.1.388" },
@@ -5774,6 +5776,31 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c7/4d/44bc55d37c4d8abe96b1a3b57baecc0a1534264ec85b946bbcf35fa21618/pylint_per_file_ignores-1.3.2.tar.gz", hash = "sha256:3c641f69c316770749a8a353556504dae7469541cdaef38e195fe2228841451e", size = 4361 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ff/89/61ca7d4fa42a235dbe1fd72a025c019e7a2e380cef31219073c933e3d5ee/pylint_per_file_ignores-1.3.2-py3-none-any.whl", hash = "sha256:4a2a2d7b88484ef1d1b1170029e542954f70efbab13ac3b977606ea5617d04c1", size = 4686 },
+]
+
+[[package]]
+name = "pylint-plugin-utils"
+version = "0.8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pylint" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4b/d2/3b9728910bc69232ec38d8fb7053c03c887bfe7e6e170649b683dd351750/pylint_plugin_utils-0.8.2.tar.gz", hash = "sha256:d3cebf68a38ba3fba23a873809155562571386d4c1b03e5b4c4cc26c3eee93e4", size = 10674 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/af/ee/49d11aee31061bcc1d2726bd8334a2883ddcdbde7d7744ed6b3bd11704ed/pylint_plugin_utils-0.8.2-py3-none-any.whl", hash = "sha256:ae11664737aa2effbf26f973a9e0b6779ab7106ec0adc5fe104b0907ca04e507", size = 11171 },
+]
+
+[[package]]
+name = "pylint-pydantic"
+version = "0.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pylint" },
+    { name = "pylint-plugin-utils" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/80/34b429c6534be99ef3d6d20bd794b26fda0682d38e2d57f85df258beaac2/pylint_pydantic-0.3.2-py3-none-any.whl", hash = "sha256:e5cec02370aa68ac8eff138e5d573b0ac049bab864e9a6c3a9057cf043440aa1", size = 15951 },
 ]
 
 [[package]]

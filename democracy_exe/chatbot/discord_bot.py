@@ -29,6 +29,7 @@ import discord
 import rich
 
 from codetiming import Timer
+from discord.abc import Messageable
 from discord.ext import commands
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS, PGVector
@@ -91,7 +92,7 @@ class DemocracyBot(commands.Bot):
         logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         print("------")
 
-    async def on_message(self, message: Message) -> None:
+    async def on_message(self, message: discord.Message) -> None:
         """Process incoming messages and route them through the AI pipeline.
 
         Args:
@@ -99,6 +100,8 @@ class DemocracyBot(commands.Bot):
         """
         if message.author == self.user:
             return
+
+
 
         try:
             state = AgentState(
@@ -113,7 +116,7 @@ class DemocracyBot(commands.Bot):
             logger.exception(f"Error processing message: {e}")
             await message.channel.send("An error occurred while processing your message.")
 
-    async def process_attachments(self, message: Message) -> None:
+    async def process_attachments(self, message: discord.Message) -> None:
         """Process any attachments in the message.
 
         Args:

@@ -301,12 +301,18 @@ brew-deps:
 # install aicommits and configure it
 init-aicommits:
 	npm install -g aicommits
-	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o-mini
+	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o
 	aicommits hook install
 
 # Run aider
 aider:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore
+
+aider-o1-preview:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --o1-preview --architect --edit-format whole --model o1-mini --no-stream
+
+aider-sonnet:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff
 
 # Run aider with Claude
 aider-claude:
