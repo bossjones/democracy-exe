@@ -370,3 +370,5 @@ notebooks/travel2.sqlite
 !democracy_exe/vendored/memory-template
 !democracy_exe/vendored/react-agent
 !democracy_exe/vendored/cerebro-bot
+!democracy_exe/vendored/langchain
+!democracy_exe/vendored/langgraph

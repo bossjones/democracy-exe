@@ -675,6 +675,8 @@ add-cursor-context:
 	gh repo clone langchain-ai/react-agent democracy_exe/vendored/react-agent || true
 	gh repo clone langchain-ai/chat-langchain democracy_exe/vendored/chat-langchain || true
 	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
+	gh repo clone langchain-ai/langchain democracy_exe/vendored/langchain || true
+	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
 
 	rm -rf democracy_exe/vendored/cerebro-bot/.git
 	rm -rf democracy_exe/vendored/sandbox_agent/.git
@@ -684,3 +686,10 @@ add-cursor-context:
 	rm -rf democracy_exe/vendored/react-agent/.git
 	rm -rf democracy_exe/vendored/chat-langchain/.git
 	rm -rf democracy_exe/vendored/goob_ai/.git
+	rm -rf democracy_exe/vendored/langchain/.git
+	rm -rf democracy_exe/vendored/langgraph/.git
+
+
+# List outdated packages
+outdated:
+    {{UV_RUN}} pip list --outdated

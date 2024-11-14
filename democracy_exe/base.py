@@ -19,7 +19,7 @@ SEPARATOR_TOKEN = "<|endoftext|>"
 
 
 @dataclass(frozen=True)
-class GoobMessage:
+class DemocracyMessage:
     """Represents a message in a Goob conversation.
 
     Attributes:
@@ -50,9 +50,9 @@ class GoobConversation:
         messages: The list of messages in the conversation.
     """
 
-    messages: list[GoobMessage]
+    messages: list[DemocracyMessage]
 
-    def prepend(self, message: GoobMessage) -> GoobConversation:
+    def prepend(self, message: DemocracyMessage) -> GoobConversation:
         """Prepends a message to the conversation.
 
         Args:
@@ -113,7 +113,7 @@ class GoobPrompt:
         convo: The current conversation for the prompt.
     """
 
-    header: GoobMessage
+    header: DemocracyMessage
     examples: list[GoobConversation]
     convo: GoobConversation
 
@@ -144,9 +144,9 @@ class GoobPrompt:
         """
         return f"\n{SEPARATOR_TOKEN}".join(
             [self.header.render()]
-            + [GoobMessage("System", "Example conversations:").render()]
+            + [DemocracyMessage("System", "Example conversations:").render()]
             + [conversation.render() for conversation in self.examples]
-            + [GoobMessage("System", "Now, you will work with the actual current conversation.").render()]
+            + [DemocracyMessage("System", "Now, you will work with the actual current conversation.").render()]
         )
 
     def render_messages(self, bot_name: str) -> list[dict[str, str]]:

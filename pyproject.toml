@@ -87,6 +87,13 @@ dependencies = [
     "webcolors>=24.8.0",
     "dask>=2024.11.0",
     "torchvision>=0.20.1",
+    "langgraph-sdk>=0.1.36",
+    "langgraph-checkpoint-sqlite>=2.0.1",
+    "notebook>=7.2.2",
+    "tavily-python>=0.5.0",
+    "wikipedia>=1.4.0",
+    "marimo>=0.9.19",
+    "trustcall>=0.0.25",
 ]
 
 [project.urls]
@@ -194,6 +201,7 @@ dev-dependencies = [
     "yamllint>=1.35.1",
     "changelogs",
     "pylint-pydantic>=0.3.2",
+    "nbqa[toolchain]>=1.9.1",
 ]
 
 [tool.uv.sources]

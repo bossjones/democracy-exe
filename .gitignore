@@ -544,6 +544,7 @@ notebooks/travel2.backup.sqlite
 notebooks/travel2.sqlite
 democracy_exe/vendored/dpytest
 democracy_exe/vendored/langgraph
+democracy_exe/vendored/langchain
 .env.langraph
 democracy_exe/vendored/goob_ai
 democracy_exe/vendored/brevia
