@@ -4,3 +4,7 @@ langchain-community
 langchain-openai
 tavily-python
 wikipedia
+trustcall
+langgraph-sdk
+langgraph-checkpoint-sqlite
+langsmith
