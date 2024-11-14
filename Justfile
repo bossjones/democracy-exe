@@ -693,3 +693,15 @@ add-cursor-context:
 # List outdated packages
 outdated:
     {{UV_RUN}} pip list --outdated
+
+install-llm-cli-plugins:
+    {{UV_RUN}} llm install llm-cmd
+    {{UV_RUN}} llm install llm-clip
+    {{UV_RUN}} llm install llm-sentence-transformers
+    {{UV_RUN}} llm install llm-replicate
+    {{UV_RUN}} llm install llm-perplexity
+    {{UV_RUN}} llm install llm-claude-3
+    {{UV_RUN}} llm install llm-python
+    {{UV_RUN}} llm install llm-json
+    {{UV_RUN}} llm install llm-markdown
+    {{UV_RUN}} llm install llm-sql

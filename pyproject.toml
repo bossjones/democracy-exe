@@ -94,6 +94,7 @@ dependencies = [
     "wikipedia>=1.4.0",
     "marimo>=0.9.19",
     "trustcall>=0.0.25",
+    "llm>=0.17.1",
 ]
 
 [project.urls]
@@ -791,27 +792,26 @@ ignore = [
     "C417",   # Checks for unnecessary use of `map()` or `filter()` with `lambda`
     "B018",   # Checks for useless expressions
 
-    "S105",
-    "UP007",
-    "TRY003",
-    "N815",
-    "PLW0603",
-    "D",
-    "COM812",
-    "ISC001",
-    "N804",
-    "F821",
-    "N804",
-    "PLR1722",
-    "N802",
-    "N801",
-    "PLW0602",
-    "F811",
-    "PLW2901",
-    "YTT201",
-    "E722",
-    "PLC0132",
-    "PLW0128",
+
+    "S105",    # Possible hardcoded password
+    "UP007",   # Use X | Y for union types
+    "TRY003",  # Long messages outside exception class
+    "N815",    # Mixed case vars in class scope
+    "PLW0603", # Global statement at module level
+    "D",       # Docstring style rules (multiple)
+    "COM812",  # Missing trailing comma
+    "ISC001",  # Implicit string concatenation
+    "N804",    # First param of classmethod not cls
+    "F821",    # Undefined name
+    "PLR1722", # Use sys.exit() instead of exit
+    "N802",    # Function name should be lowercase
+    "N801",    # Class name should use CapWords
+    "PLW0602", # Global variable undefined
+    "PLW2901", # Outer loop variable overwritten
+    "YTT201",  # sys.version instead of sys.version_info
+    "E722",    # Do not use bare except
+    "PLC0132", # Use format specifiers in logging
+    "PLW0128", # Redundant if-else in comprehension
     "W191",    # tab-indentation
     "E111",    # indentation-with-invalid-multiple
     "E114",    # indentation-with-invalid-multiple-comment
@@ -826,27 +826,24 @@ ignore = [
     "COM819",  # prohibited-trailing-comma
     "ISC001",  # single-line-implicit-string-concatenation
     "ISC002",  # multi-line-implicit-string-concatenation
-    "E501",
 
-    # new list
-    "E721",
-    "E741",
-    "E731",
-    "E731",
-    "PLR1714",
-    "N818",
-    "PLW0127",
-    "PT012",
-    "N806",
-    "E712",
-    "E711",
-    "W505",
-    "PT006",
-    "PLR2004",
-    "N812",
-    "F841",
-    # "R1730",
-    # "I",      # isort, ruff doesn't have enough support for isort yet.
+    "E501",    # Line too long
+    "E721",    # Don't compare types, use isinstance()
+    "E741",    # Ambiguous variable name
+    "E731",    # Do not assign lambda expression
+    "PLR1714", # Consider merging dict literals
+    "N818",    # Exception name should end with "Error"
+    "PLW0127", # Self-assigning variable
+    "PT012",   # pytest.raises() without match=
+    "N806",    # Variable in function should be lowercase
+    "E712",    # Use "is" to compare with True/False/None
+    "E711",    # Use "is" to compare with None
+    "W505",    # Doc line too long
+    "PT006",   # pytest.parametrize() values not a tuple
+    "PLR2004", # Magic value used in comparison
+    "N812",    # Lowercase imported as non-lowercase
+    "F841",    # Local variable is assigned but unused
+
     "TID",     # flake8-tidy-imports (TID)#
     "F401",    # unused-import	{name} imported but unused; consider using importlib.util.find_spec to test for availability
     "F402",    # import-shadowed-by-loop-var	Import {name} from {row} shadowed by loop variable
@@ -959,8 +956,8 @@ ignore = [
     "Q004",    # unnecessary-escaped-quote	Unnecessary escape on inner quote character
     "PLE1141", # dict-iter-missing-items	Unpacking a dictionary in iteration without calling .items()
     "PLE1142", # await-outside-async	await should be used within an async function
-    "Q",
-    "N999",
+    "Q",       # Various quote-related rules
+    "N999",    # Invalid module name
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -977,6 +974,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 
 # 4. Ignore `E402` (import violations) in all `__init__.py` files, and in select subdirectories.
 [tool.ruff.lint.per-file-ignores]
+"cookbook/studio/*" = ["N815", "B005", "RUF005"]
 "democracy_exe/democracy_exe/gen_ai/models/vectorstores/*" = ["N815"]
 "tests/*" = ["PT011", "S101"]
 "democracy_exe/democracy_exe/tutorials/design_patterns/practical_examples/*" = [
@@ -1071,58 +1069,56 @@ preview = true
 # SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
 # Conflicts with the formatter
 exclude = [
-    "N999",
-    "D203",    # one-blank-line-before-class	1 blank line required before class docstring
-    "COM812",
-    "ISC001",
-    "N804",
-    "F821",
-    "N804",
-    "PLR1722",
-    "N802",
-    "N801",
-    "PLW0602",
-    "F811",
-    "PLW2901",
-    "YTT201",
-    "E722",
-    "PLC0132",
-    "PLW0128",
-    "W191",    # tab-indentation
-    "E111",    # indentation-with-invalid-multiple
-    "E114",    # indentation-with-invalid-multiple-comment
-    "E117",    # over-indented
-    "D206",    # indent-with-spaces
-    "D300",    # triple-single-quotes
-    "Q000",    # bad-quotes-inline-string
-    "Q001",    # bad-quotes-multiline-string
-    "Q002",    # bad-quotes-docstring
-    "Q003",    # avoidable-escaped-quote
-    "COM812",  # missing-trailing-comma
-    "COM819",  # prohibited-trailing-comma
-    "ISC001",  # single-line-implicit-string-concatenation
-    "ISC002",  # multi-line-implicit-string-concatenation
-    "E501",
+    "N999", # Invalid module name
+    "D203", # one-blank-line-before-class	1 blank line required before class docstring
 
-    # new list
-    "E721",
-    "E741",
-    "E731",
-    "E731",
-    "PLR1714",
-    "N818",
-    "PLW0127",
-    "PT012",
-    "N806",
-    "E712",
-    "E711",
-    "W505",
-    "PT006",
-    "PLR2004",
-    "N812",
-    "F841",
-    # "R1730",
-    # "I",      # isort, ruff doesn't have enough support for isort yet.
+    "COM812",  # Missing trailing comma
+    "ISC001",  # Implicit string concatenation
+    "N804",    # First param of classmethod not 'cls'
+    "F821",    # Undefined name
+    "PLR1722", # Use sys.exit() instead of exit()
+    "N802",    # Function name should be lowercase
+    "N801",    # Class name should use CapWords
+    "PLW0602", # Global variable undefined
+    "F811",    # Redefinition of unused name
+    "PLW2901", # Outer loop var overwritten in loop
+    "YTT201",  # sys.version instead of version_info
+    "E722",    # Do not use bare 'except'
+    "PLC0132", # Use f-strings in logging
+    "PLW0128", # Redundant if-else in comprehension
+
+    "W191",   # tab-indentation
+    "E111",   # indentation-with-invalid-multiple
+    "E114",   # indentation-with-invalid-multiple-comment
+    "E117",   # over-indented
+    "D206",   # indent-with-spaces
+    "D300",   # triple-single-quotes
+    "Q000",   # bad-quotes-inline-string
+    "Q001",   # bad-quotes-multiline-string
+    "Q002",   # bad-quotes-docstring
+    "Q003",   # avoidable-escaped-quote
+    "COM812", # missing-trailing-comma
+    "COM819", # prohibited-trailing-comma
+    "ISC001", # single-line-implicit-string-concatenation
+    "ISC002", # multi-line-implicit-string-concatenation
+
+    "E501",    # Line too long
+    "E721",    # Don't compare types, use isinstance()
+    "E741",    # Ambiguous variable name
+    "E731",    # Do not assign lambda expression
+    "PLR1714", # Consider merging dict literals
+    "N818",    # Exception name should end with "Error"
+    "PLW0127", # Self-assigning variable
+    "PT012",   # pytest.raises() without match=
+    "N806",    # Variable in function should be lowercase
+    "E712",    # Use "is" to compare with True/False/None
+    "E711",    # Use "is" to compare with None
+    "W505",    # Doc line too long
+    "PT006",   # pytest.parametrize() values not a tuple
+    "PLR2004", # Magic value used in comparison
+    "N812",    # Lowercase imported as non-lowercase
+    "F841",    # Local variable is assigned but unused
+
     "TID",     # flake8-tidy-imports (TID)#
     "F401",    # unused-import	{name} imported but unused; consider using importlib.util.find_spec to test for availability
     "F402",    # import-shadowed-by-loop-var	Import {name} from {row} shadowed by loop variable
@@ -1165,7 +1161,7 @@ exclude = [
     'AIR', # airflow
     'CPY', # flake8-copyright (CPY)#
     'D',   # pydocstyle (D)#
-    # 'NPY', # NumPy-specific rules (NPY)#
+
     'PD', # pandas-vet (PD)
 
     # Many projects either don't have type annotations or it would take much effort to satisfy this
@@ -1934,3 +1930,10 @@ diff = true
 no_gitignore = false
 # Stop enforcing the existence of the __all__ dunder in __init__.py files. (disabling this policy)
 disable_all_dunder_policy = true
+
+
+[tool.nbqa.md]
+blacken-docs = true
+
+[tool.nbqa.shell]
+flake8heavened = true
