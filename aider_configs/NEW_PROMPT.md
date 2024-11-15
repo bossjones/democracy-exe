@@ -2708,7 +2708,7 @@ jobs:
       - name: Run tests
         run: |
           source $HOME/.rye/env
-          rye run pytest
+          uv run pytest
 
       - name: Build and push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

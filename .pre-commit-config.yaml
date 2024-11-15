@@ -41,7 +41,7 @@ repos:
       - id: check-ast
         exclude: (.vscode|contrib)
       - id: check-json
-        exclude: (.vscode|.devcontainer|hack)
+        exclude: (.vscode|.devcontainer|hack|cookbook)
 
   # When running with --fix, Ruff's lint hook should be placed before Ruff's formatter hook, and before Black, isort, and other formatting tools, as Ruff's fix behavior can output code changes that require reformatting.
   # SOURCE: https://github.com/astral-sh/ruff-pre-commit
@@ -60,7 +60,7 @@ repos:
         types_or:
           - python
           - pyi
-          - jupyter
+          # - jupyter
         exclude: ^(scripts|typings)/.*
 
       # Run the formatter.
@@ -69,7 +69,7 @@ repos:
         types_or:
           - python
           - pyi
-          - jupyter
+          # - jupyter
         args:
           - --config=pyproject.toml
         files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|pyi|ipynb)$
@@ -179,3 +179,13 @@ repos:
   #   rev: v4.0.0-alpha.8
   #   hooks:
   #     - id: prettier
+
+
+# - repo: https://github.com/nbQA-dev/nbQA
+  #   rev: 1.8.5
+  #   hooks:
+  #   - id: nbqa-check-ast
+  #     name: validate Python notebooks
+  #   - id: nbqa-ruff
+  #     name: ruff for notebooks (see https://docs.astral.sh/ruff/rules)
+  #     args: [--fix, '--select=A,ARG,B,BLE,C,C4,E,F,FLY,I,INT,ISC,PERF,PIE,PLC,PLE,PYI,Q003,RET,RSE,SIM,TID,TRY,UP,W', '--ignore=B007,B008,B015,B018,E402,E501,E741,PLC2401,PLC2403,SIM114']

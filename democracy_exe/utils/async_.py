@@ -8,6 +8,7 @@ import concurrent.futures
 import functools
 import threading
 import time
+import typing
 
 from asyncio import Semaphore, coroutines, ensure_future, gather, get_running_loop
 from asyncio.events import AbstractEventLoop
@@ -257,7 +258,7 @@ def async_timer():
 #######################################
 
 
-def to_async(func):
+def to_async(func: typing.Callable) -> typing.Callable:
     """Turns a sync function to async function using event loop"""
 
     @functools.wraps(func)

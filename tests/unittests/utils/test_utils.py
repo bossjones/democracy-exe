@@ -32,7 +32,7 @@ def test_async_run(mocker: MockerFixture) -> None:
     async def coro() -> int:
         return 42
 
-    # mocker.patch("src.democracy_exe.utils.get_or_create_event_loop")
+    # mocker.patch("democracy_exe.utils.get_or_create_event_loop")
     result = async_run(coro())
     assert result == 42
 
@@ -52,10 +52,10 @@ def test_is_coroutine(mocker: MockerFixture) -> None:
 
 def test_module_exists(mocker: MockerFixture) -> None:
     """Test that module_exists correctly checks for module existence."""
-    mocker.patch("src.democracy_exe.utils.find_spec", return_value=None)
+    mocker.patch("democracy_exe.utils.find_spec", return_value=None)
     assert not module_exists("nonexistent_module")
 
-    mocker.patch("src.democracy_exe.utils.find_spec", return_value=mocker.Mock())
+    mocker.patch("democracy_exe.utils.find_spec", return_value=mocker.Mock())
     assert module_exists("existent_module")
 
 
@@ -91,9 +91,9 @@ def test_module_exists(mocker: MockerFixture) -> None:
 
 def test_get_or_create_event_loop(mocker: MockerFixture) -> None:
     """Test that get_or_create_event_loop returns an event loop."""
-    mocker.patch("src.democracy_exe.utils.asyncio.get_event_loop", side_effect=RuntimeError)
-    mocker.patch("src.democracy_exe.utils.asyncio.new_event_loop")
-    mocker.patch("src.democracy_exe.utils.asyncio.set_event_loop")
+    mocker.patch("democracy_exe.utils.asyncio.get_event_loop", side_effect=RuntimeError)
+    mocker.patch("democracy_exe.utils.asyncio.new_event_loop")
+    mocker.patch("democracy_exe.utils.asyncio.set_event_loop")
 
     loop = get_or_create_event_loop()
     assert loop is not None

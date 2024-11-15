@@ -63,7 +63,7 @@ class ChromaIntegration(BaseModel):
         title="Configuration for embeddings provider",
     )
     embeddingsApiKey: SecretStr = Field(
-        aiosettings.openai_api_key.get_secret_value(),
+        aiosettings.openai_api_key.get_secret_value(),  # pylint: disable=no-member
         description="Value of the API KEY for the embeddings provider (if required).\n\n For example for OpenAI it is OPENAI_API_KEY, for Cohere it is COHERE_API_KEY)",
         title="Embeddings API KEY (whenever applicable, depends on provider)",
     )

@@ -19,6 +19,7 @@ UV_RUN := "uv run"
 install:
     @echo "🚀 Creating virtual environment using uv"
     uv sync
+    uv tool upgrade pyright
     uv run pre-commit install
 
 # Run code quality tools.
@@ -300,12 +301,18 @@ brew-deps:
 # install aicommits and configure it
 init-aicommits:
 	npm install -g aicommits
-	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o-mini
+	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o max-length=100
 	aicommits hook install
 
 # Run aider
 aider:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore
+
+aider-o1-preview:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --o1-preview --architect --edit-format whole --model o1-mini --no-stream
+
+aider-sonnet:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff
 
 # Run aider with Claude
 aider-claude:
@@ -656,3 +663,45 @@ uv_mkdir_site:
 uv_deploy_docs:
     just uv_mkdir_site
     just uv_gh_deploy
+
+# Add bespoke adobe concepts to cursor context
+add-cursor-context:
+	mkdir -p democracy_exe/vendored || true
+	gh repo clone universityofprofessorex/cerebro-bot democracy_exe/vendored/cerebro-bot || true && cd democracy_exe/vendored/cerebro-bot && git checkout feature-discord-utils && cd ../../..
+	gh repo clone bossjones/sandbox_agent democracy_exe/vendored/sandbox_agent || true
+	gh repo clone langchain-ai/retrieval-agent-template democracy_exe/vendored/retrieval-agent-template || true
+	gh repo clone langchain-ai/rag-research-agent-template democracy_exe/vendored/rag-research-agent-template || true
+	gh repo clone langchain-ai/memory-template democracy_exe/vendored/memory-template || true
+	gh repo clone langchain-ai/react-agent democracy_exe/vendored/react-agent || true
+	gh repo clone langchain-ai/chat-langchain democracy_exe/vendored/chat-langchain || true
+	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
+	gh repo clone langchain-ai/langchain democracy_exe/vendored/langchain || true
+	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
+
+	rm -rf democracy_exe/vendored/cerebro-bot/.git
+	rm -rf democracy_exe/vendored/sandbox_agent/.git
+	rm -rf democracy_exe/vendored/retrieval-agent-template/.git
+	rm -rf democracy_exe/vendored/rag-research-agent-template/.git
+	rm -rf democracy_exe/vendored/memory-template/.git
+	rm -rf democracy_exe/vendored/react-agent/.git
+	rm -rf democracy_exe/vendored/chat-langchain/.git
+	rm -rf democracy_exe/vendored/goob_ai/.git
+	rm -rf democracy_exe/vendored/langchain/.git
+	rm -rf democracy_exe/vendored/langgraph/.git
+
+
+# List outdated packages
+outdated:
+    {{UV_RUN}} pip list --outdated
+
+install-llm-cli-plugins:
+    {{UV_RUN}} llm install llm-cmd
+    {{UV_RUN}} llm install llm-clip
+    {{UV_RUN}} llm install llm-sentence-transformers
+    {{UV_RUN}} llm install llm-replicate
+    {{UV_RUN}} llm install llm-perplexity
+    {{UV_RUN}} llm install llm-claude-3
+    {{UV_RUN}} llm install llm-python
+    {{UV_RUN}} llm install llm-json
+    {{UV_RUN}} llm install llm-markdown
+    {{UV_RUN}} llm install llm-sql
