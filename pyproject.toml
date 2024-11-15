@@ -96,6 +96,18 @@ dependencies = [
     "trustcall>=0.0.25",
     "llm>=0.17.1",
     "toolong>=1.5.0",
+    "llm-gemini>=0.3",
+    "llm-cmd>=0.2a0",
+    "llm-clip>=0.1",
+    "llm-sentence-transformers>=0.2",
+    "llm-replicate>=0.3.1",
+    "llm-perplexity>=0.9",
+    "llm-claude-3>=0.8",
+    "llm-python>=0.1",
+    "llm-jq>=0.1.1",
+    "ttok>=0.3",
+    "symbex>=1.4",
+    "strip-tags>=0.5.1",
 ]
 
 [project.urls]
