@@ -60,11 +60,11 @@ async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
             rprint("[bold red]An error occurred while processing your message.[/bold red]")
 
 
-def handle_sigterm(signo, frame):
-    sys.exit(128 + signo)  # this will raise SystemExit and cause atexit to be called
+# def handle_sigterm(signo, frame):
+#     sys.exit(128 + signo)  # this will raise SystemExit and cause atexit to be called
 
 
-signal.signal(signal.SIGTERM, handle_sigterm)
+# signal.signal(signal.SIGTERM, handle_sigterm)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(go_terminal_bot())

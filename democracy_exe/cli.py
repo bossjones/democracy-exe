@@ -262,7 +262,19 @@ async def run_bot_with_redis():
 def run_terminal_bot() -> None:
     """Main entry point for terminal bot"""
     typer.echo("Starting up terminal bot")
-    asyncio.run(go_terminal_bot())
+    try:
+        asyncio.run(go_terminal_bot())
+    except Exception as ex:
+        print(f"{ex}")
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(f"Error Class: {ex.__class__}")
+        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        print(output)
+        print(f"exc_type: {exc_type}")
+        print(f"exc_value: {exc_value}")
+        traceback.print_tb(exc_traceback)
+        if aiosettings.dev_mode:
+            bpdb.pm()
 
 
 @APP.command()

@@ -488,6 +488,8 @@ class AioSettings(BaseSettings):
     pinecone_index_name: str = Field(env="PINECONE_INDEX_NAME", description="pinecone index name", default="")
     pinecone_url: str = Field(env="PINECONE_URL", description="pinecone url", default="https://democracy-exe-dxt6ijd.svc.aped-4627-b74a.pinecone.io")
 
+    chatbot_type: Literal["terminal", "discord"] = Field(env="CHATBOT_TYPE", description="chatbot type", default="terminal")
+
     unstructured_api_key: SecretStr = Field(env="UNSTRUCTURED_API_KEY", description="unstructured api key", default="")
     unstructured_api_url: str = Field(
         env="UNSTRUCTURED_API_URL",

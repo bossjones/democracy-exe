@@ -1,4 +1,5 @@
 # democracy_exe/chatbot/discord_bot.py
+# pyright: reportAttributeAccessIssue=false
 from __future__ import annotations
 
 import asyncio
@@ -16,13 +17,6 @@ from collections.abc import AsyncIterator, Callable, Coroutine, Iterable
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, TypeVar, Union, cast
 
-from PIL import Image
-
-
-if TYPE_CHECKING:
-    from discord import Message, TextChannel, User
-    from discord.abc import Messageable
-
 import aiohttp
 import bpdb
 import discord
@@ -35,13 +29,19 @@ from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS, PGVector
 from langchain_community.vectorstores import Redis as RedisVectorStore
 from langchain_core.callbacks import AsyncCallbackHandler, BaseCallbackHandler, StdOutCallbackHandler
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI, OpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
+from PIL import Image
 
 from democracy_exe.ai.graphs import AgentState, router_graph
 from democracy_exe.aio_settings import aiosettings
 
+
+if TYPE_CHECKING:
+    from discord import Message, TextChannel, User
+    from discord.abc import Messageable
 
 class DemocracyBot(commands.Bot):
     """Discord bot for handling democratic interactions and AI processing.
@@ -91,6 +91,64 @@ class DemocracyBot(commands.Bot):
         """Handle bot ready event and set up initial state."""
         logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         print("------")
+
+    async def _get_thread(self, message: discord.Message) -> discord.Thread:
+        """Get or create a Discord thread for the given message.
+
+        If the message is already in a thread, return that thread.
+        Otherwise, create a new thread in the channel where the message was sent.
+
+        Args:
+            message (Message): The Discord message to get or create a thread for.
+
+        Returns:
+            discord.Thread: The thread associated with the message.
+        """
+        channel = message.channel # pyright: ignore[reportAttributeAccessIssue]
+        if isinstance(channel, discord.Thread):
+            return channel
+        else:
+            return await channel.create_thread(name="Response", message=message)
+
+
+    # async def _create_or_fetch_lg_thread(self, thread_id: uuid.UUID) -> discord.Thread:
+    #     """Create or fetch a LangGraph thread for the given thread ID.
+
+    #     This function attempts to fetch an existing LangGraph thread. If it doesn't
+    #     exist, a new thread is created.
+
+    #     Args:
+    #         thread_id (uuid.UUID): The unique identifier for the thread.
+
+    #     Returns:
+    #         Thread: The LangGraph thread object.
+    #     """
+    #     try:
+    #         return await _LANGGRAPH_CLIENT.threads.get(thread_id)
+    #     except Exception:
+    #         pass
+    #     return await _LANGGRAPH_CLIENT.threads.create(thread_id=thread_id)
+
+
+    def _format_inbound_message(self, message: discord.Message) -> HumanMessage:
+        """Format a Discord message into a HumanMessage for LangGraph processing.
+
+        This function takes a Discord message and formats it into a structured
+        HumanMessage object that includes context about the message's origin.
+
+        Args:
+            message (Message): The Discord message to format.
+
+        Returns:
+            HumanMessage: A formatted message ready for LangGraph processing.
+        """
+        guild_str = "" if message.guild is None else f"guild={message.guild}"  # pyright: ignore[reportAttributeAccessIssue]
+        content = f"""<discord {guild_str} channel={message.channel} author={message.author!r}>
+        {message.content}
+        </discord>"""  # pyright: ignore[reportAttributeAccessIssue]
+        return HumanMessage(
+            content=content, name=str(message.author.global_name), id=str(message.id)
+        )  # pyright: ignore[reportAttributeAccessIssue]
 
     async def on_message(self, message: discord.Message) -> None:
         """Process incoming messages and route them through the AI pipeline.

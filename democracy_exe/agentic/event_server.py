@@ -75,7 +75,7 @@
 #     return _ASSISTANT_ID
 
 
-# async def _get_thread(message: Message) -> discord.Thread:
+# async def _get_thread(message: discord.Message) -> discord.Thread:
 #     """Get or create a Discord thread for the given message.
 
 #     If the message is already in a thread, return that thread.
