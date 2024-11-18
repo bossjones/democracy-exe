@@ -108,6 +108,8 @@ dependencies = [
     "ttok>=0.3",
     "symbex>=1.4",
     "strip-tags>=0.5.1",
+    "files-to-prompt>=0.4",
+    "langchain-fireworks>=0.2.5",
 ]
 
 [project.urls]
@@ -230,6 +232,7 @@ py-modules = ["democracy_exe"]
 
 [project.scripts]
 democracy-exe = 'democracy_exe.cli:entry'
+democracyctl = 'democracy_exe.cli:entry'
 
 [tool.mypy]
 files = ["democracy_exe"]
@@ -988,6 +991,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 # 4. Ignore `E402` (import violations) in all `__init__.py` files, and in select subdirectories.
 [tool.ruff.lint.per-file-ignores]
 "cookbook/studio/*" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/graph.py" = ["N815", "B005", "RUF005"]
 "democracy_exe/democracy_exe/gen_ai/models/vectorstores/*" = ["N815"]
 "tests/*" = ["PT011", "S101"]
 "democracy_exe/democracy_exe/tutorials/design_patterns/practical_examples/*" = [

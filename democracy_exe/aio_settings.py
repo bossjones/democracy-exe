@@ -484,6 +484,9 @@ class AioSettings(BaseSettings):
     pinecone_api_key: SecretStr = Field(env="PINECONE_API_KEY", description="pinecone api key", default="")
     pinecone_env: str = Field(env="PINECONE_ENV", description="pinecone env", default="local")
     pinecone_index: str = Field(env="PINECONE_INDEX", description="pinecone index", default="")
+    pinecone_namespace: str = Field(env="PINECONE_NAMESPACE", description="pinecone namespace", default="ns1")
+    pinecone_index_name: str = Field(env="PINECONE_INDEX_NAME", description="pinecone index name", default="")
+    pinecone_url: str = Field(env="PINECONE_URL", description="pinecone url", default="https://democracy-exe-dxt6ijd.svc.aped-4627-b74a.pinecone.io")
 
     unstructured_api_key: SecretStr = Field(env="UNSTRUCTURED_API_KEY", description="unstructured api key", default="")
     unstructured_api_url: str = Field(

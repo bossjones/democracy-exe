@@ -60,6 +60,7 @@ import democracy_exe
 from democracy_exe.aio_settings import aiosettings, get_rich_console
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
 from democracy_exe.bot_logger import get_logger, global_log_config
+from democracy_exe.chatbot.terminal_bot import go_terminal_bot
 from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
 from democracy_exe.utils.base import print_line_seperator
@@ -238,6 +239,30 @@ async def run_bot_with_redis():
     #     await bot.start()
 
     await logger.complete()
+
+# async def run_terminal_bot():
+#     try:
+#         await go_terminal_bot()
+#     except Exception as ex:
+#         print(f"{ex}")
+#         exc_type, exc_value, exc_traceback = sys.exc_info()
+#         print(f"Error Class: {ex.__class__}")
+#         output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+#         print(output)
+#         print(f"exc_type: {exc_type}")
+#         print(f"exc_value: {exc_value}")
+#         traceback.print_tb(exc_traceback)
+#         if aiosettings.dev_mode:
+#             bpdb.pm()
+
+
+#     await logger.complete()
+
+@APP.command()
+def run_terminal_bot() -> None:
+    """Main entry point for terminal bot"""
+    typer.echo("Starting up terminal bot")
+    asyncio.run(go_terminal_bot())
 
 
 @APP.command()

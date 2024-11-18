@@ -10,14 +10,16 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.graph.state import CompiledStateGraph
 from loguru import logger
 from rich import print as rprint
 
-from democracy_exe.ai.graphs import AgentState, router_graph
+from democracy_exe.agentic import _utils as agentic_utils
+from democracy_exe.agentic.graph import memgraph
 from democracy_exe.aio_settings import aiosettings
 
 
-async def main() -> None:
+async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
     """Main function to run the LangGraph Chatbot in the terminal.
 
     This function handles user input and processes it through the AI pipeline.
@@ -39,17 +41,20 @@ async def main() -> None:
 
         try:
 
-            state = AgentState(
-                query=message.content,
-                response="",
-                current_agent="",
-                context={"message": message}
-            )
-            result: AgentState = router_graph.process(state)
+            # state = AgentState(
+            #     query=message.content,
+            #     response="",
+            #     current_agent="",
+            #     context={"message": message}
+            # )
+            # result: AgentState = graph.process(state)
+            messages = graph.invoke({"messages": [message]})
+            for m in messages['messages']:
+                m.pretty_print()
 
             # Print the AI's response
-            rprint(f"[bold blue]AI:[/bold blue] {result['response']}")
-            logger.info(f"AI: {result['response']}")
+            rprint(f"[bold blue]AI:[/bold blue] {messages['response']}")
+            logger.info(f"AI: {messages['response']}")
         except Exception as e:
             logger.exception("Error processing message")
             rprint("[bold red]An error occurred while processing your message.[/bold red]")
