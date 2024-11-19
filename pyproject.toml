@@ -992,6 +992,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 
 # 4. Ignore `E402` (import violations) in all `__init__.py` files, and in select subdirectories.
 [tool.ruff.lint.per-file-ignores]
+"democracy_exe/agentic/studio/*" = ["N815", "B005", "RUF005"]
 "cookbook/studio/*" = ["N815", "B005", "RUF005"]
 "democracy_exe/agentic/graph.py" = ["N815", "B005", "RUF005"]
 "democracy_exe/agentic/studio/graph.py" = ["N815", "B005", "RUF005"]
@@ -1306,6 +1307,8 @@ exclude_lines = [
 omit = [
     "test/*",
     "tests/*",
+    "democracy_exe/agentic/studio/*",
+    "cookbook/studio/*",
 ]
 # fail if coverage drops below the specified percentage:
 fail_under = 10
@@ -1474,6 +1477,7 @@ ignore-paths = [
     "democracy_exe/utils/run_service.py",
     "democracy_exe/utils/imgops.py",
     "democracy_exe/utils/files_import.py",
+    "democracy_exe/agentic/studio",
 ]
 
 # SOURCE: https://github.com/ocellicode/gpyt-commandbus/blob/80172644b35af7b4679ace734bea1c5ea2212a52/pyproject.toml#L21
