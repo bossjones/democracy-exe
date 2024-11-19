@@ -5,28 +5,58 @@
 # pyright: reportInvalidTypeForm=false
 from __future__ import annotations
 
+import json
+import logging
 import uuid
 
-from datetime import datetime
-from typing import Literal, Optional, TypedDict
+from datetime import UTC, datetime, timezone
+from typing import Literal, Optional, Tuple, TypedDict
 
 import configuration
+import langsmith
+import rich
+import tiktoken
 
-from langchain_core.messages import HumanMessage, SystemMessage, merge_message_runs
-from langchain_core.runnables import RunnableConfig
+from langchain.chat_models import init_chat_model
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, merge_message_runs
+from langchain_core.messages.utils import get_buffer_string
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables.config import RunnableConfig, ensure_config, get_executor_for_config
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
 from pydantic import BaseModel, Field
+from settings import aiosettings
 from trustcall import create_extractor
+
+from democracy_exe.vendored.goob_ai.typings.transformers import generation
+
+
+class Memory(BaseModel):
+    content: str = Field(description="The main content of the memory. For example: User expressed interest in learning about French.")
+
+class MemoryCollection(BaseModel):
+    memories: list[Memory] = Field(description="A list of memories about the user.")
 
 
 ## Utilities
 
 # Inspect the tool calls for Trustcall
 class Spy:
+    """
+        We can add a [listener](https://python.langchain.com/docs/how_to/lcel_cheatsheet/#add-lifecycle-listeners) to the Trustcall extractor.
+
+        This will pass runs from the extractor's execution to a class, `Spy`, that we will define.
+
+        Our `Spy` class will extract information about what tool calls were made by Trustcall.
+    """
     def __init__(self):
         self.called_tools = []
 
@@ -38,7 +68,7 @@ class Spy:
                 q.extend(r.child_runs)
             if r.run_type == "chat_model":
                 self.called_tools.append(
-                    r.outputs["generations"][0][0]["message"]["kwargs"]["tool_calls"]
+                    r.outputs["generation"][0][0]["message"]["kwargs"]["tool_calls"]
                 )
 
 # Extract information from tool calls for both patches and new memories in Trustcall
@@ -128,7 +158,11 @@ class UpdateMemory(TypedDict):
     update_type: Literal['user', 'todo', 'instructions']
 
 # Initialize the model
-model = ChatOpenAI(model="gpt-4o", temperature=0)
+
+# model = ChatOpenAI(model="gpt-4o", temperature=0)
+model: BaseChatModel = init_chat_model("gpt-4o", model_provider=aiosettings.llm_provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
+# TODO: Use this to get embeddings
+# tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 ## Create the Trustcall extractors for updating the user profile and ToDo list
 profile_extractor = create_extractor(
@@ -204,7 +238,7 @@ Your current instructions are:
 
 ## Node definitions
 
-def task_mAIstro(state: MessagesState, config: RunnableConfig, store: BaseStore):
+def taks_democracy_ai(state: MessagesState, config: RunnableConfig, store: BaseStore):
 
     """Load memories from the store and use them to personalize the chatbot's response."""
 
@@ -328,10 +362,10 @@ def update_todos(state: MessagesState, config: RunnableConfig, store: BaseStore)
                   r.model_dump(mode="json"),
             )
 
-    # Respond to the tool call made in task_mAIstro, confirming the update
+    # Respond to the tool call made in taks_democracy_ai, confirming the update
     tool_calls = state['messages'][-1].tool_calls
 
-    # Extract the changes made by Trustcall and add the the ToolMessage returned to task_mAIstro
+    # Extract the changes made by Trustcall and add the the ToolMessage returned to taks_democracy_ai
     todo_update_msg = extract_tool_info(spy.called_tools, tool_name)
     return {"messages": [{"role": "tool", "content": todo_update_msg, "tool_call_id":tool_calls[0]['id']}]}
 
@@ -380,17 +414,17 @@ def route_message(state: MessagesState, config: RunnableConfig, store: BaseStore
 builder = StateGraph(MessagesState, config_schema=configuration.Configuration)
 
 # Define the flow of the memory extraction process
-builder.add_node(task_mAIstro)
+builder.add_node(taks_democracy_ai)
 builder.add_node(update_todos)
 builder.add_node(update_profile)
 builder.add_node(update_instructions)
 
 # Define the flow
-builder.add_edge(START, "task_mAIstro")
-builder.add_conditional_edges("task_mAIstro", route_message)
-builder.add_edge("update_todos", "task_mAIstro")
-builder.add_edge("update_profile", "task_mAIstro")
-builder.add_edge("update_instructions", "task_mAIstro")
+builder.add_edge(START, "taks_democracy_ai")
+builder.add_conditional_edges("taks_democracy_ai", route_message)
+builder.add_edge("update_todos", "taks_democracy_ai")
+builder.add_edge("update_profile", "taks_democracy_ai")
+builder.add_edge("update_instructions", "taks_democracy_ai")
 
 # Compile the graph
 graph = builder.compile()

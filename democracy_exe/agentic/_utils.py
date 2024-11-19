@@ -9,7 +9,6 @@ import uuid
 
 from functools import lru_cache
 
-import _schemas as schemas
 import langsmith
 
 from langchain_core.runnables import RunnableConfig
@@ -17,6 +16,8 @@ from langchain_fireworks import FireworksEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from loguru import logger
 from pinecone import Pinecone, ServerlessSpec
+
+import democracy_exe.agentic._schemas as schemas
 
 from democracy_exe.aio_settings import aiosettings
 
