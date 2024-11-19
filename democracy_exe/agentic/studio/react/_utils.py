@@ -9,6 +9,7 @@ import uuid
 
 from functools import lru_cache
 
+import _schemas as schemas
 import langsmith
 
 from langchain_core.runnables import RunnableConfig
@@ -18,18 +19,9 @@ from loguru import logger
 from pinecone import Pinecone, ServerlessSpec
 from settings import aiosettings
 
-import democracy_exe.agentic._schemas as schemas
-
 
 _DEFAULT_DELAY = 60  # seconds
 
-
-# def get_fake_user_id_to_uuid(user_id: int = 1) -> str:
-#     namespace = uuid.NAMESPACE_DNS  # You can choose a different namespace if appropriate
-#     name = f"USER:{user_id}"
-#     generated_uuid = uuid.uuid5(namespace, name)
-#     logger.info(f"Generated fake user ID: {generated_uuid}")
-#     return generated_uuid
 
 def get_fake_thread_id(user_id: int = 1) -> str:
     """Generate a deterministic UUID for a thread based on user ID.
