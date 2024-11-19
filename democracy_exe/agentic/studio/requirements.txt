@@ -14,3 +14,4 @@ discord.py
 rich
 pydantic_settings
 yarl
+pinecone-text

@@ -110,6 +110,8 @@ dependencies = [
     "strip-tags>=0.5.1",
     "files-to-prompt>=0.4",
     "langchain-fireworks>=0.2.5",
+    "pinecone-text>=0.9.0",
+    "pinecone-notebooks>=0.1.1",
 ]
 
 [project.urls]
