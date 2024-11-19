@@ -27,6 +27,7 @@ import _constants as constants
 import _schemas as schemas
 import _utils as agentic_utils
 import langsmith
+import rich
 import tiktoken
 
 from langchain.chat_models import init_chat_model
@@ -253,7 +254,7 @@ async def agent(state: schemas.State, config: RunnableConfig) -> schemas.State:
         schemas.State: The updated state with the agent's response.
     """
     configurable = agentic_utils.ensure_configurable(config)
-    llm = init_chat_model(configurable["model"]) # pyright: ignore[reportUndefinedVariable]
+    llm = init_chat_model(configurable["model"], model_provider=aiosettings.llm_provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
     bound = prompt | llm.bind_tools(all_tools)
     core_str = (
         "<core_memory>\n" + "\n".join(state["core_memories"]) + "\n</core_memory>"
@@ -313,6 +314,7 @@ def route_tools(state: schemas.State) -> Literal["tools", "__end__"]:
         Literal["tools", "__end__"]: The next step in the graph.
     """
     msg = state["messages"][-1]
+    rich.inspect(msg, all=True)
     if msg.tool_calls:
         return "tools"
     return END
@@ -331,6 +333,6 @@ builder.add_conditional_edges("agent", route_tools)
 builder.add_edge("tools", "agent")
 
 # Compile the graph
-memgraph: CompiledStateGraph = builder.compile(interrupt_before=["tools"])
+memgraph: CompiledStateGraph = builder.compile(interrupt_before=["agent"])
 
 __all__ = ["memgraph"]
