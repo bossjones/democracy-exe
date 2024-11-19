@@ -112,6 +112,7 @@ dependencies = [
     "langchain-fireworks>=0.2.5",
     "pinecone-text>=0.9.0",
     "pinecone-notebooks>=0.1.1",
+    "nest-asyncio>=1.6.0",
 ]
 
 [project.urls]
