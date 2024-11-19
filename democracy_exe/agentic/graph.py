@@ -24,6 +24,7 @@ from datetime import UTC, datetime, timezone
 from typing import Literal, Optional, Tuple
 
 import langsmith
+import rich
 import tiktoken
 
 from langchain.chat_models import init_chat_model
@@ -62,7 +63,7 @@ async def save_recall_memory(memory: str) -> str:
     """
     config = ensure_config()
     configurable = agentic_utils.ensure_configurable(config)
-    embeddings = agentic_utils.get_embeddings()
+    embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = await embeddings.aembed_query(memory)
     current_time = datetime.now(tz=UTC)
     path = constants.INSERT_PATH.format(
@@ -82,10 +83,18 @@ async def save_recall_memory(memory: str) -> str:
             },
         }
     ]
+    logger.error(f"configurable: {configurable}")
+    logger.error(f"documents: {documents}")
+    logger.error(f"path: {path}")
+    logger.error(f"current_time: {current_time}")
+    logger.error(f"vector: {vector}")
+    logger.error(f"embeddings: {embeddings}")
+
     agentic_utils.get_index().upsert(
         vectors=documents,
         namespace=aiosettings.pinecone_namespace,
     )
+    await logger.complete()
     return memory
 
 
@@ -102,7 +111,7 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     """
     config = ensure_config()
     configurable = agentic_utils.ensure_configurable(config)
-    embeddings = agentic_utils.get_embeddings()
+    embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = embeddings.embed_query(query)
     with langsmith.trace("query", inputs={"query": query, "top_k": top_k}) as rt:
         response = agentic_utils.get_index().query(
@@ -133,6 +142,7 @@ def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
         Tuple[str, list[str]]: The path and list of core memories.
     """
     path = constants.PATCH_PATH.format(user_id=user_id)
+    logger.error(f"path: {path}")
     response = agentic_utils.get_index().fetch(
         ids=[path], namespace=aiosettings.pinecone_namespace
     )
@@ -254,7 +264,7 @@ async def agent(state: schemas.State, config: RunnableConfig) -> schemas.State:
         schemas.State: The updated state with the agent's response.
     """
     configurable = agentic_utils.ensure_configurable(config)
-    llm = init_chat_model(configurable["model"]) # pyright: ignore[reportUndefinedVariable]
+    llm = init_chat_model(configurable["model"], model_provider=aiosettings.llm_provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
     bound = prompt | llm.bind_tools(all_tools)
     core_str = (
         "<core_memory>\n" + "\n".join(state["core_memories"]) + "\n</core_memory>"
@@ -262,6 +272,10 @@ async def agent(state: schemas.State, config: RunnableConfig) -> schemas.State:
     recall_str = (
         "<recall_memory>\n" + "\n".join(state["recall_memories"]) + "\n</recall_memory>"
     )
+    logger.error(f"core_str: {core_str}")
+    logger.error(f"recall_str: {recall_str}")
+    logger.error(f"agent state: {state}")
+    logger.error(f"agent config: {config}")
     prediction = await bound.ainvoke(
         {
             "messages": state["messages"],
@@ -270,6 +284,7 @@ async def agent(state: schemas.State, config: RunnableConfig) -> schemas.State:
             "current_time": datetime.now(tz=UTC).isoformat(),
         }
     )
+    await logger.complete()
     return {
         "messages": prediction,
     }
@@ -313,7 +328,9 @@ def route_tools(state: schemas.State) -> Literal["tools", "__end__"]:
     Returns:
         Literal["tools", "__end__"]: The next step in the graph.
     """
+    logger.error(f"state: {state}")
     msg = state["messages"][-1]
+    rich.inspect(msg, all=True)
     if msg.tool_calls:
         return "tools"
     return END
@@ -332,6 +349,6 @@ builder.add_conditional_edges("agent", route_tools)
 builder.add_edge("tools", "agent")
 
 # Compile the graph
-memgraph: CompiledStateGraph = builder.compile(interrupt_before=["tools"])
+memgraph: CompiledStateGraph = builder.compile(interrupt_before=["agent"])
 
 __all__ = ["memgraph"]

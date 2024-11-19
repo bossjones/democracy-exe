@@ -42,6 +42,8 @@ def get_fake_thread_id(user_id: int = 1) -> str:
     namespace: uuid.UUID = uuid.NAMESPACE_DNS  # You can choose a different namespace if appropriate
     name: str = f"USER:{user_id}"
     generated_uuid: uuid.UUID = uuid.uuid5(namespace, name)
+    logger.info(f"namespace: {namespace}")
+    logger.info(f"name: {name}")
     logger.info(f"Generated fake thread ID: {generated_uuid}")
     return str(generated_uuid)
 
