@@ -6,9 +6,11 @@ from dataclasses import dataclass, field, fields
 from typing import Annotated, Any, Optional, Type, TypeVar
 
 import prompts
+import rich
 
 from langchain_core.runnables import RunnableConfig, ensure_config
 from loguru import logger
+from rich.pretty import pprint
 
 
 def _update_configurable_for_backwards_compatibility(
@@ -64,18 +66,20 @@ class Configuration:
         """Create a Configuration instance from a RunnableConfig."""
         config = ensure_config(config)
         configurable = config.get("configurable") or {}
-        logger.error(f"Config - config: {config}")
+        # logger.error(f"Config - config: {config}")
         # configurable = (
         #     config["configurable"] if config and "configurable" in config else {}
         # )
         configurable = _update_configurable_for_backwards_compatibility(configurable)
-        logger.error(f"Configurable - configurable after _update_configurable_for_backwards_compatibility: {configurable}")
+        rich.print("configurable:")
+        pprint(configurable)
+        # logger.error(f"Configurable - configurable after _update_configurable_for_backwards_compatibility: {configurable}")
         values: dict[str, Any] = {
             f.name: os.environ.get(f.name.upper(), configurable.get(f.name))
             for f in fields(cls)
             if f.init
         }
-        logger.error(f"Values - values: {values}")
+        # logger.error(f"Values - values: {values}")
         return cls(**{k: v for k, v in values.items() if v})
 
 T = TypeVar("T", bound=Configuration)

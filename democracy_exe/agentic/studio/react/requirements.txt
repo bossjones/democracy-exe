@@ -17,3 +17,4 @@ pydantic_settings
 yarl
 pinecone-text
 grandalf
+nest_asyncio

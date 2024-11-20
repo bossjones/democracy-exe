@@ -48,6 +48,11 @@ from trustcall import create_extractor
 from trustcall._base import ExtractionOutputs, InputsLike
 
 
+# import nest_asyncio
+
+# nest_asyncio.apply()  # Required for Jupyter Notebook to run async functions
+
+
 class Memory(BaseModel):
     """A single memory entry containing user-related information.
 
@@ -298,6 +303,379 @@ class UpdateMemory(TypedDict):
 # TODO: Use this to get embeddings
 # tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
+# -----------------------------------------------------------------------------------
+# async nodes
+# -----------------------------------------------------------------------------------
+
+
+
+
+## Node definitions
+
+async def aio_tasks_democracy_ai(
+    state: MessagesState,
+    config: RunnableConfig,
+    store: BaseStore
+) -> dict[str, list[BaseMessage]]:
+    """Load memories from the store and use them to personalize the chatbot's response.
+
+    This function retrieves user profile, todo list, and custom instructions from the store
+    and uses them to generate a personalized chatbot response.
+
+    Args:
+        state: Current message state containing chat history
+        config: Configuration object containing user settings and preferences
+        store: Storage interface for accessing and managing memories
+
+    Returns:
+        Dict containing the list of messages with the chatbot's response
+        Format: {"messages": [response]}
+    """
+    # Get the user ID from the config
+    configurable = configuration.Configuration.from_runnable_config(config)
+    user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
+
+    # Retrieve profile memory from the store
+    namespace = ("profile", user_id)
+    # DISABLED: # memories = store.search(namespace)
+
+    memories = store.search(namespace)
+    if memories:
+        user_profile = memories[0].value
+    else:
+        user_profile = None
+
+    # Retrieve people memory from the store
+    namespace = ("todo", user_id)
+    memories = store.search(namespace)
+    todo = "\n".join(f"{mem.value}" for mem in memories)
+
+    # Retrieve custom instructions
+    namespace = ("instructions", user_id)
+    memories = store.search(namespace)
+    if memories:
+        instructions = memories[0].value
+    else:
+        instructions = ""
+
+    # system_msg = configurable.system_prompt.format(user_profile=user_profile, todo=todo, instructions=instructions)
+    system_msg = MODEL_SYSTEM_MESSAGE.format(user_profile=user_profile, todo=todo, instructions=instructions)
+    logger.error(f"system_msg: {system_msg}")
+    # ---------------------------------------------------------------------------------------
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    # ---------------------------------------------------------------------------------------
+
+    # Respond using memory as well as the chat history
+    # response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"])
+
+    # # Respond using memory as well as the chat history
+    # response = model.bind_tools([UpdateMemory], parallel_tool_calls=False).invoke([SystemMessage(content=system_msg)]+state["messages"])
+
+    # Respond using memory as well as the chat history
+    response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"], config=config)
+
+    return {"messages": [response]}
+
+async def aio_update_profile(
+    state: MessagesState,
+    config: RunnableConfig,
+    store: BaseStore
+) -> dict[str, list[dict[str, str]]]:
+    """Reflect on the chat history and update the user profile in memory.
+
+    This function processes the chat history to extract and update user profile information
+    in the store using the Trustcall extractor.
+
+    Args:
+        state: Current message state containing chat history
+        config: Configuration object containing user settings and preferences
+        store: Storage interface for accessing and managing memories
+
+    Returns:
+        Dict containing a tool message confirming the profile update
+        Format: {
+            "messages": [{
+                "role": "tool",
+                "content": "updated profile",
+                "tool_call_id": str
+            }]
+        }
+    """
+    # Get the user ID from the config
+    configurable = configuration.Configuration.from_runnable_config(config)
+    user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
+
+
+    # Define the namespace for the memories
+    namespace: tuple[str, str] = ("profile", user_id)
+
+    # Retrieve the most recent memories for context
+    existing_items = store.search(namespace)
+
+    # Format the existing memories for the Trustcall extractor
+    tool_name: str = "Profile"
+    existing_memories: list[tuple[str, str, Any]] | None = (
+        [(existing_item.key, tool_name, existing_item.value)
+         for existing_item in existing_items]
+        if existing_items
+        else None
+    )
+
+    # Merge the chat history and the instruction
+    trustcall_instruction_formatted: str = TRUSTCALL_INSTRUCTION.format(
+        time=datetime.now().isoformat()
+    )
+    updated_messages: list[BaseMessage] = list(
+        merge_message_runs(
+            messages=[SystemMessage(content=trustcall_instruction_formatted)] + state["messages"][:-1]
+        )
+    )
+
+    # ---------------------------------------------------------------------------------------
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    # response = await model.ainvoke(messages, config)
+    # Invoke the extractor
+    # ---------------------------------------------------------------------------------------
+    # # Invoke the extractor
+    # result = profile_extractor.invoke({
+    #     "messages": updated_messages,
+    #     "existing": existing_memories
+    # })
+
+    # Invoke the extractor
+    result = await profile_extractor.ainvoke({
+        "messages": updated_messages,
+        "existing": existing_memories
+    }, config=config)
+
+    # Save the memories from Trustcall to the store
+    for r, rmeta in zip(result["responses"], result["response_metadata"], strict=False):
+        store.put(
+            namespace,
+            rmeta.get("json_doc_id", str(uuid.uuid4())),
+            r.model_dump(mode="json"),
+        )
+
+    tool_calls = state['messages'][-1].tool_calls
+    # Return tool message with update verification
+    return {
+        "messages": [{
+            "role": "tool",
+            "content": "updated profile",
+            "tool_call_id": tool_calls[0]['id']
+        }]
+    }
+
+async def aio_update_todos(
+    state: MessagesState,
+    config: RunnableConfig,
+    store: BaseStore
+) -> dict[str, list[dict[str, str]]]:
+    """Reflect on the chat history and update the todo list in memory.
+
+    This function processes the chat history to extract and update todo items
+    in the store using the Trustcall extractor. It also tracks changes made
+    using a Spy instance.
+
+    Args:
+        state: Current message state containing chat history
+        config: Configuration object containing user settings and preferences
+        store: Storage interface for accessing and managing memories
+
+    Returns:
+        Dict containing a tool message with update details
+        Format: {
+            "messages": [{
+                "role": "tool",
+                "content": str,  # Contains details of updates made
+                "tool_call_id": str
+            }]
+        }
+    """
+    # Get the user ID from the config
+    configurable = configuration.Configuration.from_runnable_config(config)
+    user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
+
+
+    # Define the namespace for the memories
+    namespace: tuple[str, str] = ("todo", user_id)
+
+    # Retrieve the most recent memories for context
+    existing_items = store.search(namespace)
+
+    # Format the existing memories for the Trustcall extractor
+    tool_name: str = "ToDo"
+    existing_memories: list[tuple[str, str, Any]] | None = (
+        [(existing_item.key, tool_name, existing_item.value)
+         for existing_item in existing_items]
+        if existing_items
+        else None
+    )
+
+    # Merge the chat history and the instruction
+    trustcall_instruction_formatted: str = TRUSTCALL_INSTRUCTION.format(
+        time=datetime.now().isoformat()
+    )
+    updated_messages: list[BaseMessage] = list(
+        merge_message_runs(
+            messages=[SystemMessage(content=trustcall_instruction_formatted)] + state["messages"][:-1]
+        )
+    )
+
+    # Initialize the spy for visibility into the tool calls made by Trustcall
+    spy: Spy = Spy()
+
+    # Create the Trustcall extractor for updating the ToDo list
+    todo_extractor: Runnable[InputsLike, ExtractionOutputs] = create_extractor(
+        model,
+        tools=[ToDo],
+        tool_choice=tool_name,
+        enable_inserts=True
+    ).with_listeners(on_end=spy)
+
+    # # Invoke the extractor
+    # result = todo_extractor.invoke({
+    #     "messages": updated_messages,
+    #     "existing": existing_memories
+    # })
+
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    # response = await model.ainvoke(messages, config)
+    # Invoke the extractor
+    result = await todo_extractor.ainvoke({
+        "messages": updated_messages,
+        "existing": existing_memories
+    }, config=config)
+
+    # Save the memories from Trustcall to the store
+    for r, rmeta in zip(result["responses"], result["response_metadata"], strict=False):
+        store.put(
+            namespace,
+            rmeta.get("json_doc_id", str(uuid.uuid4())),
+            r.model_dump(mode="json"),
+        )
+
+    # Respond to the tool call made in tasks_democracy_ai, confirming the update
+    tool_calls = state['messages'][-1].tool_calls
+
+    # Extract the changes made by Trustcall and add to the ToolMessage returned to tasks_democracy_ai
+    todo_update_msg: str = extract_tool_info(spy.called_tools, tool_name)
+    return {
+        "messages": [{
+            "role": "tool",
+            "content": todo_update_msg,
+            "tool_call_id": tool_calls[0]['id']
+        }]
+    }
+
+async def aio_update_instructions(
+    state: MessagesState,
+    config: RunnableConfig,
+    store: BaseStore
+) -> dict[str, list[dict[str, str]]]:
+    """Reflect on the chat history and update the instructions in memory.
+
+    This function processes the chat history to extract and update user-specified
+    preferences for managing the todo list. It stores these instructions for future
+    reference.
+
+    Args:
+        state: Current message state containing chat history
+        config: Configuration object containing user settings and preferences
+        store: Storage interface for accessing and managing memories
+
+    Returns:
+        Dict containing a tool message confirming the instructions update
+        Format: {
+            "messages": [{
+                "role": "tool",
+                "content": "updated instructions",
+                "tool_call_id": str
+            }]
+        }
+    """
+    # Get the user ID from the config
+    configurable = configuration.Configuration.from_runnable_config(config)
+    user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
+
+    namespace: tuple[str, str] = ("instructions", user_id)
+
+    existing_memory = store.get(namespace, "user_instructions")
+
+    # Format the memory in the system prompt
+    system_msg: str = CREATE_INSTRUCTIONS.format(
+        current_instructions=existing_memory.value if existing_memory else None
+    )
+
+    # # # Respond using memory as well as the chat history
+    # new_memory: BaseMessage = model.invoke(
+    #     [SystemMessage(content=system_msg)] +
+    #     state['messages'][:-1] +
+    #     [HumanMessage(content="Please update the instructions based on the conversation")]
+    # )
+    # # Respond using memory as well as the chat history
+    new_memory: BaseMessage = await model.ainvoke(
+        [SystemMessage(content=system_msg)] +
+        state['messages'][:-1] +
+        [HumanMessage(content="Please update the instructions based on the conversation")],
+        config=config
+    )
+
+    # Overwrite the existing memory in the store
+    key: str = "user_instructions"
+    store.put(namespace, key, {"memory": new_memory.content})
+
+    tool_calls = state['messages'][-1].tool_calls
+
+    # Return tool message with update verification
+    return {
+        "messages": [{
+            "role": "tool",
+            "content": "updated instructions",
+            "tool_call_id": tool_calls[0]['id']
+        }]
+    }
+
+
+# -----------------------------------------------------------------------------------
+# sync nodes
+# -----------------------------------------------------------------------------------
+
 
 
 
@@ -357,13 +735,22 @@ def tasks_democracy_ai(
     else:
         instructions = ""
 
-    system_msg = configurable.system_prompt.format(user_profile=user_profile, todo=todo, instructions=instructions)
+    # system_msg = configurable.system_prompt.format(user_profile=user_profile, todo=todo, instructions=instructions)
+    system_msg = MODEL_SYSTEM_MESSAGE.format(user_profile=user_profile, todo=todo, instructions=instructions)
+
+    # ---------------------------------------------------------------------------------------
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    # ---------------------------------------------------------------------------------------
 
     # Respond using memory as well as the chat history
     # response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"])
 
+    # # Respond using memory as well as the chat history
+    response = model.bind_tools([UpdateMemory], parallel_tool_calls=False).invoke([SystemMessage(content=system_msg)]+state["messages"], config=config)
+
     # Respond using memory as well as the chat history
-    response = model.bind_tools([UpdateMemory], parallel_tool_calls=False).invoke([SystemMessage(content=system_msg)]+state["messages"])
+    # response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"], config=config)
 
     return {"messages": [response]}
 
@@ -430,11 +817,23 @@ def update_profile(
         )
     )
 
+    # ---------------------------------------------------------------------------------------
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    # response = await model.ainvoke(messages, config)
     # Invoke the extractor
+    # ---------------------------------------------------------------------------------------
+    # # Invoke the extractor
     result = profile_extractor.invoke({
         "messages": updated_messages,
         "existing": existing_memories
-    })
+    }, config=config)
+
+    # # Invoke the extractor
+    # result = await profile_extractor.ainvoke({
+    #     "messages": updated_messages,
+    #     "existing": existing_memories
+    # }, config=config)
 
     # Save the memories from Trustcall to the store
     for r, rmeta in zip(result["responses"], result["response_metadata"], strict=False):
@@ -533,7 +932,16 @@ def update_todos(
     result = todo_extractor.invoke({
         "messages": updated_messages,
         "existing": existing_memories
-    })
+    }, config=config)
+
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    # response = await model.ainvoke(messages, config)
+    # Invoke the extractor
+    # result = await todo_extractor.ainvoke({
+    #     "messages": updated_messages,
+    #     "existing": existing_memories
+    # }, config=config)
 
     # Save the memories from Trustcall to the store
     for r, rmeta in zip(result["responses"], result["response_metadata"], strict=False):
@@ -602,11 +1010,21 @@ def update_instructions(
     system_msg: str = CREATE_INSTRUCTIONS.format(
         current_instructions=existing_memory.value if existing_memory else None
     )
+
+    # # # Respond using memory as well as the chat history
     new_memory: BaseMessage = model.invoke(
         [SystemMessage(content=system_msg)] +
         state['messages'][:-1] +
-        [HumanMessage(content="Please update the instructions based on the conversation")]
+        [HumanMessage(content="Please update the instructions based on the conversation")],
+        config=config
     )
+    # # Respond using memory as well as the chat history
+    # new_memory: BaseMessage = await model.ainvoke(
+    #     [SystemMessage(content=system_msg)] +
+    #     state['messages'][:-1] +
+    #     [HumanMessage(content="Please update the instructions based on the conversation")],
+    #     config=config
+    # )
 
     # Overwrite the existing memory in the store
     key: str = "user_instructions"
@@ -688,13 +1106,32 @@ builder.add_edge("update_todos", "tasks_democracy_ai")
 builder.add_edge("update_profile", "tasks_democracy_ai")
 builder.add_edge("update_instructions", "tasks_democracy_ai")
 
+
+# Store for long-term (across-thread) memory
+across_thread_memory = InMemoryStore()
+
+# Checkpointer for short-term (within-thread) memory
+within_thread_memory = MemorySaver()
+
 # Compile the graph
-graph: CompiledStateGraph = builder.compile()
+# graph: CompiledStateGraph = builder.compile()
+graph = builder.compile(checkpointer=within_thread_memory, store=across_thread_memory, interrupt_before=["tasks_democracy_ai"], debug=True)
+graph.name = "DemocracyExeAI"
 
 print(graph.get_graph().print_ascii())
 
-# if __name__ == "__main__":  # pragma: no cover
-#     import rich
-#     config = {}
-#     configurable = Configuration.from_runnable_config(config)
-#     rich.print(f"configurable: {configurable}")
+if __name__ == "__main__":  # pragma: no cover
+    import rich
+    # config = {}
+    # configurable = Configuration.from_runnable_config(config)
+    # rich.print(f"configurable: {configurable}")
+    # We supply a thread ID for short-term (within-thread) memory
+    # We supply a user ID for long-term (across-thread) memory
+    config = {"configurable": {"thread_id": "1", "user_id": "1"}}
+
+    # User input
+    input_messages = [HumanMessage(content="Hi, my name is Heron and I like apple pie")]
+
+    # Run the graph
+    for chunk in graph.stream({"messages": input_messages}, config, stream_mode="values"):
+        chunk["messages"][-1].pretty_print()
