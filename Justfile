@@ -494,6 +494,10 @@ uv_unittests_debug:
 uv_unittests_debug_services:
 	{{UV_RUN}} pytest -m services -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
 
+# Run asynciotyper-related unit tests in debug mode
+uv_unittests_debug_asynciotyper:
+	{{UV_RUN}} pytest -s -vv --diff-width=60 --diff-symbols --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=. -m asynciotyper
+
 # Run pgvector-related unit tests in debug mode
 uv_unittests_debug_pgvector:
 	{{UV_RUN}} pytest -m pgvectoronly -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
@@ -677,6 +681,8 @@ add-cursor-context:
 	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
 	gh repo clone langchain-ai/langchain democracy_exe/vendored/langchain || true
 	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
+	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
+	gh repo clone CraftSpider/dpytest democracy_exe/vendored/dpytest || true
 
 	rm -rf democracy_exe/vendored/cerebro-bot/.git
 	rm -rf democracy_exe/vendored/sandbox_agent/.git
@@ -688,7 +694,7 @@ add-cursor-context:
 	rm -rf democracy_exe/vendored/goob_ai/.git
 	rm -rf democracy_exe/vendored/langchain/.git
 	rm -rf democracy_exe/vendored/langgraph/.git
-
+	rm -rf democracy_exe/vendored/langchain-academy/.git
 
 # List outdated packages
 outdated:

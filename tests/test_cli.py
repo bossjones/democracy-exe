@@ -152,7 +152,8 @@ class TestApp:
         # Assert that repo_typing.run_pyright was called
         mock_run_pyright.assert_called_once()
 
-    def test_go(self, mocker: MockerFixture) -> None:
+    @pytest.mark.asyncio
+    async def test_go(self, mocker: MockerFixture) -> None:
         """
         Test the go function.
 
@@ -160,11 +161,12 @@ class TestApp:
             mocker (MockerFixture): The pytest-mock fixture for mocking.
         """
         # Mock the run_bot function
-        mock_run_bot = mocker.patch("democracy_exe.cli.run_bot")
+        mock_run_bot = mocker.patch("democracy_exe.cli.DemocracyBot")
 
         result = runner.invoke(APP, ["go"])
         assert result.exit_code == 0
-        assert "Starting up SandboxAgentAI Bot" in result.stdout
+        assert "Starting up DemocracyBot" in result.stdout
+        await asyncio.sleep(0.1)
 
         # Assert that run_bot was called
         mock_run_bot.assert_called_once()

@@ -41,12 +41,18 @@ class AsyncTyperImproved(Typer):
         f: CommandFunctionType,
     ) -> CommandFunctionType:
         if inspect.iscoroutinefunction(f):
+            @wraps(f)
+            async def async_runner(*args: Any, **kwargs: Any) -> Any:
+                return await f(*args, **kwargs)
 
             @wraps(f)
-            def runner(*args: Any, **kwargs: Any) -> Any:
-                return asyncio.run(cast(Callable[..., Coroutine[Any, Any, Any]], f)(*args, **kwargs))
+            def sync_runner(*args: Any, **kwargs: Any) -> Any:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    return async_runner(*args, **kwargs)
+                return loop.run_until_complete(async_runner(*args, **kwargs))
 
-            return decorator(cast(CommandFunctionType, runner))
+            return decorator(cast(CommandFunctionType, sync_runner))
         return decorator(f)
 
     # noinspection PyShadowingBuiltins

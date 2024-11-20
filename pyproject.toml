@@ -1434,6 +1434,8 @@ markers = [
     "discordonly: marks tests that run code that belongs to the discordonly calls at end of pytest run module  (deselect with '-m \"not discordonly\"')",
     "cursorgenerated: marks tests that are cursor generated (deselect with '-m \"not cursorgenerated\"')",
     "aidergenerated: marks tests that are aider generated (deselect with '-m \"not aidergenerated\"')",
+    "asynciotyper: marks tests that are asyncio typer generated (deselect with '-m \"not asynciotyper\"')",
+    "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
 ]
 
 

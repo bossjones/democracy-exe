@@ -556,3 +556,4 @@ democracy_exe/vendored/memory-template
 democracy_exe/vendored/react-agent
 democracy_exe/vendored/cerebro-bot
 democracy_exe/vendored/langchain-academy/
+democracy_exe/vendored/dpytest
