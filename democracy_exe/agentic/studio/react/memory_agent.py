@@ -303,7 +303,7 @@ class UpdateMemory(TypedDict):
 
 ## Node definitions
 
-async def tasks_democracy_ai(
+def tasks_democracy_ai(
     state: MessagesState,
     config: RunnableConfig,
     store: BaseStore
@@ -360,7 +360,10 @@ async def tasks_democracy_ai(
     system_msg = configurable.system_prompt.format(user_profile=user_profile, todo=todo, instructions=instructions)
 
     # Respond using memory as well as the chat history
-    response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"])
+    # response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"])
+
+    # Respond using memory as well as the chat history
+    response = model.bind_tools([UpdateMemory], parallel_tool_calls=False).invoke([SystemMessage(content=system_msg)]+state["messages"])
 
     return {"messages": [response]}
 
