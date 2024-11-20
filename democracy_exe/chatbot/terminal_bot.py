@@ -19,6 +19,14 @@ from democracy_exe.agentic.workflows.react.graph import graph as memgraph
 from democracy_exe.aio_settings import aiosettings
 
 
+class FlushingStderr:
+    def write(self, message):
+        sys.stderr.write(message)
+        sys.stderr.flush()
+
+logger.remove()
+logger.add(FlushingStderr(), enqueue=True)
+
 async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
     """Main function to run the LangGraph Chatbot in the terminal.
 
