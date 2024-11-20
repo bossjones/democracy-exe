@@ -4,10 +4,12 @@ import time
 
 import pytest
 
+from pytest_mock.plugin import MockerFixture
+
 from democracy_exe.utils.timer import Timer, TimerCollection
 
 
-def test_timer_start_stop(mocker):
+def test_timer_start_stop(mocker: MockerFixture):
     timer = Timer()
     mock_time = mocker.patch("time.time", side_effect=[1, 2])
     timer.start()
@@ -15,7 +17,7 @@ def test_timer_start_stop(mocker):
     assert timer.duration() == 1.0
 
 
-def test_timer_reset(mocker):
+def test_timer_reset(mocker: MockerFixture):
     timer = Timer()
     mock_time = mocker.patch("time.time", side_effect=[1, 2, 3])
     timer.start()
@@ -24,7 +26,7 @@ def test_timer_reset(mocker):
     assert timer.duration() == 0.0
 
 
-def test_timer_duration_running(mocker):
+def test_timer_duration_running(mocker: MockerFixture):
     timer = Timer()
     mock_time = mocker.patch("time.time", side_effect=[1, 2, 3])
     timer.start()
@@ -33,7 +35,7 @@ def test_timer_duration_running(mocker):
     assert timer.duration() == 2.0
 
 
-def test_timer_collection_reset(mocker):
+def test_timer_collection_reset(mocker: MockerFixture):
     tc = TimerCollection()
     mock_time = mocker.patch("time.time", side_effect=[1, 2, 3, 4])
     tc.start("Timer 1")
@@ -42,7 +44,7 @@ def test_timer_collection_reset(mocker):
     assert tc.duration("Timer 1") == 0.0
 
 
-def test_timer_collection_reset_all(mocker):
+def test_timer_collection_reset_all(mocker: MockerFixture):
     tc = TimerCollection()
     mock_time = mocker.patch("time.time", side_effect=[1, 2, 3, 4, 5, 6])
     tc.start("Timer 1")

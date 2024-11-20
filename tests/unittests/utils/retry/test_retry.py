@@ -13,6 +13,8 @@ import tenacity
 
 import pytest
 
+from pytest_mock.plugin import MockerFixture
+
 from democracy_exe.utils import retry
 
 
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.unittest()
 @pytest.mark.configonly()
-def test__base_parameters(mocker) -> None:
+def test__base_parameters(mocker: MockerFixture) -> None:
     """Test the base parameters for tenacity"""
     # INFO: https://pytest-mock.readthedocs.io/en/latest/usage.html#spys
     _spy_base_parameters: MockType = mocker.spy(retry, "_base_parameters")
@@ -53,7 +55,7 @@ def test__base_parameters(mocker) -> None:
 
 
 @pytest.mark.configonly()
-def test_linear_backoff_parameters(mocker) -> None:
+def test_linear_backoff_parameters(mocker: MockerFixture) -> None:
     """Test linear parameters for tenacity"""
     # Use mocker.spy to inspect function calls
     _spy_base_parameters: MockType = mocker.spy(retry, "_base_parameters")
@@ -75,7 +77,7 @@ def test_linear_backoff_parameters(mocker) -> None:
 
 
 @pytest.mark.configonly()
-def test_exponential_backoff_parameters(mocker) -> None:
+def test_exponential_backoff_parameters(mocker: MockerFixture) -> None:
     """Test linear parameters for tenacity"""
     # Use mocker.spy to inspect function calls
     # INFO: https://pytest-mock.readthedocs.io/en/latest/usage.html#spys

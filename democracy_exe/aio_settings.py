@@ -334,7 +334,7 @@ class AioSettings(BaseSettings):
 
     # add a comment to each line in model_config explaining what it does
     model_config = SettingsConfigDict(
-        env_prefix="democracy_exe_CONFIG_",
+        env_prefix="DEMOCRACY_EXE_CONFIG_",
         env_file=(".env", ".envrc"),
         env_file_encoding="utf-8",
         extra="allow",
@@ -363,6 +363,7 @@ class AioSettings(BaseSettings):
     # ***************************************************
     # token: str = ""
     prefix: str = "?"
+    discord_command_prefix: str = "?"
 
     discord_admin_user_id: int | None = None
 
@@ -460,25 +461,18 @@ class AioSettings(BaseSettings):
 
     # Variables for ChromaDB
 
-    # client = chromadb.HttpClient(host="localhost", port="9010", settings=Settings(allow_reset=True))
+
     chroma_host: str = "localhost"
     chroma_port: str = "9010"
     enable_chroma: bool = True
 
     dev_mode: bool = Field(env="DEV_MODE", description="enable dev mode", default=False)
-    # azure_openai_api_key: str
-    # openai_api_type: str
-    # openai_api_version: str
-    # azure_deployment: str
-    # azure_openai_endpoint: str
+
     llm_temperature: float = 0.0
-    # vision_model: str = "gpt-4-turbo"
+
     vision_model: str = "gpt-4o"
     chat_model: str = "gpt-4o-mini"
-    # DISABLED: # vision_model: str = "gpt-4-vision-preview"
-    # DISABLED: # chat_model: str = "gpt-4o-2024-05-13"
-    # chat_model: str = "gpt-3.5-turbo-0125"
-    # chat_model: str = "gpt-3.5-turbo-16k" # note another option
+
     chat_history_buffer: int = 10
 
     retry_stop_after_attempt: int = 3
@@ -490,6 +484,11 @@ class AioSettings(BaseSettings):
     pinecone_api_key: SecretStr = Field(env="PINECONE_API_KEY", description="pinecone api key", default="")
     pinecone_env: str = Field(env="PINECONE_ENV", description="pinecone env", default="local")
     pinecone_index: str = Field(env="PINECONE_INDEX", description="pinecone index", default="")
+    pinecone_namespace: str = Field(env="PINECONE_NAMESPACE", description="pinecone namespace", default="ns1")
+    pinecone_index_name: str = Field(env="PINECONE_INDEX_NAME", description="pinecone index name", default="democracy-exe")
+    pinecone_url: str = Field(env="PINECONE_URL", description="pinecone url", default="https://democracy-exe-dxt6ijd.svc.aped-4627-b74a.pinecone.io")
+
+    chatbot_type: Literal["terminal", "discord"] = Field(env="CHATBOT_TYPE", description="chatbot type", default="terminal")
 
     unstructured_api_key: SecretStr = Field(env="UNSTRUCTURED_API_KEY", description="unstructured api key", default="")
     unstructured_api_url: str = Field(
@@ -502,7 +501,7 @@ class AioSettings(BaseSettings):
     anthropic_api_key: SecretStr = Field(env="ANTHROPIC_API_KEY", description="claude api key", default="")
     groq_api_key: SecretStr = Field(env="GROQ_API_KEY", description="groq api key", default="")
     cohere_api_key: SecretStr = Field(env="COHERE_API_KEY", description="cohere api key", default="")
-    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="tavily api key", default="")
+    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="Tavily API key", default="")
     brave_search_api_key: SecretStr = Field(env="BRAVE_SEARCH_API_KEY", description="Brave Search API key", default="")
 
     langchain_endpoint: str = Field(
@@ -646,16 +645,7 @@ class AioSettings(BaseSettings):
         "max_tokens": 2000
     }"""
 
-    # vectorstore_default_settings: {"sklearn": {"documents":[], "embedding": }}
-    # Variables for Postgres/pgvector
-    # CONNECTION_STRING = PGVector.connection_string_from_db_params(
-    #     driver=os.environ.get("PGVECTOR_DRIVER", "psycopg"),
-    #     host=os.environ.get("PGVECTOR_HOST", "localhost"),
-    #     port=int(os.environ.get("PGVECTOR_PORT", "6432")),
-    #     database=os.environ.get("PGVECTOR_DATABASE", "langchain"),
-    #     user=os.environ.get("PGVECTOR_USER", "langchain"),
-    #     password=os.environ.get("PGVECTOR_PASSWORD", "langchain"),
-    # )
+
     postgres_host: str = "localhost"
     postgres_port: int = 8432
     postgres_password: str | None = "langchain"
@@ -675,30 +665,6 @@ class AioSettings(BaseSettings):
     summ_token_splitter: int = 4000
     summ_token_overlap: int = 500
 
-    # # OpenAI model settings
-    # openai_model_zoo: set[str] = Field(
-    #     env="OPENAI_MODEL_ZOO",
-    #     description="Set of all available models and embeddings",
-    #     default_factory=lambda: MODEL_ZOO,
-    # )
-    # openai_model_config: dict[str, dict[str, Union[int, float]]] = Field(
-    #     env="OPENAI_MODEL_CONFIG", description="Configuration for all models", default_factory=lambda: MODEL_CONFIG
-    # )
-    # openai_model_point: dict[str, str] = Field(
-    #     env="OPENAI_MODEL_POINT",
-    #     description="Mapping of model names to their latest version",
-    #     default_factory=lambda: MODEL_POINT,
-    # )
-    # openai_model_point_config: dict[str, dict[str, Union[int, float]]] = Field(
-    #     env="OPENAI_MODEL_POINT_CONFIG",
-    #     description="Configuration for the latest version of each model",
-    #     default_factory=lambda: _MODEL_POINT_CONFIG,
-    # )
-    # openai_embedding_model_dimensions_data: dict[str, int] = Field(
-    #     env="OPENAI_EMBEDDING_MODEL_DIMENSIONS_DATA",
-    #     description="Dimensions of each embedding model",
-    #     default_factory=lambda: EMBEDDING_MODEL_DIMENSIONS_DATA,
-    # )
     sklearn_persist_path: str = Field(
         env="SKLEARN_PERSIST_PATH",
         description="Path to persist the SKLearn vector store",
@@ -806,6 +772,64 @@ class AioSettings(BaseSettings):
     agent_type: Literal["plan_and_execute", "basic", "advanced", "adaptive_rag"] = Field(
         env="AGENT_TYPE", description="Type of agent to use", default="adaptive_rag"
     )
+
+    tweetpik_api_key: SecretStr = Field(env="TWEETPIK_API_KEY", description="TweetPik API key", default="")
+
+    tweetpik_authorization: SecretStr = Field(env="TWEETPIK_AUTHORIZATION", description="TweetPik authorization", default="")
+    tweetpik_bucket_id: str = Field(env="TWEETPIK_BUCKET_ID", description="TweetPik bucket ID", default="323251495115948625")
+    # change the background color of the tweet screenshot
+    tweetpik_background_color: str = "#ffffff"
+
+    # Theme and dimension settings
+    tweetpik_theme: str = Field(env="TWEETPIK_THEME", description="Theme for tweet screenshots", default="dim")
+    tweetpik_dimension: str = Field(env="TWEETPIK_DIMENSION", description="Dimension for tweet screenshots", default="instagramFeed")
+
+    # Color settings
+    tweetpik_background_color: str = Field(env="TWEETPIK_BACKGROUND_COLOR", description="Background color for tweet screenshots", default="#15212b")
+    tweetpik_text_primary_color: str = Field(env="TWEETPIK_TEXT_PRIMARY_COLOR", description="Primary text color", default="#FFFFFF")
+    tweetpik_text_secondary_color: str = Field(env="TWEETPIK_TEXT_SECONDARY_COLOR", description="Secondary text color", default="#8899a6")
+    tweetpik_link_color: str = Field(env="TWEETPIK_LINK_COLOR", description="Color for links and mentions", default="#1b95e0")
+    tweetpik_verified_icon_color: str = Field(env="TWEETPIK_VERIFIED_ICON_COLOR", description="Color for verified badge", default="#1b95e0")
+
+    # Display settings
+    tweetpik_display_verified: str = Field(env="TWEETPIK_DISPLAY_VERIFIED", description="Show verified badge", default="default")
+    tweetpik_display_metrics: bool = Field(env="TWEETPIK_DISPLAY_METRICS", description="Show metrics (likes, retweets)", default=False)
+    tweetpik_display_embeds: bool = Field(env="TWEETPIK_DISPLAY_EMBEDS", description="Show embedded content", default=True)
+
+    # Content settings
+    tweetpik_content_scale: float = Field(env="TWEETPIK_CONTENT_SCALE", description="Scale factor for content", default=0.77)
+    tweetpik_content_width: int = Field(env="TWEETPIK_CONTENT_WIDTH", description="Width of content in percentage", default=100)
+
+    # any number higher than zero. this value is used in pixels(px) units
+    tweetpik_canvas_width: str = "510"
+    tweetpik_dimension_ig_feed: str = "1:1"
+    tweetpik_dimension_ig_story: str = "9:16"
+    tweetpik_display_likes: bool = False
+    tweetpik_display_link_preview: bool = True
+    tweetpik_display_media_images: bool = True
+    tweetpik_display_replies: bool = False
+    tweetpik_display_retweets: bool = False
+    tweetpik_display_source: bool = True
+    tweetpik_display_time: bool = True
+    tweetpik_display_verified: bool = True
+
+    # change the link colors used for the links, hashtags and mentions
+    tweetpik_link_color: str = "#1b95e0"
+
+    tweetpik_text_primary_color: str = (
+        "#000000"  # change the text primary color used for the main text of the tweet and user's name
+    )
+    tweetpik_text_secondary_color: str = (
+        "#5b7083"  # change the text secondary used for the secondary info of the tweet like the username
+    )
+
+    # any number higher than zero. this value is representing a percentage
+    tweetpik_text_width: str = "100"
+
+    tweetpik_timezone: str = "america/new_york"
+
+    # change the verified icon color
+    tweetpik_verified_icon: str = "#1b95e0"
 
     @model_validator(mode="before")
     @classmethod

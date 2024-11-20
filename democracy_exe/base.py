@@ -1,4 +1,4 @@
-"""Base classes and utilities for the Goob AI system."""
+"""Base classes and utilities for the Democracy AI system."""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ SEPARATOR_TOKEN = "<|endoftext|>"
 
 
 @dataclass(frozen=True)
-class GoobMessage:
-    """Represents a message in a Goob conversation.
+class DemocracyMessage:
+    """Represents a message in a Democracy conversation.
 
     Attributes:
         user: The user who sent the message.
@@ -43,16 +43,16 @@ class GoobMessage:
 
 
 @dataclass
-class GoobConversation:
-    """Represents a conversation in the Goob system.
+class DemocracyConversation:
+    """Represents a conversation in the Democracy system.
 
     Attributes:
         messages: The list of messages in the conversation.
     """
 
-    messages: list[GoobMessage]
+    messages: list[DemocracyMessage]
 
-    def prepend(self, message: GoobMessage) -> GoobConversation:
+    def prepend(self, message: DemocracyMessage) -> DemocracyConversation:
         """Prepends a message to the conversation.
 
         Args:
@@ -74,23 +74,23 @@ class GoobConversation:
 
 
 @dataclass(frozen=True)
-class GoobConfig:
-    """Configuration for a Goob AI instance.
+class DemocracyConfig:
+    """Configuration for a Democracy AI instance.
 
     Attributes:
-        name: The name of the Goob AI instance.
-        instructions: The instructions for the Goob AI.
-        example_conversations: Example conversations for the Goob AI.
+        name: The name of the Democracy AI instance.
+        instructions: The instructions for the Democracy AI.
+        example_conversations: Example conversations for the Democracy AI.
     """
 
     name: str
     instructions: str
-    example_conversations: list[GoobConversation]
+    example_conversations: list[DemocracyConversation]
 
 
 @dataclass(frozen=True)
-class GoobThreadConfig:
-    """Configuration for a Goob thread.
+class DemocracyThreadConfig:
+    """Configuration for a Democracy thread.
 
     Attributes:
         model: The name of the model to use.
@@ -104,8 +104,8 @@ class GoobThreadConfig:
 
 
 @dataclass(frozen=True)
-class GoobPrompt:
-    """Represents a prompt for the Goob AI.
+class DemocracyPrompt:
+    """Represents a prompt for the Democracy AI.
 
     Attributes:
         header: The header message of the prompt.
@@ -113,12 +113,12 @@ class GoobPrompt:
         convo: The current conversation for the prompt.
     """
 
-    header: GoobMessage
-    examples: list[GoobConversation]
-    convo: GoobConversation
+    header: DemocracyMessage
+    examples: list[DemocracyConversation]
+    convo: DemocracyConversation
 
     def full_render(self, bot_name: str) -> list[dict]:
-        """Renders the full prompt for the Goob AI.
+        """Renders the full prompt for the Democracy AI.
 
         Args:
             bot_name: The name of the bot.
@@ -137,20 +137,20 @@ class GoobPrompt:
         return messages
 
     def render_system_prompt(self) -> str:
-        """Renders the system prompt for the Goob AI.
+        """Renders the system prompt for the Democracy AI.
 
         Returns:
             The rendered system prompt string.
         """
         return f"\n{SEPARATOR_TOKEN}".join(
             [self.header.render()]
-            + [GoobMessage("System", "Example conversations:").render()]
+            + [DemocracyMessage("System", "Example conversations:").render()]
             + [conversation.render() for conversation in self.examples]
-            + [GoobMessage("System", "Now, you will work with the actual current conversation.").render()]
+            + [DemocracyMessage("System", "Now, you will work with the actual current conversation.").render()]
         )
 
     def render_messages(self, bot_name: str) -> list[dict[str, str]]:
-        """Renders the messages for the Goob AI.
+        """Renders the messages for the Democracy AI.
 
         This method converts the conversation messages into a format suitable for
         AI model input, distinguishing between user and assistant messages.

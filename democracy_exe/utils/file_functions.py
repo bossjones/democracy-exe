@@ -13,7 +13,7 @@ import pathlib
 import string
 import sys
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 import aiofiles
 import pandas as pd
@@ -1030,7 +1030,7 @@ def fix_path(path: str) -> str | list[str]:
         return path
 
 
-def unlink_orig_file(a_filepath: str):
+def unlink_orig_file(a_filepath: str) -> str:
     """
     _summary_
 
@@ -1077,7 +1077,7 @@ def get_files_to_upload(tmpdirname: str) -> list[str]:
     return file_to_upload
 
 
-def run_tree(tmpdirname: str):
+def run_tree(tmpdirname: str) -> list[str]:
     """
     run_tree
 

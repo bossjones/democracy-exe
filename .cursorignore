@@ -359,3 +359,17 @@ notebooks/travel2.sqlite
 !democracy_exe/vendored/goob_ai
 # !democracy_exe/vendored/brevia
 .env.langraph
+.cursorrules.bak
+.cursorrules.sample
+!democracy_exe/vendored/goob_ai
+!democracy_exe/vendored/brevia
+!democracy_exe/vendored/chat-langchain
+!democracy_exe/vendored/sandbox_agent
+!democracy_exe/vendored/retrieval-agent-template
+!democracy_exe/vendored/rag-research-agent-template
+!democracy_exe/vendored/memory-template
+!democracy_exe/vendored/react-agent
+!democracy_exe/vendored/cerebro-bot
+!democracy_exe/vendored/langchain
+!democracy_exe/vendored/langgraph
+!democracy_exe/vendored/langchain-academy/

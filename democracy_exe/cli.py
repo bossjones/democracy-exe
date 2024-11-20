@@ -60,11 +60,15 @@ import democracy_exe
 from democracy_exe.aio_settings import aiosettings, get_rich_console
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
 from democracy_exe.bot_logger import get_logger, global_log_config
+from democracy_exe.chatbot.discord_bot import DemocracyBot
+from democracy_exe.chatbot.terminal_bot import go_terminal_bot
 from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
 from democracy_exe.utils.base import print_line_seperator
 from democracy_exe.utils.file_functions import fix_path
-from democracy_exe.utils.files_import import index_file_folder
+
+
+# from democracy_exe.utils.files_import import index_file_folder
 
 
 # from democracy_exe.utils.collections_io import export_collection_data, import_collection_data
@@ -183,7 +187,7 @@ def entry():
     """Required entry point to enable hydra to work as a console_script."""
     main()  # pylint: disable=no-value-for-parameter
 
-
+@APP.command()
 async def run_bot():
     """
     Run the Discord bot.
@@ -198,22 +202,20 @@ async def run_bot():
     """
 
     logger.info("Running bot")
-    # try:
-    #     async with SandboxAgent() as bot:
-    #         # if aiosettings.enable_redis:
-    #         #     bot.pool = pool
-    #         await bot.start()
-    # except Exception as ex:
-    #     print(f"{ex}")
-    #     exc_type, exc_value, exc_traceback = sys.exc_info()
-    #     print(f"Error Class: {ex.__class__}")
-    #     output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-    #     print(output)
-    #     print(f"exc_type: {exc_type}")
-    #     print(f"exc_value: {exc_value}")
-    #     traceback.print_tb(exc_traceback)
-    #     if aiosettings.dev_mode:
-    #         bpdb.pm()
+    try:
+        async with DemocracyBot() as bot:
+            await bot.start(aiosettings.discord_token.get_secret_value())
+    except Exception as ex:
+        print(f"{ex}")
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(f"Error Class: {ex.__class__}")
+        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        print(output)
+        print(f"exc_type: {exc_type}")
+        print(f"exc_value: {exc_value}")
+        traceback.print_tb(exc_traceback)
+        if aiosettings.dev_mode:
+            bpdb.pm()
 
     await logger.complete()
 
@@ -236,6 +238,42 @@ async def run_bot_with_redis():
     #     await bot.start()
 
     await logger.complete()
+
+# async def run_terminal_bot():
+#     try:
+#         await go_terminal_bot()
+#     except Exception as ex:
+#         print(f"{ex}")
+#         exc_type, exc_value, exc_traceback = sys.exc_info()
+#         print(f"Error Class: {ex.__class__}")
+#         output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+#         print(output)
+#         print(f"exc_type: {exc_type}")
+#         print(f"exc_value: {exc_value}")
+#         traceback.print_tb(exc_traceback)
+#         if aiosettings.dev_mode:
+#             bpdb.pm()
+
+
+#     await logger.complete()
+
+@APP.command()
+def run_terminal_bot() -> None:
+    """Main entry point for terminal bot"""
+    typer.echo("Starting up terminal bot")
+    try:
+        asyncio.run(go_terminal_bot())
+    except Exception as ex:
+        print(f"{ex}")
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(f"Error Class: {ex.__class__}")
+        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        print(output)
+        print(f"exc_type: {exc_type}")
+        print(f"exc_value: {exc_value}")
+        traceback.print_tb(exc_traceback)
+        if aiosettings.dev_mode:
+            bpdb.pm()
 
 
 @APP.command()
@@ -357,7 +395,8 @@ def import_file(
     typer.echo(f"Running import_file with file_path={file_path}, collection={collection}, options={options}")
 
     kwargs = {} if not options else json.loads(options)
-    num = index_file_folder(file_path=file_path, collection=collection, **kwargs)
+    # num = index_file_folder(file_path=file_path, collection=collection, **kwargs)
+    num = 0
     print(f"Collection '{collection}' updated from '{file_path}' with {num} documents.")
 
 

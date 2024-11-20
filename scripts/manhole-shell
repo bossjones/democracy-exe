@@ -2,7 +2,7 @@
 
 _MANHOLE_SOCKET=$(fd --color=never manhole /tmp)
 
-rye run manhole-cli ${_MANHOLE_SOCKET}
+uv run manhole-cli ${_MANHOLE_SOCKET}
 # nc -U ${_MANHOLE_SOCKET}
 # socat - unix-connect:${_MANHOLE_SOCKET}
 # socat readline unix-connect:${_MANHOLE_SOCKET}

@@ -87,6 +87,33 @@ dependencies = [
     "webcolors>=24.8.0",
     "dask>=2024.11.0",
     "torchvision>=0.20.1",
+    "langgraph-sdk>=0.1.36",
+    "langgraph-checkpoint-sqlite>=2.0.1",
+    "notebook>=7.2.2",
+    "tavily-python>=0.5.0",
+    "wikipedia>=1.4.0",
+    "marimo>=0.9.19",
+    "trustcall>=0.0.25",
+    "llm>=0.17.1",
+    "toolong>=1.5.0",
+    "llm-gemini>=0.3",
+    "llm-cmd>=0.2a0",
+    "llm-clip>=0.1",
+    "llm-sentence-transformers>=0.2",
+    "llm-replicate>=0.3.1",
+    "llm-perplexity>=0.9",
+    "llm-claude-3>=0.8",
+    "llm-python>=0.1",
+    "llm-jq>=0.1.1",
+    "ttok>=0.3",
+    "symbex>=1.4",
+    "strip-tags>=0.5.1",
+    "files-to-prompt>=0.4",
+    "langchain-fireworks>=0.2.5",
+    "pinecone-text>=0.9.0",
+    "pinecone-notebooks>=0.1.1",
+    "nest-asyncio>=1.6.0",
+    "grandalf>=0.8",
 ]
 
 [project.urls]
@@ -193,6 +220,8 @@ dev-dependencies = [
     "yamlfix>=1.17.0",
     "yamllint>=1.35.1",
     "changelogs",
+    "pylint-pydantic>=0.3.2",
+    "nbqa[toolchain]>=1.9.1",
 ]
 
 [tool.uv.sources]
@@ -207,6 +236,7 @@ py-modules = ["democracy_exe"]
 
 [project.scripts]
 democracy-exe = 'democracy_exe.cli:entry'
+democracyctl = 'democracy_exe.cli:entry'
 
 [tool.mypy]
 files = ["democracy_exe"]
@@ -737,9 +767,10 @@ select = [
     # tryceratops
     # "TRY",
 
-    "C90",  # mccabe
-    "I002", # from __future__ import annotations
-    "N812", # lowercase-imported-as-non-lowercase (N812) - Derived from the pep8-naming linter.
+    "C90",    # mccabe
+    "I002",   # from __future__ import annotations
+    "N812",   # lowercase-imported-as-non-lowercase (N812) - Derived from the pep8-naming linter.
+    "NPY001", # numpy-deprecated-type-alias
 ]
 # ignore = [
 #     # LineTooLong
@@ -781,27 +812,26 @@ ignore = [
     "C417",   # Checks for unnecessary use of `map()` or `filter()` with `lambda`
     "B018",   # Checks for useless expressions
 
-    "S105",
-    "UP007",
-    "TRY003",
-    "N815",
-    "PLW0603",
-    "D",
-    "COM812",
-    "ISC001",
-    "N804",
-    "F821",
-    "N804",
-    "PLR1722",
-    "N802",
-    "N801",
-    "PLW0602",
-    "F811",
-    "PLW2901",
-    "YTT201",
-    "E722",
-    "PLC0132",
-    "PLW0128",
+
+    "S105",    # Possible hardcoded password
+    "UP007",   # Use X | Y for union types
+    "TRY003",  # Long messages outside exception class
+    "N815",    # Mixed case vars in class scope
+    "PLW0603", # Global statement at module level
+    "D",       # Docstring style rules (multiple)
+    "COM812",  # Missing trailing comma
+    "ISC001",  # Implicit string concatenation
+    "N804",    # First param of classmethod not cls
+    "F821",    # Undefined name
+    "PLR1722", # Use sys.exit() instead of exit
+    "N802",    # Function name should be lowercase
+    "N801",    # Class name should use CapWords
+    "PLW0602", # Global variable undefined
+    "PLW2901", # Outer loop variable overwritten
+    "YTT201",  # sys.version instead of sys.version_info
+    "E722",    # Do not use bare except
+    "PLC0132", # Use format specifiers in logging
+    "PLW0128", # Redundant if-else in comprehension
     "W191",    # tab-indentation
     "E111",    # indentation-with-invalid-multiple
     "E114",    # indentation-with-invalid-multiple-comment
@@ -816,27 +846,24 @@ ignore = [
     "COM819",  # prohibited-trailing-comma
     "ISC001",  # single-line-implicit-string-concatenation
     "ISC002",  # multi-line-implicit-string-concatenation
-    "E501",
 
-    # new list
-    "E721",
-    "E741",
-    "E731",
-    "E731",
-    "PLR1714",
-    "N818",
-    "PLW0127",
-    "PT012",
-    "N806",
-    "E712",
-    "E711",
-    "W505",
-    "PT006",
-    "PLR2004",
-    "N812",
-    "F841",
-    # "R1730",
-    # "I",      # isort, ruff doesn't have enough support for isort yet.
+    "E501",    # Line too long
+    "E721",    # Don't compare types, use isinstance()
+    "E741",    # Ambiguous variable name
+    "E731",    # Do not assign lambda expression
+    "PLR1714", # Consider merging dict literals
+    "N818",    # Exception name should end with "Error"
+    "PLW0127", # Self-assigning variable
+    "PT012",   # pytest.raises() without match=
+    "N806",    # Variable in function should be lowercase
+    "E712",    # Use "is" to compare with True/False/None
+    "E711",    # Use "is" to compare with None
+    "W505",    # Doc line too long
+    "PT006",   # pytest.parametrize() values not a tuple
+    "PLR2004", # Magic value used in comparison
+    "N812",    # Lowercase imported as non-lowercase
+    "F841",    # Local variable is assigned but unused
+
     "TID",     # flake8-tidy-imports (TID)#
     "F401",    # unused-import	{name} imported but unused; consider using importlib.util.find_spec to test for availability
     "F402",    # import-shadowed-by-loop-var	Import {name} from {row} shadowed by loop variable
@@ -879,8 +906,8 @@ ignore = [
     'AIR', # airflow
     'CPY', # flake8-copyright (CPY)#
     'D',   # pydocstyle (D)#
-    'NPY', # NumPy-specific rules (NPY)#
-    'PD',  # pandas-vet (PD)
+    # 'NPY', # NumPy-specific rules (NPY)#
+    'PD', # pandas-vet (PD)
 
     # Many projects either don't have type annotations or it would take much effort to satisfy this
     'ANN', # flake8-annotations (ANN).
@@ -894,11 +921,11 @@ ignore = [
     'FURB101', # read-whole-file	open and read should be replaced by Path({filename}).{suggestion}
 
     # Conflicts with type checking
-    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value	✔️ 🛠️
-    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value	✔️ 🛠️
+    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value
+    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value
 
     # Under review https://github.com/astral-sh/ruff/issues/8796
-    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore	✔️ 🛠️
+    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore
     'PT005', # pytest-incorrect-fixture-name-underscore	Fixture {function} returns a value, remove leading underscore
 
     # Buggy https://github.com/astral-sh/ruff/issues/4845
@@ -914,8 +941,8 @@ ignore = [
     'SIM401', # if-else-block-instead-of-dict-get	Use {contents} instead of an if block
 
     # Allow for easy ignores
-    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues	✔️ 🛠️
-    'PGH004', # blanket-noqa	Use specific rule codes when using noqa	✔️ 🛠️
+    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues
+    'PGH004', # blanket-noqa	Use specific rule codes when using noqa
 
     # This is required sometimes, and doesn't matter on Python 3.11+
     'PERF203', # try-except-in-loop	try-except within a loop incurs performance overhead
@@ -949,8 +976,8 @@ ignore = [
     "Q004",    # unnecessary-escaped-quote	Unnecessary escape on inner quote character
     "PLE1141", # dict-iter-missing-items	Unpacking a dictionary in iteration without calling .items()
     "PLE1142", # await-outside-async	await should be used within an async function
-    "Q",
-    "N999",
+    "Q",       # Various quote-related rules
+    "N999",    # Invalid module name
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -967,6 +994,12 @@ max-complexity = 31 # C901: Recommended goal is 10
 
 # 4. Ignore `E402` (import violations) in all `__init__.py` files, and in select subdirectories.
 [tool.ruff.lint.per-file-ignores]
+"democracy_exe/models/loggers/__init__.py" = ["N815", "B005", "RUF005", "F811"]
+"democracy_exe/agentic/studio/react/*" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/studio/*" = ["N815", "B005", "RUF005"]
+"cookbook/studio/*" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/graph.py" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/studio/graph.py" = ["N815", "B005", "RUF005"]
 "democracy_exe/democracy_exe/gen_ai/models/vectorstores/*" = ["N815"]
 "tests/*" = ["PT011", "S101"]
 "democracy_exe/democracy_exe/tutorials/design_patterns/practical_examples/*" = [
@@ -985,7 +1018,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "demo/*" = ["D"]
 "docs/*" = ["D"]
 "test/*" = ["D"]
-"tests/conftest.py" = ["D"]
+"tests/conftest.py" = ["D", "F811"]
 "*.pyi" = ["D", "E501", "E701", "I002"]
 
 # ===========================[ ISORT ]========================
@@ -1061,58 +1094,56 @@ preview = true
 # SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
 # Conflicts with the formatter
 exclude = [
-    "N999",
-    "D203",    # one-blank-line-before-class	1 blank line required before class docstring	✔️ 🛠️
-    "COM812",
-    "ISC001",
-    "N804",
-    "F821",
-    "N804",
-    "PLR1722",
-    "N802",
-    "N801",
-    "PLW0602",
-    "F811",
-    "PLW2901",
-    "YTT201",
-    "E722",
-    "PLC0132",
-    "PLW0128",
-    "W191",    # tab-indentation
-    "E111",    # indentation-with-invalid-multiple
-    "E114",    # indentation-with-invalid-multiple-comment
-    "E117",    # over-indented
-    "D206",    # indent-with-spaces
-    "D300",    # triple-single-quotes
-    "Q000",    # bad-quotes-inline-string
-    "Q001",    # bad-quotes-multiline-string
-    "Q002",    # bad-quotes-docstring
-    "Q003",    # avoidable-escaped-quote
-    "COM812",  # missing-trailing-comma
-    "COM819",  # prohibited-trailing-comma
-    "ISC001",  # single-line-implicit-string-concatenation
-    "ISC002",  # multi-line-implicit-string-concatenation
-    "E501",
+    "N999", # Invalid module name
+    "D203", # one-blank-line-before-class	1 blank line required before class docstring
 
-    # new list
-    "E721",
-    "E741",
-    "E731",
-    "E731",
-    "PLR1714",
-    "N818",
-    "PLW0127",
-    "PT012",
-    "N806",
-    "E712",
-    "E711",
-    "W505",
-    "PT006",
-    "PLR2004",
-    "N812",
-    "F841",
-    # "R1730",
-    # "I",      # isort, ruff doesn't have enough support for isort yet.
+    "COM812",  # Missing trailing comma
+    "ISC001",  # Implicit string concatenation
+    "N804",    # First param of classmethod not 'cls'
+    "F821",    # Undefined name
+    "PLR1722", # Use sys.exit() instead of exit()
+    "N802",    # Function name should be lowercase
+    "N801",    # Class name should use CapWords
+    "PLW0602", # Global variable undefined
+    "F811",    # Redefinition of unused name
+    "PLW2901", # Outer loop var overwritten in loop
+    "YTT201",  # sys.version instead of version_info
+    "E722",    # Do not use bare 'except'
+    "PLC0132", # Use f-strings in logging
+    "PLW0128", # Redundant if-else in comprehension
+
+    "W191",   # tab-indentation
+    "E111",   # indentation-with-invalid-multiple
+    "E114",   # indentation-with-invalid-multiple-comment
+    "E117",   # over-indented
+    "D206",   # indent-with-spaces
+    "D300",   # triple-single-quotes
+    "Q000",   # bad-quotes-inline-string
+    "Q001",   # bad-quotes-multiline-string
+    "Q002",   # bad-quotes-docstring
+    "Q003",   # avoidable-escaped-quote
+    "COM812", # missing-trailing-comma
+    "COM819", # prohibited-trailing-comma
+    "ISC001", # single-line-implicit-string-concatenation
+    "ISC002", # multi-line-implicit-string-concatenation
+
+    "E501",    # Line too long
+    "E721",    # Don't compare types, use isinstance()
+    "E741",    # Ambiguous variable name
+    "E731",    # Do not assign lambda expression
+    "PLR1714", # Consider merging dict literals
+    "N818",    # Exception name should end with "Error"
+    "PLW0127", # Self-assigning variable
+    "PT012",   # pytest.raises() without match=
+    "N806",    # Variable in function should be lowercase
+    "E712",    # Use "is" to compare with True/False/None
+    "E711",    # Use "is" to compare with None
+    "W505",    # Doc line too long
+    "PT006",   # pytest.parametrize() values not a tuple
+    "PLR2004", # Magic value used in comparison
+    "N812",    # Lowercase imported as non-lowercase
+    "F841",    # Local variable is assigned but unused
+
     "TID",     # flake8-tidy-imports (TID)#
     "F401",    # unused-import	{name} imported but unused; consider using importlib.util.find_spec to test for availability
     "F402",    # import-shadowed-by-loop-var	Import {name} from {row} shadowed by loop variable
@@ -1155,8 +1186,8 @@ exclude = [
     'AIR', # airflow
     'CPY', # flake8-copyright (CPY)#
     'D',   # pydocstyle (D)#
-    'NPY', # NumPy-specific rules (NPY)#
-    'PD',  # pandas-vet (PD)
+
+    'PD', # pandas-vet (PD)
 
     # Many projects either don't have type annotations or it would take much effort to satisfy this
     'ANN', # flake8-annotations (ANN).
@@ -1170,11 +1201,11 @@ exclude = [
     'FURB101', # read-whole-file	open and read should be replaced by Path({filename}).{suggestion}
 
     # Conflicts with type checking
-    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value	✔️ 🛠️
-    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value	✔️ 🛠️
+    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value
+    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value
 
     # Under review https://github.com/astral-sh/ruff/issues/8796
-    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore	✔️ 🛠️
+    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore
     'PT005', # pytest-incorrect-fixture-name-underscore	Fixture {function} returns a value, remove leading underscore
 
     # Buggy https://github.com/astral-sh/ruff/issues/4845
@@ -1190,8 +1221,8 @@ exclude = [
     'SIM401', # if-else-block-instead-of-dict-get	Use {contents} instead of an if block
 
     # Allow for easy ignores
-    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues	✔️ 🛠️
-    'PGH004', # blanket-noqa	Use specific rule codes when using noqa	✔️ 🛠️
+    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues
+    'PGH004', # blanket-noqa	Use specific rule codes when using noqa
 
     # This is required sometimes, and doesn't matter on Python 3.11+
     'PERF203', # try-except-in-loop	try-except within a loop incurs performance overhead
@@ -1280,6 +1311,8 @@ exclude_lines = [
 omit = [
     "test/*",
     "tests/*",
+    "democracy_exe/agentic/studio/*",
+    "cookbook/studio/*",
 ]
 # fail if coverage drops below the specified percentage:
 fail_under = 10
@@ -1436,6 +1469,7 @@ fail-on = ["I"]
 load-plugins = [
     "pylint.extensions.code_style",
     "pylint.extensions.typing",
+    "pylint_pydantic",
 ]
 persistent = false
 # ignore = "lib"
@@ -1447,6 +1481,7 @@ ignore-paths = [
     "democracy_exe/utils/run_service.py",
     "democracy_exe/utils/imgops.py",
     "democracy_exe/utils/files_import.py",
+    "democracy_exe/agentic/studio/*",
 ]
 
 # SOURCE: https://github.com/ocellicode/gpyt-commandbus/blob/80172644b35af7b4679ace734bea1c5ea2212a52/pyproject.toml#L21
@@ -1791,6 +1826,9 @@ exclude = [
     "tasks",
     "typings",
 ]
+extraPaths = [
+    ".venv",
+]
 ############################################################################
 # FIXME: THIS MIGHT BREAK SHIT
 # SOURCE: https://github.com/charbonnierg/pytest-broadcaster/blob/e98456b2f6db7f99a034795f162ac0013a8001d7/pyproject.toml#L157C1-L158C15
@@ -1920,3 +1958,10 @@ diff = true
 no_gitignore = false
 # Stop enforcing the existence of the __all__ dunder in __init__.py files. (disabling this policy)
 disable_all_dunder_policy = true
+
+
+[tool.nbqa.md]
+blacken-docs = true
+
+[tool.nbqa.shell]
+flake8heavened = true
