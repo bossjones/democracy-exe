@@ -717,3 +717,46 @@ install-llm-cli-plugins:
 
 smoke-test:
 	cd democracy_exe/agentic/studio/react && {{UV_RUN}} python -m memory_agent
+
+# Commitizen commands
+# commit using commitizen
+commit:
+	{{UV_RUN}} cz commit
+
+commit-help:
+	{{UV_RUN}} cz commit -h
+
+# bump version using commitizen
+bump:
+	{{UV_RUN}} cz bump
+
+# tag using commitizen
+tag:
+	{{UV_RUN}} cz tag
+
+# release using commitizen
+release:
+	{{UV_RUN}} cz release
+
+# bump patch version using commitizen
+bump-patch:
+	{{UV_RUN}} cz bump --patch
+
+# bump minor version using commitizen
+bump-minor:
+	{{UV_RUN}} cz bump --minor
+
+# bump major version using commitizen
+bump-major:
+	{{UV_RUN}} cz bump --major
+
+# bump prerelease version using commitizen
+bump-prerelease:
+	{{UV_RUN}} cz bump --prerelease
+
+# bump postrelease version using commitizen
+bump-postrelease:
+	{{UV_RUN}} cz bump --postrelease
+
+ai-commit:
+	aicommits --generate 3 --type conventional
