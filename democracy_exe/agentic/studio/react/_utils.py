@@ -12,12 +12,36 @@ from functools import lru_cache
 import _schemas as schemas
 import langsmith
 
+from langchain.chat_models import init_chat_model
+from langchain_core.embeddings import Embeddings
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_fireworks import FireworksEmbeddings
-from langchain_openai import OpenAIEmbeddings
 from loguru import logger
 from pinecone import Pinecone, ServerlessSpec
 from settings import aiosettings
+
+
+def get_message_text(msg: BaseMessage) -> str:
+    """Get the text content of a message."""
+    content = msg.content
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, dict):
+        return content.get("text", "")
+    else:
+        txts = [c if isinstance(c, str) else (c.get("text") or "") for c in content]
+        return "".join(txts).strip()
+
+
+def load_chat_model(fully_specified_name: str) -> BaseChatModel:
+    """Load a chat model from a fully specified name.
+
+    Args:
+        fully_specified_name (str): String in the format 'provider/model'.
+    """
+    provider, model = fully_specified_name.split("/", maxsplit=1)
+    return init_chat_model(model, model_provider=provider)
 
 
 _DEFAULT_DELAY = 60  # seconds
@@ -124,12 +148,45 @@ def ensure_configurable(config: RunnableConfig) -> schemas.GraphConfig:
 
 
 @lru_cache
-def get_embeddings(model_name: str = "nomic-ai/nomic-embed-text-v1.5") -> FireworksEmbeddings:
+def get_embeddings(model_name: str = "nomic-ai/nomic-embed-text-v1.5") -> Embeddings|OpenAIEmbeddings:
     if model_name == "nomic-ai/nomic-embed-text-v1.5":
+        from langchain_fireworks import FireworksEmbeddings
         return FireworksEmbeddings(model="nomic-ai/nomic-embed-text-v1.5")
     elif model_name == "text-embedding-3-large":
+        from langchain_openai import OpenAIEmbeddings
         return OpenAIEmbeddings(model="text-embedding-3-large")
     return FireworksEmbeddings(model=model_name)
 
+
+# NOTE: via memory-agent
+def split_model_and_provider(fully_specified_name: str) -> dict:
+    """Initialize the configured chat model."""
+    if "/" in fully_specified_name:
+        provider, model = fully_specified_name.split("/", maxsplit=1)
+    else:
+        provider = None
+        model = fully_specified_name
+    return {"model": model, "provider": provider}
+
+
+def make_text_encoder(model: str) -> Embeddings:
+    """Connect to the configured text encoder."""
+    provider, model = model.split("/", maxsplit=1)
+    match provider:
+        case "openai":
+            from langchain_openai import OpenAIEmbeddings
+
+            return OpenAIEmbeddings(model=model)
+        # case "cohere":
+        #     from langchain_cohere import CohereEmbeddings
+
+        #     return CohereEmbeddings(model=model)  # type: ignore
+        case _:
+            raise ValueError(f"Unsupported embedding provider: {provider}")
+
+def make_chat_model(name: str) -> BaseChatModel:
+    """Connect to the configured chat model."""
+    provider, model = name.split("/", maxsplit=1)
+    return init_chat_model(model, model_provider=provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
 
 __all__ = ["ensure_configurable"]

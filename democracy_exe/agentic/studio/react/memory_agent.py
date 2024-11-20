@@ -10,12 +10,14 @@ It manages user profiles, todo lists, and custom instructions through a state gr
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 
 from datetime import UTC, datetime, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 
+import _utils
 import configuration
 import langsmith
 import rich
@@ -39,6 +41,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
 from loguru import logger
+from prompts import CREATE_INSTRUCTIONS, MODEL_SYSTEM_MESSAGE, TRUSTCALL_INSTRUCTION
 from pydantic import BaseModel, Field
 from settings import aiosettings
 from trustcall import create_extractor
@@ -115,35 +118,90 @@ class Spy:
                     r.outputs["generation"][0][0]["message"]["kwargs"]["tool_calls"]
                 )
 
+# DISABLED: from module-5
+# # Extract information from tool calls for both patches and new memories in Trustcall
+# def extract_tool_info(tool_calls: list[list[dict[str, Any]]], schema_name: str = "Memory") -> str:
+#     """Extract information from tool calls for both patches and new memories.
+
+#     This function processes tool calls to extract information about document updates
+#     and new memory creation. It formats the extracted information into a human-readable
+#     string.
+
+#     Args:
+#         tool_calls: List of tool call groups, where each group contains tool call
+#             dictionaries with information about patches or new memory creation
+#         schema_name: Name of the schema tool (e.g., "Memory", "ToDo", "Profile")
+
+#     Returns:
+#         A formatted string containing information about all document updates and
+#         new memory creations
+#     """
+#     # Initialize list of changes
+#     changes: list[dict[str, Any]] = []
+
+#     for call_group in tool_calls:
+#         for call in call_group:
+#             if call['name'] == 'PatchDoc':
+#                 changes.append({
+#                     'type': 'update',
+#                     'doc_id': call['args']['json_doc_id'],
+#                     'planned_edits': call['args']['planned_edits'],
+#                     'value': call['args']['patches'][0]['value']
+#                 })
+#             elif call['name'] == schema_name:
+#                 changes.append({
+#                     'type': 'new',
+#                     'value': call['args']
+#                 })
+
+#     # Format results as a single string
+#     result_parts: list[str] = []
+#     for change in changes:
+#         if change['type'] == 'update':
+#             result_parts.append(
+#                 f"Document {change['doc_id']} updated:\n"
+#                 f"Plan: {change['planned_edits']}\n"
+#                 f"Added content: {change['value']}"
+#             )
+#         else:
+#             result_parts.append(
+#                 f"New {schema_name} created:\n"
+#                 f"Content: {change['value']}"
+#             )
+
+#     return "\n\n".join(result_parts)
+
+
+# module-6
 # Extract information from tool calls for both patches and new memories in Trustcall
 def extract_tool_info(tool_calls: list[list[dict[str, Any]]], schema_name: str = "Memory") -> str:
     """Extract information from tool calls for both patches and new memories.
 
-    This function processes tool calls to extract information about document updates
-    and new memory creation. It formats the extracted information into a human-readable
-    string.
-
     Args:
-        tool_calls: List of tool call groups, where each group contains tool call
-            dictionaries with information about patches or new memory creation
+        tool_calls: List of tool calls from the model
         schema_name: Name of the schema tool (e.g., "Memory", "ToDo", "Profile")
-
-    Returns:
-        A formatted string containing information about all document updates and
-        new memory creations
     """
     # Initialize list of changes
-    changes: list[dict[str, Any]] = []
+    changes = []
 
     for call_group in tool_calls:
         for call in call_group:
             if call['name'] == 'PatchDoc':
-                changes.append({
-                    'type': 'update',
-                    'doc_id': call['args']['json_doc_id'],
-                    'planned_edits': call['args']['planned_edits'],
-                    'value': call['args']['patches'][0]['value']
-                })
+                # Check if there are any patches
+                if call['args']['patches']:
+                    changes.append({
+                        'type': 'update',
+                        'doc_id': call['args']['json_doc_id'],
+                        'planned_edits': call['args']['planned_edits'],
+                        'value': call['args']['patches'][0]['value']
+                    })
+                else:
+                    # Handle case where no changes were needed
+                    changes.append({
+                        'type': 'no_update',
+                        'doc_id': call['args']['json_doc_id'],
+                        'planned_edits': call['args']['planned_edits']
+                    })
             elif call['name'] == schema_name:
                 changes.append({
                     'type': 'new',
@@ -151,13 +209,18 @@ def extract_tool_info(tool_calls: list[list[dict[str, Any]]], schema_name: str =
                 })
 
     # Format results as a single string
-    result_parts: list[str] = []
+    result_parts = []
     for change in changes:
         if change['type'] == 'update':
             result_parts.append(
                 f"Document {change['doc_id']} updated:\n"
                 f"Plan: {change['planned_edits']}\n"
                 f"Added content: {change['value']}"
+            )
+        elif change['type'] == 'no_update':
+            result_parts.append(
+                f"Document {change['doc_id']} unchanged:\n"
+                f"{change['planned_edits']}"
             )
         else:
             result_parts.append(
@@ -231,85 +294,16 @@ class UpdateMemory(TypedDict):
 # Initialize the model
 
 # model = ChatOpenAI(model="gpt-4o", temperature=0)
-model: BaseChatModel = init_chat_model("gpt-4o", model_provider=aiosettings.llm_provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
+# model: BaseChatModel = init_chat_model("gpt-4o", model_provider=aiosettings.llm_provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
 # TODO: Use this to get embeddings
 # tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
-## Create the Trustcall extractors for updating the user profile and ToDo list
-profile_extractor = create_extractor(
-    model,
-    tools=[Profile],
-    tool_choice="Profile",
-)
 
-## Prompts
 
-# Chatbot instruction for choosing what to update and what tools to call
-MODEL_SYSTEM_MESSAGE = """You are a helpful chatbot.
-
-You are designed to be a companion to a user, helping them keep track of their ToDo list.
-
-You have a long term memory which keeps track of three things:
-1. The user's profile (general information about them)
-2. The user's ToDo list
-3. General instructions for updating the ToDo list
-
-Here is the current User Profile (may be empty if no information has been collected yet):
-<user_profile>
-{user_profile}
-</user_profile>
-
-Here is the current ToDo List (may be empty if no tasks have been added yet):
-<todo>
-{todo}
-</todo>
-
-Here are the current user-specified preferences for updating the ToDo list (may be empty if no preferences have been specified yet):
-<instructions>
-{instructions}
-</instructions>
-
-Here are your instructions for reasoning about the user's messages:
-
-1. Reason carefully about the user's messages as presented below.
-
-2. Decide whether any of the your long-term memory should be updated:
-- If personal information was provided about the user, update the user's profile by calling UpdateMemory tool with type `user`
-- If tasks are mentioned, update the ToDo list by calling UpdateMemory tool with type `todo`
-- If the user has specified preferences for how to update the ToDo list, update the instructions by calling UpdateMemory tool with type `instructions`
-
-3. Tell the user that you have updated your memory, if appropriate:
-- Do not tell the user you have updated the user's profile
-- Tell the user them when you update the todo list
-- Do not tell the user that you have updated instructions
-
-4. Err on the side of updating the todo list. No need to ask for explicit permission.
-
-5. Respond naturally to user user after a tool call was made to save memories, or if no tool call was made."""
-
-# Trustcall instruction
-TRUSTCALL_INSTRUCTION = """Reflect on following interaction.
-
-Use the provided tools to retain any necessary memories about the user.
-
-Use parallel tool calling to handle updates and insertions simultaneously.
-
-System Time: {time}"""
-
-# Instructions for updating the ToDo list
-CREATE_INSTRUCTIONS = """Reflect on the following interaction.
-
-Based on this interaction, update your instructions for how to update ToDo list items. Use any feedback from the user to update how they like to have items added, etc.
-
-Your current instructions are:
-
-<current_instructions>
-{current_instructions}
-</current_instructions>"""
 
 ## Node definitions
 
-def taks_democracy_ai(
+async def tasks_democracy_ai(
     state: MessagesState,
     config: RunnableConfig,
     store: BaseStore
@@ -331,9 +325,19 @@ def taks_democracy_ai(
     # Get the user ID from the config
     configurable = configuration.Configuration.from_runnable_config(config)
     user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
 
     # Retrieve profile memory from the store
     namespace = ("profile", user_id)
+    # DISABLED: # memories = store.search(namespace)
+
     memories = store.search(namespace)
     if memories:
         user_profile = memories[0].value
@@ -353,10 +357,10 @@ def taks_democracy_ai(
     else:
         instructions = ""
 
-    system_msg = MODEL_SYSTEM_MESSAGE.format(user_profile=user_profile, todo=todo, instructions=instructions)
+    system_msg = configurable.system_prompt.format(user_profile=user_profile, todo=todo, instructions=instructions)
 
     # Respond using memory as well as the chat history
-    response = model.bind_tools([UpdateMemory], parallel_tool_calls=False).invoke([SystemMessage(content=system_msg)]+state["messages"])
+    response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"])
 
     return {"messages": [response]}
 
@@ -388,6 +392,15 @@ def update_profile(
     # Get the user ID from the config
     configurable = configuration.Configuration.from_runnable_config(config)
     user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
+
 
     # Define the namespace for the memories
     namespace: tuple[str, str] = ("profile", user_id)
@@ -467,6 +480,15 @@ def update_todos(
     # Get the user ID from the config
     configurable = configuration.Configuration.from_runnable_config(config)
     user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
+
 
     # Define the namespace for the memories
     namespace: tuple[str, str] = ("todo", user_id)
@@ -518,10 +540,10 @@ def update_todos(
             r.model_dump(mode="json"),
         )
 
-    # Respond to the tool call made in taks_democracy_ai, confirming the update
+    # Respond to the tool call made in tasks_democracy_ai, confirming the update
     tool_calls = state['messages'][-1].tool_calls
 
-    # Extract the changes made by Trustcall and add to the ToolMessage returned to taks_democracy_ai
+    # Extract the changes made by Trustcall and add to the ToolMessage returned to tasks_democracy_ai
     todo_update_msg: str = extract_tool_info(spy.called_tools, tool_name)
     return {
         "messages": [{
@@ -560,6 +582,14 @@ def update_instructions(
     # Get the user ID from the config
     configurable = configuration.Configuration.from_runnable_config(config)
     user_id = configurable.user_id
+    model = _utils.make_chat_model(configurable.model) # pylint: disable=no-member
+
+    ## Create the Trustcall extractors for updating the user profile and ToDo list
+    profile_extractor = create_extractor(
+        model,
+        tools=[Profile],
+        tool_choice="Profile",
+    )
 
     namespace: tuple[str, str] = ("instructions", user_id)
 
@@ -630,23 +660,38 @@ def route_message(
         else:
             raise ValueError("Unknown update_type in tool call")
 
+# SOURCE: https://github.com/langchain-ai/langgraph/blob/main/docs/docs/how-tos/create-react-agent-memory.ipynb
+def print_stream(stream):
+    for s in stream:
+        message = s["messages"][-1]
+        if isinstance(message, tuple):
+            print(message)
+        else:
+            message.pretty_print()
+
 # Create the graph + all nodes
 builder = StateGraph(MessagesState, config_schema=configuration.Configuration)
 
 # Define the flow of the memory extraction process
-builder.add_node(taks_democracy_ai)
+builder.add_node(tasks_democracy_ai)
 builder.add_node(update_todos)
 builder.add_node(update_profile)
 builder.add_node(update_instructions)
 
 # Define the flow
-builder.add_edge(START, "taks_democracy_ai")
-builder.add_conditional_edges("taks_democracy_ai", route_message)
-builder.add_edge("update_todos", "taks_democracy_ai")
-builder.add_edge("update_profile", "taks_democracy_ai")
-builder.add_edge("update_instructions", "taks_democracy_ai")
+builder.add_edge(START, "tasks_democracy_ai")
+builder.add_conditional_edges("tasks_democracy_ai", route_message)
+builder.add_edge("update_todos", "tasks_democracy_ai")
+builder.add_edge("update_profile", "tasks_democracy_ai")
+builder.add_edge("update_instructions", "tasks_democracy_ai")
 
 # Compile the graph
 graph: CompiledStateGraph = builder.compile()
 
 print(graph.get_graph().print_ascii())
+
+# if __name__ == "__main__":  # pragma: no cover
+#     import rich
+#     config = {}
+#     configurable = Configuration.from_runnable_config(config)
+#     rich.print(f"configurable: {configurable}")
