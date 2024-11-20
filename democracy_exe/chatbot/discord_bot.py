@@ -24,6 +24,7 @@ from collections.abc import AsyncIterator, Callable, Coroutine, Iterable
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, TypeVar, Union, cast
 
+import aiofiles
 import aiohttp
 import bpdb
 import discord
@@ -70,6 +71,7 @@ from democracy_exe.constants import (
     MAX_THREAD_MESSAGES,
 )
 from democracy_exe.factories import guild_factory
+from democracy_exe.models.loggers import LoggerModel
 from democracy_exe.utils import async_, file_functions
 from democracy_exe.utils.context import Context
 from democracy_exe.utils.misc import CURRENTFUNCNAME
@@ -396,7 +398,7 @@ def dump_logger(logger_name: str) -> Any:
 
     """
     logger.debug(f"getting logger {logger_name}")
-    rootm = generate_tree()
+    rootm: LoggerModel = generate_tree()
     return get_lm_from_tree(rootm, logger_name)
 
 
@@ -558,7 +560,7 @@ def extensions() -> Iterable[str]:
         yield file.as_posix()[:-3].replace("/", ".")
 
 
-def _prefix_callable(bot: DemocracyBot, msg: discord.Message) -> list[str]: # pyright: ignore[reportUninitializedInstanceVariable]
+def _prefix_callable(bot: DemocracyBot, msg: discord.Message) -> list[str]: # pyright: ignore[reportUninitializedInstanceVariable,reportUnusedFunction]
     """
     Generate a list of command prefixes for the bot.
 
@@ -776,10 +778,10 @@ class DemocracyBot(commands.Bot):
 
         await logger.complete()
 
-    async def close(self) -> None:
-        """Clean up resources when shutting down the bot."""
-        await super().close()
-        await self.session.close()
+    # async def close(self) -> None:
+    #     """Clean up resources when shutting down the bot."""
+    #     await super().close()
+    #     await self.session.close()
 
     # async def on_ready(self) -> None:
     #     """Handle bot ready event and set up initial state."""
@@ -999,6 +1001,7 @@ class DemocracyBot(commands.Bot):
         message_content: str = message.content  # pyright: ignore[reportAttributeAccessIssue]
         url_pattern = re.compile(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
         if "https://tenor.com/view/" in message_content:
+
             # Extract the Tenor GIF URL from the message content
             start_index = message_content.index("https://tenor.com/view/")
             end_index = message_content.find(" ", start_index)
@@ -1006,31 +1009,34 @@ class DemocracyBot(commands.Bot):
                 tenor_url = message_content[start_index:]
             else:
                 tenor_url = message_content[start_index:end_index]
+
             # Split the URL on forward slashes
             parts = tenor_url.split("/")
+
             # Extract the relevant words from the URL
             words = parts[-1].split("-")[:-1]
+
             # Join the words into a sentence
             sentence = " ".join(words)
             message_content = f"{message_content} [{message.author.display_name} posts an animated {sentence} ]"
             return message_content.replace(tenor_url, "")
         elif url_pattern.match(message_content):
             logger.info(f"Message content is a URL: {message_content}")
+
             # Download the image from the URL and convert it to a PIL image
             response = await download_image(message_content)
+
             # response = requests.get(message_content)
             image = Image.open(BytesIO(response.content)).convert("RGB")  # pyright: ignore[reportAttributeAccessIssue]
         else:
             logger.info(f"OTHERRRR Message content is a URL: {message_content}")
             # Download the image from the message and convert it to a PIL image
-            image_url = message.attachments[0].url  # pyright: ignore[reportAttributeAccessIssue]
-            # response = requests.get(image_url)
+            image_url = message.attachments[0].url  # pyright: ignore[reportAttributeAccessIssue,reportInvalidTypeForm]
+
             response = await download_image(message_content)
             image = Image.open(BytesIO(response.content)).convert("RGB")  # pyright: ignore[reportAttributeAccessIssue]
 
-        # # Generate the image caption
-        # caption = self.caption_image(image)
-        # message_content = f"{message_content} [{message.author.display_name} posts a picture of {caption}]"
+
         await logger.complete()
         return message_content
 
@@ -1215,5 +1221,138 @@ class DemocracyBot(commands.Bot):
             channel_id = message.channel.id  # pyright: ignore[reportAttributeAccessIssue]
 
         return f"discord_{user_id}" if is_dm else f"discord_{channel_id}"  # pyright: ignore[reportAttributeAccessIssue]
+
+
+    async def close(self) -> None:
+        """
+        Close the bot and its associated resources.
+
+        This asynchronous method performs the necessary cleanup operations
+        before shutting down the bot. It closes the aiohttp session and
+        calls the superclass's close method to ensure proper shutdown.
+
+        Returns
+        -------
+            None
+
+        """
+        await super().close()
+        await self.session.close()
+
+    async def start(self) -> None:  # type: ignore
+        """
+        Start the bot and connect to Discord.
+
+        This asynchronous method initiates the bot's connection to Discord using the token
+        specified in the settings. It ensures that the bot attempts to reconnect if the
+        connection is lost.
+
+        The method overrides the default `start` method from the `commands.Bot` class to
+        include the bot's specific token and reconnection behavior.
+
+        Returns
+        -------
+            None
+
+        """
+        await super().start(aiosettings.discord_token.get_secret_value(), reconnect=True) # pylint: disable=no-member
+
+    async def my_background_task(self) -> None:
+        """
+        Run a background task that sends a counter message to a specific channel every 60 seconds.
+
+        This asynchronous method waits until the bot is ready, then continuously increments a counter
+        and sends its value to a predefined Discord channel every 60 seconds. The channel ID is retrieved
+        from the bot's settings.
+
+        The method ensures that the task runs indefinitely until the bot is closed.
+
+        Args:
+        ----
+            None
+
+        Returns:
+        -------
+            None
+
+        """
+        await self.wait_until_ready()
+        # """
+        # Wait until the bot is ready before starting the monitoring loop.
+        # """
+        counter = 0
+
+        channel = self.get_channel(aiosettings.discord_general_channel)  # channel ID goes here
+        while not self.is_closed():
+            # """
+            # Continuously monitor the worker tasks until the bot is closed.
+            # """
+            counter += 1
+            # """
+            # Increment the counter for each monitoring iteration.
+            # """
+            await channel.send(counter)  # pyright: ignore[reportAttributeAccessIssue]  # type: ignore
+            await asyncio.sleep(60)  # task runs every 60 seconds
+
+    async def on_worker_monitor(self) -> None:
+        """
+        Monitor and log the status of worker tasks.
+
+        This asynchronous method waits until the bot is ready, then continuously
+        increments a counter and logs the status of worker tasks every 10 seconds.
+        It prints the list of tasks and the number of tasks currently being processed.
+
+        The method ensures that the monitoring runs indefinitely until the bot is closed.
+
+        Returns
+        -------
+            None
+
+        """
+        await self.wait_until_ready()
+        counter = 0
+
+        while not self.is_closed():
+            counter += 1
+            # await channel.send(counter)
+            print(f" self.tasks = {self.tasks}")
+            """
+            Print the list of current tasks being processed.
+            """
+            print(f" len(self.tasks) = {len(self.tasks)}")
+            """
+            Print the number of tasks currently being processed.
+            """
+            await asyncio.sleep(10)
+            """
+            Sleep for 10 seconds before the next monitoring iteration.
+            """
+
+
+
+# SOURCE: https://github.com/darren-rose/DiscordDocChatBot/blob/63a2f25d2cb8aaace6c1a0af97d48f664588e94e/main.py#L28
+# TODO: maybe enable this
+async def send_long_message(channel: Any, message: discord.Message, max_length: int = 2000) -> None:
+    """
+    Send a long message by splitting it into chunks and sending each chunk.
+
+    This asynchronous function takes a message and splits it into chunks of
+    maximum length 'max_length'. It then sends each chunk as a separate message
+    to the specified channel.
+
+    Args:
+    ----
+        channel (Any): The channel to send the message chunks to.
+        message (discord.Message): The message to be split into chunks and sent.
+        max_length (int): The maximum length of each message chunk. Default is 2000.
+
+    Returns:
+    -------
+        None
+
+    """
+    chunks = [message[i : i + max_length] for i in range(0, len(message), max_length)]  # type: ignore
+    for chunk in chunks:
+        await channel.send(chunk)
 
 # bot = DemocracyBot()
