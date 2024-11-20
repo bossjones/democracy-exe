@@ -707,3 +707,6 @@ install-llm-cli-plugins:
 # {{UV_RUN}} llm install llm-json
 # {{UV_RUN}} llm install llm-markdown
 # {{UV_RUN}} llm install llm-sql
+
+smoke-test:
+	cd democracy_exe/agentic/studio/react && {{UV_RUN}} python -m memory_agent

@@ -17,8 +17,6 @@ import uuid
 from datetime import UTC, datetime, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 
-import _utils
-import configuration
 import langsmith
 import rich
 import tiktoken
@@ -41,11 +39,17 @@ from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
 from loguru import logger
-from prompts import CREATE_INSTRUCTIONS, MODEL_SYSTEM_MESSAGE, TRUSTCALL_INSTRUCTION
 from pydantic import BaseModel, Field
-from settings import aiosettings
 from trustcall import create_extractor
 from trustcall._base import ExtractionOutputs, InputsLike
+
+from democracy_exe.agentic.workflows.react import _utils, configuration
+from democracy_exe.agentic.workflows.react.prompts import (
+    CREATE_INSTRUCTIONS,
+    MODEL_SYSTEM_MESSAGE,
+    TRUSTCALL_INSTRUCTION,
+)
+from democracy_exe.aio_settings import aiosettings
 
 
 # import nest_asyncio

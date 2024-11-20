@@ -15,7 +15,7 @@ from loguru import logger
 from rich import print as rprint
 
 from democracy_exe.agentic import _utils as agentic_utils
-from democracy_exe.agentic.graph import memgraph
+from democracy_exe.agentic.workflows.react.graph import graph as memgraph
 from democracy_exe.aio_settings import aiosettings
 
 
@@ -24,9 +24,17 @@ async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
 
     This function handles user input and processes it through the AI pipeline.
     """
-    logger.info("Starting the LangGraph Chatbot")
-    rprint("[bold green]Welcome to the LangGraph Chatbot! Type 'quit' to exit.[/bold green]")
-    logger.info("Welcome to the LangGraph Chatbot! Type 'quit' to exit.")
+    logger.info("Starting the DemocracyExeAI Chatbot")
+    rprint("[bold green]Welcome to the DemocracyExeAI Chatbot! Type 'quit' to exit.[/bold green]")
+    logger.info("Welcome to the DemocracyExeAI Chatbot! Type 'quit' to exit.")
+
+    config = {"configurable": {"thread_id": "1", "user_id": "1"}}
+
+    # User input
+    await logger.complete()
+
+    # Flush stderr before input prompt
+    sys.stderr.flush()
 
     while True:
         user_input = await asyncio.to_thread(input, "You: ")
@@ -40,51 +48,33 @@ async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
         message = HumanMessage(content=user_input)
 
         try:
-
-            # state = AgentState(
-            #     query=message.content,
-            #     response="",
-            #     current_agent="",
-            #     context={"message": message}
-            # )
-            # result: AgentState = graph.process(state)
             user_input = {"messages": [message]}
-
-            # Thread
-            thread = {"configurable": {"thread_id": "1"}}
-
-            # messages = graph.invoke(user_input, thread)
-            # for m in messages['messages']:
-            #     m.pretty_print()
-
-            # # Print the AI's response
-            # rprint(f"[bold blue]AI:[/bold blue] {messages['response']}")
-            # logger.info(f"AI: {messages['response']}")
-            stream_terminal_bot(graph, user_input, thread)
+            stream_terminal_bot(graph, user_input, config)
         except Exception as e:
             logger.exception("Error processing message")
             rprint("[bold red]An error occurred while processing your message.[/bold red]")
 
 
-def stream_terminal_bot(graph: CompiledStateGraph = memgraph, user_input: dict = None, thread: dict = None) -> None:
+def stream_terminal_bot(graph: CompiledStateGraph = memgraph, user_input: dict = None, thread: dict = None, interruptable: bool = False) -> None:
     """Stream the LangGraph Chatbot in the terminal."""
     # Run the graph until the first interruption
     for event in graph.stream(user_input, thread, stream_mode="values"):
         logger.debug(event)
         event['messages'][-1].pretty_print()
 
-    # Get user feedback
-    user_approval = input("Do you want to call the tool? (yes/no): ")
+    if interruptable:
+        # Get user feedback
+        user_approval = input("Do you want to call the tool? (yes[y]/no[n]): ")
 
-    # Check approval
-    if user_approval.lower() == "yes":
+        # Check approval
+        if user_approval.lower() == "yes" or user_approval.lower() == "y":
 
-        # If approved, continue the graph execution
-        for event in graph.stream(None, thread, stream_mode="values"):
-            event['messages'][-1].pretty_print()
+            # If approved, continue the graph execution
+            for event in graph.stream(None, thread, stream_mode="values"):
+                event['messages'][-1].pretty_print()
 
-    else:
-        print("Operation cancelled by user.")
+        else:
+            print("Operation cancelled by user.")
 
 
 
