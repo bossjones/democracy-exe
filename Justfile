@@ -695,6 +695,7 @@ add-cursor-context:
 	rm -rf democracy_exe/vendored/langchain/.git
 	rm -rf democracy_exe/vendored/langgraph/.git
 	rm -rf democracy_exe/vendored/langchain-academy/.git
+	rm -rf democracy_exe/vendored/dpytest/.git
 
 # List outdated packages
 outdated:
