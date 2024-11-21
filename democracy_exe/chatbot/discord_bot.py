@@ -808,13 +808,17 @@ class DemocracyBot(commands.Bot):
         print("------")
         self.invite = INVITE_LINK.format(self.user.id)
         self.guild_data = await preload_guild_data()
+        rich.print(f"[bold green]self.guild_data:[/bold green] {self.guild_data}")
         print(
             f"""Logged in as {self.user}..
             Serving {len(self.users)} users in {len(self.guilds)} guilds
             Invite: {INVITE_LINK.format(self.user.id)}
         """
         )
-        await self.change_presence(status=discord.Status.online, activity=discord.Game("GoobBot"))
+        game = discord.Game("DemocracyExe") # pyright: ignore[reportAttributeAccessIssue]
+        await self.change_presence(status=discord.Status.online, activity=game)
+
+        # await bot.change_presence(activity=discord.Game(name="a game"))
 
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
@@ -931,6 +935,12 @@ class DemocracyBot(commands.Bot):
             thread_id = thread.id
             # thread_id = thread.id if isinstance(thread, discord.Thread) else None
             user_id = message.author.id  # TODO: is this unique?
+
+            if isinstance(thread_id, int):
+                thread_id = str(thread_id)
+            if isinstance(user_id, int):
+                user_id = str(user_id)
+
             config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
             user_input = {"messages": [self._format_inbound_message(message)]}
             # import bpdb; bpdb.set_trace()
@@ -942,8 +952,12 @@ class DemocracyBot(commands.Bot):
             except Exception as e:
                 logger.exception(f"Error streaming bot response: {e}")
                 response = "An error occurred while processing your message."
-            await thread.send(response)
 
+            logger.debug("Sending response to thread...")
+            # split messages into multiple outputs if len(output) is over discord's limit, i.e. 2000 characters
+            chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+            for chunk in chunks:
+                await thread.send(chunk)
 
     # SOURCE: https://github.com/aronweiler/assistant/blob/a8abd34c6973c21bc248f4782f1428a810daf899/src/discord/rag_bot.py#L90
     async def process_attachments(self, message: discord.Message) -> None:
