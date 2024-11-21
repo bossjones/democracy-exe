@@ -681,7 +681,6 @@ add-cursor-context:
 	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
 	gh repo clone langchain-ai/langchain democracy_exe/vendored/langchain || true
 	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
-	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
 	gh repo clone CraftSpider/dpytest democracy_exe/vendored/dpytest || true
 
 	rm -rf democracy_exe/vendored/cerebro-bot/.git
@@ -758,5 +757,10 @@ bump-prerelease:
 bump-postrelease:
 	{{UV_RUN}} cz bump --postrelease
 
+# Generate AI commit messages
 ai-commit:
 	aicommits --generate 3 --type conventional
+
+# Run the bot
+run:
+	{{UV_RUN}} democracyctl run-bot

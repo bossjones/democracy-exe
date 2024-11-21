@@ -28,6 +28,7 @@ import aiofiles
 import aiohttp
 import bpdb
 import discord
+import pysnooper
 import rich
 
 from codetiming import Timer
@@ -48,6 +49,7 @@ from logging_tree import printout
 from loguru import logger
 from PIL import Image
 from redis.asyncio import ConnectionPool as RedisConnectionPool
+from rich.pretty import pprint
 from starlette.responses import JSONResponse, StreamingResponse
 
 import democracy_exe
@@ -823,25 +825,26 @@ class DemocracyBot(commands.Bot):
         await logger.complete()
         await get_logger_tree_printout()
 
-    async def _get_thread(self, message: discord.Message) -> discord.Thread:
-        """Get or create a Discord thread for the given message.
-
-        If the message is already in a thread, return that thread.
-        Otherwise, create a new thread in the channel where the message was sent.
+    async def _get_thread(self, message: discord.Message) -> discord.Thread | discord.DMChannel | None:
+        """Get or create a thread for the message.
 
         Args:
-            message (Message): The Discord message to get or create a thread for.
+            message: The message to get/create a thread for
 
         Returns:
-            discord.Thread: The thread associated with the message.
+            Either a Thread object for server channels or DMChannel for direct messages
         """
-        channel: discord.TextChannel = message.channel # pyright: ignore[reportAttributeAccessIssue]
-        logger.debug(f"channel: {channel}")
-        logger.complete()
-        if isinstance(channel, discord.Thread):
+        channel = message.channel
+
+        # If this is a DM channel, just return it directly
+        if isinstance(channel, discord.DMChannel):
             return channel
-        else:
+
+        # For regular channels, create a thread
+        if isinstance(channel, (discord.TextChannel, discord.Thread)):
             return await channel.create_thread(name="Response", message=message)
+
+        return None
 
     def _format_inbound_message(self, message: discord.Message) -> HumanMessage:
         """Format a Discord message into a HumanMessage for LangGraph processing.
@@ -866,7 +869,7 @@ class DemocracyBot(commands.Bot):
             content=content, name=str(message.author.global_name), id=str(message.id)
         )  # pyright: ignore[reportAttributeAccessIssue]
 
-
+    @pysnooper.snoop(max_variable_length=None)
     def stream_bot_response(
         self,
         graph: CompiledStateGraph = memgraph,
@@ -897,11 +900,21 @@ class DemocracyBot(commands.Bot):
         chunks = []
         for event in graph.stream(user_input, thread, stream_mode="values"):
             logger.debug(event)
+            rich.print("[bold green]event:[/bold green]")
+            pprint(event)
+            # this is the response from the LLM
             chunk: AIMessage = event['messages'][-1]
+            rich.print("[bold green]chunk:[/bold green]")
+            rich.print(chunk)
+            # pprint(chunk)
             chunk.pretty_print()
-            chunks.append(chunk.content)
+            if isinstance(chunk, AIMessage):
+                # import bpdb; bpdb.set_trace()
+                chunks.append(chunk.content)
 
-        return "".join(chunks)
+        response = "".join(chunks)
+        logger.error(f"response: {response}")
+        return response
 
     async def on_message(self, message: discord.Message) -> None:
         """Process incoming messages and route them through the AI pipeline.
@@ -914,11 +927,13 @@ class DemocracyBot(commands.Bot):
 
         if self.user.mentioned_in(message):
 
-            thread: discord.Thread = await self._get_thread(message)
+            thread: discord.Thread | discord.DMChannel = await self._get_thread(message)
             thread_id = thread.id
+            # thread_id = thread.id if isinstance(thread, discord.Thread) else None
             user_id = message.author.id  # TODO: is this unique?
             config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
             user_input = {"messages": [self._format_inbound_message(message)]}
+            # import bpdb; bpdb.set_trace()
             logger.error(f"user_input: {user_input}")
             logger.complete()
 

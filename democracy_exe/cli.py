@@ -204,7 +204,8 @@ async def run_bot():
     logger.info("Running bot")
     try:
         async with DemocracyBot() as bot:
-            await bot.start(aiosettings.discord_token.get_secret_value())
+            # await bot.start(aiosettings.discord_token.get_secret_value())
+            await bot.start()
     except Exception as ex:
         print(f"{ex}")
         exc_type, exc_value, exc_traceback = sys.exc_info()
