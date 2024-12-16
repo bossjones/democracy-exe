@@ -293,8 +293,8 @@ def run_pyright() -> None:
 
 @APP.command()
 def go() -> None:
-    """Main entry point for SandboxAgentAI"""
-    typer.echo("Starting up SandboxAgentAI Bot")
+    """Main entry point for DemocracyBot"""
+    typer.echo("Starting up DemocracyBot")
     asyncio.run(run_bot())
 
 

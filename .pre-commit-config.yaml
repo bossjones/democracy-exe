@@ -41,7 +41,7 @@ repos:
       - id: check-ast
         exclude: (.vscode|contrib)
       - id: check-json
-        exclude: (.vscode|.devcontainer|hack|cookbook)
+        exclude: (.vscode|.devcontainer|hack|cookbook|ai_docs)
 
   # When running with --fix, Ruff's lint hook should be placed before Ruff's formatter hook, and before Black, isort, and other formatting tools, as Ruff's fix behavior can output code changes that require reformatting.
   # SOURCE: https://github.com/astral-sh/ruff-pre-commit
