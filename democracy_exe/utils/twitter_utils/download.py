@@ -87,13 +87,56 @@ async def download_tweet(
             )
 
 def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
-    """Parse tweet metadata from gallery-dl info.json file."""
-    # TODO: Implement metadata parsing
-    return {
-        "id": "",
-        "url": "",
-        "author": "",
-        "content": "",
-        "media_urls": [],
-        "created_at": "",
-    }
+    """Parse tweet metadata from gallery-dl info.json file.
+
+    Args:
+        work_dir: Directory containing info.json file
+
+    Returns:
+        Dictionary containing tweet metadata
+    """
+    info_path = pathlib.Path(work_dir) / "info.json"
+    if not info_path.exists():
+        logger.warning(f"No info.json found in {work_dir}")
+        return {
+            "id": "",
+            "url": "",
+            "author": "",
+            "content": "",
+            "media_urls": [],
+            "created_at": "",
+        }
+
+    try:
+        import json
+        with open(info_path) as f:
+            data = json.load(f)
+
+        # Extract metadata from gallery-dl json format
+        tweet_data = data.get("tweet", {})
+        user_data = tweet_data.get("user", {})
+
+        media_urls = []
+        for media in tweet_data.get("media", []):
+            if "url" in media:
+                media_urls.append(media["url"])
+
+        return {
+            "id": str(tweet_data.get("id", "")),
+            "url": tweet_data.get("url", ""),
+            "author": user_data.get("name", ""),
+            "content": tweet_data.get("text", ""),
+            "media_urls": media_urls,
+            "created_at": tweet_data.get("created_at", ""),
+        }
+
+    except Exception as e:
+        logger.exception(f"Error parsing tweet metadata: {e}")
+        return {
+            "id": "",
+            "url": "",
+            "author": "",
+            "content": "",
+            "media_urls": [],
+            "created_at": "",
+        }

@@ -40,6 +40,15 @@ class AsyncTyperImproved(Typer):
         decorator: Callable[[CommandFunctionType], CommandFunctionType],
         f: CommandFunctionType,
     ) -> CommandFunctionType:
+        """Wrap async functions to make them compatible with Typer.
+
+        Args:
+            decorator: The Typer decorator to apply
+            f: The function to potentially wrap
+
+        Returns:
+            CommandFunctionType: The wrapped function that can be used by Typer
+        """
         if inspect.iscoroutinefunction(f):
             @wraps(f)
             async def async_runner(*args: Any, **kwargs: Any) -> Any:
@@ -76,6 +85,29 @@ class AsyncTyperImproved(Typer):
         deprecated: bool = False,
         rich_help_panel: str | None = None,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
+        """Override callback to support async functions.
+
+        Args:
+            name: Name of the command
+            cls: Custom class to use for the Group
+            invoke_without_command: Whether to invoke without subcommand
+            no_args_is_help: Show help when no args provided
+            subcommand_metavar: Custom metavar for subcommands
+            chain: Enable command chaining
+            result_callback: Callback for results
+            context_settings: Custom context settings
+            help: Help text
+            epilog: Text to display after help
+            short_help: Short help text
+            options_metavar: Custom metavar for options
+            add_help_option: Add --help option
+            hidden: Hide command from help
+            deprecated: Mark as deprecated
+            rich_help_panel: Panel name for rich help
+
+        Returns:
+            Callable that wraps the command function
+        """
         decorator = super().callback(
             name=name,
             cls=cls,
@@ -113,6 +145,25 @@ class AsyncTyperImproved(Typer):
         deprecated: bool = False,
         rich_help_panel: str | None = None,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
+        """Override command to support async functions.
+
+        Args:
+            name: Name of the command
+            cls: Custom command class
+            context_settings: Custom context settings
+            help: Help text
+            epilog: Text to display after help
+            short_help: Short help text
+            options_metavar: Custom metavar for options
+            add_help_option: Add --help option
+            no_args_is_help: Show help when no args provided
+            hidden: Hide command from help
+            deprecated: Mark as deprecated
+            rich_help_panel: Panel name for rich help
+
+        Returns:
+            Callable that wraps the command function
+        """
         decorator = super().command(
             name=name,
             cls=cls,

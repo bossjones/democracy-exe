@@ -152,7 +152,6 @@ class TestApp:
         # Assert that repo_typing.run_pyright was called
         mock_run_pyright.assert_called_once()
 
-    @pytest.mark.asyncio
     async def test_go(self, mocker: MockerFixture) -> None:
         """
         Test the go function.
