@@ -108,7 +108,7 @@ def position_of_ngram(ngram, sentence): # -> int | None:
     """
     ...
 
-def word_rank_alignment(reference, hypothesis, character_based=...): # -> list:
+def word_rank_alignment(reference, hypothesis, character_based=...): # -> list[Any]:
     """
     This is the word rank alignment algorithm described in the paper to produce
     the *worder* list, i.e. a list of word indices of the hypothesis word orders
@@ -207,3 +207,4 @@ def spearman_rho(worder, normalize=...): # -> float:
     :param type: list(int)
     """
     ...
+

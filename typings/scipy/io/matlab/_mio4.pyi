@@ -26,21 +26,21 @@ class VarHeader4:
     is_global = ...
     def __init__(self, name, dtype, mclass, dims, is_complex) -> None:
         ...
-
+    
 
 
 class VarReader4:
     ''' Class to read matlab 4 variables '''
     def __init__(self, file_reader) -> None:
         ...
-
+    
     def read_header(self): # -> VarHeader4:
         ''' Read and return header for variable '''
         ...
-
+    
     def array_from_header(self, hdr, process=...): # -> coo_matrix | NDArray[complexfloating[Any, Any]] | ndarray[Any, Any]:
         ...
-
+    
     def read_sub_array(self, hdr, copy=...): # -> ndarray[Any, Any]:
         ''' Mat4 read using header `hdr` dtype and dims
 
@@ -59,7 +59,7 @@ class VarReader4:
             of dtype given by `hdr` ``dtype`` and shape given by `hdr` ``dims``
         '''
         ...
-
+    
     def read_full_array(self, hdr): # -> NDArray[complexfloating[Any, Any]] | ndarray[Any, Any]:
         ''' Full (rather than sparse) matrix getter
 
@@ -76,7 +76,7 @@ class VarReader4:
             numeric array
         '''
         ...
-
+    
     def read_char_array(self, hdr): # -> ndarray[Any, Any]:
         ''' latin-1 text matrix (char matrix) reader
 
@@ -90,7 +90,7 @@ class VarReader4:
             with dtype 'U1', shape given by `hdr` ``dims``
         '''
         ...
-
+    
     def read_sparse_array(self, hdr): # -> coo_matrix:
         ''' Read and return sparse matrix type
 
@@ -119,13 +119,13 @@ class VarReader4:
         detectable because there are 4 storage columns.
         '''
         ...
-
+    
     def shape_from_header(self, hdr): # -> tuple[()] | tuple[int, ...] | tuple[int, int]:
         '''Read the shape of the array described by the header.
         The file position after this call is unspecified.
         '''
         ...
-
+    
 
 
 class MatFile4Reader(MatFileReader):
@@ -138,17 +138,17 @@ class MatFile4Reader(MatFileReader):
     %(load_args)s
         '''
         ...
-
+    
     def guess_byte_order(self): # -> Literal['<', '>']:
         ...
-
+    
     def initialize_read(self): # -> None:
         ''' Run when beginning read of variables
 
         Sets up readers from parameters in `self`
         '''
         ...
-
+    
     def read_var_header(self): # -> tuple[VarHeader4, Any]:
         ''' Read and return header, next position
 
@@ -165,7 +165,7 @@ class MatFile4Reader(MatFileReader):
            position in stream of next variable
         '''
         ...
-
+    
     def read_var_array(self, header, process=...): # -> coo_matrix | NDArray[complexfloating[Any, Any]] | ndarray[Any, Any]:
         ''' Read array, given `header`
 
@@ -183,7 +183,7 @@ class MatFile4Reader(MatFileReader):
            `process`.
         '''
         ...
-
+    
     def get_variables(self, variable_names=...): # -> dict[Any, Any]:
         ''' get variables from stream as dictionary
 
@@ -194,11 +194,11 @@ class MatFile4Reader(MatFileReader):
             file stream. If None, then get all variables in file.
         '''
         ...
-
+    
     def list_variables(self): # -> list[Any]:
         ''' list variables from stream '''
         ...
-
+    
 
 
 def arr_to_2d(arr, oned_as=...):
@@ -223,13 +223,13 @@ def arr_to_2d(arr, oned_as=...):
 class VarWriter4:
     def __init__(self, file_writer) -> None:
         ...
-
+    
     def write_bytes(self, arr): # -> None:
         ...
-
+    
     def write_string(self, s): # -> None:
         ...
-
+    
     def write_header(self, name, shape, P=..., T=..., imagf=...): # -> None:
         ''' Write header for given data options
 
@@ -249,7 +249,7 @@ class VarWriter4:
             flag indicating complex
         '''
         ...
-
+    
     def write(self, arr, name): # -> None:
         ''' Write matrix `arr`, with name `name`
 
@@ -261,27 +261,27 @@ class VarWriter4:
            name in matlab workspace
         '''
         ...
-
+    
     def write_numeric(self, arr, name): # -> None:
         ...
-
+    
     def write_char(self, arr, name): # -> None:
         ...
-
+    
     def write_sparse(self, arr, name): # -> None:
         ''' Sparse matrices are 2-D
 
         See docstring for VarReader4.read_sparse_array
         '''
         ...
-
+    
 
 
 class MatFile4Writer:
     ''' Class for writing matlab 4 format files '''
     def __init__(self, file_stream, oned_as=...) -> None:
         ...
-
+    
     def put_variables(self, mdict, write_header=...): # -> None:
         ''' Write variables in `mdict` to stream
 
@@ -300,3 +300,6 @@ class MatFile4Writer:
            you can append variables to a matlab file
         '''
         ...
+    
+
+

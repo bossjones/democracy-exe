@@ -15,7 +15,7 @@ class ClusterI(metaclass=ABCMeta):
         from the data. Returns a cluster identifier for each vector.
         """
         ...
-
+    
     @abstractmethod
     def classify(self, token): # -> None:
         """
@@ -23,37 +23,40 @@ class ClusterI(metaclass=ABCMeta):
         parameter to that cluster identifier.
         """
         ...
-
+    
     def likelihood(self, vector, label): # -> float:
         """
         Returns the likelihood (a float) of the token having the
         corresponding cluster.
         """
         ...
-
+    
     def classification_probdist(self, vector): # -> DictionaryProbDist:
         """
         Classifies the token into a cluster, returning
         a probability distribution over the cluster identifiers.
         """
         ...
-
+    
     @abstractmethod
     def num_clusters(self): # -> None:
         """
         Returns the number of clusters.
         """
         ...
-
+    
     def cluster_names(self): # -> list[int]:
         """
         Returns the names of the clusters.
         :rtype: list
         """
         ...
-
+    
     def cluster_name(self, index):
         """
         Returns the names of the cluster at index.
         """
         ...
+    
+
+

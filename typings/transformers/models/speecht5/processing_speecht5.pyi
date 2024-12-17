@@ -22,7 +22,7 @@ class SpeechT5Processor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, feature_extractor, tokenizer) -> None:
         ...
-
+    
     def __call__(self, *args, **kwargs): # -> None:
         """
         Processes audio and text input, as well as audio and text targets.
@@ -48,7 +48,7 @@ class SpeechT5Processor(ProcessorMixin):
         Please refer to the docstring of the above two methods for more information.
         """
         ...
-
+    
     def pad(self, *args, **kwargs): # -> None:
         """
         Collates the audio and text inputs, as well as their targets, into a padded batch.
@@ -67,17 +67,20 @@ class SpeechT5Processor(ProcessorMixin):
         Please refer to the docstring of the above two methods for more information.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to SpeechT5Tokenizer's [`~SpeechT5Tokenizer.batch_decode`]. Please refer
         to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to SpeechT5Tokenizer's [`~SpeechT5Tokenizer.decode`]. Please refer to
         the docstring of this method for more information.
         """
         ...
+    
+
+

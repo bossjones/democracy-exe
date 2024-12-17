@@ -27,7 +27,7 @@ class Prover(metaclass=ABCMeta):
         :rtype: bool
         """
         ...
-
+    
 
 
 class ModelBuilder(metaclass=ABCMeta):
@@ -44,7 +44,7 @@ class ModelBuilder(metaclass=ABCMeta):
         :rtype: bool
         """
         ...
-
+    
 
 
 class TheoremToolCommand(metaclass=ABCMeta):
@@ -61,7 +61,7 @@ class TheoremToolCommand(metaclass=ABCMeta):
         :type new_assumptions: list(sem.Expression)
         """
         ...
-
+    
     @abstractmethod
     def retract_assumptions(self, retracted, debug=...): # -> None:
         """
@@ -74,7 +74,7 @@ class TheoremToolCommand(metaclass=ABCMeta):
         :type retracted: list(sem.Expression)
         """
         ...
-
+    
     @abstractmethod
     def assumptions(self): # -> None:
         """
@@ -83,7 +83,7 @@ class TheoremToolCommand(metaclass=ABCMeta):
         :return: list of ``Expression``
         """
         ...
-
+    
     @abstractmethod
     def goal(self): # -> None:
         """
@@ -92,14 +92,14 @@ class TheoremToolCommand(metaclass=ABCMeta):
         :return: ``Expression``
         """
         ...
-
+    
     @abstractmethod
     def print_assumptions(self): # -> None:
         """
         Print the list of the current assumptions.
         """
         ...
-
+    
 
 
 class ProverCommand(TheoremToolCommand):
@@ -113,7 +113,7 @@ class ProverCommand(TheoremToolCommand):
         Perform the actual proof.
         """
         ...
-
+    
     @abstractmethod
     def proof(self, simplify=...): # -> None:
         """
@@ -122,7 +122,7 @@ class ProverCommand(TheoremToolCommand):
         :return: str
         """
         ...
-
+    
     @abstractmethod
     def get_prover(self): # -> None:
         """
@@ -130,7 +130,7 @@ class ProverCommand(TheoremToolCommand):
         :return: ``Prover``
         """
         ...
-
+    
 
 
 class ModelBuilderCommand(TheoremToolCommand):
@@ -147,7 +147,7 @@ class ModelBuilderCommand(TheoremToolCommand):
         :rtype: sem.Valuation
         """
         ...
-
+    
     @abstractmethod
     def model(self, format=...): # -> None:
         """
@@ -157,7 +157,7 @@ class ModelBuilderCommand(TheoremToolCommand):
         :return: str
         """
         ...
-
+    
     @abstractmethod
     def get_model_builder(self): # -> None:
         """
@@ -165,7 +165,7 @@ class ModelBuilderCommand(TheoremToolCommand):
         :return: ``ModelBuilder``
         """
         ...
-
+    
 
 
 class BaseTheoremToolCommand(TheoremToolCommand):
@@ -182,7 +182,7 @@ class BaseTheoremToolCommand(TheoremToolCommand):
         :type assumptions: list(sem.Expression)
         """
         ...
-
+    
     def add_assumptions(self, new_assumptions): # -> None:
         """
         Add new assumptions to the assumption list.
@@ -191,7 +191,7 @@ class BaseTheoremToolCommand(TheoremToolCommand):
         :type new_assumptions: list(sem.Expression)
         """
         ...
-
+    
     def retract_assumptions(self, retracted, debug=...): # -> None:
         """
         Retract assumptions from the assumption list.
@@ -203,15 +203,15 @@ class BaseTheoremToolCommand(TheoremToolCommand):
         :type retracted: list(sem.Expression)
         """
         ...
-
-    def assumptions(self): # -> list:
+    
+    def assumptions(self): # -> list[Any]:
         """
         List the current assumptions.
 
         :return: list of ``Expression``
         """
         ...
-
+    
     def goal(self): # -> None:
         """
         Return the goal
@@ -219,13 +219,13 @@ class BaseTheoremToolCommand(TheoremToolCommand):
         :return: ``Expression``
         """
         ...
-
+    
     def print_assumptions(self): # -> None:
         """
         Print the list of the current assumptions.
         """
         ...
-
+    
 
 
 class BaseProverCommand(BaseTheoremToolCommand, ProverCommand):
@@ -240,14 +240,14 @@ class BaseProverCommand(BaseTheoremToolCommand, ProverCommand):
         :see: ``BaseTheoremToolCommand``
         """
         ...
-
+    
     def prove(self, verbose=...):
         """
         Perform the actual proof.  Store the result to prevent unnecessary
         re-proving.
         """
         ...
-
+    
     def proof(self, simplify=...): # -> None:
         """
         Return the proof string
@@ -255,7 +255,7 @@ class BaseProverCommand(BaseTheoremToolCommand, ProverCommand):
         :return: str
         """
         ...
-
+    
     def decorate_proof(self, proof_string, simplify=...):
         """
         Modify and return the proof string
@@ -264,10 +264,10 @@ class BaseProverCommand(BaseTheoremToolCommand, ProverCommand):
         :return: str
         """
         ...
-
+    
     def get_prover(self): # -> Any:
         ...
-
+    
 
 
 class BaseModelBuilderCommand(BaseTheoremToolCommand, ModelBuilderCommand):
@@ -283,14 +283,14 @@ class BaseModelBuilderCommand(BaseTheoremToolCommand, ModelBuilderCommand):
         :see: ``BaseTheoremToolCommand``
         """
         ...
-
+    
     def build_model(self, verbose=...):
         """
         Attempt to build a model.  Store the result to prevent unnecessary
         re-building.
         """
         ...
-
+    
     def model(self, format=...): # -> None:
         """
         Return a string representation of the model
@@ -299,10 +299,10 @@ class BaseModelBuilderCommand(BaseTheoremToolCommand, ModelBuilderCommand):
         :return: str
         """
         ...
-
+    
     def get_model_builder(self): # -> Any:
         ...
-
+    
 
 
 class TheoremToolCommandDecorator(TheoremToolCommand):
@@ -315,22 +315,22 @@ class TheoremToolCommandDecorator(TheoremToolCommand):
         :param command: ``TheoremToolCommand`` to decorate
         """
         ...
-
+    
     def assumptions(self):
         ...
-
+    
     def goal(self):
         ...
-
+    
     def add_assumptions(self, new_assumptions): # -> None:
         ...
-
+    
     def retract_assumptions(self, retracted, debug=...): # -> None:
         ...
-
+    
     def print_assumptions(self): # -> None:
         ...
-
+    
 
 
 class ProverCommandDecorator(TheoremToolCommandDecorator, ProverCommand):
@@ -343,10 +343,10 @@ class ProverCommandDecorator(TheoremToolCommandDecorator, ProverCommand):
         :param proverCommand: ``ProverCommand`` to decorate
         """
         ...
-
+    
     def prove(self, verbose=...):
         ...
-
+    
     def proof(self, simplify=...):
         """
         Return the proof string
@@ -354,7 +354,7 @@ class ProverCommandDecorator(TheoremToolCommandDecorator, ProverCommand):
         :return: str
         """
         ...
-
+    
     def decorate_proof(self, proof_string, simplify=...):
         """
         Modify and return the proof string
@@ -363,10 +363,10 @@ class ProverCommandDecorator(TheoremToolCommandDecorator, ProverCommand):
         :return: str
         """
         ...
-
+    
     def get_prover(self):
         ...
-
+    
 
 
 class ModelBuilderCommandDecorator(TheoremToolCommandDecorator, ModelBuilderCommand):
@@ -379,14 +379,14 @@ class ModelBuilderCommandDecorator(TheoremToolCommandDecorator, ModelBuilderComm
         :param modelBuilderCommand: ``ModelBuilderCommand`` to decorate
         """
         ...
-
+    
     def build_model(self, verbose=...):
         """
         Attempt to build a model.  Store the result to prevent unnecessary
         re-building.
         """
         ...
-
+    
     def model(self, format=...):
         """
         Return a string representation of the model
@@ -395,10 +395,10 @@ class ModelBuilderCommandDecorator(TheoremToolCommandDecorator, ModelBuilderComm
         :return: str
         """
         ...
-
+    
     def get_model_builder(self):
         ...
-
+    
 
 
 class ParallelProverBuilder(Prover, ModelBuilder):
@@ -410,7 +410,7 @@ class ParallelProverBuilder(Prover, ModelBuilder):
     """
     def __init__(self, prover, modelbuilder) -> None:
         ...
-
+    
 
 
 class ParallelProverBuilderCommand(BaseProverCommand, BaseModelBuilderCommand):
@@ -425,22 +425,25 @@ class ParallelProverBuilderCommand(BaseProverCommand, BaseModelBuilderCommand):
     """
     def __init__(self, prover, modelbuilder, goal=..., assumptions=...) -> None:
         ...
-
+    
     def prove(self, verbose=...): # -> bool:
         ...
-
+    
     def build_model(self, verbose=...): # -> bool:
         ...
-
+    
 
 
 class TheoremToolThread(threading.Thread):
     def __init__(self, command, verbose, name=...) -> None:
         ...
-
+    
     def run(self): # -> None:
         ...
-
+    
     @property
     def result(self): # -> None:
         ...
+    
+
+

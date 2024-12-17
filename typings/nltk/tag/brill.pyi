@@ -16,7 +16,7 @@ class Word(Feature):
     def extract_property(tokens, index):
         """@return: The given token's text."""
         ...
-
+    
 
 
 @jsontags.register_tag
@@ -29,7 +29,7 @@ class Pos(Feature):
     def extract_property(tokens, index):
         """@return: The given token's tag."""
         ...
-
+    
 
 
 def nltkdemo18(): # -> list[Template]:
@@ -97,15 +97,15 @@ class BrillTagger(TaggerI):
 
         """
         ...
-
-    def encode_json_obj(self): # -> tuple[Any, tuple, Any | None]:
+    
+    def encode_json_obj(self): # -> tuple[Any, tuple[Any, ...], Any | None]:
         ...
-
+    
     @classmethod
     def decode_json_obj(cls, obj): # -> Self:
         ...
-
-    def rules(self): # -> tuple:
+    
+    def rules(self): # -> tuple[Any, ...]:
         """
         Return the ordered list of  transformation rules that this tagger has learnt
 
@@ -113,7 +113,7 @@ class BrillTagger(TaggerI):
         :rtype: list of Rules
         """
         ...
-
+    
     def train_stats(self, statistic=...): # -> None:
         """
         Return a named statistic collected during training, or a dictionary of all
@@ -125,10 +125,10 @@ class BrillTagger(TaggerI):
         :rtype: any (but usually a number)
         """
         ...
-
+    
     def tag(self, tokens):
         ...
-
+    
     def print_template_statistics(self, test_stats=..., printunused=...): # -> None:
         """
         Print a list of all templates, ranked according to efficiency.
@@ -148,8 +148,8 @@ class BrillTagger(TaggerI):
         :rtype: None
         """
         ...
-
-    def batch_tag_incremental(self, sequences, gold): # -> tuple[list, dict]:
+    
+    def batch_tag_incremental(self, sequences, gold): # -> tuple[list[Any], dict[Any, Any]]:
         """
         Tags by applying each rule to the entire corpus (rather than all rules to a
         single sequence). The point is to collect statistics on the test set for
@@ -166,3 +166,6 @@ class BrillTagger(TaggerI):
         :returns: tuple of (tagged_sequences, ordered list of rule scores (one for each rule))
         """
         ...
+    
+
+

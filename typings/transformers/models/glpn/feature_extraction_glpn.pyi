@@ -9,3 +9,6 @@ logger = ...
 class GLPNFeatureExtractor(GLPNImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

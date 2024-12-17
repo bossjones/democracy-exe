@@ -118,3 +118,4 @@ def projections(A, method=..., orth_tol=..., max_refin=..., tol=...): # -> tuple
         SIAM Journal on Scientific Computing 23.4 (2001): 1376-1395.
     """
     ...
+

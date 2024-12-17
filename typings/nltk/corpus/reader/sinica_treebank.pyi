@@ -46,3 +46,5 @@ class SinicaTreebankCorpusReader(SyntaxCorpusReader):
     Reader for the sinica treebank.
     """
     ...
+
+

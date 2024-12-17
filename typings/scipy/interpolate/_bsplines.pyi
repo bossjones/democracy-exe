@@ -144,7 +144,7 @@ class BSpline:
     """
     def __init__(self, t, c, k, extrapolate=..., axis=...) -> None:
         ...
-
+    
     @classmethod
     def construct_fast(cls, t, c, k, extrapolate=..., axis=...): # -> Self:
         """Construct a spline without making checks.
@@ -153,13 +153,13 @@ class BSpline:
         `t` and `c` must of correct shape and dtype.
         """
         ...
-
+    
     @property
     def tck(self): # -> tuple[NDArray[floating[_64Bit]], NDArray[Any] | NDArray[complexfloating[_64Bit, _64Bit] | floating[_64Bit]], int]:
         """Equivalent to ``(self.t, self.c, self.k)`` (read-only).
         """
         ...
-
+    
     @classmethod
     def basis_element(cls, t, extrapolate=...): # -> Self:
         """Return a B-spline basis element ``B(x | t[0], ..., t[k+1])``.
@@ -218,7 +218,7 @@ class BSpline:
 
         """
         ...
-
+    
     @classmethod
     def design_matrix(cls, x, t, k, extrapolate=...): # -> csr_array:
         """
@@ -296,7 +296,7 @@ class BSpline:
         Out of bounds `x` raises a ValueError.
         """
         ...
-
+    
     def __call__(self, x, nu=..., extrapolate=...): # -> ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]]:
         """
         Evaluate a spline function.
@@ -320,7 +320,7 @@ class BSpline:
 
         """
         ...
-
+    
     def derivative(self, nu=...): # -> Self:
         """Return a B-spline representing the derivative.
 
@@ -341,7 +341,7 @@ class BSpline:
 
         """
         ...
-
+    
     def antiderivative(self, nu=...): # -> Self:
         """Return a B-spline representing the antiderivative.
 
@@ -368,7 +368,7 @@ class BSpline:
 
         """
         ...
-
+    
     def integrate(self, a, b, extrapolate=...): # -> list[Any] | tuple[Any, ...] | Any:
         """Compute a definite integral of the spline.
 
@@ -418,7 +418,7 @@ class BSpline:
 
         """
         ...
-
+    
     @classmethod
     def from_power_basis(cls, pp, bc_type=...): # -> Self:
         r"""
@@ -496,7 +496,7 @@ class BSpline:
 
         """
         ...
-
+    
     def insert_knot(self, x, m=...): # -> Self:
         """Insert a new knot at `x` of multiplicity `m`.
 
@@ -567,7 +567,7 @@ class BSpline:
 
         """
         ...
-
+    
 
 
 def make_interp_spline(x, y, k=..., t=..., bc_type=..., axis=..., check_finite=...):
@@ -928,3 +928,4 @@ def fpcheck(x, t, k): # -> None:
     Return None if inputs are consistent, raises a ValueError otherwise.
     """
     ...
+

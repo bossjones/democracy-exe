@@ -19,7 +19,7 @@ class Prover9CommandParent:
         Print the list of the current assumptions.
         """
         ...
-
+    
 
 
 class Prover9Command(Prover9CommandParent, BaseProverCommand):
@@ -42,13 +42,13 @@ class Prover9Command(Prover9CommandParent, BaseProverCommand):
         :type prover: Prover9
         """
         ...
-
+    
     def decorate_proof(self, proof_string, simplify=...):
         """
         :see BaseProverCommand.decorate_proof()
         """
         ...
-
+    
 
 
 class Prover9Parent:
@@ -60,7 +60,7 @@ class Prover9Parent:
     _binary_location = ...
     def config_prover9(self, binary_location, verbose=...): # -> None:
         ...
-
+    
     def prover9_input(self, goal, assumptions): # -> str:
         """
         :return: The input string that should be provided to the
@@ -68,7 +68,7 @@ class Prover9Parent:
             assumptions, and timeout value of this object.
         """
         ...
-
+    
     def binary_locations(self): # -> list[str]:
         """
         A list of directories that should be searched for the prover9
@@ -76,10 +76,10 @@ class Prover9Parent:
         for the prover9 executables.
         """
         ...
+    
 
 
-
-def convert_to_prover9(input): # -> list | str:
+def convert_to_prover9(input): # -> list[Any] | str:
     """
     Convert a ``logic.Expression`` to Prover9 format.
     """
@@ -90,19 +90,19 @@ class Prover9(Prover9Parent, Prover):
     _prooftrans_bin = ...
     def __init__(self, timeout=...) -> None:
         ...
-
+    
     def prover9_input(self, goal, assumptions): # -> str:
         """
         :see: Prover9Parent.prover9_input
         """
         ...
-
+    
 
 
 class Prover9Exception(Exception):
     def __init__(self, returncode, message) -> None:
         ...
-
+    
 
 
 class Prover9FatalException(Prover9Exception):

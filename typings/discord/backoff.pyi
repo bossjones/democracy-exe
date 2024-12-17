@@ -52,19 +52,19 @@ class ExponentialBackoff(Generic[T]):
     """
     def __init__(self, base: int = ..., *, integral: T = ...) -> None:
         ...
-
+    
     @overload
     def delay(self: ExponentialBackoff[Literal[False]]) -> float:
         ...
-
+    
     @overload
     def delay(self: ExponentialBackoff[Literal[True]]) -> int:
         ...
-
+    
     @overload
     def delay(self: ExponentialBackoff[bool]) -> Union[int, float]:
         ...
-
+    
     def delay(self) -> Union[int, float]:
         """Compute the next delay
 
@@ -77,3 +77,6 @@ class ExponentialBackoff(Generic[T]):
         retry, the exponent is reset to 1.
         """
         ...
+    
+
+

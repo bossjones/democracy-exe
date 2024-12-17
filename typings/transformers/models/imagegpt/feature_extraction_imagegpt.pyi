@@ -9,3 +9,6 @@ logger = ...
 class ImageGPTFeatureExtractor(ImageGPTImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

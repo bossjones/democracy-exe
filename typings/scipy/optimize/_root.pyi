@@ -188,3 +188,4 @@ def root(fun, x0, args=..., method=..., jac=..., tol=..., callback=..., options=
 
     """
     ...
+

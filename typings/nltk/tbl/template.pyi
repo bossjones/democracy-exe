@@ -31,7 +31,7 @@ class BrillTemplateI(metaclass=ABCMeta):
         :rtype: list(BrillRule)
         """
         ...
-
+    
     @abstractmethod
     def get_neighborhood(self, token, index): # -> None:
         """
@@ -48,7 +48,7 @@ class BrillTemplateI(metaclass=ABCMeta):
         :rtype: set
         """
         ...
-
+    
 
 
 class Template(BrillTemplateI):
@@ -120,16 +120,16 @@ class Template(BrillTemplateI):
         :param features: the features to build this Template on
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
-    def applicable_rules(self, tokens, index, correct_tag): # -> list | list[Rule]:
+    
+    def applicable_rules(self, tokens, index, correct_tag): # -> list[Any] | list[Rule]:
         ...
-
-    def get_neighborhood(self, tokens, index): # -> set:
+    
+    def get_neighborhood(self, tokens, index): # -> set[Any]:
         ...
-
+    
     @classmethod
     def expand(cls, featurelists, combinations=..., skipintersecting=...): # -> Generator[Self, Any, None]:
         """
@@ -205,3 +205,6 @@ class Template(BrillTemplateI):
 
         """
         ...
+    
+
+

@@ -18,32 +18,32 @@ class GAAClusterer(VectorSpaceClusterer):
     """
     def __init__(self, num_clusters=..., normalise=..., svd_dimensions=...) -> None:
         ...
-
+    
     def cluster(self, vectors, assign_clusters=..., trace=...): # -> list[None] | None:
         ...
-
+    
     def cluster_vectorspace(self, vectors, trace=...): # -> None:
         ...
-
+    
     def update_clusters(self, num_clusters): # -> None:
         ...
-
+    
     def classify_vectorspace(self, vector): # -> int:
         ...
-
+    
     def dendrogram(self): # -> Dendrogram | None:
         """
         :return: The dendrogram representing the current clustering
         :rtype:  Dendrogram
         """
         ...
-
+    
     def num_clusters(self): # -> int:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def demo(): # -> None:

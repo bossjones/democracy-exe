@@ -101,7 +101,7 @@ class TnT(TaggerI):
         of the tagger
         """
         ...
-
+    
     def train(self, data): # -> None:
         """
         Uses a set of tagged data to train the tagger.
@@ -112,8 +112,8 @@ class TnT(TaggerI):
         :type data: tuple(str)
         """
         ...
-
-    def tagdata(self, data): # -> list:
+    
+    def tagdata(self, data): # -> list[Any]:
         """
         Tags each sentence in a list of sentences
 
@@ -126,8 +126,8 @@ class TnT(TaggerI):
         each tagged sentence is a list of (word, tag) tuples
         """
         ...
-
-    def tag(self, data): # -> list:
+    
+    def tag(self, data): # -> list[Any]:
         """
         Tags a single sentence
 
@@ -145,10 +145,10 @@ class TnT(TaggerI):
         returns a list of (word, tag) tuples
         """
         ...
+    
 
 
-
-def basic_sent_chop(data, raw=...): # -> list:
+def basic_sent_chop(data, raw=...): # -> list[Any]:
     """
     Basic method for tokenizing input into sentences
     for this tagger:
@@ -182,3 +182,4 @@ def demo2(): # -> None:
 
 def demo3(): # -> None:
     ...
+

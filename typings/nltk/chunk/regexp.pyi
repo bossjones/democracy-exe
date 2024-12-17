@@ -74,7 +74,7 @@ class ChunkString:
             subclasses of ``RegexpChunkRule``.
         """
         ...
-
+    
     def to_chunkstruct(self, chunk_label=...): # -> Tree:
         """
         Return the chunk structure encoded by this ``ChunkString``.
@@ -84,7 +84,7 @@ class ChunkString:
             invalid chunkstring.
         """
         ...
-
+    
     def xform(self, regexp, repl): # -> None:
         """
         Apply the given transformation to the string encoding of this
@@ -111,7 +111,7 @@ class ChunkString:
             invalid chunkstring.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this ``ChunkString``.
@@ -122,7 +122,7 @@ class ChunkString:
         :rtype: str
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Return a formatted representation of this ``ChunkString``.
@@ -133,7 +133,7 @@ class ChunkString:
         :rtype: str
         """
         ...
-
+    
 
 
 class RegexpChunkRule:
@@ -180,7 +180,7 @@ class RegexpChunkRule:
             of this rule.
         """
         ...
-
+    
     def apply(self, chunkstr): # -> None:
         """
         Apply this rule to the given ``ChunkString``.  See the
@@ -194,7 +194,7 @@ class RegexpChunkRule:
             invalid chunkstring.
         """
         ...
-
+    
     def descr(self): # -> Any:
         """
         Return a short description of the purpose and/or effect of
@@ -203,7 +203,7 @@ class RegexpChunkRule:
         :rtype: str
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -217,7 +217,7 @@ class RegexpChunkRule:
         :rtype: str
         """
         ...
-
+    
     @staticmethod
     def fromstring(s): # -> ChunkRule | StripRule | SplitRule | MergeRule | ChunkRuleWithContext:
         """
@@ -238,7 +238,7 @@ class RegexpChunkRule:
         <ChunkRule: '<DT>?<NN.*>+'>
         """
         ...
-
+    
 
 
 class ChunkRule(RegexpChunkRule):
@@ -263,7 +263,7 @@ class ChunkRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -277,7 +277,7 @@ class ChunkRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class StripRule(RegexpChunkRule):
@@ -303,7 +303,7 @@ class StripRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -317,7 +317,7 @@ class StripRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class UnChunkRule(RegexpChunkRule):
@@ -341,7 +341,7 @@ class UnChunkRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -355,7 +355,7 @@ class UnChunkRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class MergeRule(RegexpChunkRule):
@@ -391,7 +391,7 @@ class MergeRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -405,7 +405,7 @@ class MergeRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class SplitRule(RegexpChunkRule):
@@ -440,7 +440,7 @@ class SplitRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -454,7 +454,7 @@ class SplitRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class ExpandLeftRule(RegexpChunkRule):
@@ -490,7 +490,7 @@ class ExpandLeftRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -504,7 +504,7 @@ class ExpandLeftRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class ExpandRightRule(RegexpChunkRule):
@@ -540,7 +540,7 @@ class ExpandRightRule(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this rule.  It has the form::
@@ -554,7 +554,7 @@ class ExpandRightRule(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 class ChunkRuleWithContext(RegexpChunkRule):
@@ -593,7 +593,7 @@ class ChunkRuleWithContext(RegexpChunkRule):
             of this rule.
         """
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         """
         Return a string representation of this rule.  It has the form::
@@ -607,7 +607,7 @@ class ChunkRuleWithContext(RegexpChunkRule):
         :rtype: str
         """
         ...
-
+    
 
 
 CHUNK_TAG_PATTERN = ...
@@ -692,7 +692,7 @@ class RegexpChunkParser(ChunkParserI):
             higher will generate verbose tracing output.
         """
         ...
-
+    
     def parse(self, chunk_struct, trace=...): # -> Tree:
         """
         :type chunk_struct: Tree
@@ -712,14 +712,14 @@ class RegexpChunkParser(ChunkParserI):
             used to define this ``RegexpChunkParser``.
         """
         ...
-
+    
     def rules(self): # -> Any:
         """
         :return: the sequence of rules used by ``RegexpChunkParser``.
         :rtype: list(RegexpChunkRule)
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         :return: a concise string representation of this
@@ -727,14 +727,14 @@ class RegexpChunkParser(ChunkParserI):
         :rtype: str
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         :return: a verbose string representation of this ``RegexpChunkParser``.
         :rtype: str
         """
         ...
-
+    
 
 
 class RegexpParser(ChunkParserI):
@@ -796,7 +796,7 @@ class RegexpParser(ChunkParserI):
             higher will generate verbose tracing output.
         """
         ...
-
+    
     def parse(self, chunk_struct, trace=...):
         """
         Apply the chunk parser to this input.
@@ -815,14 +815,14 @@ class RegexpParser(ChunkParserI):
         :rtype: Tree
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         :return: a concise string representation of this ``chunk.RegexpParser``.
         :rtype: str
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         :return: a verbose string representation of this
@@ -830,7 +830,7 @@ class RegexpParser(ChunkParserI):
         :rtype: str
         """
         ...
-
+    
 
 
 def demo_eval(chunkparser, text): # -> None:

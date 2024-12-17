@@ -19,3 +19,4 @@ def cli(): # -> None:
 def tokenize_file(language, preserve_line, processes, encoding, delimiter): # -> None:
     """This command tokenizes text stream using nltk.word_tokenize"""
     ...
+

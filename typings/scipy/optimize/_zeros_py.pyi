@@ -41,7 +41,7 @@ class RootResults(OptimizeResult):
     """
     def __init__(self, root, iterations, function_calls, flag, method) -> None:
         ...
-
+    
 
 
 def results_c(full_output, r, method): # -> tuple[Any, RootResults]:
@@ -611,33 +611,33 @@ class TOMS748Solver:
     _K_MAX = ...
     def __init__(self) -> None:
         ...
-
+    
     def configure(self, xtol, rtol, maxiter, disp, k): # -> None:
         ...
-
+    
     def get_result(self, x, flag=...): # -> tuple[Any, int, int, int]:
         r"""Package the result and statistics into a tuple."""
         ...
-
+    
     def start(self, f, a, b, args=...): # -> tuple[Literal[0], Any] | tuple[Literal[1], float]:
         r"""Prepare for the iterations."""
         ...
-
+    
     def get_status(self): # -> tuple[Literal[0], float] | tuple[Literal[-2], float] | tuple[Literal[1], float]:
         """Determine the current status."""
         ...
-
+    
     def iterate(self): # -> tuple[Literal[0], float | Any] | tuple[Literal[0], float] | tuple[Literal[0, -2, 1], float]:
         """Perform one step in the algorithm.
 
         Implements Algorithm 4.1(k=1) or 4.2(k=2) in [APS1995]
         """
         ...
-
+    
     def solve(self, f, a, b, args=..., xtol=..., rtol=..., k=..., maxiter=..., disp=...): # -> tuple[Any, int, int, int]:
         r"""Solve f(x) = 0 given an interval containing a root."""
         ...
-
+    
 
 
 def toms748(f, a, b, args=..., k=..., xtol=..., rtol=..., maxiter=..., full_output=..., disp=...): # -> tuple[Any, RootResults]:
@@ -746,3 +746,4 @@ def toms748(f, a, b, args=..., k=..., xtol=..., rtol=..., maxiter=..., full_outp
              method: toms748
     """
     ...
+

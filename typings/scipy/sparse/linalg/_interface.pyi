@@ -136,7 +136,7 @@ class LinearOperator:
     __array_ufunc__ = ...
     def __new__(cls, *args, **kwargs): # -> Self:
         ...
-
+    
     def __init__(self, dtype, shape) -> None:
         """Initialize this LinearOperator.
 
@@ -144,7 +144,7 @@ class LinearOperator:
         be convertible to a length-2 tuple.
         """
         ...
-
+    
     def matvec(self, x): # -> ndarray[Any, dtype[Any]] | ndarray[Any, Any]:
         """Matrix-vector multiplication.
 
@@ -169,7 +169,7 @@ class LinearOperator:
 
         """
         ...
-
+    
     def rmatvec(self, x): # -> ndarray[Any, dtype[Any]] | ndarray[Any, Any]:
         """Adjoint matrix-vector multiplication.
 
@@ -194,7 +194,7 @@ class LinearOperator:
 
         """
         ...
-
+    
     def matmat(self, X): # -> matrix[Any, dtype[Any]] | matrix[Any, Any] | ndarray[Any, dtype[Any]]:
         """Matrix-matrix multiplication.
 
@@ -219,7 +219,7 @@ class LinearOperator:
 
         """
         ...
-
+    
     def rmatmat(self, X): # -> matrix[Any, dtype[Any]] | matrix[Any, Any] | ndarray[Any, dtype[Any]] | Any:
         """Adjoint matrix-matrix multiplication.
 
@@ -243,16 +243,16 @@ class LinearOperator:
 
         """
         ...
-
+    
     def __call__(self, x):
         ...
-
+    
     def __mul__(self, x): # -> _ProductLinearOperator | _ScaledLinearOperator | ndarray[Any, dtype[Any]] | ndarray[Any, Any] | matrix[Any, dtype[Any]] | matrix[Any, Any]:
         ...
-
+    
     def __truediv__(self, other): # -> _ScaledLinearOperator:
         ...
-
+    
     def dot(self, x): # -> _ProductLinearOperator | _ScaledLinearOperator | ndarray[Any, dtype[Any]] | ndarray[Any, Any] | matrix[Any, dtype[Any]] | matrix[Any, Any]:
         """Matrix-matrix or matrix-vector multiplication.
 
@@ -269,31 +269,31 @@ class LinearOperator:
 
         """
         ...
-
+    
     def __matmul__(self, other): # -> _ProductLinearOperator | _ScaledLinearOperator | ndarray[Any, dtype[Any]] | ndarray[Any, Any] | matrix[Any, dtype[Any]] | matrix[Any, Any]:
         ...
-
+    
     def __rmatmul__(self, other): # -> _ScaledLinearOperator | _ProductLinearOperator | Any:
         ...
-
+    
     def __rmul__(self, x): # -> _ScaledLinearOperator | _ProductLinearOperator | Any:
         ...
-
+    
     def __pow__(self, p): # -> _PowerLinearOperator | _NotImplementedType:
         ...
-
+    
     def __add__(self, x): # -> _SumLinearOperator | _NotImplementedType:
         ...
-
+    
     def __neg__(self): # -> _ScaledLinearOperator:
         ...
-
+    
     def __sub__(self, x): # -> _SumLinearOperator | _NotImplementedType:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def adjoint(self): # -> _AdjointLinearOperator:
         """Hermitian adjoint.
 
@@ -309,7 +309,7 @@ class LinearOperator:
             Hermitian adjoint of self.
         """
         ...
-
+    
     H = ...
     def transpose(self): # -> _TransposedLinearOperator:
         """Transpose this linear operator.
@@ -318,7 +318,7 @@ class LinearOperator:
         Can be abbreviated self.T instead of self.transpose().
         """
         ...
-
+    
     T = ...
 
 
@@ -326,67 +326,67 @@ class _CustomLinearOperator(LinearOperator):
     """Linear operator defined in terms of user-specified operations."""
     def __init__(self, shape, matvec, rmatvec=..., matmat=..., dtype=..., rmatmat=...) -> None:
         ...
-
+    
 
 
 class _AdjointLinearOperator(LinearOperator):
     """Adjoint of arbitrary Linear Operator"""
     def __init__(self, A) -> None:
         ...
-
+    
 
 
 class _TransposedLinearOperator(LinearOperator):
     """Transposition of arbitrary Linear Operator"""
     def __init__(self, A) -> None:
         ...
-
+    
 
 
 class _SumLinearOperator(LinearOperator):
     def __init__(self, A, B) -> None:
         ...
-
+    
 
 
 class _ProductLinearOperator(LinearOperator):
     def __init__(self, A, B) -> None:
         ...
-
+    
 
 
 class _ScaledLinearOperator(LinearOperator):
     def __init__(self, A, alpha) -> None:
         ...
-
+    
 
 
 class _PowerLinearOperator(LinearOperator):
     def __init__(self, A, p) -> None:
         ...
-
+    
 
 
 class MatrixLinearOperator(LinearOperator):
     def __init__(self, A) -> None:
         ...
-
+    
 
 
 class _AdjointMatrixOperator(MatrixLinearOperator):
     def __init__(self, adjoint) -> None:
         ...
-
+    
     @property
     def dtype(self):
         ...
-
+    
 
 
 class IdentityOperator(LinearOperator):
     def __init__(self, shape, dtype=...) -> None:
         ...
-
+    
 
 
 def aslinearoperator(A): # -> LinearOperator | MatrixLinearOperator:
@@ -416,3 +416,4 @@ def aslinearoperator(A): # -> LinearOperator | MatrixLinearOperator:
     <2x3 MatrixLinearOperator with dtype=int32>
     """
     ...
+

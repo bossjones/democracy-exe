@@ -24,7 +24,7 @@ class OwlViTProcessor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, image_processor=..., tokenizer=..., **kwargs) -> None:
         ...
-
+    
     def __call__(self, text=..., images=..., query_images=..., padding=..., return_tensors=..., **kwargs):
         """
         Main method to prepare for the model one or several text(s) and image(s). This method forwards the `text` and
@@ -61,46 +61,49 @@ class OwlViTProcessor(ProcessorMixin):
             - **pixel_values** -- Pixel values to be fed to a model. Returned when `images` is not `None`.
         """
         ...
-
+    
     def post_process(self, *args, **kwargs):
         """
         This method forwards all its arguments to [`OwlViTImageProcessor.post_process`]. Please refer to the docstring
         of this method for more information.
         """
         ...
-
+    
     def post_process_object_detection(self, *args, **kwargs):
         """
         This method forwards all its arguments to [`OwlViTImageProcessor.post_process_object_detection`]. Please refer
         to the docstring of this method for more information.
         """
         ...
-
+    
     def post_process_image_guided_detection(self, *args, **kwargs):
         """
         This method forwards all its arguments to [`OwlViTImageProcessor.post_process_one_shot_object_detection`].
         Please refer to the docstring of this method for more information.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to CLIPTokenizerFast's [`~PreTrainedTokenizer.batch_decode`]. Please
         refer to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to CLIPTokenizerFast's [`~PreTrainedTokenizer.decode`]. Please refer to
         the docstring of this method for more information.
         """
         ...
-
+    
     @property
     def feature_extractor_class(self): # -> str:
         ...
-
+    
     @property
     def feature_extractor(self):
         ...
+    
+
+

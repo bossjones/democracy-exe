@@ -26,7 +26,7 @@ class YCOECorpusReader(CorpusReader):
     """
     def __init__(self, root, encoding=...) -> None:
         ...
-
+    
     def documents(self, fileids=...): # -> list[str | Any]:
         """
         Return a list of document identifiers for all documents in
@@ -34,35 +34,35 @@ class YCOECorpusReader(CorpusReader):
         specified.
         """
         ...
-
-    def fileids(self, documents=...): # -> list[str | Any] | list | Any:
+    
+    def fileids(self, documents=...): # -> list[str | Any] | list[Any] | Any:
         """
         Return a list of file identifiers for the files that make up
         this corpus, or that store the given document(s) if specified.
         """
         ...
-
-    def words(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def sents(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def paras(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_words(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_paras(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_paras(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def parsed_sents(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def parsed_sents(self, documents=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class YCOEParseCorpusReader(BracketParseCorpusReader):
@@ -74,7 +74,7 @@ class YCOEParseCorpusReader(BracketParseCorpusReader):
 class YCOETaggedCorpusReader(TaggedCorpusReader):
     def __init__(self, root, items, encoding=...) -> None:
         ...
-
+    
 
 
 documents = ...

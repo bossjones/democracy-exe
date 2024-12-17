@@ -9,3 +9,6 @@ logger = ...
 class ChineseCLIPFeatureExtractor(ChineseCLIPImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

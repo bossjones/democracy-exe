@@ -162,9 +162,11 @@ class TestDiscordUtils:
         existing_role = mocker.Mock(spec=Role, name="TestRole")
         mock_guild.roles = [existing_role]
 
+        mock_guild.create_role = mocker.AsyncMock(return_value=existing_role)
         result = await get_or_create_role(mock_guild, "TestRole")
 
         assert result == existing_role
+        mock_guild.create_role.assert_not_called()
         mock_guild.create_role.assert_not_called()
 
     @pytest.mark.asyncio
@@ -273,7 +275,9 @@ class TestDiscordUtils:
         test_file = tmp_path / "test.mp4"
         test_file.write_text("test content")
 
-        mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", return_value="2024-01-01 00:00:00")
+        mocker.patch(
+            "democracy_exe.shell._aio_run_process_and_communicate", return_value="2024-12-17 12:47:24.633184878 -0500"
+        )
 
         input_file, output_file, timestamp = await details_from_file(str(test_file))
 

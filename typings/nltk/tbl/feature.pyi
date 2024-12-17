@@ -65,17 +65,17 @@ class Feature(metaclass=ABCMeta):
         :param end: end of range (NOTE: inclusive!) where this feature should apply
         """
         ...
-
+    
     def encode_json_obj(self): # -> tuple[int, ...] | None:
         ...
-
+    
     @classmethod
     def decode_json_obj(cls, obj): # -> Self:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     @classmethod
     def expand(cls, starts, winlens, excludezero=...): # -> list[Self]:
         """
@@ -131,7 +131,7 @@ class Feature(metaclass=ABCMeta):
         :raises ValueError: for non-positive window lengths
         """
         ...
-
+    
     def issuperset(self, other): # -> bool:
         """
         Return True if this Feature always returns True when other does
@@ -161,7 +161,7 @@ class Feature(metaclass=ABCMeta):
 
         """
         ...
-
+    
     def intersects(self, other): # -> bool:
         """
         Return True if the positions of this Feature intersects with those of other
@@ -191,25 +191,25 @@ class Feature(metaclass=ABCMeta):
         :rtype: bool
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __gt__(self, other) -> bool:
         ...
-
+    
     def __ge__(self, other) -> bool:
         ...
-
+    
     def __le__(self, other) -> bool:
         ...
-
+    
     @staticmethod
     @abstractmethod
     def extract_property(tokens, index): # -> None:
@@ -224,3 +224,6 @@ class Feature(metaclass=ABCMeta):
         :rtype: any (but usually scalar)
         """
         ...
+    
+
+

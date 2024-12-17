@@ -66,20 +66,20 @@ class NaiveBayesClassifier(ClassifierI):
             is 0 for all values of ``fval``.
         """
         ...
-
-    def labels(self): # -> list:
+    
+    def labels(self): # -> list[Any]:
         ...
-
+    
     def classify(self, featureset):
         ...
-
+    
     def prob_classify(self, featureset): # -> DictionaryProbDist:
         ...
-
+    
     def show_most_informative_features(self, n=...): # -> None:
         ...
-
-    def most_informative_features(self, n=...): # -> list:
+    
+    def most_informative_features(self, n=...): # -> list[Any]:
         """
         Return a list of the 'most informative' features used by this
         classifier.  For the purpose of this function, the
@@ -90,7 +90,7 @@ class NaiveBayesClassifier(ClassifierI):
         |  max[ P(fname=fval|label1) / P(fname=fval|label2) ]
         """
         ...
-
+    
     @classmethod
     def train(cls, labeled_featuresets, estimator=...): # -> Self:
         """
@@ -98,7 +98,7 @@ class NaiveBayesClassifier(ClassifierI):
             i.e., a list of tuples ``(featureset, label)``.
         """
         ...
-
+    
 
 
 def demo(): # -> None:

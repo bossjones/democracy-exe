@@ -167,27 +167,30 @@ class LazyOperatorNormInfo:
 
         """
         ...
-
+    
     def set_scale(self, scale): # -> None:
         """
         Set the scale parameter.
         """
         ...
-
+    
     def onenorm(self): # -> floating[Any]:
         """
         Compute the exact 1-norm.
         """
         ...
-
+    
     def d(self, p):
         """
         Lazily estimate :math:`d_p(A) ~= || A^p ||^(1/p)` where :math:`||.||` is the 1-norm.
         """
         ...
-
+    
     def alpha(self, p):
         """
         Lazily compute max(d(p), d(p+1)).
         """
         ...
+    
+
+

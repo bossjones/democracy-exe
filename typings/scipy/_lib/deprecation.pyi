@@ -10,13 +10,13 @@ class _DeprecationHelperStr:
     """
     def __init__(self, content, message) -> None:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
 
 
 def deprecate_cython_api(module, routine_name, new_name=..., message=...): # -> None:
@@ -53,3 +53,4 @@ def deprecate_cython_api(module, routine_name, new_name=..., message=...): # -> 
 
     """
     ...
+

@@ -16,7 +16,7 @@ class DependencyScorerI:
     """
     def __init__(self) -> None:
         ...
-
+    
     def train(self, graphs):
         """
         :type graphs: list(DependencyGraph)
@@ -26,7 +26,7 @@ class DependencyScorerI:
             examples.
         """
         ...
-
+    
     def score(self, graph):
         """
         :type graph: DependencyGraph
@@ -53,7 +53,7 @@ class DependencyScorerI:
         with the positive training examples.
         """
         ...
-
+    
 
 
 class NaiveBayesDependencyScorer(DependencyScorerI):
@@ -75,7 +75,7 @@ class NaiveBayesDependencyScorer(DependencyScorerI):
     """
     def __init__(self) -> None:
         ...
-
+    
     def train(self, graphs): # -> None:
         """
         Trains a ``NaiveBayesClassifier`` using the edges present in
@@ -87,8 +87,8 @@ class NaiveBayesDependencyScorer(DependencyScorerI):
         :param graphs: A list of dependency graphs to train the scorer.
         """
         ...
-
-    def score(self, graph): # -> list:
+    
+    def score(self, graph): # -> list[Any]:
         """
         Converts the graph into a feature-based representation of
         each edge, and then assigns a score to each based on the
@@ -101,16 +101,16 @@ class NaiveBayesDependencyScorer(DependencyScorerI):
         :return: Edge scores for the graph parameter.
         """
         ...
-
+    
 
 
 class DemoScorer(DependencyScorerI):
     def train(self, graphs): # -> None:
         ...
-
-    def score(self, graph): # -> list[list]:
+    
+    def score(self, graph): # -> list[list[Any]]:
         ...
-
+    
 
 
 class ProbabilisticNonprojectiveParser:
@@ -167,7 +167,7 @@ class ProbabilisticNonprojectiveParser:
         Creates a new non-projective parser.
         """
         ...
-
+    
     def train(self, graphs, dependency_scorer): # -> None:
         """
         Trains a ``DependencyScorerI`` from a set of ``DependencyGraph`` objects,
@@ -182,7 +182,7 @@ class ProbabilisticNonprojectiveParser:
             ``DependencyScorerI`` interface.
         """
         ...
-
+    
     def initialize_edge_scores(self, graph): # -> None:
         """
         Assigns a score to every edge in the ``DependencyGraph`` graph.
@@ -193,7 +193,7 @@ class ProbabilisticNonprojectiveParser:
         :param graph: A dependency graph to assign scores to.
         """
         ...
-
+    
     def collapse_nodes(self, new_node, cycle_path, g_graph, b_graph, c_graph): # -> None:
         """
         Takes a list of nodes that have been identified to belong to a cycle,
@@ -208,7 +208,7 @@ class ProbabilisticNonprojectiveParser:
         :param g_graph, b_graph, c_graph: Graphs which need to be updated.
         """
         ...
-
+    
     def update_edge_scores(self, new_node, cycle_path): # -> None:
         """
         Updates the edge scores to reflect a collapse operation into
@@ -220,8 +220,8 @@ class ProbabilisticNonprojectiveParser:
         :param cycle_path: A list of node addresses that belong to the cycle.
         """
         ...
-
-    def compute_original_indexes(self, new_indexes): # -> list:
+    
+    def compute_original_indexes(self, new_indexes): # -> list[Any]:
         """
         As nodes are collapsed into others, they are replaced
         by the new node in the graph, but it's still necessary
@@ -234,7 +234,7 @@ class ProbabilisticNonprojectiveParser:
             subsumed nodes.
         """
         ...
-
+    
     def compute_max_subtract_score(self, column_index, cycle_indexes): # -> Literal[-100000]:
         """
         When updating scores the score of the highest-weighted incoming
@@ -249,7 +249,7 @@ class ProbabilisticNonprojectiveParser:
             is a list of such nodes addresses.
         """
         ...
-
+    
     def best_incoming_arc(self, node_index): # -> int | None:
         """
         Returns the source of the best incoming arc to the
@@ -260,10 +260,10 @@ class ProbabilisticNonprojectiveParser:
             the node that is arced to.
         """
         ...
-
+    
     def original_best_arc(self, node_index): # -> list[int | None]:
         ...
-
+    
     def parse(self, tokens, tags): # -> Generator[DependencyGraph, Any, None]:
         """
         Parses a list of tokens in accordance to the MST parsing algorithm
@@ -280,7 +280,7 @@ class ProbabilisticNonprojectiveParser:
         :rtype: iter(DependencyGraph)
         """
         ...
-
+    
 
 
 class NonprojectiveDependencyParser:
@@ -300,7 +300,7 @@ class NonprojectiveDependencyParser:
         :type dependency_grammar: DependencyGrammar
         """
         ...
-
+    
     def parse(self, tokens):
         """
         Parses the input tokens with respect to the parser's grammar.  Parsing
@@ -317,7 +317,7 @@ class NonprojectiveDependencyParser:
         rtype: iter(DependencyGraph)
         """
         ...
-
+    
 
 
 def demo(): # -> None:

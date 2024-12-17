@@ -10,7 +10,7 @@ Functions which are common and require SciPy Base and Level 1 SciPy
 """
 __all__ = ['central_diff_weights', 'derivative', 'ascent', 'face', 'electrocardiogram']
 @_deprecated(msg="scipy.misc.central_diff_weights is deprecated in " "SciPy v1.10.0; and will be completely removed in " "SciPy v1.12.0. You may consider using " "findiff: https://github.com/maroba/findiff or " "numdifftools: https://github.com/pbrod/numdifftools")
-def central_diff_weights(Np, ndiv=...):
+def central_diff_weights(Np, ndiv=...): # -> Any:
     """
     Return weights for an Np-point central derivative.
 
@@ -295,3 +295,4 @@ def electrocardiogram(): # -> Any:
     >>> plt.show()
     """
     ...
+

@@ -35,43 +35,43 @@ python chart.py
 class CCGEdge(EdgeI):
     def __init__(self, span, categ, rule) -> None:
         ...
-
+    
     def lhs(self): # -> Any:
         ...
-
+    
     def span(self): # -> Any:
         ...
-
+    
     def start(self):
         ...
-
+    
     def end(self):
         ...
-
+    
     def length(self):
         ...
-
+    
     def rhs(self): # -> tuple[()]:
         ...
-
+    
     def dot(self): # -> Literal[0]:
         ...
-
+    
     def is_complete(self): # -> Literal[True]:
         ...
-
+    
     def is_incomplete(self): # -> Literal[False]:
         ...
-
+    
     def nextsym(self): # -> None:
         ...
-
+    
     def categ(self): # -> Any:
         ...
-
+    
     def rule(self): # -> Any:
         ...
-
+    
 
 
 class CCGLeafEdge(EdgeI):
@@ -80,46 +80,46 @@ class CCGLeafEdge(EdgeI):
     """
     def __init__(self, pos, token, leaf) -> None:
         ...
-
+    
     def lhs(self):
         ...
-
+    
     def span(self): # -> tuple[Any, Any]:
         ...
-
+    
     def start(self): # -> Any:
         ...
-
+    
     def end(self):
         ...
-
+    
     def length(self): # -> Literal[1]:
         ...
-
+    
     def rhs(self): # -> Any:
         ...
-
+    
     def dot(self): # -> Literal[0]:
         ...
-
+    
     def is_complete(self): # -> Literal[True]:
         ...
-
+    
     def is_incomplete(self): # -> Literal[False]:
         ...
-
+    
     def nextsym(self): # -> None:
         ...
-
+    
     def token(self): # -> Any:
         ...
-
+    
     def categ(self):
         ...
-
+    
     def leaf(self): # -> Any:
         ...
-
+    
 
 
 class BinaryCombinatorRule(AbstractChartRule):
@@ -130,13 +130,13 @@ class BinaryCombinatorRule(AbstractChartRule):
     NUMEDGES = ...
     def __init__(self, combinator) -> None:
         ...
-
+    
     def apply(self, chart, grammar, left_edge, right_edge): # -> Generator[CCGEdge, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class ForwardTypeRaiseRule(AbstractChartRule):
@@ -146,13 +146,13 @@ class ForwardTypeRaiseRule(AbstractChartRule):
     NUMEDGES = ...
     def __init__(self) -> None:
         ...
-
+    
     def apply(self, chart, grammar, left_edge, right_edge): # -> Generator[CCGEdge, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class BackwardTypeRaiseRule(AbstractChartRule):
@@ -162,13 +162,13 @@ class BackwardTypeRaiseRule(AbstractChartRule):
     NUMEDGES = ...
     def __init__(self) -> None:
         ...
-
+    
     def apply(self, chart, grammar, left_edge, right_edge): # -> Generator[CCGEdge, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 ApplicationRuleSet = ...
@@ -183,19 +183,19 @@ class CCGChartParser(ParserI):
     """
     def __init__(self, lexicon, rules, trace=...) -> None:
         ...
-
+    
     def lexicon(self): # -> Any:
         ...
-
+    
     def parse(self, tokens): # -> Generator[Any, Any, None]:
         ...
-
+    
 
 
 class CCGChart(Chart):
     def __init__(self, tokens) -> None:
         ...
-
+    
 
 
 def compute_semantics(children, edge): # -> ApplicationExpression | LambdaExpression | None:

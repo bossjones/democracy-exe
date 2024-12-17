@@ -191,34 +191,34 @@ class IBMModel4(IBMModel):
         :type probability_tables: dict[str]: object
         """
         ...
-
+    
     def reset_probabilities(self): # -> None:
         ...
-
+    
     def set_uniform_probabilities(self, sentence_aligned_corpus): # -> None:
         """
         Set distortion probabilities uniformly to
         1 / cardinality of displacement values
         """
         ...
-
+    
     def train(self, parallel_corpus): # -> None:
         ...
-
+    
     def maximize_distortion_probabilities(self, counts): # -> None:
         ...
-
+    
     def prob_t_a_given_s(self, alignment_info): # -> float:
         """
         Probability of target sentence and an alignment given the
         source sentence
         """
         ...
-
+    
     @staticmethod
     def model4_prob_t_a_given_s(alignment_info, ibm_model): # -> float:
         ...
-
+    
 
 
 class Model4Counts(Counts):
@@ -228,6 +228,9 @@ class Model4Counts(Counts):
     """
     def __init__(self) -> None:
         ...
-
+    
     def update_distortion(self, count, alignment_info, j, src_classes, trg_classes): # -> None:
         ...
+    
+
+

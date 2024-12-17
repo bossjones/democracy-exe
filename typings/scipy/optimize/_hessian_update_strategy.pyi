@@ -44,7 +44,7 @@ class HessianUpdateStrategy:
             When set to 'inv_hess' its inverse will be used instead.
         """
         ...
-
+    
     def update(self, delta_x, delta_grad):
         """Update internal matrix.
 
@@ -61,7 +61,7 @@ class HessianUpdateStrategy:
             ``delta_grad = grad(x2) - grad(x1)``.
         """
         ...
-
+    
     def dot(self, p):
         """Compute the product of the internal matrix with the given vector.
 
@@ -77,7 +77,7 @@ class HessianUpdateStrategy:
             by vector p.
         """
         ...
-
+    
     def get_matrix(self):
         """Return current internal matrix.
 
@@ -89,7 +89,7 @@ class HessianUpdateStrategy:
             is defined).
         """
         ...
-
+    
 
 
 class FullHessianUpdateStrategy(HessianUpdateStrategy):
@@ -100,7 +100,7 @@ class FullHessianUpdateStrategy(HessianUpdateStrategy):
     _symv = ...
     def __init__(self, init_scale=...) -> None:
         ...
-
+    
     def initialize(self, n, approx_type): # -> None:
         """Initialize internal matrix.
 
@@ -117,7 +117,7 @@ class FullHessianUpdateStrategy(HessianUpdateStrategy):
             When set to 'inv_hess' its inverse will be used instead.
         """
         ...
-
+    
     def update(self, delta_x, delta_grad): # -> None:
         """Update internal matrix.
 
@@ -134,7 +134,7 @@ class FullHessianUpdateStrategy(HessianUpdateStrategy):
             ``delta_grad = grad(x2) - grad(x1)``.
         """
         ...
-
+    
     def dot(self, p):
         """Compute the product of the internal matrix with the given vector.
 
@@ -150,7 +150,7 @@ class FullHessianUpdateStrategy(HessianUpdateStrategy):
             by vector p.
         """
         ...
-
+    
     def get_matrix(self):
         """Return the current internal matrix.
 
@@ -161,7 +161,7 @@ class FullHessianUpdateStrategy(HessianUpdateStrategy):
             (depending on how `approx_type` was defined).
         """
         ...
-
+    
 
 
 class BFGS(FullHessianUpdateStrategy):
@@ -181,13 +181,15 @@ class BFGS(FullHessianUpdateStrategy):
         unaffected by the exception strategy. By default is equal to
         1e-8 when ``exception_strategy = 'skip_update'`` and equal
         to 0.2 when ``exception_strategy = 'damp_update'``.
-    init_scale : {float, 'auto'}
-        Matrix scale at first iteration. At the first
-        iteration the Hessian matrix or its inverse will be initialized
-        with ``init_scale*np.eye(n)``, where ``n`` is the problem dimension.
+    init_scale : {float, np.array, 'auto'}
+        This parameter can be used to initialize the Hessian or its
+        inverse. When a float is given, the relevant array is initialized
+        to ``np.eye(n) * init_scale``, where ``n`` is the problem dimension.
+        Alternatively, if a precisely ``(n, n)`` shaped, symmetric array is given,
+        this array will be used. Otherwise an error is generated.
         Set it to 'auto' in order to use an automatic heuristic for choosing
         the initial scale. The heuristic is described in [1]_, p.143.
-        By default uses 'auto'.
+        The default is 'auto'.
 
     Notes
     -----
@@ -200,7 +202,7 @@ class BFGS(FullHessianUpdateStrategy):
     """
     def __init__(self, exception_strategy=..., min_curvature=..., init_scale=...) -> None:
         ...
-
+    
 
 
 class SR1(FullHessianUpdateStrategy):
@@ -213,13 +215,15 @@ class SR1(FullHessianUpdateStrategy):
         defines the minimum denominator magnitude allowed
         in the update. When the condition is violated we skip
         the update. By default uses ``1e-8``.
-    init_scale : {float, 'auto'}, optional
-        Matrix scale at first iteration. At the first
-        iteration the Hessian matrix or its inverse will be initialized
-        with ``init_scale*np.eye(n)``, where ``n`` is the problem dimension.
+    init_scale : {float, np.array, 'auto'}, optional
+        This parameter can be used to initialize the Hessian or its
+        inverse. When a float is given, the relevant array is initialized
+        to ``np.eye(n) * init_scale``, where ``n`` is the problem dimension.
+        Alternatively, if a precisely ``(n, n)`` shaped, symmetric array is given,
+        this array will be used. Otherwise an error is generated.
         Set it to 'auto' in order to use an automatic heuristic for choosing
         the initial scale. The heuristic is described in [1]_, p.143.
-        By default uses 'auto'.
+        The default is 'auto'.
 
     Notes
     -----
@@ -232,3 +236,6 @@ class SR1(FullHessianUpdateStrategy):
     """
     def __init__(self, min_denominator=..., init_scale=...) -> None:
         ...
+    
+
+

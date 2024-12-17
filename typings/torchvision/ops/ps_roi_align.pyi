@@ -45,9 +45,12 @@ class PSRoIAlign(nn.Module):
     """
     def __init__(self, output_size: int, spatial_scale: float, sampling_ratio: int) -> None:
         ...
-
+    
     def forward(self, input: Tensor, rois: Tensor) -> Tensor:
         ...
-
+    
     def __repr__(self) -> str:
         ...
+    
+
+

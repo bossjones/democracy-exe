@@ -69,8 +69,8 @@ class SExprTokenizer(TokenizerI):
     """
     def __init__(self, parens=..., strict=...) -> None:
         ...
-
-    def tokenize(self, text): # -> list:
+    
+    def tokenize(self, text): # -> list[Any]:
         """
         Return a list of s-expressions extracted from *text*.
         For example:
@@ -98,7 +98,7 @@ class SExprTokenizer(TokenizerI):
         :rtype: iter(str)
         """
         ...
-
+    
 
 
 sexpr_tokenize = ...

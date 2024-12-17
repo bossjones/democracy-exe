@@ -25,10 +25,10 @@ class MusicgenProcessor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, feature_extractor, tokenizer) -> None:
         ...
-
+    
     def get_decoder_prompt_ids(self, task=..., language=..., no_timestamps=...):
         ...
-
+    
     def __call__(self, *args, **kwargs):
         """
         Forwards the `audio` argument to EncodecFeatureExtractor's [`~EncodecFeatureExtractor.__call__`] and the `text`
@@ -36,7 +36,7 @@ class MusicgenProcessor(ProcessorMixin):
         information.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs): # -> List[ndarray[Any, Any]]:
         """
         This method is used to decode either batches of audio outputs from the MusicGen model, or batches of token ids
@@ -44,10 +44,13 @@ class MusicgenProcessor(ProcessorMixin):
         [`~PreTrainedTokenizer.batch_decode`]. Please refer to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to T5Tokenizer's [`~PreTrainedTokenizer.decode`]. Please refer to the
         docstring of this method for more information.
         """
         ...
+    
+
+

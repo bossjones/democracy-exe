@@ -8,26 +8,26 @@ from nltk.tree.tree import Tree
 class ProbabilisticTree(Tree, ProbabilisticMixIn):
     def __init__(self, node, children=..., **prob_kwargs) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def copy(self, deep=...): # -> Self:
         ...
-
+    
     @classmethod
     def convert(cls, val): # -> Self:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
 
 
 __all__ = ["ProbabilisticTree"]

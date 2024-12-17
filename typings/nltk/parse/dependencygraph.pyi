@@ -29,46 +29,46 @@ class DependencyGraph:
             identified, for examlple, `ROOT`, `null` or `TOP`.
         """
         ...
-
+    
     def remove_by_address(self, address): # -> None:
         """
         Removes the node with the given address.  References
         to this node in others will still exist.
         """
         ...
-
+    
     def redirect_arcs(self, originals, redirect): # -> None:
         """
         Redirects arcs to any of the nodes in the originals list
         to the redirect node address.
         """
         ...
-
+    
     def add_arc(self, head_address, mod_address): # -> None:
         """
         Adds an arc from the node specified by head_address to the
         node specified by the mod address.
         """
         ...
-
+    
     def connect_graph(self): # -> None:
         """
         Fully connects all non-root nodes.  All nodes are set to be dependents
         of the root node.
         """
         ...
-
-    def get_by_address(self, node_address): # -> dict[str, defaultdict[Any, list] | None]:
+    
+    def get_by_address(self, node_address): # -> dict[str, defaultdict[Any, list[Any]] | None]:
         """Return the node with the given address."""
         ...
-
+    
     def contains_address(self, node_address): # -> bool:
         """
         Returns true if the graph contains a node with the given node
         address, false otherwise.
         """
         ...
-
+    
     def to_dot(self): # -> str:
         """Return a dot representation suitable for using with Graphviz.
 
@@ -93,13 +93,13 @@ class DependencyGraph:
 
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     @staticmethod
     def load(filename, zero_based=..., cell_separator=..., top_relation_label=...): # -> list[DependencyGraph]:
         """
@@ -115,39 +115,39 @@ class DependencyGraph:
 
         """
         ...
-
+    
     def left_children(self, node_index): # -> int:
         """
         Returns the number of left children under the node specified
         by the given address.
         """
         ...
-
+    
     def right_children(self, node_index): # -> int:
         """
         Returns the number of right children under the node specified
         by the given address.
         """
         ...
-
+    
     def add_node(self, node): # -> None:
         ...
-
+    
     def tree(self): # -> Tree:
         """
         Starting with the ``root`` node, build a dependency tree using the NLTK
         ``Tree`` constructor. Dependency labels are omitted.
         """
         ...
-
-    def triples(self, node=...): # -> Generator[tuple[tuple[Any | defaultdict[Any, list] | None, Any | defaultdict[Any, list] | None], defaultdict[Any, list] | None, tuple[defaultdict[Any, list] | None, defaultdict[Any, list] | None]] | Any, Any, None]:
+    
+    def triples(self, node=...): # -> Generator[tuple[tuple[Any | defaultdict[Any, list[Any]] | None, Any | defaultdict[Any, list[Any]] | None], defaultdict[Any, list[Any]] | None, tuple[defaultdict[Any, list[Any]] | None, defaultdict[Any, list[Any]] | None]] | Any, Any, None]:
         """
         Extract dependency triples of the form:
         ((head word, head tag), rel, (dep word, dep tag))
         """
         ...
-
-    def contains_cycle(self): # -> list | Literal[False]:
+    
+    def contains_cycle(self): # -> list[Any] | Literal[False]:
         """Check whether there are cycles.
 
         >>> dg = DependencyGraph(treebank_data)
@@ -174,10 +174,10 @@ class DependencyGraph:
 
         """
         ...
-
-    def get_cycle_path(self, curr_node, goal_node_index): # -> list:
+    
+    def get_cycle_path(self, curr_node, goal_node_index): # -> list[Any]:
         ...
-
+    
     def to_conll(self, style): # -> str:
         """
         The dependency graph in CoNLL format.
@@ -187,11 +187,11 @@ class DependencyGraph:
         :rtype: str
         """
         ...
-
-    def nx_graph(self): # -> MultiDiGraph:
+    
+    def nx_graph(self): # -> MultiDiGraph[Any]:
         """Convert the data in a ``nodelist`` into a networkx labeled directed graph."""
         ...
-
+    
 
 
 def dot2img(dot_string, t=...): # -> str | bytes:

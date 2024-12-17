@@ -73,10 +73,10 @@ class ViterbiParser(ParserI):
             output.
         """
         ...
-
+    
     def grammar(self): # -> Any:
         ...
-
+    
     def trace(self, trace=...): # -> None:
         """
         Set the level of tracing output that should be generated when
@@ -89,13 +89,13 @@ class ViterbiParser(ParserI):
         :rtype: None
         """
         ...
-
+    
     def parse(self, tokens): # -> Generator[Any, Any, None]:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
 
 
 def demo(): # -> None:

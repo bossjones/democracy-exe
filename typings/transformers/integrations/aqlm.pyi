@@ -28,3 +28,4 @@ def replace_with_aqlm_linear(model, quantization_config=..., linear_weights_not_
             should not be passed by the user.
     """
     ...
+

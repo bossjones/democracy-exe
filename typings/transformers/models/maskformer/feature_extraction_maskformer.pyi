@@ -9,3 +9,6 @@ logger = ...
 class MaskFormerFeatureExtractor(MaskFormerImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

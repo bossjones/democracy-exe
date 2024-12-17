@@ -20,23 +20,26 @@ class IndianCorpusReader(CorpusReader):
     """
     List of words, one per line.  Blank lines are ignored.
     """
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class IndianCorpusView(StreamBackedCorpusView):
     def __init__(self, corpus_file, encoding, tagged, group_by_sent, tag_mapping_function=...) -> None:
         ...
-
-    def read_block(self, stream): # -> list | list[list | list[tuple] | list[tuple | tuple[Any, None]]] | list[tuple] | list[tuple | tuple[Any, None]]:
+    
+    def read_block(self, stream): # -> list[Any] | list[list[Any] | list[tuple[Any, Any]] | list[tuple[Any, Any] | tuple[Any, None]]] | list[tuple[Any, Any]] | list[tuple[Any, Any] | tuple[Any, None]]:
         ...
+    
+
+

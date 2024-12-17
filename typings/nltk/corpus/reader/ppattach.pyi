@@ -39,18 +39,21 @@ of the author.
 class PPAttachment:
     def __init__(self, sent, verb, noun1, prep, noun2, attachment) -> None:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
 
 
 class PPAttachmentCorpusReader(CorpusReader):
     """
     sentence_id verb noun1 preposition noun2 attachment
     """
-    def attachments(self, fileids): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def attachments(self, fileids): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
+    
+    def tuples(self, fileids): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
+        ...
+    
 
-    def tuples(self, fileids): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
-        ...
+

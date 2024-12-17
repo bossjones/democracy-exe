@@ -89,3 +89,4 @@ def max_len_seq(nbits, state=..., length=..., taps=...): # -> tuple[Any, Any]:
 
     """
     ...
+

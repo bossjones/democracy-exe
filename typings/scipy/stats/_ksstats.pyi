@@ -78,3 +78,4 @@ def kolmogni(n, q, cdf=...): # -> NDArray[Any]:
     The return value has shape the result of numpy broadcasting n and x.
     """
     ...
+

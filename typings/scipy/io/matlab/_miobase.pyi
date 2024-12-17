@@ -7,7 +7,7 @@ Base classes for MATLAB file stream reading.
 
 MATLAB is a registered trademark of the Mathworks inc.
 """
-__all__ = ['MatFileReader', 'MatReadError', 'MatReadWarning', 'MatVarReader', 'MatWriteError', 'arr_dtype_number', 'arr_to_chars', 'convert_dtypes', 'doc_dict', 'docfiller', 'get_matfile_version', 'matdims', 'read_dtype']
+__all__ = ['MatReadError', 'MatReadWarning', 'MatWriteError']
 class MatReadError(Exception):
     """Exception indicating a read issue."""
     ...
@@ -173,15 +173,15 @@ class MatVarReader:
     ''' Abstract class defining required interface for var readers'''
     def __init__(self, file_reader) -> None:
         ...
-
+    
     def read_header(self): # -> None:
         ''' Returns header '''
         ...
-
+    
     def array_from_header(self, header): # -> None:
         ''' Reads array given header '''
         ...
-
+    
 
 
 class MatFileReader:
@@ -203,18 +203,18 @@ class MatFileReader:
     %(load_args)s
         '''
         ...
-
+    
     def set_matlab_compatible(self): # -> None:
         ''' Sets options to return arrays as MATLAB loads them '''
         ...
-
+    
     def guess_byte_order(self): # -> str:
         ''' As we do not know what file type we have, assume native '''
         ...
-
+    
     def end_of_stream(self): # -> bool:
         ...
-
+    
 
 
 def arr_dtype_number(arr, num): # -> dtype[Any]:
@@ -224,3 +224,4 @@ def arr_dtype_number(arr, num): # -> dtype[Any]:
 def arr_to_chars(arr): # -> ndarray[Any, Any]:
     ''' Convert string array to char array '''
     ...
+

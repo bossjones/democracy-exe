@@ -109,3 +109,4 @@ def getattr_(obj, name, default_thunk): # -> Any:
 @decorator
 def memoize(func, *args): # -> Any:
     ...
+

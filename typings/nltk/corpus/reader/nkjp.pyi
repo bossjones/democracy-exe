@@ -28,59 +28,59 @@ class NKJPCorpusReader(XMLCorpusReader):
         x.tagged_words(fileids=['WilkDom', '/home/USER/nltk_data/corpora/nkjp/WilkWilczy'], tags=['subst', 'comp'])
         """
         ...
-
+    
     def get_paths(self): # -> list[str]:
         ...
-
+    
     def fileids(self): # -> list[str | Any]:
         """
         Returns a list of file identifiers for the fileids that make up
         this corpus.
         """
         ...
-
+    
     def add_root(self, fileid):
         """
         Add root if necessary to specified fileid.
         """
         ...
-
+    
     @_parse_args
-    def header(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def header(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Returns header(s) of specified fileids.
         """
         ...
-
+    
     @_parse_args
-    def sents(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def sents(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Returns sentences in specified fileids.
         """
         ...
-
+    
     @_parse_args
-    def words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Returns words in specified fileids.
         """
         ...
-
+    
     @_parse_args
-    def tagged_words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def tagged_words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Call with specified tags as a list, e.g. tags=['subst', 'comp'].
         Returns tagged words in specified fileids.
         """
         ...
-
+    
     @_parse_args
-    def raw(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def raw(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Returns words in specified fileids.
         """
         ...
-
+    
 
 
 class NKJPCorpus_Header_View(XMLCorpusView):
@@ -91,13 +91,13 @@ class NKJPCorpus_Header_View(XMLCorpusView):
         header.xml files in NKJP corpus.
         """
         ...
-
-    def handle_query(self): # -> list:
+    
+    def handle_query(self): # -> list[Any]:
         ...
-
-    def handle_elt(self, elt, context): # -> dict[str, str | list]:
+    
+    def handle_elt(self, elt, context): # -> dict[str, str | list[Any]]:
         ...
-
+    
 
 
 class XML_Tool:
@@ -108,13 +108,13 @@ class XML_Tool:
     """
     def __init__(self, root, filename) -> None:
         ...
-
+    
     def build_preprocessed_file(self): # -> str:
         ...
-
+    
     def remove_preprocessed_file(self): # -> None:
         ...
-
+    
 
 
 class NKJPCorpus_Segmentation_View(XMLCorpusView):
@@ -124,28 +124,28 @@ class NKJPCorpus_Segmentation_View(XMLCorpusView):
     """
     def __init__(self, filename, **kwargs) -> None:
         ...
-
+    
     def get_segm_id(self, example_word):
         ...
-
+    
     def get_sent_beg(self, beg_word): # -> int:
         ...
-
+    
     def get_sent_end(self, end_word): # -> int:
         ...
-
+    
     def get_sentences(self, sent_segm):
         ...
-
-    def remove_choice(self, segm): # -> list:
+    
+    def remove_choice(self, segm): # -> list[Any]:
         ...
-
-    def handle_query(self): # -> list:
+    
+    def handle_query(self): # -> list[Any]:
         ...
-
-    def handle_elt(self, elt, context): # -> list:
+    
+    def handle_elt(self, elt, context): # -> list[Any]:
         ...
-
+    
 
 
 class NKJPCorpus_Text_View(XMLCorpusView):
@@ -157,22 +157,22 @@ class NKJPCorpus_Text_View(XMLCorpusView):
     RAW_MODE = ...
     def __init__(self, filename, **kwargs) -> None:
         ...
-
+    
     def handle_query(self): # -> list[str]:
         ...
-
+    
     def read_block(self, stream, tagspec=..., elt_handler=...): # -> list[str]:
         """
         Returns text as a list of sentences.
         """
         ...
-
+    
     def get_segm_id(self, elt): # -> None:
         ...
-
+    
     def handle_elt(self, elt, context):
         ...
-
+    
 
 
 class NKJPCorpus_Morph_View(XMLCorpusView):
@@ -182,9 +182,12 @@ class NKJPCorpus_Morph_View(XMLCorpusView):
     """
     def __init__(self, filename, **kwargs) -> None:
         ...
-
-    def handle_query(self): # -> list:
+    
+    def handle_query(self): # -> list[Any]:
         ...
-
+    
     def handle_elt(self, elt, context): # -> Literal[''] | None:
         ...
+    
+
+

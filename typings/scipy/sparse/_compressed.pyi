@@ -13,7 +13,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
     """
     def __init__(self, arg1, shape=..., dtype=..., copy=...) -> None:
         ...
-
+    
     def check_format(self, full_check=...): # -> None:
         """Check whether the array/matrix respects the CSR or CSC format.
 
@@ -27,59 +27,57 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
             Default is `True`.
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __gt__(self, other) -> bool:
         ...
-
+    
     def __le__(self, other) -> bool:
         ...
-
+    
     def __ge__(self, other) -> bool:
         ...
-
+    
     def multiply(self, other):
-        """Point-wise multiplication by another array/matrix, vector, or
-        scalar.
-        """
+        """Point-wise multiplication by array/matrix, vector, or scalar."""
         ...
-
-    def diagonal(self, k=...): # -> NDArray[Any] | NDArray[float64]:
+    
+    def diagonal(self, k=...): # -> NDArray[floating[_64Bit]]:
         ...
-
+    
     def maximum(self, other): # -> Self:
         ...
-
+    
     def minimum(self, other): # -> Self:
         ...
-
-    def sum(self, axis=..., dtype=..., out=...): # -> matrix[Any, Any] | Any | NDArray[Any]:
+    
+    def sum(self, axis=..., dtype=..., out=...): # -> matrix[Any, Any] | Any:
         """Sum the array/matrix over the given axis.  If the axis is None, sum
         over both rows and columns, returning a scalar.
         """
         ...
-
+    
     def tocoo(self, copy=...): # -> coo_array:
         ...
-
-    def toarray(self, order=..., out=...): # -> NDArray[float64]:
+    
+    def toarray(self, order=..., out=...):
         ...
-
+    
     def eliminate_zeros(self): # -> None:
         """Remove zero entries from the array/matrix
 
         This is an *in place* operation.
         """
         ...
-
+    
     @property
     def has_canonical_format(self) -> bool:
         """Whether the array/matrix has sorted indices and no duplicates
@@ -93,18 +91,18 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         latter flag is also set.
         """
         ...
-
+    
     @has_canonical_format.setter
     def has_canonical_format(self, val: bool): # -> None:
         ...
-
+    
     def sum_duplicates(self): # -> None:
         """Eliminate duplicate entries by adding them together
 
         This is an *in place* operation.
         """
         ...
-
+    
     @property
     def has_sorted_indices(self) -> bool:
         """Whether the indices are sorted
@@ -114,25 +112,28 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
             - False: otherwise
         """
         ...
-
+    
     @has_sorted_indices.setter
     def has_sorted_indices(self, val: bool): # -> None:
         ...
-
+    
     def sorted_indices(self):
         """Return a copy of this array/matrix with sorted indices
         """
         ...
-
+    
     def sort_indices(self): # -> None:
         """Sort the indices of this array/matrix *in place*
         """
         ...
-
+    
     def prune(self): # -> None:
         """Remove empty space after all non-zero elements.
         """
         ...
-
+    
     def resize(self, *shape): # -> None:
         ...
+    
+
+

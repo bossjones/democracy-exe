@@ -162,7 +162,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def bbox(self): # -> tuple[Literal[0], Literal[0], Literal[0], Literal[0]] | tuple[int, int, int, int]:
         """
         :return: A bounding box for this ``CanvasWidget``. The bounding
@@ -173,7 +173,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: tuple(int, int, int, int)
         """
         ...
-
+    
     def width(self): # -> int:
         """
         :return: The width of this canvas widget's bounding box, in
@@ -181,7 +181,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: int
         """
         ...
-
+    
     def height(self): # -> int:
         """
         :return: The height of this canvas widget's bounding box, in
@@ -189,7 +189,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: int
         """
         ...
-
+    
     def parent(self): # -> None:
         """
         :return: The hierarchical parent of this canvas widget.
@@ -198,8 +198,8 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: CanvasWidget or None
         """
         ...
-
-    def child_widgets(self): # -> list:
+    
+    def child_widgets(self): # -> list[Any]:
         """
         :return: A list of the hierarchical children of this canvas
             widget.  These children are considered part of ``self``
@@ -207,14 +207,14 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: list of CanvasWidget
         """
         ...
-
+    
     def canvas(self): # -> Canvas | None:
         """
         :return: The canvas that this canvas widget is bound to.
         :rtype: Tkinter.Canvas
         """
         ...
-
+    
     def move(self, dx, dy): # -> None:
         """
         Move this canvas widget by a given distance.  In particular,
@@ -231,7 +231,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: None
         """
         ...
-
+    
     def moveto(self, x, y, anchor=...): # -> None:
         """
         Move this canvas widget to the given location.  In particular,
@@ -247,7 +247,7 @@ class CanvasWidget(metaclass=ABCMeta):
             corner; etc.
         """
         ...
-
+    
     def destroy(self): # -> None:
         """
         Remove this ``CanvasWidget`` from its ``Canvas``.  After a
@@ -263,7 +263,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: None
         """
         ...
-
+    
     def update(self, child): # -> None:
         """
         Update the graphical display of this canvas widget, and all of
@@ -274,7 +274,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :type child: CanvasWidget
         """
         ...
-
+    
     def manage(self): # -> None:
         """
         Arrange this canvas widget and all of its descendants.
@@ -282,7 +282,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: None
         """
         ...
-
+    
     def tags(self):
         """
         :return: a list of the canvas tags for all graphical
@@ -291,7 +291,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: list of int
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         """
         Set the value of the attribute ``attr`` to ``value``.  See the
@@ -301,7 +301,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: None
         """
         ...
-
+    
     def __getitem__(self, attr): # -> int:
         """
         :return: the value of the attribute ``attr``.  See the class
@@ -310,14 +310,14 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: (any)
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         :return: a string representation of this canvas widget.
         :rtype: str
         """
         ...
-
+    
     def hide(self): # -> None:
         """
         Temporarily hide this canvas widget.
@@ -325,7 +325,7 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: None
         """
         ...
-
+    
     def show(self): # -> None:
         """
         Show a hidden canvas widget.
@@ -333,14 +333,14 @@ class CanvasWidget(metaclass=ABCMeta):
         :rtype: None
         """
         ...
-
+    
     def hidden(self): # -> int:
         """
         :return: True if this canvas widget is hidden.
         :rtype: bool
         """
         ...
-
+    
     def bind_click(self, callback, button=...): # -> None:
         """
         Register a new callback that will be called whenever this
@@ -356,7 +356,7 @@ class CanvasWidget(metaclass=ABCMeta):
             button), 3 (right button), or 2 (middle button).
         """
         ...
-
+    
     def bind_drag(self, callback): # -> None:
         """
         Register a new callback that will be called after this
@@ -369,7 +369,7 @@ class CanvasWidget(metaclass=ABCMeta):
             will be called with this ``CanvasWidget`` as its argument.
         """
         ...
-
+    
     def unbind_click(self, button=...): # -> None:
         """
         Remove a callback that was registered with ``bind_click``.
@@ -380,13 +380,13 @@ class CanvasWidget(metaclass=ABCMeta):
             button), 3 (right button), or 2 (middle button).
         """
         ...
-
+    
     def unbind_drag(self): # -> None:
         """
         Remove a callback that was registered with ``bind_drag``.
         """
         ...
-
+    
 
 
 class TextWidget(CanvasWidget):
@@ -413,20 +413,20 @@ class TextWidget(CanvasWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> int:
         ...
-
+    
     def text(self):
         """
         :return: The text displayed by this text widget.
         :rtype: str
         """
         ...
-
+    
     def set_text(self, text): # -> None:
         """
         Change the text that is displayed by this text widget.
@@ -436,10 +436,10 @@ class TextWidget(CanvasWidget):
         :rtype: None
         """
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
 
 
 class SymbolWidget(TextWidget):
@@ -471,15 +471,15 @@ class SymbolWidget(TextWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
-    def symbol(self):
+    
+    def symbol(self): # -> str:
         """
         :return: the name of the symbol that is displayed by this
             symbol widget.
         :rtype: str
         """
         ...
-
+    
     def set_symbol(self, symbol): # -> None:
         """
         Change the symbol that is displayed by this symbol widget.
@@ -488,10 +488,10 @@ class SymbolWidget(TextWidget):
         :param symbol: The name of the symbol to display.
         """
         ...
-
-    def __repr__(self):
+    
+    def __repr__(self): # -> str:
         ...
-
+    
     @staticmethod
     def symbolsheet(size=...): # -> None:
         """
@@ -500,7 +500,7 @@ class SymbolWidget(TextWidget):
         ``SymbolWidget.SYMBOLS`` dictionary.
         """
         ...
-
+    
 
 
 class AbstractContainerWidget(CanvasWidget):
@@ -526,14 +526,14 @@ class AbstractContainerWidget(CanvasWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def child(self): # -> Any:
         """
         :return: The child widget contained by this container widget.
         :rtype: CanvasWidget
         """
         ...
-
+    
     def set_child(self, child): # -> None:
         """
         Change the child widget contained by this container widget.
@@ -544,10 +544,10 @@ class AbstractContainerWidget(CanvasWidget):
         :rtype: None
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class BoxWidget(AbstractContainerWidget):
@@ -574,13 +574,13 @@ class BoxWidget(AbstractContainerWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> int | float:
         ...
-
+    
 
 
 class OvalWidget(AbstractContainerWidget):
@@ -608,13 +608,13 @@ class OvalWidget(AbstractContainerWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> int | bool | float:
         ...
-
+    
     RATIO = ...
 
 
@@ -640,13 +640,13 @@ class ParenWidget(AbstractContainerWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> int:
         ...
-
+    
 
 
 class BracketWidget(AbstractContainerWidget):
@@ -671,13 +671,13 @@ class BracketWidget(AbstractContainerWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> int:
         ...
-
+    
 
 
 class SequenceWidget(CanvasWidget):
@@ -706,16 +706,16 @@ class SequenceWidget(CanvasWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> str | int | bool:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     children = ...
     def replace_child(self, oldchild, newchild): # -> None:
         """
@@ -730,7 +730,7 @@ class SequenceWidget(CanvasWidget):
             ``oldchild``.
         """
         ...
-
+    
     def remove_child(self, child): # -> None:
         """
         Remove the given child canvas widget.  ``child``'s parent will
@@ -740,7 +740,7 @@ class SequenceWidget(CanvasWidget):
         :param child: The child canvas widget to remove.
         """
         ...
-
+    
     def insert_child(self, index, child): # -> None:
         """
         Insert a child canvas widget before a given index.
@@ -755,7 +755,7 @@ class SequenceWidget(CanvasWidget):
             inserted will be incremented by one.
         """
         ...
-
+    
 
 
 class StackWidget(CanvasWidget):
@@ -784,16 +784,16 @@ class StackWidget(CanvasWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> str | int | bool:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     children = ...
     def replace_child(self, oldchild, newchild): # -> None:
         """
@@ -808,7 +808,7 @@ class StackWidget(CanvasWidget):
             ``oldchild``.
         """
         ...
-
+    
     def remove_child(self, child): # -> None:
         """
         Remove the given child canvas widget.  ``child``'s parent will
@@ -818,7 +818,7 @@ class StackWidget(CanvasWidget):
         :param child: The child canvas widget to remove.
         """
         ...
-
+    
     def insert_child(self, index, child): # -> None:
         """
         Insert a child canvas widget before a given index.
@@ -833,7 +833,7 @@ class StackWidget(CanvasWidget):
             inserted will be incremented by one.
         """
         ...
-
+    
 
 
 class SpaceWidget(CanvasWidget):
@@ -858,7 +858,7 @@ class SpaceWidget(CanvasWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def set_width(self, width): # -> None:
         """
         Change the width of this space widget.
@@ -868,7 +868,7 @@ class SpaceWidget(CanvasWidget):
         :rtype: None
         """
         ...
-
+    
     def set_height(self, height): # -> None:
         """
         Change the height of this space widget.
@@ -878,10 +878,10 @@ class SpaceWidget(CanvasWidget):
         :rtype: None
         """
         ...
-
+    
     def __repr__(self): # -> Literal['[Space]']:
         ...
-
+    
 
 
 class ScrollWatcherWidget(CanvasWidget):
@@ -905,7 +905,7 @@ class ScrollWatcherWidget(CanvasWidget):
         :param attribs: The new canvas widget's attributes.
         """
         ...
-
+    
     def add_child(self, canvaswidget): # -> None:
         """
         Add a new canvas widget to the scroll-watcher.  The
@@ -917,7 +917,7 @@ class ScrollWatcherWidget(CanvasWidget):
         :rtype: None
         """
         ...
-
+    
     def remove_child(self, canvaswidget): # -> None:
         """
         Remove a canvas widget from the scroll-watcher.  The
@@ -929,7 +929,7 @@ class ScrollWatcherWidget(CanvasWidget):
         :rtype: None
         """
         ...
-
+    
 
 
 class CanvasFrame:
@@ -958,7 +958,7 @@ class CanvasFrame:
             documentation for ``Tkinter.Canvas`` for more information.
         """
         ...
-
+    
     def print_to_file(self, filename=...): # -> None:
         """
         Print the contents of this ``CanvasFrame`` to a postscript
@@ -969,7 +969,7 @@ class CanvasFrame:
         :rtype: None
         """
         ...
-
+    
     def scrollregion(self): # -> tuple[int, int, int, int]:
         """
         :return: The current scroll region for the canvas managed by
@@ -977,14 +977,14 @@ class CanvasFrame:
         :rtype: 4-tuple of int
         """
         ...
-
+    
     def canvas(self): # -> Canvas:
         """
         :return: The canvas managed by this ``CanvasFrame``.
         :rtype: Tkinter.Canvas
         """
         ...
-
+    
     def add_widget(self, canvaswidget, x=..., y=...): # -> None:
         """
         Register a canvas widget with this ``CanvasFrame``.  The
@@ -1006,31 +1006,31 @@ class CanvasFrame:
             space.
         """
         ...
-
+    
     def destroy_widget(self, canvaswidget): # -> None:
         """
         Remove a canvas widget from this ``CanvasFrame``.  This
         deregisters the canvas widget, and destroys it.
         """
         ...
-
+    
     def remove_widget(self, canvaswidget): # -> None:
         ...
-
+    
     def pack(self, cnf=..., **kw): # -> None:
         """
         Pack this ``CanvasFrame``.  See the documentation for
         ``Tkinter.Pack`` for more information.
         """
         ...
-
+    
     def destroy(self, *e): # -> None:
         """
         Destroy this ``CanvasFrame``.  If this ``CanvasFrame`` created a
         top-level window, then this will close that window.
         """
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         """
         Enter the Tkinter mainloop.  This function must be called if
@@ -1039,7 +1039,7 @@ class CanvasFrame:
         the script completes.
         """
         ...
-
+    
 
 
 class ShowText:
@@ -1050,13 +1050,13 @@ class ShowText:
     """
     def __init__(self, root, title, text, width=..., height=..., **textbox_options) -> None:
         ...
-
+    
     def find_dimentions(self, text, width, height): # -> tuple[int | Any, int]:
         ...
-
+    
     def destroy(self, *e): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         """
         Enter the Tkinter mainloop.  This function must be called if
@@ -1065,7 +1065,7 @@ class ShowText:
         the script completes.
         """
         ...
-
+    
 
 
 class EntryDialog:
@@ -1074,7 +1074,7 @@ class EntryDialog:
     """
     def __init__(self, parent, original_text=..., instructions=..., set_callback=..., title=...) -> None:
         ...
-
+    
 
 
 class ColorizedList:
@@ -1100,19 +1100,19 @@ class ColorizedList:
         :param options:
         """
         ...
-
-    def get(self, index=...): # -> list:
+    
+    def get(self, index=...): # -> list[Any]:
         """
         :return: A list of the items contained by this list.
         """
         ...
-
+    
     def set(self, items): # -> None:
         """
         Modify the list of items contained by this list.
         """
         ...
-
+    
     def unmark(self, item=...): # -> None:
         """
         Remove highlighting from the given item; or from every item,
@@ -1121,28 +1121,28 @@ class ColorizedList:
         :raise KeyError: If ``item`` is not marked.
         """
         ...
-
+    
     def mark(self, item): # -> None:
         """
         Highlight the given item.
         :raise ValueError: If ``item`` is not contained in the list.
         """
         ...
-
+    
     def markonly(self, item): # -> None:
         """
         Remove any current highlighting, and mark the given item.
         :raise ValueError: If ``item`` is not contained in the list.
         """
         ...
-
+    
     def view(self, item): # -> None:
         """
         Adjust the view such that the given item is visible.  If
         the item is already visible, then do nothing.
         """
         ...
-
+    
     def add_callback(self, event, func): # -> None:
         """
         Register a callback function with the list.  This function
@@ -1157,45 +1157,45 @@ class ColorizedList:
             or the item moved to).
         """
         ...
-
+    
     def remove_callback(self, event, func=...): # -> None:
         """
         Deregister a callback function.  If ``func`` is none, then
         all callbacks are removed for the given event.
         """
         ...
-
+    
     def pack(self, cnf=..., **kw): # -> None:
         ...
-
+    
     def grid(self, cnf=..., **kw): # -> None:
         ...
-
+    
     def focus(self): # -> None:
         ...
-
+    
 
 
 class MutableOptionMenu(Menubutton):
     def __init__(self, master, values, **options) -> None:
         ...
-
+    
     def add(self, value): # -> None:
         ...
-
+    
     def set(self, value): # -> None:
         ...
-
+    
     def remove(self, value): # -> None:
         ...
-
+    
     def __getitem__(self, name): # -> Any:
         ...
-
+    
     def destroy(self): # -> None:
         """Destroy this widget and the associated menu."""
         ...
-
+    
 
 
 def demo(): # -> None:

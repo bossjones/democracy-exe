@@ -9,3 +9,4 @@ def add_py3_data(path):
 
 def py3_data(init_func): # -> _Wrapped[Callable[..., Any], Any, Callable[..., Any], Any]:
     ...
+

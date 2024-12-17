@@ -24,7 +24,7 @@ class ClapProcessor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, feature_extractor, tokenizer) -> None:
         ...
-
+    
     def __call__(self, text=..., audios=..., return_tensors=..., **kwargs): # -> BatchEncoding:
         """
         Main method to prepare for the model one or several sequences(s) and audio(s). This method forwards the `text`
@@ -61,21 +61,24 @@ class ClapProcessor(ProcessorMixin):
             - **audio_features** -- Audio features to be fed to a model. Returned when `audios` is not `None`.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to RobertaTokenizerFast's [`~PreTrainedTokenizer.batch_decode`]. Please
         refer to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to RobertaTokenizerFast's [`~PreTrainedTokenizer.decode`]. Please refer
         to the docstring of this method for more information.
         """
         ...
-
+    
     @property
     def model_input_names(self): # -> list[Any]:
         ...
+    
+
+

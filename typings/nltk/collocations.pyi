@@ -32,46 +32,46 @@ class AbstractCollocationFinder:
     """
     def __init__(self, word_fd, ngram_fd) -> None:
         ...
-
+    
     @classmethod
     def from_documents(cls, documents):
         """Constructs a collocation finder given a collection of documents,
         each of which is a list (or iterable) of tokens.
         """
         ...
-
+    
     def apply_freq_filter(self, min_freq): # -> None:
         """Removes candidate ngrams which have frequency less than min_freq."""
         ...
-
+    
     def apply_ngram_filter(self, fn): # -> None:
         """Removes candidate ngrams (w1, w2, ...) where fn(w1, w2, ...)
         evaluates to True.
         """
         ...
-
+    
     def apply_word_filter(self, fn): # -> None:
         """Removes candidate ngrams (w1, w2, ...) where any of (fn(w1), fn(w2),
         ...) evaluates to True.
         """
         ...
-
-    def score_ngrams(self, score_fn): # -> list[tuple]:
+    
+    def score_ngrams(self, score_fn): # -> list[tuple[Any, Any]]:
         """Returns a sequence of (ngram, score) pairs ordered from highest to
         lowest score, as determined by the scoring function provided.
         """
         ...
-
-    def nbest(self, score_fn, n): # -> list:
+    
+    def nbest(self, score_fn, n): # -> list[Any]:
         """Returns the top n ngrams when scored by the given function."""
         ...
-
+    
     def above_score(self, score_fn, min_score): # -> Generator[Any, Any, None]:
         """Returns a sequence of ngrams, ordered by decreasing score, whose
         scores each exceed the given minimum score.
         """
         ...
-
+    
 
 
 class BigramCollocationFinder(AbstractCollocationFinder):
@@ -85,7 +85,7 @@ class BigramCollocationFinder(AbstractCollocationFinder):
         appearances of words and (possibly non-contiguous) bigrams.
         """
         ...
-
+    
     @classmethod
     def from_words(cls, words, window_size=...): # -> Self:
         """Construct a BigramCollocationFinder for all bigrams in the given
@@ -93,14 +93,14 @@ class BigramCollocationFinder(AbstractCollocationFinder):
         style of Church and Hanks's (1990) association ratio.
         """
         ...
-
+    
     def score_ngram(self, score_fn, w1, w2): # -> None:
         """Returns the score for a given bigram using the given scoring
         function.  Following Church and Hanks (1990), counts are scaled by
         a factor of 1/(window_size - 1).
         """
         ...
-
+    
 
 
 class TrigramCollocationFinder(AbstractCollocationFinder):
@@ -115,27 +115,27 @@ class TrigramCollocationFinder(AbstractCollocationFinder):
         and trigrams.
         """
         ...
-
+    
     @classmethod
     def from_words(cls, words, window_size=...): # -> Self:
         """Construct a TrigramCollocationFinder for all trigrams in the given
         sequence.
         """
         ...
-
+    
     def bigram_finder(self): # -> BigramCollocationFinder:
         """Constructs a bigram collocation finder with the bigram and unigram
         data from this finder. Note that this does not include any filtering
         applied to this finder.
         """
         ...
-
+    
     def score_ngram(self, score_fn, w1, w2, w3): # -> None:
         """Returns the score for a given trigram using the given scoring
         function.
         """
         ...
-
+    
 
 
 class QuadgramCollocationFinder(AbstractCollocationFinder):
@@ -149,14 +149,14 @@ class QuadgramCollocationFinder(AbstractCollocationFinder):
         with a word between them in both variations.
         """
         ...
-
+    
     @classmethod
     def from_words(cls, words, window_size=...): # -> Self:
         ...
-
+    
     def score_ngram(self, score_fn, w1, w2, w3, w4): # -> None:
         ...
-
+    
 
 
 def demo(scorer=..., compare_scorer=...): # -> None:

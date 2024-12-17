@@ -65,3 +65,4 @@ def sqrtm(A, disp=..., blocksize=...): # -> Any | NDArray[floating[_64Bit]] | ND
 
     """
     ...
+

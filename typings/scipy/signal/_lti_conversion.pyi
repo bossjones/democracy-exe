@@ -7,7 +7,7 @@ ltisys -- a collection of functions to convert linear time invariant systems
 from one representation to another.
 """
 __all__ = ['tf2ss', 'abcd_normalize', 'ss2tf', 'zpk2ss', 'ss2zpk', 'cont2discrete']
-def tf2ss(num, den): # -> tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]] | tuple[NDArray[float64], NDArray[float64], NDArray[float64], ndarray[Any, dtype[Any]]] | tuple[Any, NDArray[float64], Any, ndarray[Any, dtype[Any]]]:
+def tf2ss(num, den): # -> tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]] | tuple[NDArray[float64], NDArray[float64], NDArray[float64], ndarray[Any, dtype[Any]]] | tuple[Any, NDArray[float64], NDArray[Any], ndarray[Any, dtype[Any]]]:
     r"""Transfer function to state-space representation.
 
     Parameters
@@ -142,7 +142,7 @@ def ss2tf(A, B, C, D, input=...): # -> tuple[NDArray[float64], NDArray[floating[
     """
     ...
 
-def zpk2ss(z, p, k): # -> tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]] | tuple[NDArray[float64], NDArray[float64], NDArray[float64], ndarray[Any, dtype[Any]]] | tuple[Any, NDArray[float64], Any, ndarray[Any, dtype[Any]]]:
+def zpk2ss(z, p, k): # -> tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]] | tuple[NDArray[float64], NDArray[float64], NDArray[float64], ndarray[Any, dtype[Any]]] | tuple[Any, NDArray[float64], NDArray[Any], ndarray[Any, dtype[Any]]]:
     """Zero-pole-gain representation to state-space representation
 
     Parameters
@@ -290,3 +290,4 @@ def cont2discrete(system, dt, method=..., alpha=...): # -> tuple[NDArray[float64
 
     """
     ...
+

@@ -35,15 +35,15 @@ class AlignedSent:
     """
     def __init__(self, words, mots, alignment=...) -> None:
         ...
-
+    
     @property
     def words(self): # -> Any:
         ...
-
+    
     @property
     def mots(self): # -> Any:
         ...
-
+    
     alignment = ...
     def __repr__(self): # -> str:
         """
@@ -52,7 +52,7 @@ class AlignedSent:
         :rtype: str
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Return a human-readable string representation for this ``AlignedSent``.
@@ -60,7 +60,7 @@ class AlignedSent:
         :rtype: str
         """
         ...
-
+    
     def invert(self): # -> AlignedSent:
         """
         Return the aligned sentence pair, reversing the directionality
@@ -68,7 +68,7 @@ class AlignedSent:
         :rtype: AlignedSent
         """
         ...
-
+    
 
 
 class Alignment(frozenset):
@@ -98,7 +98,7 @@ class Alignment(frozenset):
     """
     def __new__(cls, pairs): # -> Self:
         ...
-
+    
     @classmethod
     def fromstring(cls, s): # -> Alignment:
         """
@@ -113,38 +113,38 @@ class Alignment(frozenset):
         :return: An Alignment object corresponding to the string representation ``s``.
         """
         ...
-
-    def __getitem__(self, key): # -> list:
+    
+    def __getitem__(self, key): # -> list[Any]:
         """
         Look up the alignments that map from a given index or slice.
         """
         ...
-
+    
     def invert(self): # -> Alignment:
         """
         Return an Alignment object, being the inverted mapping.
         """
         ...
-
-    def range(self, positions=...): # -> list:
+    
+    def range(self, positions=...): # -> list[Any]:
         """
         Work out the range of the mapping from the given positions.
         If no positions are specified, compute the range of the entire mapping.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Produce a Giza-formatted string representing the alignment.
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Produce a Giza-formatted string representing the alignment.
         """
         ...
-
+    
 
 
 PhraseTableEntry = ...
@@ -155,7 +155,7 @@ class PhraseTable:
     """
     def __init__(self) -> None:
         ...
-
+    
     def translations_for(self, src_phrase):
         """
         Get the translations for a source language phrase
@@ -170,7 +170,7 @@ class PhraseTable:
         :rtype: list(PhraseTableEntry)
         """
         ...
-
+    
     def add(self, src_phrase, trg_phrase, log_prob): # -> None:
         """
         :type src_phrase: tuple(str)
@@ -181,6 +181,9 @@ class PhraseTable:
         :type log_prob: float
         """
         ...
-
+    
     def __contains__(self, src_phrase): # -> bool:
         ...
+    
+
+

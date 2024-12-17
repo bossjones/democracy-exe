@@ -32,7 +32,7 @@ class LocalTimezoneOffsetWithUTC(tzinfo):
         Access the relevant time offset.
         """
         ...
-
+    
 
 
 LOCAL = ...
@@ -45,13 +45,13 @@ class BasicTweetHandler(metaclass=ABCMeta):
     """
     def __init__(self, limit=...) -> None:
         ...
-
+    
     def do_continue(self): # -> bool:
         """
         Returns `False` if the client should stop fetching Tweets.
         """
         ...
-
+    
 
 
 class TweetHandlerI(BasicTweetHandler):
@@ -73,23 +73,26 @@ class TweetHandlerI(BasicTweetHandler):
         new data. See `upper_data_limit` for formatting.
         """
         ...
-
+    
     @abstractmethod
     def handle(self, data): # -> None:
         """
         Deal appropriately with data returned by the Twitter API
         """
         ...
-
+    
     @abstractmethod
     def on_finish(self): # -> None:
         """
         Actions when the tweet limit has been reached
         """
         ...
-
+    
     def check_date_limit(self, data, verbose=...): # -> None:
         """
         Validate date limits.
         """
         ...
+    
+
+

@@ -789,3 +789,35 @@ install-youtube-transcript:
 # Run linting
 test-lint:
 	uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
+
+# Verify types with pyright
+pyright-verify-types:
+	#!/usr/bin/env bash
+	# Get the list of installed packages
+	packages=$(uv run pip freeze | cut -d '=' -f 1)
+
+	rm -f pyright-verify-types.log
+	touch pyright-verify-types.log
+
+	# Iterate through each package
+	for package in $packages; do
+			echo "Checking package: $package"
+			echo "----------------------------------------"
+
+			# Run pyright and print the output
+			# uv run pyright --verifytypes "$package" --verbose
+			uv run pyright --verifytypes "$package" | tee -a pyright-verify-types.log
+
+			echo "----------------------------------------"
+	done
+
+	echo "Verification complete."
+
+# Create stubs for missing packages
+pyright-createstubs-missing:
+	#!/usr/bin/env bash
+	# Run pyright and capture output
+	uv run pyright . | grep -E "warning: Stub file not found for \"[^\"]+\"" | sed -E 's/.*"([^"]+)".*/\1/' | sort -u | while read package; do
+		echo "Creating stub for package: $package"
+		uv run pyright --createstub "$package"
+	done

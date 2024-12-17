@@ -17,7 +17,7 @@ class TableauProver(Prover):
     @staticmethod
     def is_atom(e): # -> bool:
         ...
-
+    
 
 
 class TableauProverCommand(BaseProverCommand):
@@ -30,53 +30,53 @@ class TableauProverCommand(BaseProverCommand):
         :type assumptions: list(sem.Expression)
         """
         ...
-
+    
 
 
 class Agenda:
     def __init__(self) -> None:
         ...
-
+    
     def clone(self): # -> Agenda:
         ...
-
+    
     def __getitem__(self, index):
         ...
-
+    
     def put(self, expression, context=...): # -> None:
         ...
-
+    
     def put_all(self, expressions): # -> None:
         ...
-
+    
     def put_atoms(self, atoms): # -> None:
         ...
-
+    
     def pop_first(self): # -> tuple[Any, int] | tuple[tuple[None, None], None]:
         """Pop the first expression that appears in the agenda"""
         ...
-
+    
     def replace_all(self, old, new): # -> None:
         ...
-
+    
     def mark_alls_fresh(self): # -> None:
         ...
-
+    
     def mark_neqs_fresh(self): # -> None:
         ...
-
+    
 
 
 class Debug:
     def __init__(self, verbose, indent=..., lines=...) -> None:
         ...
-
+    
     def __add__(self, increment): # -> Debug:
         ...
-
+    
     def line(self, data, indent=...): # -> None:
         ...
-
+    
 
 
 class Categories:

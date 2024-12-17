@@ -20,31 +20,31 @@ textParams = ...
 class Zone:
     def __init__(self, image, initialField, initialText) -> None:
         ...
-
+    
     def initScrollText(self, frm, txt, contents): # -> None:
         ...
-
+    
     def refresh(self): # -> None:
         ...
-
+    
 
 
 class FindZone(Zone):
     def addTags(self, m): # -> None:
         ...
-
+    
     def substitute(self, *args): # -> None:
         ...
-
+    
 
 
 class ReplaceZone(Zone):
     def addTags(self, m): # -> None:
         ...
-
+    
     def substitute(self): # -> None:
         ...
-
+    
 
 
 def launchRefresh(_): # -> None:

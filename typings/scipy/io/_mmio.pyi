@@ -223,31 +223,31 @@ class MMFile:
     @property
     def rows(self):
         ...
-
+    
     @property
     def cols(self):
         ...
-
+    
     @property
     def entries(self):
         ...
-
+    
     @property
     def format(self):
         ...
-
+    
     @property
     def field(self):
         ...
-
+    
     @property
     def symmetry(self):
         ...
-
+    
     @property
     def has_symmetry(self): # -> bool:
         ...
-
+    
     FORMAT_COORDINATE = ...
     FORMAT_ARRAY = ...
     FORMAT_VALUES = ...
@@ -266,11 +266,11 @@ class MMFile:
     @staticmethod
     def reader(): # -> None:
         ...
-
+    
     @staticmethod
     def writer(): # -> None:
         ...
-
+    
     @classmethod
     def info(self, source): # -> tuple[int, int, int, str, str, str]:
         """
@@ -298,10 +298,10 @@ class MMFile:
             Either 'general', 'symmetric', 'skew-symmetric', or 'hermitian'.
         """
         ...
-
+    
     def __init__(self, **kwargs) -> None:
         ...
-
+    
     def read(self, source):
         """
         Reads the contents of a Matrix Market file-like 'source' into a matrix.
@@ -319,7 +319,7 @@ class MMFile:
             Matrix Market file.
         """
         ...
-
+    
     def write(self, target, a, comment=..., field=..., precision=..., symmetry=...): # -> None:
         """
         Writes sparse or dense array `a` to Matrix Market file-like `target`.
@@ -342,3 +342,6 @@ class MMFile:
             values.
         """
         ...
+    
+
+

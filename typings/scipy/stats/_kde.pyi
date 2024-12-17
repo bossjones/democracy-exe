@@ -161,7 +161,7 @@ class gaussian_kde:
     """
     def __init__(self, dataset, bw_method=..., weights=...) -> None:
         ...
-
+    
     def evaluate(self, points):
         """Evaluate the estimated pdf on a set of points.
 
@@ -183,7 +183,7 @@ class gaussian_kde:
 
         """
         ...
-
+    
     __call__ = ...
     def integrate_gaussian(self, mean, cov): # -> Any:
         """
@@ -210,7 +210,7 @@ class gaussian_kde:
 
         """
         ...
-
+    
     def integrate_box_1d(self, low, high):
         """
         Computes the integral of a 1D pdf between two bounds.
@@ -234,7 +234,7 @@ class gaussian_kde:
 
         """
         ...
-
+    
     def integrate_box(self, low_bounds, high_bounds, maxpts=...):
         """Computes the integral of a pdf over a rectangular interval.
 
@@ -254,7 +254,7 @@ class gaussian_kde:
 
         """
         ...
-
+    
     def integrate_kde(self, other): # -> Any:
         """
         Computes the integral of the product of this  kernel density estimate
@@ -277,7 +277,7 @@ class gaussian_kde:
 
         """
         ...
-
+    
     def resample(self, size=..., seed=...): # -> NDArray[floating[Any]]:
         """Randomly sample a dataset from the estimated pdf.
 
@@ -302,7 +302,7 @@ class gaussian_kde:
 
         """
         ...
-
+    
     def scotts_factor(self): # -> Any:
         """Compute Scott's factor.
 
@@ -312,7 +312,7 @@ class gaussian_kde:
             Scott's factor.
         """
         ...
-
+    
     def silverman_factor(self): # -> Any:
         """Compute the Silverman factor.
 
@@ -322,7 +322,7 @@ class gaussian_kde:
             The silverman factor.
         """
         ...
-
+    
     covariance_factor = ...
     def set_bandwidth(self, bw_method=...): # -> None:
         """Compute the estimator bandwidth with given method.
@@ -369,11 +369,11 @@ class gaussian_kde:
 
         """
         ...
-
+    
     @property
-    def inv_cov(self):
+    def inv_cov(self): # -> NDArray[floating[Any]] | NDArray[complexfloating[Any, Any]] | Any:
         ...
-
+    
     def pdf(self, x):
         """
         Evaluate the estimated pdf on a provided set of points.
@@ -385,13 +385,13 @@ class gaussian_kde:
 
         """
         ...
-
+    
     def logpdf(self, x):
         """
         Evaluate the log of the estimated pdf on a provided set of points.
         """
         ...
-
+    
     def marginal(self, dimensions): # -> gaussian_kde:
         """Return a marginal KDE distribution
 
@@ -413,11 +413,14 @@ class gaussian_kde:
 
         """
         ...
-
+    
     @property
     def weights(self): # -> NDArray[floating[Any]]:
         ...
-
+    
     @property
     def neff(self): # -> floating[Any]:
         ...
+    
+
+

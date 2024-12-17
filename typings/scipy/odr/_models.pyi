@@ -31,7 +31,7 @@ class _MultilinearModel(Model):
     """
     def __init__(self) -> None:
         ...
-
+    
 
 
 multilinear = ...
@@ -100,7 +100,7 @@ class _ExponentialModel(Model):
     """
     def __init__(self) -> None:
         ...
-
+    
 
 
 exponential = ...
@@ -127,7 +127,7 @@ class _UnilinearModel(Model):
     """
     def __init__(self) -> None:
         ...
-
+    
 
 
 unilinear = ...
@@ -154,7 +154,7 @@ class _QuadraticModel(Model):
     """
     def __init__(self) -> None:
         ...
-
+    
 
 
 quadratic = ...

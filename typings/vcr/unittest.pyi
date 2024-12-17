@@ -9,8 +9,10 @@ class VCRMixin:
     vcr_enabled = ...
     def setUp(self): # -> None:
         ...
-
+    
 
 
 class VCRTestCase(VCRMixin, unittest.TestCase):
     ...
+
+

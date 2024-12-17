@@ -22,8 +22,8 @@ class CHILDESCorpusReader(XMLCorpusReader):
     """
     def __init__(self, root, fileids, lazy=...) -> None:
         ...
-
-    def words(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list | LazyConcatenation:
+    
+    def words(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list[Any] | LazyConcatenation:
         """
         :return: the given file(s) as a list of words
         :rtype: list(str)
@@ -41,8 +41,8 @@ class CHILDESCorpusReader(XMLCorpusReader):
             of the original word (e.g., 'wat' will be replaced with 'watch')
         """
         ...
-
-    def tagged_words(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list | LazyConcatenation:
+    
+    def tagged_words(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list[Any] | LazyConcatenation:
         """
         :return: the given file(s) as a list of tagged
             words and punctuation symbols, encoded as tuples
@@ -62,8 +62,8 @@ class CHILDESCorpusReader(XMLCorpusReader):
             of the original word (e.g., 'wat' will be replaced with 'watch')
         """
         ...
-
-    def sents(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list | LazyConcatenation:
+    
+    def sents(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list[Any] | LazyConcatenation:
         """
         :return: the given file(s) as a list of sentences or utterances, each
             encoded as a list of word strings.
@@ -83,8 +83,8 @@ class CHILDESCorpusReader(XMLCorpusReader):
             of the original word (e.g., 'wat' will be replaced with 'watch')
         """
         ...
-
-    def tagged_sents(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list | LazyConcatenation:
+    
+    def tagged_sents(self, fileids=..., speaker=..., stem=..., relation=..., strip_space=..., replace=...): # -> list[Any] | LazyConcatenation:
         """
         :return: the given file(s) as a list of
             sentences, each encoded as a list of ``(word,tag)`` tuples.
@@ -104,22 +104,22 @@ class CHILDESCorpusReader(XMLCorpusReader):
             of the original word (e.g., 'wat' will be replaced with 'watch')
         """
         ...
-
-    def corpus(self, fileids=...): # -> list[dict] | LazyMap:
+    
+    def corpus(self, fileids=...): # -> list[dict[Any, Any]] | LazyMap:
         """
         :return: the given file(s) as a dict of ``(corpus_property_key, value)``
         :rtype: list(dict)
         """
         ...
-
-    def participants(self, fileids=...): # -> list[defaultdict] | LazyMap:
+    
+    def participants(self, fileids=...): # -> list[defaultdict[Any, Any]] | LazyMap:
         """
         :return: the given file(s) as a dict of
             ``(participant_property_key, value)``
         :rtype: list(dict)
         """
         ...
-
+    
     def age(self, fileids=..., speaker=..., month=...): # -> list[int | str | Any | None] | LazyMap:
         """
         :return: the given file(s) as string or int
@@ -128,18 +128,18 @@ class CHILDESCorpusReader(XMLCorpusReader):
         :param month: If true, return months instead of year-month-date
         """
         ...
-
+    
     def convert_age(self, age_year): # -> int:
         "Caclculate age in months from a string in CHILDES format"
         ...
-
+    
     def MLU(self, fileids=..., speaker=...): # -> list[float | int] | LazyMap:
         """
         :return: the given file(s) as a floating number
         :rtype: list(float)
         """
         ...
-
+    
     childes_url_base = ...
     def webview_file(self, fileid, urlbase=...): # -> None:
         """Map a corpus file to its web version on the CHILDES website,
@@ -162,7 +162,7 @@ class CHILDESCorpusReader(XMLCorpusReader):
         corpus root points to the Cornell folder, urlbase='Eng-USA/Cornell'.
         """
         ...
-
+    
 
 
 def demo(corpus_root=...): # -> None:

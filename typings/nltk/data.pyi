@@ -7,7 +7,6 @@ import sys
 import zipfile
 from abc import ABCMeta, abstractmethod
 from gzip import GzipFile
-
 from nltk.internals import deprecated
 
 """
@@ -148,7 +147,7 @@ class PathPointer(metaclass=ABCMeta):
             not contain a readable file.
         """
         ...
-
+    
     @abstractmethod
     def file_size(self): # -> None:
         """
@@ -159,7 +158,7 @@ class PathPointer(metaclass=ABCMeta):
             not contain a readable file.
         """
         ...
-
+    
     @abstractmethod
     def join(self, fileid): # -> None:
         """
@@ -170,7 +169,7 @@ class PathPointer(metaclass=ABCMeta):
         the underlying file system's path separator character.
         """
         ...
-
+    
 
 
 class FileSystemPathPointer(PathPointer, str):
@@ -185,27 +184,27 @@ class FileSystemPathPointer(PathPointer, str):
         :raise IOError: If the given path does not exist.
         """
         ...
-
+    
     @property
-    def path(self): # -> Any:
+    def path(self):
         """The absolute path identified by this path pointer."""
         ...
-
+    
     def open(self, encoding=...): # -> SeekableUnicodeStreamReader | BufferedReader:
         ...
-
+    
     def file_size(self): # -> int:
         ...
-
+    
     def join(self, fileid): # -> FileSystemPathPointer:
         ...
-
-    def __repr__(self): # -> LiteralString:
+    
+    def __repr__(self):
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 @deprecated("Use gzip.GzipFile instead as it also uses a buffer.")
@@ -218,10 +217,10 @@ class BufferedGzipFile(GzipFile):
     def __init__(self, filename=..., mode=..., compresslevel=..., fileobj=..., **kwargs) -> None:
         """Return a buffered gzip file object."""
         ...
-
+    
     def write(self, data): # -> None:
         ...
-
+    
 
 
 class GzipFileSystemPathPointer(FileSystemPathPointer):
@@ -232,7 +231,7 @@ class GzipFileSystemPathPointer(FileSystemPathPointer):
     """
     def open(self, encoding=...): # -> SeekableUnicodeStreamReader | GzipFile:
         ...
-
+    
 
 
 class ZipFilePathPointer(PathPointer):
@@ -249,7 +248,7 @@ class ZipFilePathPointer(PathPointer):
         does not contain the specified entry.
         """
         ...
-
+    
     @property
     def zipfile(self): # -> OpenOnDemandZipFile | Any:
         """
@@ -257,7 +256,7 @@ class ZipFilePathPointer(PathPointer):
         containing the entry identified by this path pointer.
         """
         ...
-
+    
     @property
     def entry(self): # -> str:
         """
@@ -265,22 +264,22 @@ class ZipFilePathPointer(PathPointer):
         pointer points to.
         """
         ...
-
+    
     def open(self, encoding=...): # -> GzipFile | SeekableUnicodeStreamReader | BytesIO:
         ...
-
+    
     def file_size(self): # -> int:
         ...
-
+    
     def join(self, fileid): # -> ZipFilePathPointer:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 _resource_cache = ...
@@ -467,13 +466,13 @@ def clear_cache(): # -> None:
 class LazyLoader:
     def __init__(self, _path) -> None:
         ...
-
+    
     def __getattr__(self, attr): # -> Any:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class OpenOnDemandZipFile(zipfile.ZipFile):
@@ -488,21 +487,21 @@ class OpenOnDemandZipFile(zipfile.ZipFile):
     """
     def __init__(self, filename) -> None:
         ...
-
+    
     def read(self, name): # -> bytes:
         ...
-
+    
     def write(self, *args, **kwargs):
         """:raise NotImplementedError: OpenOnDemandZipfile is read-only"""
         ...
-
+    
     def writestr(self, *args, **kwargs):
         """:raise NotImplementedError: OpenOnDemandZipfile is read-only"""
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class SeekableUnicodeStreamReader:
@@ -524,7 +523,7 @@ class SeekableUnicodeStreamReader:
     DEBUG = ...
     def __init__(self, stream, encoding, errors=...) -> None:
         ...
-
+    
     def read(self, size=...): # -> str:
         """
         Read up to ``size`` bytes, decode them using this reader's
@@ -536,10 +535,10 @@ class SeekableUnicodeStreamReader:
         :rtype: unicode
         """
         ...
-
+    
     def discard_line(self): # -> None:
         ...
-
+    
     def readline(self, size=...): # -> str:
         """
         Read a line of text, decode it using this reader's encoding,
@@ -551,7 +550,7 @@ class SeekableUnicodeStreamReader:
         :type size: int
         """
         ...
-
+    
     def readlines(self, sizehint=..., keepends=...): # -> list[str]:
         """
         Read this file's contents, decode them using this reader's
@@ -562,52 +561,52 @@ class SeekableUnicodeStreamReader:
         :param keepends: If false, then strip newlines.
         """
         ...
-
+    
     def next(self): # -> str:
         """Return the next decoded line from the underlying stream."""
         ...
-
+    
     def __next__(self): # -> str:
         ...
-
+    
     def __iter__(self): # -> Self:
         """Return self"""
         ...
-
+    
     def __del__(self): # -> None:
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, type, value, traceback): # -> None:
         ...
-
+    
     def xreadlines(self): # -> Self:
         """Return self"""
         ...
-
+    
     @property
     def closed(self):
         """True if the underlying stream is closed."""
         ...
-
+    
     @property
     def name(self):
         """The name of the underlying stream."""
         ...
-
+    
     @property
     def mode(self):
         """The mode of the underlying stream."""
         ...
-
+    
     def close(self): # -> None:
         """
         Close the underlying stream.
         """
         ...
-
+    
     def seek(self, offset, whence=...): # -> None:
         """
         Move the stream to a new file position.  If the reader is
@@ -621,13 +620,13 @@ class SeekableUnicodeStreamReader:
             typically be negative).
         """
         ...
-
+    
     def char_seek_forward(self, offset): # -> None:
         """
         Move the read pointer forward by ``offset`` characters.
         """
         ...
-
+    
     def tell(self):
         """
         Return the current file position on the underlying byte
@@ -636,7 +635,7 @@ class SeekableUnicodeStreamReader:
         of those buffers.
         """
         ...
-
+    
     _BOM_TABLE = ...
 
 

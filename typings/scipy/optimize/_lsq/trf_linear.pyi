@@ -48,3 +48,4 @@ def select_step(x, A_h, g_h, c_h, p, p_h, d, lb, ub, theta):
 
 def trf_linear(A, b, x_lsq, lb, ub, tol, lsq_solver, lsmr_tol, max_iter, verbose, *, lsmr_maxiter=...): # -> OptimizeResult:
     ...
+

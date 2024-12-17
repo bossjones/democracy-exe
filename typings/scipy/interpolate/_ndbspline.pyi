@@ -56,7 +56,7 @@ class NdBSpline:
     """
     def __init__(self, t, c, k, *, extrapolate=...) -> None:
         ...
-
+    
     def __call__(self, xi, *, nu=..., extrapolate=...): # -> ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]]:
         """Evaluate the tensor product b-spline at ``xi``.
 
@@ -79,7 +79,7 @@ class NdBSpline:
             Interpolated values at ``xi``
         """
         ...
-
+    
     @classmethod
     def design_matrix(cls, xvals, t, k, extrapolate=...): # -> csr_array:
         """Construct the design matrix as a CSR format sparse array.
@@ -105,7 +105,7 @@ class NdBSpline:
 
         """
         ...
-
+    
 
 
 def make_ndbspl(points, values, k=..., *, solver=..., **solver_args): # -> NdBSpline:
@@ -116,7 +116,7 @@ def make_ndbspl(points, values, k=..., *, solver=..., **solver_args): # -> NdBSp
     points : tuple of ndarrays of float, with shapes (m1,), ... (mN,)
         The points defining the regular grid in N dimensions. The points in
         each dimension (i.e. every element of the `points` tuple) must be
-        strictly ascending or descending.
+        strictly ascending or descending.      
     values : ndarray of float, shape (m1, ..., mN, ...)
         The data on the regular grid in n dimensions.
     k : int, optional
@@ -140,3 +140,4 @@ def make_ndbspl(points, values, k=..., *, solver=..., **solver_args): # -> NdBSp
     Boundary conditions are not-a-knot in all dimensions.
     """
     ...
+

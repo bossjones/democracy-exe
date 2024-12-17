@@ -36,16 +36,16 @@ class TaggedCorpusReader(CorpusReader):
         :param fileids: A list or regexp specifying the fileids in this corpus.
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of words
             and punctuation symbols.
         :rtype: list(str)
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences or utterances, each encoded as a list of word
@@ -53,8 +53,8 @@ class TaggedCorpusReader(CorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             paragraphs, each encoded as a list of sentences, which are
@@ -62,8 +62,8 @@ class TaggedCorpusReader(CorpusReader):
         :rtype: list(list(list(str)))
         """
         ...
-
-    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of tagged
             words and punctuation symbols, encoded as tuples
@@ -71,8 +71,8 @@ class TaggedCorpusReader(CorpusReader):
         :rtype: list(tuple(str,str))
         """
         ...
-
-    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences, each encoded as a list of ``(word,tag)`` tuples.
@@ -80,8 +80,8 @@ class TaggedCorpusReader(CorpusReader):
         :rtype: list(list(tuple(str,str)))
         """
         ...
-
-    def tagged_paras(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_paras(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             paragraphs, each encoded as a list of sentences, which are
@@ -89,7 +89,7 @@ class TaggedCorpusReader(CorpusReader):
         :rtype: list(list(list(tuple(str,str))))
         """
         ...
-
+    
 
 
 class CategorizedTaggedCorpusReader(CategorizedCorpusReader, TaggedCorpusReader):
@@ -105,16 +105,16 @@ class CategorizedTaggedCorpusReader(CategorizedCorpusReader, TaggedCorpusReader)
         are passed to the ``TaggedCorpusReader``.
         """
         ...
-
-    def tagged_words(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_paras(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_paras(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class TaggedCorpusView(StreamBackedCorpusView):
@@ -127,11 +127,11 @@ class TaggedCorpusView(StreamBackedCorpusView):
     """
     def __init__(self, corpus_file, encoding, tagged, group_by_sent, group_by_para, sep, word_tokenizer, sent_tokenizer, para_block_reader, tag_mapping_function=...) -> None:
         ...
-
-    def read_block(self, stream): # -> list:
+    
+    def read_block(self, stream): # -> list[Any]:
         """Reads one paragraph at a time."""
         ...
-
+    
 
 
 class MacMorphoCorpusReader(TaggedCorpusReader):
@@ -145,7 +145,7 @@ class MacMorphoCorpusReader(TaggedCorpusReader):
     """
     def __init__(self, root, fileids, encoding=..., tagset=...) -> None:
         ...
-
+    
 
 
 class TimitTaggedCorpusReader(TaggedCorpusReader):
@@ -154,9 +154,12 @@ class TimitTaggedCorpusReader(TaggedCorpusReader):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def paras(self):
         ...
-
+    
     def tagged_paras(self):
         ...
+    
+
+

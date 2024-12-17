@@ -6,15 +6,12 @@ from collections import OrderedDict
 from collections.abc import MutableMapping
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, ContextManager, List, Tuple
-
-from .import_utils import is_flax_available, is_torch_available
+from typing import Any, ContextManager, List, Optional, Tuple
+from .import_utils import is_torch_available
 
 """
 Generic utilities
 """
-if is_flax_available():
-    ...
 class cached_property(property):
     """
     Descriptor that mimics @property but caches output in member variable.
@@ -25,7 +22,7 @@ class cached_property(property):
     """
     def __get__(self, obj, objtype=...): # -> Self | Any:
         ...
-
+    
 
 
 def strtobool(val): # -> Literal[1, 0]:
@@ -80,7 +77,7 @@ def is_tf_tensor(x): # -> bool:
     """
     ...
 
-def is_tf_symbolic_tensor(x): # -> Literal[False]:
+def is_tf_symbolic_tensor(x): # -> bool:
     """
     Tests if `x` is a tensorflow symbolic tensor or not (ie. not eager). Safe to call even if tensorflow is not
     installed.
@@ -131,47 +128,47 @@ class ModelOutput(OrderedDict):
         `static_graph=True` with modules that output `ModelOutput` subclasses.
         """
         ...
-
+    
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def __post_init__(self): # -> None:
         """Check the ModelOutput dataclass.
 
         Only occurs if @dataclass decorator has been used.
         """
         ...
-
+    
     def __delitem__(self, *args, **kwargs):
         ...
-
+    
     def setdefault(self, *args, **kwargs):
         ...
-
+    
     def pop(self, *args, **kwargs):
         ...
-
+    
     def update(self, *args, **kwargs):
         ...
-
+    
     def __getitem__(self, k): # -> Any:
         ...
-
+    
     def __setattr__(self, name, value): # -> None:
         ...
-
+    
     def __setitem__(self, key, value): # -> None:
         ...
-
+    
     def __reduce__(self): # -> str | tuple[Any, ...] | tuple[str | Any, tuple[Any, ...], *tuple[str | Any, ...]]:
         ...
-
+    
     def to_tuple(self) -> Tuple[Any]:
         """
         Convert self to a tuple containing all the attributes/keys that are not `None`.
         """
         ...
-
+    
 
 
 if is_torch_available():
@@ -212,13 +209,13 @@ class ContextManagers:
     """
     def __init__(self, context_managers: List[ContextManager]) -> None:
         ...
-
+    
     def __enter__(self): # -> None:
         ...
-
+    
     def __exit__(self, *args, **kwargs): # -> None:
         ...
-
+    
 
 
 def can_return_loss(model_class): # -> bool:
@@ -287,9 +284,57 @@ def add_model_info_to_auto_map(auto_map, repo_id):
     """
     ...
 
+def add_model_info_to_custom_pipelines(custom_pipeline, repo_id):
+    """
+    Adds the information of the repo_id to a given custom pipeline.
+    """
+    ...
+
 def infer_framework(model_class): # -> Literal['tf', 'pt', 'flax']:
     """
     Infers the framework of a given model without using isinstance(), because we cannot guarantee that the relevant
     classes are imported or available.
     """
     ...
+
+def torch_int(x): # -> int | Tensor:
+    """
+    Casts an input to a torch int64 tensor if we are in a tracing context, otherwise to a Python int.
+    """
+    ...
+
+def torch_float(x): # -> int | Tensor:
+    """
+    Casts an input to a torch float32 tensor if we are in a tracing context, otherwise to a Python float.
+    """
+    ...
+
+def filter_out_non_signature_kwargs(extra: Optional[list] = ...): # -> Callable[..., _Wrapped[Callable[..., Any], Any, Callable[..., Any], Any]]:
+    """
+    Decorator to filter out named arguments that are not in the function signature.
+
+    This decorator ensures that only the keyword arguments that match the function's signature, or are specified in the
+    `extra` list, are passed to the function. Any additional keyword arguments are filtered out and a warning is issued.
+
+    Parameters:
+        extra (`Optional[list]`, *optional*):
+            A list of extra keyword argument names that are allowed even if they are not in the function's signature.
+
+    Returns:
+        Callable:
+            A decorator that wraps the function and filters out invalid keyword arguments.
+
+    Example usage:
+
+        ```python
+        @filter_out_non_signature_kwargs(extra=["allowed_extra_arg"])
+        def my_function(arg1, arg2, **kwargs):
+            print(arg1, arg2, kwargs)
+
+        my_function(arg1=1, arg2=2, allowed_extra_arg=3, invalid_arg=4)
+        # This will print: 1 2 {"allowed_extra_arg": 3}
+        # And issue a warning: "The following named arguments are not valid for `my_function` and were ignored: 'invalid_arg'"
+        ```
+    """
+    ...
+

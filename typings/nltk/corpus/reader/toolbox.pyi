@@ -10,18 +10,18 @@ Module for reading, writing and manipulating
 Toolbox databases and settings fileids.
 """
 class ToolboxCorpusReader(CorpusReader):
-    def xml(self, fileids, key=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def xml(self, fileids, key=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def fields(self, fileids, strip=..., unwrap=..., encoding=..., errors=..., unicode_fields=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def fields(self, fileids, strip=..., unwrap=..., encoding=..., errors=..., unicode_fields=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def entries(self, fileids, **kwargs): # -> list:
+    
+    def entries(self, fileids, **kwargs): # -> list[Any]:
         ...
-
+    
     def words(self, fileids, key=...): # -> list[Any | str | Element]:
         ...
-
+    
 
 
 def demo(): # -> None:

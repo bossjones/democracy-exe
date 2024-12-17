@@ -147,9 +147,12 @@ class BDF(OdeSolver):
     """
     def __init__(self, fun, t0, y0, t_bound, max_step=..., rtol=..., atol=..., jac=..., jac_sparsity=..., vectorized=..., first_step=..., **extraneous) -> None:
         ...
-
+    
 
 
 class BdfDenseOutput(DenseOutput):
     def __init__(self, t_old, t, h, order, D) -> None:
         ...
+    
+
+

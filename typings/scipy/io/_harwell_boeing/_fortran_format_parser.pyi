@@ -45,21 +45,21 @@ class IntFormat:
         represented as 1-character strings without loss of information.
         """
         ...
-
+    
     def __init__(self, width, min=..., repeat=...) -> None:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
     @property
     def fortran_format(self): # -> LiteralString:
         ...
-
+    
     @property
     def python_format(self): # -> str:
         ...
-
+    
 
 
 class ExpFormat:
@@ -86,7 +86,7 @@ class ExpFormat:
         to avoid losing precision.
         """
         ...
-
+    
     def __init__(self, width, significand, min=..., repeat=...) -> None:
         """\
         Parameters
@@ -95,42 +95,42 @@ class ExpFormat:
             number of characters taken by the string (includes space).
         """
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
     @property
     def fortran_format(self): # -> LiteralString:
         ...
-
+    
     @property
     def python_format(self): # -> str:
         ...
-
+    
 
 
 class Token:
     def __init__(self, type, value, pos) -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class Tokenizer:
     def __init__(self) -> None:
         ...
-
+    
     def input(self, s): # -> None:
         ...
-
+    
     def next_token(self): # -> Token | None:
         ...
-
+    
 
 
 class FortranFormatParser:
@@ -144,6 +144,9 @@ class FortranFormatParser:
     """
     def __init__(self) -> None:
         ...
-
+    
     def parse(self, s): # -> IntFormat | ExpFormat:
         ...
+    
+
+

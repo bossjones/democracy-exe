@@ -91,10 +91,10 @@ class AnnotationTask:
         ``distance(l,l) = 0``
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def load_array(self, array): # -> None:
         """Load an sequence of annotation results, appending to any data already loaded.
 
@@ -102,88 +102,88 @@ class AnnotationTask:
             (coder,item,label)
         """
         ...
-
+    
     def agr(self, cA, cB, i, data=...): # -> float:
         """Agreement between two coders on a given item"""
         ...
-
+    
     def Nk(self, k): # -> float:
         ...
-
+    
     def Nik(self, i, k): # -> float:
         ...
-
+    
     def Nck(self, c, k): # -> float:
         ...
-
+    
     @deprecated("Use Nk, Nik or Nck instead")
     def N(self, k=..., i=..., c=...): # -> float:
         """Implements the "n-notation" used in Artstein and Poesio (2007)"""
         ...
-
+    
     def Ao(self, cA, cB): # -> float:
         """Observed agreement between two coders on all items."""
         ...
-
+    
     def avg_Ao(self): # -> float:
         """Average observed agreement across all coders and items."""
         ...
-
+    
     def Do_Kw_pairwise(self, cA, cB, max_distance=...): # -> float:
         """The observed disagreement for the weighted kappa coefficient."""
         ...
-
+    
     def Do_Kw(self, max_distance=...): # -> float:
         """Averaged over all labelers"""
         ...
-
+    
     def S(self): # -> float:
         """Bennett, Albert and Goldstein 1954"""
         ...
-
+    
     def pi(self): # -> float:
         """Scott 1955; here, multi-pi.
         Equivalent to K from Siegel and Castellan (1988).
 
         """
         ...
-
+    
     def Ae_kappa(self, cA, cB): # -> float:
         ...
-
+    
     def kappa_pairwise(self, cA, cB): # -> float:
         """ """
         ...
-
+    
     def kappa(self): # -> float:
         """Cohen 1960
         Averages naively over kappas for each coder pair.
 
         """
         ...
-
+    
     def multi_kappa(self): # -> float:
         """Davies and Fleiss 1982
         Averages over observed and expected agreements for each coder pair.
 
         """
         ...
-
+    
     def Disagreement(self, label_freqs): # -> float:
         ...
-
+    
     def alpha(self): # -> float | Literal[1]:
         """Krippendorff 1980"""
         ...
-
+    
     def weighted_kappa_pairwise(self, cA, cB, max_distance=...): # -> float:
         """Cohen 1968"""
         ...
-
+    
     def weighted_kappa(self, max_distance=...): # -> float:
         """Cohen 1968"""
         ...
-
+    
 
 
 if __name__ == "__main__":

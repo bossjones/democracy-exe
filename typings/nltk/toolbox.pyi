@@ -12,7 +12,7 @@ class StandardFormat:
     """
     def __init__(self, filename=..., encoding=...) -> None:
         ...
-
+    
     def open(self, sfm_file): # -> None:
         """
         Open a standard format marker file for sequential reading.
@@ -21,7 +21,7 @@ class StandardFormat:
         :type sfm_file: str
         """
         ...
-
+    
     def open_string(self, s): # -> None:
         """
         Open a standard format marker string for sequential reading.
@@ -30,7 +30,7 @@ class StandardFormat:
         :type s: str
         """
         ...
-
+    
     def raw_fields(self): # -> Generator[tuple[str | Any, str], Any, None]:
         """
         Return an iterator that returns the next field in a (marker, value)
@@ -40,7 +40,7 @@ class StandardFormat:
         :rtype: iter(tuple(str, str))
         """
         ...
-
+    
     def fields(self, strip=..., unwrap=..., encoding=..., errors=..., unicode_fields=...): # -> Generator[tuple[str | Any, str], Any, None]:
         """
         Return an iterator that returns the next field in a ``(marker, value)``
@@ -66,17 +66,17 @@ class StandardFormat:
         :rtype: iter(tuple(str, str))
         """
         ...
-
+    
     def close(self): # -> None:
         """Close a previously opened standard format marker file or string."""
         ...
-
+    
 
 
 class ToolboxData(StandardFormat):
     def parse(self, grammar=..., **kwargs): # -> Element:
         ...
-
+    
 
 
 _is_value = ...
@@ -102,7 +102,7 @@ class ToolboxSettings(StandardFormat):
     """This class is the base class for settings files."""
     def __init__(self) -> None:
         ...
-
+    
     def parse(self, encoding=..., errors=..., **kwargs): # -> Element:
         """
         Return the contents of toolbox settings file with a nested structure.
@@ -116,7 +116,7 @@ class ToolboxSettings(StandardFormat):
         :rtype: ElementTree._ElementInterface
         """
         ...
-
+    
 
 
 def to_settings_string(tree, encoding=..., errors=..., unicode_fields=...): # -> LiteralString:

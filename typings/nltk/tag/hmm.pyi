@@ -101,7 +101,7 @@ class HiddenMarkovModelTagger(TaggerI):
     """
     def __init__(self, symbols, states, transitions, outputs, priors, transform=...) -> None:
         ...
-
+    
     @classmethod
     def train(cls, labeled_sequence, test_sequence=..., unlabeled_sequence=..., **kwargs): # -> HiddenMarkovModelTagger | Self:
         """
@@ -133,7 +133,7 @@ class HiddenMarkovModelTagger(TaggerI):
         :type max_iterations: int
         """
         ...
-
+    
     def probability(self, sequence): # -> Any:
         """
         Returns the probability of the given symbol sequence. If the sequence
@@ -148,7 +148,7 @@ class HiddenMarkovModelTagger(TaggerI):
         :type sequence:  Token
         """
         ...
-
+    
     def log_probability(self, sequence): # -> Any:
         """
         Returns the log-probability of the given symbol sequence. If the
@@ -163,8 +163,8 @@ class HiddenMarkovModelTagger(TaggerI):
         :type sequence:  Token
         """
         ...
-
-    def tag(self, unlabeled_sequence): # -> list[tuple]:
+    
+    def tag(self, unlabeled_sequence): # -> list[tuple[Any, Any]]:
         """
         Tags the sequence with the highest probability state sequence. This
         uses the best_path method to find the Viterbi path.
@@ -175,11 +175,11 @@ class HiddenMarkovModelTagger(TaggerI):
         :type unlabeled_sequence: list
         """
         ...
-
+    
     def reset_cache(self): # -> None:
         ...
-
-    def best_path(self, unlabeled_sequence): # -> list:
+    
+    def best_path(self, unlabeled_sequence): # -> list[Any]:
         """
         Returns the state sequence of the optimal (most probable) path through
         the HMM. Uses the Viterbi algorithm to calculate this part by dynamic
@@ -191,8 +191,8 @@ class HiddenMarkovModelTagger(TaggerI):
         :type unlabeled_sequence: list
         """
         ...
-
-    def best_path_simple(self, unlabeled_sequence): # -> list:
+    
+    def best_path_simple(self, unlabeled_sequence): # -> list[Any]:
         """
         Returns the state sequence of the optimal (most probable) path through
         the HMM. Uses the Viterbi algorithm to calculate this part by dynamic
@@ -205,8 +205,8 @@ class HiddenMarkovModelTagger(TaggerI):
         :type unlabeled_sequence: list
         """
         ...
-
-    def random_sample(self, rng, length): # -> list:
+    
+    def random_sample(self, rng, length): # -> list[Any]:
         """
         Randomly sample the HMM to generate a sentence of a given length. This
         samples the prior distribution then the observation distribution and
@@ -226,7 +226,7 @@ class HiddenMarkovModelTagger(TaggerI):
         :type length:   int
         """
         ...
-
+    
     def entropy(self, unlabeled_sequence): # -> Any:
         """
         Returns the entropy over labellings of the given sequence. This is
@@ -256,14 +256,14 @@ class HiddenMarkovModelTagger(TaggerI):
         time.
         """
         ...
-
+    
     def point_entropy(self, unlabeled_sequence): # -> NDArray[floating[_64Bit]]:
         """
         Returns the pointwise entropy over the possible states at each
         position in the chain, given the observation sequence.
         """
         ...
-
+    
     def test(self, test_sequence, verbose=..., **kwargs): # -> None:
         """
         Tests the HiddenMarkovModelTagger instance.
@@ -275,10 +275,10 @@ class HiddenMarkovModelTagger(TaggerI):
         :type verbose: bool
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class HiddenMarkovModelTrainer:
@@ -298,7 +298,7 @@ class HiddenMarkovModelTrainer:
     """
     def __init__(self, states=..., symbols=...) -> None:
         ...
-
+    
     def train(self, labeled_sequences=..., unlabeled_sequences=..., **kwargs): # -> HiddenMarkovModelTagger | None:
         """
         Trains the HMM using both (or either of) supervised and unsupervised
@@ -317,7 +317,7 @@ class HiddenMarkovModelTrainer:
         :param kwargs: additional arguments to pass to the training methods
         """
         ...
-
+    
     def train_unsupervised(self, unlabeled_sequences, update_outputs=..., **kwargs): # -> HiddenMarkovModelTagger:
         """
         Trains the HMM using the Baum-Welch algorithm to maximise the
@@ -342,7 +342,7 @@ class HiddenMarkovModelTrainer:
             allow convergence
         """
         ...
-
+    
     def train_supervised(self, labelled_sequences, estimator=...): # -> HiddenMarkovModelTagger:
         """
         Supervised training maximising the joint probability of the symbol and
@@ -362,7 +362,7 @@ class HiddenMarkovModelTrainer:
             otherwise a MLE estimate is used
         """
         ...
-
+    
 
 
 def logsumexp2(arr):
@@ -371,7 +371,7 @@ def logsumexp2(arr):
 def demo(): # -> None:
     ...
 
-def load_pos(num_sents): # -> tuple[list, list, list]:
+def load_pos(num_sents): # -> tuple[list[Any], list[Any], list[Any]]:
     ...
 
 def demo_pos(): # -> None:
@@ -382,3 +382,4 @@ def demo_pos_bw(test=..., supervised=..., unsupervised=..., verbose=..., max_ite
 
 def demo_bw(): # -> None:
     ...
+

@@ -27,15 +27,15 @@ class FunctionMaker:
     _compile_count = ...
     def __init__(self, func=..., name=..., signature=..., defaults=..., doc=..., module=..., funcdict=...) -> None:
         ...
-
+    
     def update(self, func, **kw): # -> None:
         "Update the signature of func with the data in self"
         ...
-
+    
     def make(self, src_templ, evaldict=..., addsource=..., **attrs):
         "Make a new function from a given template and update the signature"
         ...
-
+    
     @classmethod
     def create(cls, obj, body, evaldict, defaults=..., doc=..., module=..., addsource=..., **attrs):
         """
@@ -45,7 +45,7 @@ class FunctionMaker:
         are added, if any.
         """
         ...
-
+    
 
 
 def decorate(func, caller):
@@ -62,7 +62,7 @@ class ContextManager(_GeneratorContextManager):
     def __call__(self, func):
         """Context manager decorator"""
         ...
-
+    
 
 
 init = ...
@@ -70,7 +70,7 @@ n_args = ...
 if n_args == 2 and not init.varargs:
     def __init__(self, g, *a, **k) -> None:
         ...
-
+    
 else:
     ...
 contextmanager = ...
@@ -87,3 +87,4 @@ def dispatch_on(*dispatch_args): # -> Callable[..., Any]:
     dispatching on the given arguments.
     """
     ...
+

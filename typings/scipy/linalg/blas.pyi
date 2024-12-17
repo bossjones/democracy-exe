@@ -310,3 +310,4 @@ def get_blas_funcs(names, arrays=..., dtype=..., ilp64=...): # -> list[Any]:
 
     """
     ...
+

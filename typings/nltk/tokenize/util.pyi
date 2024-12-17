@@ -42,7 +42,7 @@ def regexp_span_tokenize(s, regexp): # -> Generator[tuple[Any | Literal[0], Any]
     """
     ...
 
-def spans_to_relative(spans): # -> Generator[tuple, Any, None]:
+def spans_to_relative(spans): # -> Generator[tuple[Any, Any], Any, None]:
     r"""
     Return a sequence of relative spans, given a sequence of spans.
 
@@ -139,7 +139,7 @@ def xml_unescape(text): # -> str:
     """
     ...
 
-def align_tokens(tokens, sentence): # -> list:
+def align_tokens(tokens, sentence): # -> list[Any]:
     """
     This module attempt to find the offsets of the tokens in *s*, as a sequence
     of ``(start, end)`` tuples, given the tokens and also the source string.
@@ -170,3 +170,4 @@ def align_tokens(tokens, sentence): # -> list:
     :rtype: list(tuple(int,int))
     """
     ...
+

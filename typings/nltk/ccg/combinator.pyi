@@ -21,11 +21,11 @@ class UndirectedBinaryCombinator(metaclass=ABCMeta):
     @abstractmethod
     def can_combine(self, function, argument): # -> None:
         ...
-
+    
     @abstractmethod
     def combine(self, function, argument): # -> None:
         ...
-
+    
 
 
 class DirectedBinaryCombinator(metaclass=ABCMeta):
@@ -38,11 +38,11 @@ class DirectedBinaryCombinator(metaclass=ABCMeta):
     @abstractmethod
     def can_combine(self, left, right): # -> None:
         ...
-
+    
     @abstractmethod
     def combine(self, left, right): # -> None:
         ...
-
+    
 
 
 class ForwardCombinator(DirectedBinaryCombinator):
@@ -54,16 +54,16 @@ class ForwardCombinator(DirectedBinaryCombinator):
     """
     def __init__(self, combinator, predicate, suffix=...) -> None:
         ...
-
+    
     def can_combine(self, left, right):
         ...
-
+    
     def combine(self, left, right): # -> Generator[Any, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class BackwardCombinator(DirectedBinaryCombinator):
@@ -72,16 +72,16 @@ class BackwardCombinator(DirectedBinaryCombinator):
     """
     def __init__(self, combinator, predicate, suffix=...) -> None:
         ...
-
+    
     def can_combine(self, left, right):
         ...
-
+    
     def combine(self, left, right): # -> Generator[Any, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class UndirectedFunctionApplication(UndirectedBinaryCombinator):
@@ -93,13 +93,13 @@ class UndirectedFunctionApplication(UndirectedBinaryCombinator):
     """
     def can_combine(self, function, argument): # -> bool:
         ...
-
+    
     def combine(self, function, argument): # -> Generator[Any, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 def forwardOnly(left, right):
@@ -119,13 +119,13 @@ class UndirectedComposition(UndirectedBinaryCombinator):
     """
     def can_combine(self, function, argument): # -> bool:
         ...
-
+    
     def combine(self, function, argument): # -> Generator[FunctionalCategory, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 def bothForward(left, right):
@@ -152,13 +152,13 @@ class UndirectedSubstitution(UndirectedBinaryCombinator):
     """
     def can_combine(self, function, argument): # -> Literal[False]:
         ...
-
+    
     def combine(self, function, argument): # -> Generator[FunctionalCategory, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 def forwardSConstraint(left, right): # -> Literal[False]:
@@ -178,13 +178,13 @@ class UndirectedTypeRaise(UndirectedBinaryCombinator):
     """
     def can_combine(self, function, arg): # -> bool:
         ...
-
+    
     def combine(self, function, arg): # -> Generator[FunctionalCategory, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 def forwardTConstraint(left, right):

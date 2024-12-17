@@ -48,11 +48,11 @@ class _PSD:
     """
     def __init__(self, M, cond=..., rcond=..., lower=..., check_finite=..., allow_singular=...) -> None:
         ...
-
+    
     @property
     def pinv(self): # -> Any:
         ...
-
+    
 
 
 class multi_rv_generic:
@@ -62,7 +62,7 @@ class multi_rv_generic:
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     @property
     def random_state(self): # -> RandomState | Generator:
         """ Get or set the Generator object for generating random variates.
@@ -76,11 +76,11 @@ class multi_rv_generic:
 
         """
         ...
-
+    
     @random_state.setter
     def random_state(self, seed): # -> None:
         ...
-
+    
 
 
 class multi_rv_frozen:
@@ -91,11 +91,11 @@ class multi_rv_frozen:
     @property
     def random_state(self):
         ...
-
+    
     @random_state.setter
     def random_state(self, seed): # -> None:
         ...
-
+    
 
 
 _mvn_doc_default_callparams = ...
@@ -204,14 +204,14 @@ class multivariate_normal_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, mean=..., cov=..., allow_singular=..., seed=...): # -> multivariate_normal_frozen:
         """Create a frozen multivariate normal distribution.
 
         See `multivariate_normal_frozen` for more information.
         """
         ...
-
+    
     def logpdf(self, x, mean=..., cov=..., allow_singular=...): # -> Any:
         """Log of the multivariate normal probability density function.
 
@@ -232,7 +232,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def pdf(self, x, mean=..., cov=..., allow_singular=...): # -> Any:
         """Multivariate normal probability density function.
 
@@ -253,7 +253,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def logcdf(self, x, mean=..., cov=..., allow_singular=..., maxpts=..., abseps=..., releps=..., *, lower_limit=...): # -> Any:
         """Log of the multivariate normal cumulative distribution function.
 
@@ -286,7 +286,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def cdf(self, x, mean=..., cov=..., allow_singular=..., maxpts=..., abseps=..., releps=..., *, lower_limit=...): # -> Any:
         """Multivariate normal cumulative distribution function.
 
@@ -319,7 +319,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def rvs(self, mean=..., cov=..., size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         """Draw random samples from a multivariate normal distribution.
 
@@ -342,7 +342,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def entropy(self, mean=..., cov=...): # -> Any:
         """Compute the differential entropy of the multivariate normal.
 
@@ -361,7 +361,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def fit(self, x, fix_mean=..., fix_cov=...): # -> tuple[Any, Any]:
         """Fit a multivariate normal distribution to data.
 
@@ -386,7 +386,7 @@ class multivariate_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 multivariate_normal = ...
@@ -434,26 +434,26 @@ class multivariate_normal_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     @property
     def cov(self):
         ...
-
+    
     def logpdf(self, x): # -> Any:
         ...
-
+    
     def pdf(self, x): # -> Any:
         ...
-
+    
     def logcdf(self, x, *, lower_limit=...): # -> Any:
         ...
-
+    
     def cdf(self, x, *, lower_limit=...): # -> Any:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         ...
-
+    
     def entropy(self): # -> Any:
         """Computes the differential entropy of the multivariate normal.
 
@@ -464,7 +464,7 @@ class multivariate_normal_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
 
 
 _matnorm_doc_default_callparams = ...
@@ -575,7 +575,7 @@ class matrix_normal_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, mean=..., rowcov=..., colcov=..., seed=...): # -> matrix_normal_frozen:
         """Create a frozen matrix normal distribution.
 
@@ -583,7 +583,7 @@ class matrix_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def logpdf(self, X, mean=..., rowcov=..., colcov=...):
         """Log of the matrix normal probability density function.
 
@@ -604,7 +604,7 @@ class matrix_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def pdf(self, X, mean=..., rowcov=..., colcov=...): # -> Any:
         """Matrix normal probability density function.
 
@@ -625,7 +625,7 @@ class matrix_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def rvs(self, mean=..., rowcov=..., colcov=..., size=..., random_state=...): # -> Any:
         """Draw random samples from a matrix normal distribution.
 
@@ -648,7 +648,7 @@ class matrix_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def entropy(self, rowcov=..., colcov=...): # -> Any:
         """Log of the matrix normal probability density function.
 
@@ -670,7 +670,7 @@ class matrix_normal_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 matrix_normal = ...
@@ -706,19 +706,19 @@ class matrix_normal_frozen(multi_rv_frozen):
     """
     def __init__(self, mean=..., rowcov=..., colcov=..., seed=...) -> None:
         ...
-
+    
     def logpdf(self, X):
         ...
-
+    
     def pdf(self, X): # -> Any:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> Any:
         ...
-
+    
     def entropy(self): # -> Any:
         ...
-
+    
 
 
 _dirichlet_doc_default_callparams = ...
@@ -835,10 +835,10 @@ class dirichlet_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, alpha, seed=...): # -> dirichlet_frozen:
         ...
-
+    
     def logpdf(self, x, alpha): # -> Any:
         """Log of the Dirichlet probability density function.
 
@@ -855,7 +855,7 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def pdf(self, x, alpha): # -> Any:
         """The Dirichlet probability density function.
 
@@ -872,7 +872,7 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def mean(self, alpha):
         """Mean of the Dirichlet distribution.
 
@@ -887,7 +887,7 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def var(self, alpha):
         """Variance of the Dirichlet distribution.
 
@@ -902,7 +902,7 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def cov(self, alpha):
         """Covariance matrix of the Dirichlet distribution.
 
@@ -916,7 +916,7 @@ class dirichlet_gen(multi_rv_generic):
             The covariance matrix of the distribution.
         """
         ...
-
+    
     def entropy(self, alpha):
         """
         Differential entropy of the Dirichlet distribution.
@@ -932,7 +932,7 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def rvs(self, alpha, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         """
         Draw random samples from a Dirichlet distribution.
@@ -952,35 +952,35 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 dirichlet = ...
 class dirichlet_frozen(multi_rv_frozen):
     def __init__(self, alpha, seed=...) -> None:
         ...
-
+    
     def logpdf(self, x): # -> Any:
         ...
-
+    
     def pdf(self, x): # -> Any:
         ...
-
+    
     def mean(self):
         ...
-
+    
     def var(self):
         ...
-
+    
     def cov(self):
         ...
-
+    
     def entropy(self):
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         ...
-
+    
 
 
 _wishart_doc_default_callparams = ...
@@ -1102,15 +1102,15 @@ class wishart_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, df=..., scale=..., seed=...): # -> wishart_frozen:
         """Create a frozen Wishart distribution.
 
         See `wishart_frozen` for more information.
         """
         ...
-
-    def logpdf(self, x, df, scale):
+    
+    def logpdf(self, x, df, scale): # -> Any:
         """Log of the Wishart probability density function.
 
         Parameters
@@ -1131,7 +1131,7 @@ class wishart_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def pdf(self, x, df, scale): # -> Any:
         """Wishart probability density function.
 
@@ -1153,7 +1153,7 @@ class wishart_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def mean(self, df, scale): # -> ndarray[Any, dtype[bool_]] | ndarray[Any, dtype[complexfloating[Any, Any]]] | ndarray[Any, dtype[floating[Any]]] | ndarray[Any, dtype[signedinteger[Any]]] | Any:
         """Mean of the Wishart distribution.
 
@@ -1167,7 +1167,7 @@ class wishart_gen(multi_rv_generic):
             The mean of the distribution
         """
         ...
-
+    
     def mode(self, df, scale): # -> None:
         """Mode of the Wishart distribution
 
@@ -1184,8 +1184,8 @@ class wishart_gen(multi_rv_generic):
             The Mode of the distribution
         """
         ...
-
-    def var(self, df, scale): # -> Any:
+    
+    def var(self, df, scale): # -> ndarray[Any, dtype[complexfloating[Any, Any]]] | ndarray[Any, dtype[floating[Any]]] | ndarray[Any, dtype[signedinteger[Any]]]:
         """Variance of the Wishart distribution.
 
         Parameters
@@ -1198,7 +1198,7 @@ class wishart_gen(multi_rv_generic):
             The variance of the distribution
         """
         ...
-
+    
     def rvs(self, df, scale, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         """Draw random samples from a Wishart distribution.
 
@@ -1221,8 +1221,8 @@ class wishart_gen(multi_rv_generic):
 
         """
         ...
-
-    def entropy(self, df, scale):
+    
+    def entropy(self, df, scale): # -> Any:
         """Compute the differential entropy of the Wishart.
 
         Parameters
@@ -1240,7 +1240,7 @@ class wishart_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 wishart = ...
@@ -1264,28 +1264,28 @@ class wishart_frozen(multi_rv_frozen):
     """
     def __init__(self, df, scale, seed=...) -> None:
         ...
-
-    def logpdf(self, x):
+    
+    def logpdf(self, x): # -> Any:
         ...
-
+    
     def pdf(self, x): # -> Any:
         ...
-
+    
     def mean(self): # -> ndarray[Any, dtype[bool_]] | ndarray[Any, dtype[complexfloating[Any, Any]]] | ndarray[Any, dtype[floating[Any]]] | ndarray[Any, dtype[signedinteger[Any]]] | Any:
         ...
-
+    
     def mode(self): # -> None:
         ...
-
-    def var(self): # -> Any:
+    
+    def var(self): # -> ndarray[Any, dtype[complexfloating[Any, Any]]] | ndarray[Any, dtype[floating[Any]]] | ndarray[Any, dtype[signedinteger[Any]]]:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         ...
-
-    def entropy(self):
+    
+    def entropy(self): # -> Any:
         ...
-
+    
 
 
 class invwishart_gen(wishart_gen):
@@ -1405,7 +1405,7 @@ class invwishart_gen(wishart_gen):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, df=..., scale=..., seed=...): # -> invwishart_frozen:
         """Create a frozen inverse Wishart distribution.
 
@@ -1413,8 +1413,8 @@ class invwishart_gen(wishart_gen):
 
         """
         ...
-
-    def logpdf(self, x, df, scale):
+    
+    def logpdf(self, x, df, scale): # -> Any:
         """Log of the inverse Wishart probability density function.
 
         Parameters
@@ -1435,7 +1435,7 @@ class invwishart_gen(wishart_gen):
 
         """
         ...
-
+    
     def pdf(self, x, df, scale): # -> Any:
         """Inverse Wishart probability density function.
 
@@ -1457,7 +1457,7 @@ class invwishart_gen(wishart_gen):
 
         """
         ...
-
+    
     def mean(self, df, scale): # -> None:
         """Mean of the inverse Wishart distribution.
 
@@ -1475,8 +1475,8 @@ class invwishart_gen(wishart_gen):
 
         """
         ...
-
-    def mode(self, df, scale):
+    
+    def mode(self, df, scale): # -> ndarray[Any, dtype[complexfloating[Any, Any]]] | ndarray[Any, dtype[floating[Any]]]:
         """Mode of the inverse Wishart distribution.
 
         Parameters
@@ -1490,7 +1490,7 @@ class invwishart_gen(wishart_gen):
 
         """
         ...
-
+    
     def var(self, df, scale): # -> None:
         """Variance of the inverse Wishart distribution.
 
@@ -1507,7 +1507,7 @@ class invwishart_gen(wishart_gen):
             The variance of the distribution
         """
         ...
-
+    
     def rvs(self, df, scale, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         """Draw random samples from an inverse Wishart distribution.
 
@@ -1530,10 +1530,10 @@ class invwishart_gen(wishart_gen):
 
         """
         ...
-
-    def entropy(self, df, scale):
+    
+    def entropy(self, df, scale): # -> Any:
         ...
-
+    
 
 
 invwishart = ...
@@ -1556,28 +1556,28 @@ class invwishart_frozen(multi_rv_frozen):
 
         """
         ...
-
-    def logpdf(self, x):
+    
+    def logpdf(self, x): # -> Any:
         ...
-
+    
     def pdf(self, x): # -> Any:
         ...
-
+    
     def mean(self): # -> None:
         ...
-
-    def mode(self):
+    
+    def mode(self): # -> ndarray[Any, dtype[complexfloating[Any, Any]]] | ndarray[Any, dtype[floating[Any]]]:
         ...
-
+    
     def var(self): # -> None:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> ndarray[Any, dtype[float64]]:
         ...
-
-    def entropy(self):
+    
+    def entropy(self): # -> Any:
         ...
-
+    
 
 
 _multinomial_doc_default_callparams = ...
@@ -1692,14 +1692,14 @@ class multinomial_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, n, p, seed=...): # -> multinomial_frozen:
         """Create a frozen multinomial distribution.
 
         See `multinomial_frozen` for more information.
         """
         ...
-
+    
     def logpmf(self, x, n, p): # -> NDArray[Any]:
         """Log of the Multinomial probability mass function.
 
@@ -1719,7 +1719,7 @@ class multinomial_gen(multi_rv_generic):
         %(_doc_callparams_note)s
         """
         ...
-
+    
     def pmf(self, x, n, p): # -> NDArray[Any]:
         """Multinomial probability mass function.
 
@@ -1739,7 +1739,7 @@ class multinomial_gen(multi_rv_generic):
         %(_doc_callparams_note)s
         """
         ...
-
+    
     def mean(self, n, p): # -> NDArray[Any]:
         """Mean of the Multinomial distribution.
 
@@ -1753,7 +1753,7 @@ class multinomial_gen(multi_rv_generic):
             The mean of the distribution
         """
         ...
-
+    
     def cov(self, n, p): # -> NDArray[Any]:
         """Covariance matrix of the multinomial distribution.
 
@@ -1767,7 +1767,7 @@ class multinomial_gen(multi_rv_generic):
             The covariance matrix of the distribution
         """
         ...
-
+    
     def entropy(self, n, p): # -> NDArray[Any]:
         r"""Compute the entropy of the multinomial distribution.
 
@@ -1792,7 +1792,7 @@ class multinomial_gen(multi_rv_generic):
         %(_doc_callparams_note)s
         """
         ...
-
+    
     def rvs(self, n, p, size=..., random_state=...): # -> ndarray[Any, dtype[int64]] | ndarray[Any, dtype[int_]]:
         """Draw random samples from a Multinomial distribution.
 
@@ -1813,7 +1813,7 @@ class multinomial_gen(multi_rv_generic):
         %(_doc_callparams_note)s
         """
         ...
-
+    
 
 
 multinomial = ...
@@ -1836,25 +1836,25 @@ class multinomial_frozen(multi_rv_frozen):
     """
     def __init__(self, n, p, seed=...) -> None:
         ...
-
+    
     def logpmf(self, x): # -> NDArray[Any]:
         ...
-
+    
     def pmf(self, x): # -> NDArray[Any]:
         ...
-
+    
     def mean(self): # -> NDArray[Any]:
         ...
-
+    
     def cov(self): # -> NDArray[Any]:
         ...
-
+    
     def entropy(self): # -> NDArray[Any]:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> ndarray[Any, dtype[int64]] | ndarray[Any, dtype[int_]]:
         ...
-
+    
 
 
 class special_ortho_group_gen(multi_rv_generic):
@@ -1932,14 +1932,14 @@ class special_ortho_group_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, dim=..., seed=...): # -> special_ortho_group_frozen:
         """Create a frozen SO(N) distribution.
 
         See `special_ortho_group_frozen` for more information.
         """
         ...
-
+    
     def rvs(self, dim, size=..., random_state=...): # -> NDArray[floating[_64Bit]]:
         """Draw random samples from SO(N).
 
@@ -1957,7 +1957,7 @@ class special_ortho_group_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 special_ortho_group = ...
@@ -1985,10 +1985,10 @@ class special_ortho_group_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> NDArray[floating[_64Bit]]:
         ...
-
+    
 
 
 class ortho_group_gen(multi_rv_generic):
@@ -2059,14 +2059,14 @@ class ortho_group_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, dim=..., seed=...): # -> ortho_group_frozen:
         """Create a frozen O(N) distribution.
 
         See `ortho_group_frozen` for more information.
         """
         ...
-
+    
     def rvs(self, dim, size=..., random_state=...): # -> NDArray[floating[Any]]:
         """Draw random samples from O(N).
 
@@ -2084,7 +2084,7 @@ class ortho_group_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 ortho_group = ...
@@ -2112,10 +2112,10 @@ class ortho_group_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> NDArray[floating[Any]]:
         ...
-
+    
 
 
 class random_correlation_gen(multi_rv_generic):
@@ -2195,14 +2195,14 @@ class random_correlation_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, eigs, seed=..., tol=..., diag_tol=...): # -> random_correlation_frozen:
         """Create a frozen random correlation matrix.
 
         See `random_correlation_frozen` for more information.
         """
         ...
-
+    
     def rvs(self, eigs, random_state=..., tol=..., diag_tol=...): # -> Any:
         """Draw random correlation matrices.
 
@@ -2230,7 +2230,7 @@ class random_correlation_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 random_correlation = ...
@@ -2268,10 +2268,10 @@ class random_correlation_frozen(multi_rv_frozen):
             each having eigenvalues eigs.
         """
         ...
-
+    
     def rvs(self, random_state=...): # -> Any:
         ...
-
+    
 
 
 class unitary_group_gen(multi_rv_generic):
@@ -2334,14 +2334,14 @@ class unitary_group_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, dim=..., seed=...): # -> unitary_group_frozen:
         """Create a frozen (U(N)) n-dimensional unitary matrix distribution.
 
         See `unitary_group_frozen` for more information.
         """
         ...
-
+    
     def rvs(self, dim, size=..., random_state=...): # -> NDArray[floating[Any]]:
         """Draw random samples from U(N).
 
@@ -2359,7 +2359,7 @@ class unitary_group_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 unitary_group = ...
@@ -2387,10 +2387,10 @@ class unitary_group_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> NDArray[floating[Any]]:
         ...
-
+    
 
 
 _mvt_doc_default_callparams = ...
@@ -2489,14 +2489,14 @@ class multivariate_t_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def __call__(self, loc=..., shape=..., df=..., allow_singular=..., seed=...): # -> multivariate_normal_frozen | multivariate_t_frozen:
         """Create a frozen multivariate t-distribution.
 
         See `multivariate_t_frozen` for parameters.
         """
         ...
-
+    
     def pdf(self, x, loc=..., shape=..., df=..., allow_singular=...): # -> Any:
         """Multivariate t-distribution probability density function.
 
@@ -2522,7 +2522,7 @@ class multivariate_t_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def logpdf(self, x, loc=..., shape=..., df=...):
         """Log of the multivariate t-distribution probability density function.
 
@@ -2553,7 +2553,7 @@ class multivariate_t_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def cdf(self, x, loc=..., shape=..., df=..., allow_singular=..., *, maxpts=..., lower_limit=..., random_state=...): # -> Any:
         """Multivariate t-distribution cumulative distribution function.
 
@@ -2587,7 +2587,7 @@ class multivariate_t_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def entropy(self, loc=..., shape=..., df=...): # -> Any:
         """Calculate the differential entropy of a multivariate
         t-distribution.
@@ -2603,7 +2603,7 @@ class multivariate_t_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def rvs(self, loc=..., shape=..., df=..., size=..., random_state=...): # -> ndarray[Any, dtype[floating[Any]]]:
         """Draw random samples from a multivariate t-distribution.
 
@@ -2632,7 +2632,7 @@ class multivariate_t_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 class multivariate_t_frozen(multi_rv_frozen):
@@ -2658,22 +2658,22 @@ class multivariate_t_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def logpdf(self, x):
         ...
-
+    
     def cdf(self, x, *, maxpts=..., lower_limit=..., random_state=...): # -> Any:
         ...
-
+    
     def pdf(self, x): # -> Any:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> ndarray[Any, dtype[floating[Any]]]:
         ...
-
+    
     def entropy(self): # -> Any:
         ...
-
+    
 
 
 multivariate_t = ...
@@ -2798,14 +2798,14 @@ class multivariate_hypergeom_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, m, n, seed=...): # -> multivariate_hypergeom_frozen:
         """Create a frozen multivariate_hypergeom distribution.
 
         See `multivariate_hypergeom_frozen` for more information.
         """
         ...
-
+    
     def logpmf(self, x, m, n): # -> ndarray[Any, dtype[Any]]:
         """Log of the multivariate hypergeometric probability mass function.
 
@@ -2825,7 +2825,7 @@ class multivariate_hypergeom_gen(multi_rv_generic):
         %(_doc_callparams_note)s
         """
         ...
-
+    
     def pmf(self, x, m, n): # -> NDArray[Any]:
         """Multivariate hypergeometric probability mass function.
 
@@ -2845,7 +2845,7 @@ class multivariate_hypergeom_gen(multi_rv_generic):
         %(_doc_callparams_note)s
         """
         ...
-
+    
     def mean(self, m, n): # -> ndarray[Any, dtype[Any]]:
         """Mean of the multivariate hypergeometric distribution.
 
@@ -2859,7 +2859,7 @@ class multivariate_hypergeom_gen(multi_rv_generic):
             The mean of the distribution
         """
         ...
-
+    
     def var(self, m, n): # -> ndarray[Any, dtype[Any]]:
         """Variance of the multivariate hypergeometric distribution.
 
@@ -2874,7 +2874,7 @@ class multivariate_hypergeom_gen(multi_rv_generic):
             the diagonal of the covariance matrix of the distribution
         """
         ...
-
+    
     def cov(self, m, n): # -> ndarray[Any, dtype[Any]]:
         """Covariance matrix of the multivariate hypergeometric distribution.
 
@@ -2888,7 +2888,7 @@ class multivariate_hypergeom_gen(multi_rv_generic):
             The covariance matrix of the distribution
         """
         ...
-
+    
     def rvs(self, m, n, size=..., random_state=...): # -> NDArray[Any]:
         """Draw random samples from a multivariate hypergeometric distribution.
 
@@ -2914,32 +2914,32 @@ class multivariate_hypergeom_gen(multi_rv_generic):
         used as it doesn't support broadcasting.
         """
         ...
-
+    
 
 
 multivariate_hypergeom = ...
 class multivariate_hypergeom_frozen(multi_rv_frozen):
     def __init__(self, m, n, seed=...) -> None:
         ...
-
+    
     def logpmf(self, x): # -> ndarray[Any, dtype[Any]]:
         ...
-
+    
     def pmf(self, x): # -> NDArray[Any]:
         ...
-
+    
     def mean(self): # -> ndarray[Any, dtype[Any]]:
         ...
-
+    
     def var(self): # -> ndarray[Any, dtype[Any]]:
         ...
-
+    
     def cov(self): # -> ndarray[Any, dtype[Any]]:
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> NDArray[Any]:
         ...
-
+    
 
 
 class random_table_gen(multi_rv_generic):
@@ -3010,14 +3010,14 @@ class random_table_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, row, col, *, seed=...): # -> random_table_frozen:
         """Create a frozen distribution of tables with given marginals.
 
         See `random_table_frozen` for more information.
         """
         ...
-
+    
     def logpmf(self, x, row, col): # -> ndarray[Any, dtype[float64]]:
         """Log-probability of table to occur in the distribution.
 
@@ -3057,7 +3057,7 @@ class random_table_gen(multi_rv_generic):
         -1.6306401200847027
         """
         ...
-
+    
     def pmf(self, x, row, col): # -> NDArray[Any]:
         """Probability of table to occur in the distribution.
 
@@ -3097,7 +3097,7 @@ class random_table_gen(multi_rv_generic):
         0.19580419580419592
         """
         ...
-
+    
     def mean(self, row, col): # -> NDArray[floating[Any]]:
         """Mean of distribution of conditional tables.
         %(_doc_mean_params)s
@@ -3130,7 +3130,7 @@ class random_table_gen(multi_rv_generic):
                [1.66666667, 2.5       , 0.83333333]])
         """
         ...
-
+    
     def rvs(self, row, col, *, size=..., method=..., random_state=...):
         """Draw random tables with fixed column and row marginals.
 
@@ -3172,26 +3172,26 @@ class random_table_gen(multi_rv_generic):
                [1., 3., 1.]])
         """
         ...
-
+    
 
 
 random_table = ...
 class random_table_frozen(multi_rv_frozen):
     def __init__(self, row, col, *, seed=...) -> None:
         ...
-
+    
     def logpmf(self, x): # -> ndarray[Any, dtype[float64]]:
         ...
-
+    
     def pmf(self, x): # -> NDArray[Any]:
         ...
-
+    
     def mean(self): # -> NDArray[floating[Any]]:
         ...
-
+    
     def rvs(self, size=..., method=..., random_state=...):
         ...
-
+    
 
 
 _ctab_doc_row_col = ...
@@ -3268,14 +3268,14 @@ class uniform_direction_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, dim=..., seed=...): # -> uniform_direction_frozen:
         """Create a frozen n-dimensional uniform direction distribution.
 
         See `uniform_direction` for more information.
         """
         ...
-
+    
     def rvs(self, dim, size=..., random_state=...): # -> Any:
         """Draw random samples from S(N-1).
 
@@ -3308,7 +3308,7 @@ class uniform_direction_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 uniform_direction = ...
@@ -3338,10 +3338,10 @@ class uniform_direction_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def rvs(self, size=..., random_state=...): # -> Any:
         ...
-
+    
 
 
 _dirichlet_mn_doc_default_callparams = ...
@@ -3458,10 +3458,10 @@ class dirichlet_multinomial_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, alpha, n, seed=...): # -> dirichlet_multinomial_frozen:
         ...
-
+    
     def logpmf(self, x, alpha, n): # -> Any:
         """The log of the probability mass function.
 
@@ -3480,7 +3480,7 @@ class dirichlet_multinomial_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def pmf(self, x, alpha, n): # -> Any:
         """Probability mass function for a Dirichlet multinomial distribution.
 
@@ -3499,7 +3499,7 @@ class dirichlet_multinomial_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def mean(self, alpha, n): # -> NDArray[float64]:
         """Mean of a Dirichlet multinomial distribution.
 
@@ -3514,7 +3514,7 @@ class dirichlet_multinomial_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def var(self, alpha, n): # -> NDArray[floating[Any]]:
         """The variance of the Dirichlet multinomial distribution.
 
@@ -3530,7 +3530,7 @@ class dirichlet_multinomial_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def cov(self, alpha, n): # -> NDArray[floating[Any]]:
         """Covariance matrix of a Dirichlet multinomial distribution.
 
@@ -3545,29 +3545,29 @@ class dirichlet_multinomial_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 dirichlet_multinomial = ...
 class dirichlet_multinomial_frozen(multi_rv_frozen):
     def __init__(self, alpha, n, seed=...) -> None:
         ...
-
+    
     def logpmf(self, x): # -> Any:
         ...
-
+    
     def pmf(self, x): # -> Any:
         ...
-
+    
     def mean(self): # -> NDArray[float64]:
         ...
-
+    
     def var(self): # -> NDArray[floating[Any]]:
         ...
-
+    
     def cov(self): # -> NDArray[floating[Any]]:
         ...
-
+    
 
 
 class vonmises_fisher_gen(multi_rv_generic):
@@ -3783,14 +3783,14 @@ class vonmises_fisher_gen(multi_rv_generic):
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     def __call__(self, mu=..., kappa=..., seed=...): # -> vonmises_fisher_frozen:
         """Create a frozen von Mises-Fisher distribution.
 
         See `vonmises_fisher_frozen` for more information.
         """
         ...
-
+    
     def logpdf(self, x, mu=..., kappa=...):
         """Log of the von Mises-Fisher probability density function.
 
@@ -3813,7 +3813,7 @@ class vonmises_fisher_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def pdf(self, x, mu=..., kappa=...): # -> Any:
         """Von Mises-Fisher probability density function.
 
@@ -3836,8 +3836,8 @@ class vonmises_fisher_gen(multi_rv_generic):
 
         """
         ...
-
-    def rvs(self, mu=..., kappa=..., size=..., random_state=...): # -> Any | NDArray[Any] | NDArray[float64]:
+    
+    def rvs(self, mu=..., kappa=..., size=..., random_state=...): # -> Any | NDArray[Any] | ndarray[Any, dtype[float64]]:
         """Draw random samples from a von Mises-Fisher distribution.
 
         Parameters
@@ -3871,7 +3871,7 @@ class vonmises_fisher_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def entropy(self, mu=..., kappa=...):
         """Compute the differential entropy of the von Mises-Fisher
         distribution.
@@ -3891,7 +3891,7 @@ class vonmises_fisher_gen(multi_rv_generic):
 
         """
         ...
-
+    
     def fit(self, x): # -> tuple[Any, Any]:
         """Fit the von Mises-Fisher distribution to data.
 
@@ -3912,7 +3912,7 @@ class vonmises_fisher_gen(multi_rv_generic):
 
         """
         ...
-
+    
 
 
 vonmises_fisher = ...
@@ -3937,7 +3937,7 @@ class vonmises_fisher_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def logpdf(self, x):
         """
         Parameters
@@ -3954,7 +3954,7 @@ class vonmises_fisher_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def pdf(self, x): # -> Any:
         """
         Parameters
@@ -3971,8 +3971,8 @@ class vonmises_fisher_frozen(multi_rv_frozen):
 
         """
         ...
-
-    def rvs(self, size=..., random_state=...): # -> Any | NDArray[Any] | NDArray[float64]:
+    
+    def rvs(self, size=..., random_state=...): # -> Any | NDArray[Any] | ndarray[Any, dtype[float64]]:
         """Draw random variates from the Von Mises-Fisher distribution.
 
         Parameters
@@ -4000,7 +4000,7 @@ class vonmises_fisher_frozen(multi_rv_frozen):
 
         """
         ...
-
+    
     def entropy(self):
         """
         Calculate the differential entropy of the von Mises-Fisher
@@ -4013,3 +4013,6 @@ class vonmises_fisher_frozen(multi_rv_frozen):
 
         """
         ...
+    
+
+

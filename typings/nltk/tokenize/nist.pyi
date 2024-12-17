@@ -76,9 +76,12 @@ class NISTTokenizer(TokenizerI):
     def lang_independent_sub(self, text): # -> str:
         """Performs the language independent string substituitions."""
         ...
-
+    
     def tokenize(self, text, lowercase=..., western_lang=..., return_str=...): # -> str | list[str]:
         ...
-
+    
     def international_tokenize(self, text, lowercase=..., split_non_ascii=..., return_str=...): # -> str | list[str]:
         ...
+    
+
+

@@ -220,7 +220,7 @@ class RegularGridInterpolator:
     _ALL_METHODS = ...
     def __init__(self, points, values, method=..., bounds_error=..., fill_value=..., *, solver=..., solver_args=...) -> None:
         ...
-
+    
     def __call__(self, xi, method=..., *, nu=...): # -> ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]] | ndarray[Any, dtype[bool_]] | ndarray[Any, dtype[Any]] | Any:
         """
         Interpolation at coordinates.
@@ -279,7 +279,7 @@ class RegularGridInterpolator:
         array([ 4.7, 24.3])
         """
         ...
-
+    
 
 
 def interpn(points, values, xi, method=..., bounds_error=..., fill_value=...): # -> ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]] | ndarray[Any, dtype[bool_]] | ndarray[Any, dtype[Any]] | Any:
@@ -380,3 +380,4 @@ def interpn(points, values, xi, method=..., bounds_error=..., fill_value=...): #
 
     """
     ...
+

@@ -27,12 +27,12 @@ def shgo(func, bounds, args=..., constraints=..., n=..., iters=..., callback=...
         Any additional fixed parameters needed to completely specify the
         objective function.
     constraints : {Constraint, dict} or List of {Constraint, dict}, optional
-        Constraints definition. Only for COBYLA, SLSQP and trust-constr.
+        Constraints definition. Only for COBYLA, COBYQA, SLSQP and trust-constr.
         See the tutorial [5]_ for further details on specifying constraints.
 
         .. note::
 
-           Only COBYLA, SLSQP, and trust-constr local minimize methods
+           Only COBYLA, COBYQA, SLSQP, and trust-constr local minimize methods
            currently support constraint arguments. If the ``constraints``
            sequence used in the local optimization problem is not defined in
            ``minimizer_kwargs`` and a constrained method is used then the
@@ -254,8 +254,9 @@ def shgo(func, bounds, args=..., constraints=..., n=..., iters=..., callback=...
     The local search method may be specified using the ``minimizer_kwargs``
     parameter which is passed on to ``scipy.optimize.minimize``. By default,
     the ``SLSQP`` method is used. In general, it is recommended to use the
-    ``SLSQP`` or ``COBYLA`` local minimization if inequality constraints
-    are defined for the problem since the other methods do not use constraints.
+    ``SLSQP``, ``COBYLA``, or ``COBYQA`` local minimization if inequality
+    constraints are defined for the problem since the other methods do not use
+    constraints.
 
     The ``halton`` and ``sobol`` method points are generated using
     `scipy.stats.qmc`. Any other QMC method could be used.
@@ -424,7 +425,7 @@ def shgo(func, bounds, args=..., constraints=..., n=..., iters=..., callback=...
 class SHGO:
     def __init__(self, func, bounds, args=..., constraints=..., n=..., iters=..., callback=..., minimizer_kwargs=..., options=..., sampling_method=..., workers=...) -> None:
         ...
-
+    
     def init_options(self, options): # -> None:
         """
         Initiates the options.
@@ -441,13 +442,13 @@ class SHGO:
 
         """
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, *args): # -> None:
         ...
-
+    
     def iterate_all(self): # -> None:
         """
         Construct for `iters` iterations.
@@ -459,29 +460,29 @@ class SHGO:
 
         """
         ...
-
+    
     def find_minima(self): # -> None:
         """
         Construct the minimizer pool, map the minimizers to local minima
         and sort the results into a global return object.
         """
         ...
-
+    
     def find_lowest_vertex(self): # -> None:
         ...
-
+    
     def finite_iterations(self): # -> bool:
         ...
-
+    
     def finite_fev(self): # -> bool:
         ...
-
+    
     def finite_ev(self): # -> None:
         ...
-
+    
     def finite_time(self): # -> None:
         ...
-
+    
     def finite_precision(self): # -> bool:
         """
         Stop the algorithm if the final function value is known
@@ -490,13 +491,13 @@ class SHGO:
         and the tolerance with ``f_tol = options['f_tol']``
         """
         ...
-
+    
     def finite_homology_growth(self): # -> bool | None:
         """
         Stop the algorithm if homology group rank did not grow in iteration.
         """
         ...
-
+    
     def stopping_criteria(self): # -> bool:
         """
         Various stopping criteria ran every iteration
@@ -506,10 +507,10 @@ class SHGO:
         stop : bool
         """
         ...
-
+    
     def iterate(self): # -> None:
         ...
-
+    
     def iterate_hypercube(self): # -> None:
         """
         Iterate a subdivision of the complex
@@ -517,7 +518,7 @@ class SHGO:
         Note: called with ``self.iterate_complex()`` after class initiation
         """
         ...
-
+    
     def iterate_delaunay(self): # -> None:
         """
         Build a complex of Delaunay triangulated points
@@ -525,13 +526,13 @@ class SHGO:
         Note: called with ``self.iterate_complex()`` after class initiation
         """
         ...
-
+    
     def minimizers(self): # -> NDArray[Any]:
         """
         Returns the indexes of all minimizers
         """
         ...
-
+    
     def minimise_pool(self, force_iter=...): # -> None:
         """
         This processing method can optionally minimise only the best candidate
@@ -545,13 +546,13 @@ class SHGO:
 
         """
         ...
-
+    
     def sort_min_pool(self): # -> None:
         ...
-
+    
     def trim_min_pool(self, trim_ind): # -> None:
         ...
-
+    
     def g_topograph(self, x_min, X_min):
         """
         Returns the topographical vector stemming from the specified value
@@ -561,7 +562,7 @@ class SHGO:
 
         """
         ...
-
+    
     def construct_lcb_simplicial(self, v_min): # -> list[list[Any]]:
         """
         Construct locally (approximately) convex bounds
@@ -579,7 +580,7 @@ class SHGO:
 
         """
         ...
-
+    
     def construct_lcb_delaunay(self, v_min, ind=...): # -> list[list[Any]]:
         """
         Construct locally (approximately) convex bounds
@@ -596,7 +597,7 @@ class SHGO:
             dimension.
         """
         ...
-
+    
     def minimize(self, x_min, ind=...):
         """
         This function is used to calculate the local minima using the specified
@@ -614,16 +615,16 @@ class SHGO:
             object.
         """
         ...
-
+    
     def sort_result(self): # -> OptimizeResult:
         """
         Sort results and build the global return object
         """
         ...
-
+    
     def fail_routine(self, mes=...): # -> None:
         ...
-
+    
     def sampled_surface(self, infty_cons_sampl=...): # -> None:
         """
         Sample the function surface.
@@ -641,45 +642,48 @@ class SHGO:
         requires more objective function evaluations.
         """
         ...
-
+    
     def sampling_custom(self, n, dim): # -> ndarray[Any, Any]:
         """
         Generates uniform sampling points in a hypercube and scales the points
         to the bound limits.
         """
         ...
-
+    
     def sampling_subspace(self): # -> None:
         """Find subspace of feasible points from g_func definition"""
         ...
-
+    
     def sorted_samples(self): # -> tuple[NDArray[intp], ndarray[Any, dtype[Any]] | Any | ndarray[Any, Any]]:
         """Find indexes of the sorted sampling points"""
         ...
-
+    
     def delaunay_triangulation(self, n_prc=...): # -> Tri | Delaunay:
         ...
-
+    
 
 
 class LMap:
     def __init__(self, v) -> None:
         ...
-
+    
 
 
 class LMapCache:
     def __init__(self) -> None:
         ...
-
+    
     def __getitem__(self, v):
         ...
-
+    
     def add_res(self, v, lres, bounds=...): # -> None:
         ...
-
+    
     def sort_cache_result(self): # -> dict[Any, Any]:
         """
         Sort results and build the global return object
         """
         ...
+    
+
+

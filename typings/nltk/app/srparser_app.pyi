@@ -70,28 +70,28 @@ class ShiftReduceApp:
     """
     def __init__(self, grammar, sent, trace=...) -> None:
         ...
-
+    
     def destroy(self, *e): # -> None:
         ...
-
+    
     def reset(self, *e): # -> None:
         ...
-
+    
     def step(self, *e): # -> Literal[True] | None:
         ...
-
+    
     def shift(self, *e): # -> bool | None:
         ...
-
+    
     def reduce(self, *e): # -> None:
         ...
-
+    
     def undo(self, *e): # -> None:
         ...
-
+    
     def postscript(self, *e): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         """
         Enter the Tkinter mainloop.  This function must be called if
@@ -100,28 +100,28 @@ class ShiftReduceApp:
         the script completes.
         """
         ...
-
+    
     def resize(self, size=...): # -> None:
         ...
-
+    
     def help(self, *e): # -> None:
         ...
-
+    
     def about(self, *e): # -> None:
         ...
-
+    
     def edit_grammar(self, *e): # -> None:
         ...
-
+    
     def set_grammar(self, grammar): # -> None:
         ...
-
+    
     def edit_sentence(self, *e): # -> None:
         ...
-
+    
     def set_sentence(self, sent): # -> None:
         ...
-
+    
 
 
 def app(): # -> None:

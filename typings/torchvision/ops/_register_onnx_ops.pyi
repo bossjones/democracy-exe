@@ -22,3 +22,4 @@ def roi_align_opset16(g, input, rois, spatial_scale, pooled_height, pooled_width
 @parse_args("v", "v", "f", "i", "i")
 def roi_pool(g, input, rois, spatial_scale, pooled_height, pooled_width): # -> tuple[Any, None]:
     ...
+

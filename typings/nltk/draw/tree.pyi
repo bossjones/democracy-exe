@@ -46,40 +46,40 @@ class TreeSegmentWidget(CanvasWidget):
         :type subtrees: list(CanvasWidgetI)
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> int | bool | Literal['horizontal', 'vertical']:
         ...
-
+    
     def label(self): # -> Any:
         ...
-
+    
     def subtrees(self):
         ...
-
+    
     def set_label(self, label): # -> None:
         """
         Set the node label to ``label``.
         """
         ...
-
+    
     def replace_child(self, oldchild, newchild): # -> None:
         """
         Replace the child ``oldchild`` with ``newchild``.
         """
         ...
-
+    
     def remove_child(self, child): # -> None:
         ...
-
+    
     def insert_child(self, index, child): # -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def tree_to_treesegment(canvas, t, make_node=..., make_leaf=..., **attribs): # -> TreeSegmentWidget:
@@ -147,7 +147,7 @@ class TreeWidget(CanvasWidget):
     """
     def __init__(self, canvas, t, make_node=..., make_leaf=..., **attribs) -> None:
         ...
-
+    
     def expanded_tree(self, *path_to_tree):
         """
         Return the ``TreeSegmentWidget`` for the specified subtree.
@@ -158,7 +158,7 @@ class TreeWidget(CanvasWidget):
             For the root, the path is ``()``.
         """
         ...
-
+    
     def collapsed_tree(self, *path_to_tree):
         """
         Return the ``TreeSegmentWidget`` for the specified subtree.
@@ -169,67 +169,67 @@ class TreeWidget(CanvasWidget):
             For the root, the path is ``()``.
         """
         ...
-
+    
     def bind_click_trees(self, callback, button=...): # -> None:
         """
         Add a binding to all tree segments.
         """
         ...
-
+    
     def bind_drag_trees(self, callback, button=...): # -> None:
         """
         Add a binding to all tree segments.
         """
         ...
-
+    
     def bind_click_leaves(self, callback, button=...): # -> None:
         """
         Add a binding to all leaves.
         """
         ...
-
+    
     def bind_drag_leaves(self, callback, button=...): # -> None:
         """
         Add a binding to all leaves.
         """
         ...
-
+    
     def bind_click_nodes(self, callback, button=...): # -> None:
         """
         Add a binding to all nodes.
         """
         ...
-
+    
     def bind_drag_nodes(self, callback, button=...): # -> None:
         """
         Add a binding to all nodes.
         """
         ...
-
+    
     def __setitem__(self, attr, value): # -> None:
         ...
-
+    
     def __getitem__(self, attr): # -> str | int | bool | None:
         ...
-
+    
     def toggle_collapsed(self, treeseg): # -> None:
         """
         Collapse/expand a tree.
         """
         ...
-
+    
 
 
 class TreeView:
     def __init__(self, *trees) -> None:
         ...
-
+    
     def resize(self, *e): # -> None:
         ...
-
+    
     def destroy(self, *e): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         """
         Enter the Tkinter mainloop.  This function must be called if
@@ -238,7 +238,7 @@ class TreeView:
         the script completes.
         """
         ...
-
+    
 
 
 def draw_trees(*trees): # -> None:

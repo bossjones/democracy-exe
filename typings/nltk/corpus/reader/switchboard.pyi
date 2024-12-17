@@ -15,34 +15,36 @@ class SwitchboardTurn(list):
     """
     def __init__(self, words, speaker, id) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class SwitchboardCorpusReader(CorpusReader):
     _FILES = ...
     def __init__(self, root, tagset=...) -> None:
         ...
-
+    
     def words(self): # -> StreamBackedCorpusView:
         ...
-
+    
     def tagged_words(self, tagset=...): # -> StreamBackedCorpusView:
         ...
-
+    
     def turns(self): # -> StreamBackedCorpusView:
         ...
-
+    
     def tagged_turns(self, tagset=...): # -> StreamBackedCorpusView:
         ...
-
+    
     def discourses(self): # -> StreamBackedCorpusView:
         ...
-
+    
     def tagged_discourses(self, tagset=...): # -> StreamBackedCorpusView:
         ...
-
+    
     _UTTERANCE_RE = ...
     _SEP = ...
+
+

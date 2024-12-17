@@ -70,10 +70,10 @@ class TerminationCondition:
     """
     def __init__(self, f_tol=..., f_rtol=..., x_tol=..., x_rtol=..., iter=..., norm=...) -> None:
         ...
-
+    
     def check(self, f, x, dx): # -> int:
         ...
-
+    
 
 
 class Jacobian:
@@ -115,33 +115,33 @@ class Jacobian:
     """
     def __init__(self, **kw) -> None:
         ...
-
+    
     def aspreconditioner(self): # -> InverseJacobian:
         ...
-
+    
     def solve(self, v, tol=...):
         ...
-
+    
     def update(self, x, F): # -> None:
         ...
-
+    
     def setup(self, x, F, func): # -> None:
         ...
-
+    
 
 
 class InverseJacobian:
     def __init__(self, jacobian) -> None:
         ...
-
+    
     @property
     def shape(self):
         ...
-
+    
     @property
     def dtype(self):
         ...
-
+    
 
 
 def asjacobian(J): # -> Jacobian | Jac | Anderson | BroydenFirst | DiagBroyden | ExcitingMixing | KrylovJacobian | LinearMixing:
@@ -153,10 +153,10 @@ def asjacobian(J): # -> Jacobian | Jac | Anderson | BroydenFirst | DiagBroyden |
 class GenericBroyden(Jacobian):
     def setup(self, x0, f0, func): # -> None:
         ...
-
+    
     def update(self, x, f): # -> None:
         ...
-
+    
 
 
 class LowRankMatrix:
@@ -171,45 +171,45 @@ class LowRankMatrix:
     """
     def __init__(self, alpha, n, dtype) -> None:
         ...
-
+    
     def matvec(self, v): # -> Any:
         """Evaluate w = M v"""
         ...
-
+    
     def rmatvec(self, v): # -> Any:
         """Evaluate w = M^H v"""
         ...
-
+    
     def solve(self, v, tol=...): # -> NDArray[floating[_64Bit]]:
         """Evaluate w = M^-1 v"""
         ...
-
+    
     def rsolve(self, v, tol=...): # -> NDArray[floating[_64Bit]]:
         """Evaluate w = M^-H v"""
         ...
-
+    
     def append(self, c, d): # -> None:
         ...
-
-    def __array__(self, dtype=..., copy=...): # -> NDArray[Any]:
+    
+    def __array__(self, dtype=..., copy=...):
         ...
-
+    
     def collapse(self): # -> None:
         """Collapse the low-rank matrix to a full-rank one."""
         ...
-
+    
     def restart_reduce(self, rank): # -> None:
         """
         Reduce the rank of the matrix by dropping all vectors.
         """
         ...
-
+    
     def simple_reduce(self, rank): # -> None:
         """
         Reduce the rank of the matrix by dropping oldest vectors.
         """
         ...
-
+    
     def svd_reduce(self, max_rank, to_retain=...): # -> None:
         """
         Reduce the rank of the matrix by retaining some SVD components.
@@ -240,7 +240,7 @@ class LowRankMatrix:
 
         """
         ...
-
+    
 
 
 class BroydenFirst(GenericBroyden):
@@ -298,25 +298,25 @@ class BroydenFirst(GenericBroyden):
     """
     def __init__(self, alpha=..., reduction_method=..., max_rank=...) -> None:
         ...
-
+    
     def setup(self, x, F, func): # -> None:
         ...
-
-    def todense(self):
+    
+    def todense(self): # -> NDArray[floating[_64Bit]] | NDArray[Any]:
         ...
-
+    
     def solve(self, f, tol=...): # -> Any:
         ...
-
+    
     def matvec(self, f): # -> NDArray[floating[_64Bit]]:
         ...
-
+    
     def rsolve(self, f, tol=...): # -> Any:
         ...
-
+    
     def rmatvec(self, f): # -> NDArray[floating[_64Bit]]:
         ...
-
+    
 
 
 class BroydenSecond(BroydenFirst):
@@ -419,13 +419,13 @@ class Anderson(GenericBroyden):
     """
     def __init__(self, alpha=..., w0=..., M=...) -> None:
         ...
-
+    
     def solve(self, f, tol=...):
         ...
-
+    
     def matvec(self, f):
         ...
-
+    
 
 
 class DiagBroyden(GenericBroyden):
@@ -470,25 +470,25 @@ class DiagBroyden(GenericBroyden):
     """
     def __init__(self, alpha=...) -> None:
         ...
-
+    
     def setup(self, x, F, func): # -> None:
         ...
-
+    
     def solve(self, f, tol=...):
         ...
-
+    
     def matvec(self, f):
         ...
-
+    
     def rsolve(self, f, tol=...):
         ...
-
+    
     def rmatvec(self, f):
         ...
-
+    
     def todense(self): # -> NDArray[Any]:
         ...
-
+    
 
 
 class LinearMixing(GenericBroyden):
@@ -515,22 +515,22 @@ class LinearMixing(GenericBroyden):
     """
     def __init__(self, alpha=...) -> None:
         ...
-
+    
     def solve(self, f, tol=...):
         ...
-
+    
     def matvec(self, f):
         ...
-
+    
     def rsolve(self, f, tol=...):
         ...
-
+    
     def rmatvec(self, f):
         ...
-
+    
     def todense(self):
         ...
-
+    
 
 
 class ExcitingMixing(GenericBroyden):
@@ -561,25 +561,25 @@ class ExcitingMixing(GenericBroyden):
     """
     def __init__(self, alpha=..., alphamax=...) -> None:
         ...
-
+    
     def setup(self, x, F, func): # -> None:
         ...
-
+    
     def solve(self, f, tol=...):
         ...
-
+    
     def matvec(self, f):
         ...
-
+    
     def rsolve(self, f, tol=...):
         ...
-
+    
     def rmatvec(self, f):
         ...
-
-    def todense(self):
+    
+    def todense(self): # -> NDArray[Any] | NDArray[floating[Any]]:
         ...
-
+    
 
 
 class KrylovJacobian(Jacobian):
@@ -685,19 +685,19 @@ class KrylovJacobian(Jacobian):
     """
     def __init__(self, rdiff=..., method=..., inner_maxiter=..., inner_M=..., outer_k=..., **kw) -> None:
         ...
-
+    
     def matvec(self, v):
         ...
-
+    
     def solve(self, rhs, tol=...): # -> ndarray[Any, dtype[Any]] | ndarray[Any, Any] | NDArray[floating[Any]] | Any:
         ...
-
+    
     def update(self, x, f): # -> None:
         ...
-
+    
     def setup(self, x, f, func): # -> None:
         ...
-
+    
 
 
 broyden1 = ...

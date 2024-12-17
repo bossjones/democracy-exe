@@ -20,9 +20,12 @@ class StanfordTokenizer(TokenizerI):
     _JAR = ...
     def __init__(self, path_to_jar=..., encoding=..., options=..., verbose=..., java_options=...) -> None:
         ...
-
+    
     def tokenize(self, s):
         """
         Use stanford tokenizer's PTBTokenizer to tokenize multiple sentences.
         """
         ...
+    
+
+

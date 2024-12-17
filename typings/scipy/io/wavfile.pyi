@@ -456,3 +456,4 @@ def write(filename, rate, data): # -> None:
 
     """
     ...
+

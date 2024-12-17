@@ -13,44 +13,44 @@ from ._base import _spbase
 """
 __all__ = []
 class _data_matrix(_spbase):
-    def __init__(self) -> None:
+    def __init__(self, arg1) -> None:
         ...
-
+    
     @property
     def dtype(self):
         ...
-
+    
     @dtype.setter
     def dtype(self, newtype): # -> None:
         ...
-
+    
     def __abs__(self):
         ...
-
+    
     def __round__(self, ndigits=...):
         ...
-
+    
     def __neg__(self):
         ...
-
+    
     def __imul__(self, other): # -> Self | _NotImplementedType:
         ...
-
+    
     def __itruediv__(self, other): # -> Self | _NotImplementedType:
         ...
-
+    
     def astype(self, dtype, casting=..., copy=...): # -> Self:
         ...
-
+    
     def conjugate(self, copy=...): # -> Self:
         ...
-
+    
     def copy(self):
         ...
-
+    
     def count_nonzero(self): # -> int:
         ...
-
+    
     def power(self, n, dtype=...):
         """
         This function performs element-wise power.
@@ -70,7 +70,7 @@ class _data_matrix(_spbase):
             `np.ones(A.shape, dtype=A.dtype)`
         """
         ...
-
+    
 
 
 class _minmax_mixin:
@@ -109,7 +109,7 @@ class _minmax_mixin:
 
         """
         ...
-
+    
     def min(self, axis=..., out=...):
         """
         Return the minimum of the array/matrix or maximum along an axis.
@@ -141,7 +141,7 @@ class _minmax_mixin:
 
         """
         ...
-
+    
     def nanmax(self, axis=..., out=...):
         """
         Return the maximum of the array/matrix or maximum along an axis, ignoring any
@@ -179,7 +179,7 @@ class _minmax_mixin:
 
         """
         ...
-
+    
     def nanmin(self, axis=..., out=...):
         """
         Return the minimum of the array/matrix or minimum along an axis, ignoring any
@@ -217,8 +217,8 @@ class _minmax_mixin:
 
         """
         ...
-
-    def argmax(self, axis=..., out=...): # -> int:
+    
+    def argmax(self, axis=..., out=...): # -> NDArray[Any] | int:
         """Return indices of maximum elements along an axis.
 
         Implicit zero elements are also taken into account. If there are
@@ -240,8 +240,8 @@ class _minmax_mixin:
             Indices of maximum elements. If matrix, its size along `axis` is 1.
         """
         ...
-
-    def argmin(self, axis=..., out=...): # -> int:
+    
+    def argmin(self, axis=..., out=...): # -> NDArray[Any] | int:
         """Return indices of minimum elements along an axis.
 
         Implicit zero elements are also taken into account. If there are
@@ -263,3 +263,6 @@ class _minmax_mixin:
             Indices of minimum elements. If matrix, its size along `axis` is 1.
         """
         ...
+    
+
+

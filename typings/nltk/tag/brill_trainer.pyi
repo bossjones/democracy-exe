@@ -25,7 +25,7 @@ class BrillTaggerTrainer:
         :rtype: BrillTagger
         """
         ...
-
+    
     def train(self, train_sents, max_rules=..., min_score=..., min_acc=...): # -> BrillTagger:
         r"""
         Trains the Brill tagger on the corpus *train_sents*,
@@ -171,3 +171,6 @@ class BrillTaggerTrainer:
         :rtype: BrillTagger
         """
         ...
+    
+
+

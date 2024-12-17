@@ -26,3 +26,4 @@ def ranks_from_scores(scores, rank_gap=...): # -> Generator[tuple[Any, int], Any
     ``spearman_correlation``.
     """
     ...
+

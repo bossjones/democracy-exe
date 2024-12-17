@@ -6,42 +6,11 @@ import array
 import asyncio
 import datetime
 import logging
-from collections.abc import (
-    AsyncIterable,
-    AsyncIterator,
-    Awaitable,
-    Collection,
-    Coroutine,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    NamedTuple,
-    Optional,
-    Protocol,
-    Set,
-    SupportsIndex,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
-
+from typing import Any, AsyncIterable, AsyncIterator, Awaitable, Callable, Collection, Coroutine, Dict, Generic, Iterable, Iterator, List, Literal, Mapping, NamedTuple, Optional, Protocol, Sequence, Set, SupportsIndex, TYPE_CHECKING, Tuple, Type, TypeVar, Union, overload
 from typing_extensions import ParamSpec, Self, TypeGuard
-
+from .permissions import Permissions
 from .abc import Snowflake
 from .invite import Invite
-from .permissions import Permissions
 from .template import Template
 
 """
@@ -74,34 +43,34 @@ class _MissingSentinel:
     __slots__ = ...
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __bool__(self) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     def __repr__(self): # -> Literal['...']:
         ...
-
+    
 
 
 MISSING: Any = ...
 class _cached_property:
     def __init__(self, function) -> None:
         ...
-
+    
     def __get__(self, instance, owner): # -> Self:
         ...
-
+    
 
 
 if TYPE_CHECKING:
     class _RequestLike(Protocol):
         headers: Mapping[str, Any]
         ...
-
-
+    
+    
     P = ParamSpec('P')
     MaybeAwaitableFunc = Callable[P, 'MaybeAwaitable[T]']
     _SnowflakeListBase = array.array[int]
@@ -115,30 +84,30 @@ MaybeAwaitable = Union[T, Awaitable[T]]
 class CachedSlotProperty(Generic[T, T_co]):
     def __init__(self, name: str, function: Callable[[T], T_co]) -> None:
         ...
-
+    
     @overload
     def __get__(self, instance: None, owner: Type[T]) -> CachedSlotProperty[T, T_co]:
         ...
-
+    
     @overload
     def __get__(self, instance: T, owner: Type[T]) -> T_co:
         ...
-
+    
     def __get__(self, instance: Optional[T], owner: Type[T]) -> Any:
         ...
-
+    
 
 
 class classproperty(Generic[T_co]):
     def __init__(self, fget: Callable[[Any], T_co]) -> None:
         ...
-
+    
     def __get__(self, instance: Optional[Any], owner: Type[Any]) -> T_co:
         ...
-
+    
     def __set__(self, instance: Optional[Any], value: Any) -> None:
         ...
-
+    
 
 
 def cached_slot_property(name: str) -> Callable[[Callable[[T], T_co]], CachedSlotProperty[T, T_co]]:
@@ -148,39 +117,39 @@ class SequenceProxy(Sequence[T_co]):
     """A proxy of a sequence that only creates a copy when necessary."""
     def __init__(self, proxied: Collection[T_co], *, sorted: bool = ...) -> None:
         ...
-
+    
     def __repr__(self) -> str:
         ...
-
+    
     @overload
     def __getitem__(self, idx: SupportsIndex) -> T_co:
         ...
-
+    
     @overload
     def __getitem__(self, idx: slice) -> List[T_co]:
         ...
-
+    
     def __getitem__(self, idx: Union[SupportsIndex, slice]) -> Union[T_co, List[T_co]]:
         ...
-
+    
     def __len__(self) -> int:
         ...
-
+    
     def __contains__(self, item: Any) -> bool:
         ...
-
+    
     def __iter__(self) -> Iterator[T_co]:
         ...
-
+    
     def __reversed__(self) -> Iterator[T_co]:
         ...
-
+    
     def index(self, value: Any, *args: Any, **kwargs: Any) -> int:
         ...
-
+    
     def count(self, value: Any) -> int:
         ...
-
+    
 
 
 @overload
@@ -499,19 +468,19 @@ class SnowflakeList(_SnowflakeListBase):
     if TYPE_CHECKING:
         def __init__(self, data: Iterable[int], *, is_sorted: bool = ...) -> None:
             ...
-
+        
     def __new__(cls, data: Iterable[int], *, is_sorted: bool = ...) -> Self:
         ...
-
+    
     def add(self, element: int) -> None:
         ...
-
+    
     def get(self, element: int) -> Optional[int]:
         ...
-
+    
     def has(self, element: int) -> bool:
         ...
-
+    
 
 
 class ResolvedInvite(NamedTuple):
@@ -671,6 +640,7 @@ def as_chunks(iterator: _Iter[T], max_size: int) -> _Iter[List[T]]:
     ...
 
 PY_310 = ...
+PY_312 = ...
 def flatten_literal_params(parameters: Iterable[Any]) -> Tuple[Any, ...]:
     ...
 
@@ -740,7 +710,7 @@ class _ColourFormatter(logging.Formatter):
     FORMATS = ...
     def format(self, record): # -> str:
         ...
-
+    
 
 
 def setup_logging(*, handler: logging.Handler = ..., formatter: logging.Formatter = ..., level: int = ..., root: bool = ...) -> None:

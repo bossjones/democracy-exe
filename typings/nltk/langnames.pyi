@@ -98,7 +98,7 @@ def lang2q(name):
     """
     ...
 
-def inverse_dict(dic): # -> dict | None:
+def inverse_dict(dic): # -> dict[Any, Any] | None:
     """Return inverse mapping, but only if it is bijective"""
     ...
 

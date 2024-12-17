@@ -9,3 +9,6 @@ logger = ...
 class ViltFeatureExtractor(ViltImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

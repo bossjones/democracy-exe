@@ -150,7 +150,7 @@ class Data:
     """
     def __init__(self, x, y=..., we=..., wd=..., fix=..., meta=...) -> None:
         ...
-
+    
     def set_meta(self, **kwds): # -> None:
         """ Update the metadata dictionary with the keywords and data provided
         by keywords.
@@ -162,12 +162,12 @@ class Data:
             data.set_meta(lab="Ph 7; Lab 26", title="Ag110 + Ag108 Decay")
         """
         ...
-
+    
     def __getattr__(self, attr):
         """ Dispatch attribute access to the metadata dictionary.
         """
         ...
-
+    
 
 
 class RealData(Data):
@@ -216,11 +216,11 @@ class RealData(Data):
     The weights `wd` and `we` are computed from provided values as follows:
 
     `sx` and `sy` are converted to weights by dividing 1.0 by their squares.
-    For example, ``wd = 1./numpy.power(`sx`, 2)``.
+    For example, ``wd = 1./np.power(`sx`, 2)``.
 
     `covx` and `covy` are arrays of covariance matrices and are converted to
     weights by performing a matrix inversion on each observation's covariance
-    matrix. For example, ``we[i] = numpy.linalg.inv(covy[i])``.
+    matrix. For example, ``we[i] = np.linalg.inv(covy[i])``.
 
     These arguments follow the same structured argument conventions as wd and
     we only restricted by their natures: `sx` and `sy` can't be rank-3, but
@@ -232,10 +232,10 @@ class RealData(Data):
     """
     def __init__(self, x, y=..., sx=..., sy=..., covx=..., covy=..., fix=..., meta=...) -> None:
         ...
-
+    
     def __getattr__(self, attr): # -> None:
         ...
-
+    
 
 
 class Model:
@@ -315,7 +315,7 @@ class Model:
     """
     def __init__(self, fcn, fjacb=..., fjacd=..., extra_args=..., estimate=..., implicit=..., meta=...) -> None:
         ...
-
+    
     def set_meta(self, **kwds): # -> None:
         """ Update the metadata dictionary with the keywords and data provided
         here.
@@ -325,12 +325,12 @@ class Model:
         set_meta(name="Exponential", equation="y = a exp(b x) + c")
         """
         ...
-
+    
     def __getattr__(self, attr):
         """ Dispatch attribute access to the metadata.
         """
         ...
-
+    
 
 
 class Output:
@@ -345,9 +345,9 @@ class Output:
         Standard deviations of the estimated parameters, of shape (p,).
     cov_beta : ndarray
         Covariance matrix of the estimated parameters, of shape (p,p).
-        Note that this `cov_beta` is not scaled by the residual variance
-        `res_var`, whereas `sd_beta` is. This means
-        ``np.sqrt(np.diag(output.cov_beta * output.res_var))`` is the same
+        Note that this `cov_beta` is not scaled by the residual variance 
+        `res_var`, whereas `sd_beta` is. This means 
+        ``np.sqrt(np.diag(output.cov_beta * output.res_var))`` is the same 
         result as `output.sd_beta`.
     delta : ndarray, optional
         Array of estimated errors in input variables, of same shape as `x`.
@@ -387,12 +387,12 @@ class Output:
     """
     def __init__(self, output) -> None:
         ...
-
+    
     def pprint(self): # -> None:
         """ Pretty-print important results.
         """
         ...
-
+    
 
 
 class ODR:
@@ -509,7 +509,7 @@ class ODR:
     """
     def __init__(self, data, model, beta0=..., delta0=..., ifixb=..., ifixx=..., job=..., iprint=..., errfile=..., rptfile=..., ndigit=..., taufac=..., sstol=..., partol=..., maxit=..., stpb=..., stpd=..., sclb=..., scld=..., work=..., iwork=..., overwrite=...) -> None:
         ...
-
+    
     def set_job(self, fit_type=..., deriv=..., var_calc=..., del_init=..., restart=...): # -> None:
         """
         Sets the "job" parameter is a hopefully comprehensible way.
@@ -565,7 +565,7 @@ class ODR:
 
         """
         ...
-
+    
     def set_iprint(self, init=..., so_init=..., iter=..., so_iter=..., iter_step=..., final=..., so_final=...): # -> None:
         """ Set the iprint parameter for the printing of computation reports.
 
@@ -592,7 +592,7 @@ class ODR:
         exception.
         """
         ...
-
+    
     def run(self): # -> Output:
         """ Run the fitting routine with all of the information given and with ``full_output=1``.
 
@@ -602,7 +602,7 @@ class ODR:
             This object is also assigned to the attribute .output .
         """
         ...
-
+    
     def restart(self, iter=...): # -> Output:
         """ Restarts the run with iter more iterations.
 
@@ -617,3 +617,6 @@ class ODR:
             This object is also assigned to the attribute .output .
         """
         ...
+    
+
+

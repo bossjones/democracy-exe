@@ -160,7 +160,7 @@ class DCSRCH:
     """
     def __init__(self, phi, derphi, ftol, gtol, xtol, stpmin, stpmax) -> None:
         ...
-
+    
     def __call__(self, alpha1, phi0=..., derphi0=..., maxiter=...): # -> tuple[Any | None, Any, Any, Any | bytes | Literal[b"WARN"]]:
         """
         Parameters
@@ -195,7 +195,7 @@ class DCSRCH:
            input arguments.
         """
         ...
-
+    
 
 
 def dcstep(stx, fx, dx, sty, fy, dy, stp, fp, dp, brackt, stpmin, stpmax): # -> tuple[Any, Any, Any, Any, Any, Any, Any, Any | Literal[True]]:
@@ -291,3 +291,4 @@ def dcstep(stx, fx, dx, sty, fy, dy, stp, fp, dp, brackt, stpmin, stpmax): # -> 
 
     """
     ...
+

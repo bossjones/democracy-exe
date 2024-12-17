@@ -76,17 +76,17 @@ class Package:
     """
     def __init__(self, id, url, name=..., subdir=..., size=..., unzipped_size=..., checksum=..., svn_revision=..., copyright=..., contact=..., license=..., author=..., unzip=..., **kw) -> None:
         ...
-
+    
     @staticmethod
     def fromxml(xml): # -> Package:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
 
 
 class Collection:
@@ -97,17 +97,17 @@ class Collection:
     """
     def __init__(self, id, children, name=..., **kw) -> None:
         ...
-
+    
     @staticmethod
     def fromxml(xml): # -> Collection:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
 
 
 class DownloaderMessage:
@@ -120,91 +120,91 @@ class StartCollectionMessage(DownloaderMessage):
     """Data server has started working on a collection of packages."""
     def __init__(self, collection) -> None:
         ...
-
+    
 
 
 class FinishCollectionMessage(DownloaderMessage):
     """Data server has finished working on a collection of packages."""
     def __init__(self, collection) -> None:
         ...
-
+    
 
 
 class StartPackageMessage(DownloaderMessage):
     """Data server has started working on a package."""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class FinishPackageMessage(DownloaderMessage):
     """Data server has finished working on a package."""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class StartDownloadMessage(DownloaderMessage):
     """Data server has started downloading a package."""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class FinishDownloadMessage(DownloaderMessage):
     """Data server has finished downloading a package."""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class StartUnzipMessage(DownloaderMessage):
     """Data server has started unzipping a package."""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class FinishUnzipMessage(DownloaderMessage):
     """Data server has finished unzipping a package."""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class UpToDateMessage(DownloaderMessage):
     """The package download file is already up-to-date"""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class StaleMessage(DownloaderMessage):
     """The package download file is out-of-date or corrupt"""
     def __init__(self, package) -> None:
         ...
-
+    
 
 
 class ErrorMessage(DownloaderMessage):
     """Data server encountered an error"""
     def __init__(self, package, message) -> None:
         ...
-
+    
 
 
 class ProgressMessage(DownloaderMessage):
     """Indicates how much progress the data server has made"""
     def __init__(self, progress) -> None:
         ...
-
+    
 
 
 class SelectDownloadDirMessage(DownloaderMessage):
     """Indicates what download directory the data server is using"""
     def __init__(self, download_dir) -> None:
         ...
-
+    
 
 
 class Downloader:
@@ -220,37 +220,37 @@ class Downloader:
     PARTIAL = ...
     def __init__(self, server_index_url=..., download_dir=...) -> None:
         ...
-
+    
     def list(self, download_dir=..., show_packages=..., show_collections=..., header=..., more_prompt=..., skip_installed=...): # -> None:
         ...
-
+    
     def packages(self): # -> dict_values[Any, Package]:
         ...
-
+    
     def corpora(self): # -> list[Package]:
         ...
-
+    
     def models(self): # -> list[Package]:
         ...
-
+    
     def collections(self): # -> dict_values[Any, Collection]:
         ...
-
+    
     def incr_download(self, info_or_id, download_dir=..., force=...): # -> Generator[SelectDownloadDirMessage | ErrorMessage | ProgressMessage | Any | StartCollectionMessage | FinishCollectionMessage | StartPackageMessage | UpToDateMessage | FinishPackageMessage | StaleMessage | StartDownloadMessage | FinishDownloadMessage | StartUnzipMessage | FinishUnzipMessage, Any, None]:
         ...
-
+    
     def download(self, info_or_id=..., download_dir=..., quiet=..., force=..., prefix=..., halt_on_error=..., raise_on_error=..., print_error_to=...): # -> bool:
         ...
-
+    
     def is_stale(self, info_or_id, download_dir=...): # -> bool:
         ...
-
+    
     def is_installed(self, info_or_id, download_dir=...): # -> bool:
         ...
-
+    
     def clear_status_cache(self, id=...): # -> None:
         ...
-
+    
     def status(self, info_or_id, download_dir=...): # -> Literal['out of date', 'partial', 'not installed', 'installed']:
         """
         Return a constant describing the status of the given package
@@ -258,13 +258,13 @@ class Downloader:
         ``NOT_INSTALLED``, ``STALE``, or ``PARTIAL``.
         """
         ...
-
+    
     def update(self, quiet=..., prefix=...): # -> None:
         """
         Re-download any packages whose status is STALE.
         """
         ...
-
+    
     def index(self): # -> None:
         """
         Return the XML index describing the packages available from
@@ -272,16 +272,16 @@ class Downloader:
         from the data server.
         """
         ...
-
+    
     def info(self, id): # -> Package | Collection:
         """Return the ``Package`` or ``Collection`` record for the
         given item."""
         ...
-
+    
     def xmlinfo(self, id):
         """Return the XML info record for the given item"""
         ...
-
+    
     url = ...
     def default_download_dir(self): # -> str | None:
         """
@@ -300,17 +300,17 @@ class Downloader:
         ``/usr/lib/nltk_data``, ``/usr/local/lib/nltk_data``, ``~/nltk_data``.
         """
         ...
-
+    
     download_dir = ...
 
 
 class DownloaderShell:
     def __init__(self, dataserver) -> None:
         ...
-
+    
     def run(self): # -> None:
         ...
-
+    
 
 
 class DownloaderGUI:
@@ -332,33 +332,33 @@ class DownloaderGUI:
     _TAB_FONT = ...
     def __init__(self, dataserver, use_threads=...) -> None:
         ...
-
+    
     _tab = ...
     _rows = ...
     _DL_DELAY = ...
     def destroy(self, *e): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         ...
-
+    
     HELP = ...
     def help(self, *e): # -> None:
         ...
-
+    
     def about(self, *e): # -> None:
         ...
-
+    
     _gradient_width = ...
     class _DownloadThread(threading.Thread):
         def __init__(self, data_server, items, lock, message_queue, abort) -> None:
             ...
-
+        
         def run(self): # -> None:
             ...
-
-
-
+        
+    
+    
     _MONITOR_QUEUE_DELAY = ...
 
 

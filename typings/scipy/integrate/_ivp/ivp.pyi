@@ -10,7 +10,7 @@ class OdeResult(OptimizeResult):
     ...
 
 
-def prepare_events(events): # -> tuple[tuple[Any] | Any, NDArray[float64], NDArray[float64]]:
+def prepare_events(events): # -> tuple[tuple[Callable[..., object]] | Any, NDArray[float64], NDArray[float64]]:
     """Standardize event functions and extract attributes."""
     ...
 
@@ -502,3 +502,4 @@ def solve_ivp(fun, t_span, y0, method=..., t_eval=..., dense_output=..., events=
 
     """
     ...
+

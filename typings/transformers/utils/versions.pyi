@@ -29,3 +29,4 @@ def require_version(requirement: str, hint: Optional[str] = ...) -> None:
 def require_version_core(requirement): # -> None:
     """require_version wrapper which emits a core-specific hint on failure"""
     ...
+

@@ -63,7 +63,7 @@ class LegalitySyllableTokenizer(TokenizerI):
         :type legal_frequency_threshold: float
         """
         ...
-
+    
     def find_legal_onsets(self, words): # -> set[Any | str]:
         """
         Gathers all onsets and then return only those above the frequency threshold
@@ -74,7 +74,7 @@ class LegalitySyllableTokenizer(TokenizerI):
         :rtype: set(str)
         """
         ...
-
+    
     def onset(self, word): # -> Literal['']:
         """
         Returns consonant cluster of word, i.e. all characters until the first vowel.
@@ -85,8 +85,8 @@ class LegalitySyllableTokenizer(TokenizerI):
         :rtype: str
         """
         ...
-
-    def tokenize(self, token): # -> list:
+    
+    def tokenize(self, token): # -> list[Any]:
         """
         Apply the Legality Principle in combination with
         Onset Maximization to return a list of syllables.
@@ -97,3 +97,6 @@ class LegalitySyllableTokenizer(TokenizerI):
         :rtype: list(str)
         """
         ...
+    
+
+

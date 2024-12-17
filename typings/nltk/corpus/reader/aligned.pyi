@@ -22,16 +22,16 @@ class AlignedCorpusReader(CorpusReader):
         :param fileids: A list or regexp specifying the fileids in this corpus.
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of words
             and punctuation symbols.
         :rtype: list(str)
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences or utterances, each encoded as a list of word
@@ -39,14 +39,14 @@ class AlignedCorpusReader(CorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def aligned_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def aligned_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of AlignedSent objects.
         :rtype: list(AlignedSent)
         """
         ...
-
+    
 
 
 class AlignedSentCorpusView(StreamBackedCorpusView):
@@ -57,6 +57,9 @@ class AlignedSentCorpusView(StreamBackedCorpusView):
     """
     def __init__(self, corpus_file, encoding, aligned, group_by_sent, word_tokenizer, sent_tokenizer, alignedsent_block_reader) -> None:
         ...
-
-    def read_block(self, stream): # -> list[AlignedSent] | list:
+    
+    def read_block(self, stream): # -> list[AlignedSent] | list[Any]:
         ...
+    
+
+

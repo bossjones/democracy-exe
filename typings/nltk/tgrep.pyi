@@ -108,7 +108,7 @@ class TgrepException(Exception):
     ...
 
 
-def ancestors(node): # -> list:
+def ancestors(node): # -> list[Any]:
     """
     Returns the list of all nodes dominating the given tree node.
     This method will not work with leaf nodes, since there is no way
@@ -116,14 +116,14 @@ def ancestors(node): # -> list:
     """
     ...
 
-def unique_ancestors(node): # -> list:
+def unique_ancestors(node): # -> list[Any]:
     """
     Returns the list of all nodes dominating the given node, where
     there is only a single path of descent.
     """
     ...
 
-def tgrep_tokenize(tgrep_string): # -> list:
+def tgrep_tokenize(tgrep_string): # -> list[Any]:
     """
     Tokenizes a TGrep search string into separate tokens.
     """
@@ -136,14 +136,14 @@ def tgrep_compile(tgrep_string):
     """
     ...
 
-def treepositions_no_leaves(tree): # -> list:
+def treepositions_no_leaves(tree): # -> list[Any]:
     """
     Returns all the tree positions in the given tree which are not
     leaf nodes.
     """
     ...
 
-def tgrep_positions(pattern, trees, search_leaves=...): # -> Generator[list, Any, None]:
+def tgrep_positions(pattern, trees, search_leaves=...): # -> Generator[list[Any], Any, None]:
     """
     Return the tree positions in the trees which match the given pattern.
 
@@ -157,7 +157,7 @@ def tgrep_positions(pattern, trees, search_leaves=...): # -> Generator[list, Any
     """
     ...
 
-def tgrep_nodes(pattern, trees, search_leaves=...): # -> Generator[list, Any, None]:
+def tgrep_nodes(pattern, trees, search_leaves=...): # -> Generator[list[Any], Any, None]:
     """
     Return the tree nodes in the trees which match the given pattern.
 
@@ -170,3 +170,4 @@ def tgrep_nodes(pattern, trees, search_leaves=...): # -> Generator[list, Any, No
     :rtype: iter(tree nodes)
     """
     ...
+

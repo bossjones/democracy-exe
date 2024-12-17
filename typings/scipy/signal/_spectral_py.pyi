@@ -1337,3 +1337,4 @@ def coherence(x, y, fs=..., window=..., nperseg=..., noverlap=..., nfft=..., det
 
     """
     ...
+

@@ -56,10 +56,10 @@ class Comparison:
         :param keyword: the word or phrase which is used for that comparative relation.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class ComparativeSentencesCorpusReader(CorpusReader):
@@ -90,8 +90,8 @@ class ComparativeSentencesCorpusReader(CorpusReader):
         :param encoding: the encoding that should be used to read the corpus.
         """
         ...
-
-    def comparisons(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def comparisons(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all comparisons in the corpus.
 
@@ -101,7 +101,7 @@ class ComparativeSentencesCorpusReader(CorpusReader):
         :rtype: list(Comparison)
         """
         ...
-
+    
     def keywords(self, fileids=...): # -> set[str | Any]:
         """
         Return a set of all keywords used in the corpus.
@@ -112,15 +112,15 @@ class ComparativeSentencesCorpusReader(CorpusReader):
         :rtype: set(str)
         """
         ...
-
-    def keywords_readme(self): # -> list:
+    
+    def keywords_readme(self): # -> list[Any]:
         """
         Return the list of words and constituents considered as clues of a
         comparison (from listOfkeywords.txt).
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all sentences in the corpus.
 
@@ -131,8 +131,8 @@ class ComparativeSentencesCorpusReader(CorpusReader):
         :rtype: list(list(str)) or list(str)
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all words and punctuation symbols in the corpus.
 
@@ -142,3 +142,6 @@ class ComparativeSentencesCorpusReader(CorpusReader):
         :rtype: list(str)
         """
         ...
+    
+
+

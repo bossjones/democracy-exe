@@ -84,7 +84,7 @@ class NearestNDInterpolator(NDInterpolatorBase):
     """
     def __init__(self, x, y, rescale=..., tree_options=...) -> None:
         ...
-
+    
     def __call__(self, *args, **query_options): # -> ndarray[Any, dtype[Any]]:
         """
         Evaluate interpolator at given points.
@@ -104,7 +104,7 @@ class NearestNDInterpolator(NDInterpolatorBase):
 
         """
         ...
-
+    
 
 
 def griddata(points, values, xi, method=..., fill_value=..., rescale=...): # -> ndarray[Any, dtype[Any]]:
@@ -228,3 +228,4 @@ def griddata(points, values, xi, method=..., fill_value=..., rescale=...): # -> 
 
     """
     ...
+

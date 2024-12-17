@@ -1897,3 +1897,4 @@ def get_window(window, Nx, fftbins=...): # -> NDArray[float64] | Any:
 
     """
     ...
+

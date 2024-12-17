@@ -14,13 +14,13 @@ class Storage:
     """
     def __init__(self, minres) -> None:
         ...
-
+    
     def update(self, minres): # -> bool:
         ...
-
+    
     def get_lowest(self):
         ...
-
+    
 
 
 class BasinHoppingRunner:
@@ -48,16 +48,16 @@ class BasinHoppingRunner:
     """
     def __init__(self, x0, minimizer, step_taking, accept_tests, disp=...) -> None:
         ...
-
+    
     def one_cycle(self): # -> bool:
         """Do one cycle of the basinhopping algorithm
         """
         ...
-
+    
     def print_report(self, energy_trial, accept): # -> None:
         """print a status update"""
         ...
-
+    
 
 
 class AdaptiveStepsize:
@@ -85,17 +85,17 @@ class AdaptiveStepsize:
     """
     def __init__(self, takestep, accept_rate=..., interval=..., factor=..., verbose=...) -> None:
         ...
-
+    
     def __call__(self, x):
         ...
-
+    
     def take_step(self, x):
         ...
-
+    
     def report(self, accept, **kwargs): # -> None:
         "called by basinhopping to report the result of the step"
         ...
-
+    
 
 
 class RandomDisplacement:
@@ -120,10 +120,10 @@ class RandomDisplacement:
     """
     def __init__(self, stepsize=..., random_gen=...) -> None:
         ...
-
+    
     def __call__(self, x):
         ...
-
+    
 
 
 class MinimizerWrapper:
@@ -132,10 +132,10 @@ class MinimizerWrapper:
     """
     def __init__(self, minimizer, func=..., **kwargs) -> None:
         ...
-
+    
     def __call__(self, x0):
         ...
-
+    
 
 
 class Metropolis:
@@ -159,7 +159,7 @@ class Metropolis:
     """
     def __init__(self, T, random_gen=...) -> None:
         ...
-
+    
     def accept_reject(self, res_new, res_old): # -> bool:
         """
         Assuming the local search underlying res_new was successful:
@@ -168,13 +168,13 @@ class Metropolis:
         less likely for larger differences.
         """
         ...
-
+    
     def __call__(self, *, res_new, res_old): # -> bool:
         """
         f_new and f_old are mandatory in kwargs
         """
         ...
-
+    
 
 
 def basinhopping(func, x0, niter=..., T=..., stepsize=..., minimizer_kwargs=..., take_step=..., accept_test=..., callback=..., interval=..., disp=..., niter_success=..., seed=..., *, target_accept_rate=..., stepwise_factor=...): # -> OptimizeResult:
@@ -395,8 +395,9 @@ def basinhopping(func, x0, niter=..., T=..., stepsize=..., minimizer_kwargs=...,
     >>> minimizer_kwargs = {"method": "BFGS"}
     >>> ret = basinhopping(func, x0, minimizer_kwargs=minimizer_kwargs,
     ...                    niter=200)
-    >>> print("global minimum: x = %.4f, f(x) = %.4f" % (ret.x, ret.fun))
-    global minimum: x = -0.1951, f(x) = -1.0009
+    >>> # the global minimum is:
+    >>> ret.x, ret.fun
+    -0.1951, -1.0009
 
     Next consider a 2-D minimization problem. Also, this time, we
     will use gradient information to significantly speed up the search.
@@ -475,3 +476,4 @@ def basinhopping(func, x0, niter=..., T=..., stepsize=..., minimizer_kwargs=...,
 
     """
     ...
+

@@ -16,21 +16,21 @@ class AbstractCCGCategory(metaclass=ABCMeta):
         Returns true if the category is primitive.
         """
         ...
-
+    
     @abstractmethod
     def is_function(self): # -> None:
         """
         Returns true if the category is a function application.
         """
         ...
-
+    
     @abstractmethod
     def is_var(self): # -> None:
         """
         Returns true if the category is a variable.
         """
         ...
-
+    
     @abstractmethod
     def substitute(self, substitutions): # -> None:
         """
@@ -38,7 +38,7 @@ class AbstractCCGCategory(metaclass=ABCMeta):
         occurrence of the variable with the corresponding category.
         """
         ...
-
+    
     @abstractmethod
     def can_unify(self, other): # -> None:
         """
@@ -47,23 +47,23 @@ class AbstractCCGCategory(metaclass=ABCMeta):
          - Returns a list of necessary substitutions if they can.
         """
         ...
-
+    
     @abstractmethod
     def __str__(self) -> str:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
 
 
 class CCGVar(AbstractCCGCategory):
@@ -81,45 +81,45 @@ class CCGVar(AbstractCCGCategory):
         :type prim_only: bool
         """
         ...
-
+    
     @classmethod
     def new_id(cls): # -> int:
         """
         A class method allowing generation of unique variable identifiers.
         """
         ...
-
+    
     @classmethod
     def reset_id(cls): # -> None:
         ...
-
+    
     def is_primitive(self): # -> Literal[False]:
         ...
-
+    
     def is_function(self): # -> Literal[False]:
         ...
-
+    
     def is_var(self): # -> Literal[True]:
         ...
-
+    
     def substitute(self, substitutions): # -> Self:
         """If there is a substitution corresponding to this variable,
         return the substituted category.
         """
         ...
-
+    
     def can_unify(self, other): # -> list[tuple[Self, Any]] | None:
         """If the variable can be replaced with other
         a substitution is returned.
         """
         ...
-
+    
     def id(self): # -> int:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 @total_ordering
@@ -131,16 +131,16 @@ class Direction:
     """
     def __init__(self, dir, restrictions) -> None:
         ...
-
+    
     def is_forward(self):
         ...
-
+    
     def is_backward(self):
         ...
-
+    
     def dir(self): # -> Any:
         ...
-
+    
     def restrs(self): # -> Any:
         """A list of restrictions on the combinators.
         '.' denotes that permuting operations are disallowed
@@ -149,40 +149,40 @@ class Direction:
         (This is redundant in the current implementation of type-raising)
         """
         ...
-
+    
     def is_variable(self):
         ...
-
-    def can_unify(self, other): # -> list[tuple[str, Any]] | list | None:
+    
+    def can_unify(self, other): # -> list[tuple[str, Any]] | list[Any] | None:
         ...
-
+    
     def substitute(self, subs): # -> Self | Direction:
         ...
-
+    
     def can_compose(self): # -> bool:
         ...
-
+    
     def can_cross(self): # -> bool:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __neg__(self): # -> Direction:
         ...
-
+    
 
 
 class PrimitiveCategory(AbstractCCGCategory):
@@ -193,31 +193,31 @@ class PrimitiveCategory(AbstractCCGCategory):
     """
     def __init__(self, categ, restrictions=...) -> None:
         ...
-
+    
     def is_primitive(self): # -> Literal[True]:
         ...
-
+    
     def is_function(self): # -> Literal[False]:
         ...
-
+    
     def is_var(self): # -> Literal[False]:
         ...
-
+    
     def restrs(self):
         ...
-
+    
     def categ(self): # -> Any:
         ...
-
+    
     def substitute(self, subs): # -> Self:
         ...
-
-    def can_unify(self, other): # -> list[tuple[Any, Self]] | list | None:
+    
+    def can_unify(self, other): # -> list[tuple[Any, Self]] | list[Any] | None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class FunctionalCategory(AbstractCCGCategory):
@@ -228,30 +228,33 @@ class FunctionalCategory(AbstractCCGCategory):
     """
     def __init__(self, res, arg, dir) -> None:
         ...
-
+    
     def is_primitive(self): # -> Literal[False]:
         ...
-
+    
     def is_function(self): # -> Literal[True]:
         ...
-
+    
     def is_var(self): # -> Literal[False]:
         ...
-
+    
     def substitute(self, subs): # -> FunctionalCategory:
         ...
-
+    
     def can_unify(self, other): # -> list[tuple[Any, Self]] | None:
         ...
-
+    
     def arg(self): # -> Any:
         ...
-
+    
     def res(self): # -> Any:
         ...
-
+    
     def dir(self): # -> Any:
         ...
-
+    
     def __str__(self) -> str:
         ...
+    
+
+

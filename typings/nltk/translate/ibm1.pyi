@@ -112,13 +112,13 @@ class IBMModel1(IBMModel):
         :type probability_tables: dict[str]: object
         """
         ...
-
+    
     def set_uniform_probabilities(self, sentence_aligned_corpus): # -> None:
         ...
-
+    
     def train(self, parallel_corpus): # -> None:
         ...
-
+    
     def prob_all_alignments(self, src_sentence, trg_sentence): # -> defaultdict[Any, float]:
         """
         Computes the probability of all possible word alignments,
@@ -134,24 +134,24 @@ class IBMModel1(IBMModel):
         :rtype: dict(str): float
         """
         ...
-
+    
     def prob_alignment_point(self, s, t):
         """
         Probability that word ``t`` in the target sentence is aligned to
         word ``s`` in the source sentence
         """
         ...
-
+    
     def prob_t_a_given_s(self, alignment_info): # -> float:
         """
         Probability of target sentence and an alignment given the
         source sentence
         """
         ...
-
+    
     def align_all(self, parallel_corpus): # -> None:
         ...
-
+    
     def align(self, sentence_pair): # -> None:
         """
         Determines the best word alignment for one sentence pair from
@@ -167,3 +167,6 @@ class IBMModel1(IBMModel):
         :type sentence_pair: AlignedSent
         """
         ...
+    
+
+

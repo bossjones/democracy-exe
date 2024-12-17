@@ -21,7 +21,7 @@ class Covariance:
 
     Examples
     --------
-    The `Covariance` class is is used by calling one of its
+    The `Covariance` class is used by calling one of its
     factory methods to create a `Covariance` object, then pass that
     representation of the `Covariance` matrix as a shape parameter of a
     multivariate distribution.
@@ -53,7 +53,7 @@ class Covariance:
     """
     def __init__(self) -> None:
         ...
-
+    
     @staticmethod
     def from_diagonal(diagonal): # -> CovViaDiagonal:
         r"""
@@ -114,7 +114,7 @@ class Covariance:
 
         """
         ...
-
+    
     @staticmethod
     def from_precision(precision, covariance=...): # -> CovViaPrecision:
         r"""
@@ -177,7 +177,7 @@ class Covariance:
 
         """
         ...
-
+    
     @staticmethod
     def from_cholesky(cholesky): # -> CovViaCholesky:
         r"""
@@ -235,7 +235,7 @@ class Covariance:
 
         """
         ...
-
+    
     @staticmethod
     def from_eigendecomposition(eigendecomposition): # -> CovViaEigendecomposition:
         r"""
@@ -301,7 +301,7 @@ class Covariance:
 
         """
         ...
-
+    
     def whiten(self, x):
         """
         Perform a whitening transformation on data.
@@ -352,7 +352,7 @@ class Covariance:
 
         """
         ...
-
+    
     def colorize(self, x):
         """
         Perform a colorizing transformation on data.
@@ -403,59 +403,59 @@ class Covariance:
         True
         """
         ...
-
+    
     @property
     def log_pdet(self): # -> ndarray[Any, dtype[Any]]:
         """
         Log of the pseudo-determinant of the covariance matrix
         """
         ...
-
+    
     @property
     def rank(self): # -> ndarray[Any, dtype[Any]]:
         """
         Rank of the covariance matrix
         """
         ...
-
+    
     @property
     def covariance(self):
         """
         Explicit representation of the covariance matrix
         """
         ...
-
+    
     @property
     def shape(self):
         """
         Shape of the covariance array
         """
         ...
-
+    
 
 
 class CovViaPrecision(Covariance):
     def __init__(self, precision, covariance=...) -> None:
         ...
-
+    
 
 
 class CovViaDiagonal(Covariance):
     def __init__(self, diagonal) -> None:
         ...
-
+    
 
 
 class CovViaCholesky(Covariance):
     def __init__(self, cholesky) -> None:
         ...
-
+    
 
 
 class CovViaEigendecomposition(Covariance):
     def __init__(self, eigendecomposition) -> None:
         ...
-
+    
 
 
 class CovViaPSD(Covariance):
@@ -464,3 +464,6 @@ class CovViaPSD(Covariance):
     """
     def __init__(self, psd) -> None:
         ...
+    
+
+

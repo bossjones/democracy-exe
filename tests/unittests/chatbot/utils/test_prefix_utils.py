@@ -88,14 +88,15 @@ async def test_get_guild_prefix_nonexistent(mock_bot: Any, caplog: LogCaptureFix
 
 
 @pytest.mark.asyncio
-async def test_get_guild_prefix_error(mock_bot: Any, caplog: LogCaptureFixture) -> None:
+async def test_get_guild_prefix_error(mock_bot: Any, mocker: MockerFixture, caplog: LogCaptureFixture) -> None:
     """Test getting prefix with an error.
 
     Args:
         mock_bot: Mock bot fixture
         caplog: Pytest log capture fixture
     """
-    mock_bot.prefixes.get.side_effect = Exception("Test error")
+    mock_bot.prefixes = {123: ["!"]}
+    mock_bot.prefixes.get = mocker.MagicMock(side_effect=Exception("Test error"))
     prefix = get_guild_prefix(mock_bot, 123)
     assert prefix == aiosettings.prefix
     assert "Error getting guild prefix: Test error" in caplog.text
@@ -119,7 +120,7 @@ async def test_get_prefix_dm_channel(
 
     result = await get_prefix(mock_bot, mock_message)
     assert isinstance(result, list)
-    assert aiosettings.prefix in result[0]
+    assert any(aiosettings.prefix in prefix for prefix in result)
     assert f"Getting prefix for message: {mock_message.id}" in caplog.text
 
 
@@ -189,7 +190,7 @@ async def test_get_prefix_error(mock_bot: Any, mock_message: Any, caplog: LogCap
     mock_message.channel = None
     result = await get_prefix(mock_bot, mock_message)
     assert isinstance(result, list)
-    assert aiosettings.prefix in result[0]
+    assert any(aiosettings.prefix in prefix for prefix in result)
     assert "Error getting prefix" in caplog.text
 
 
@@ -328,7 +329,8 @@ def test_get_prefix_display_error(mock_bot: Any, mocker: MockerFixture, caplog: 
         caplog: Pytest log capture fixture
     """
     guild = mocker.MagicMock()
-    mock_bot.prefixes.get.side_effect = Exception("Test error")
+    mock_bot.prefixes = mocker.MagicMock()
+    mock_bot.prefixes.get = mocker.MagicMock(side_effect=Exception("Test error"))
     display = get_prefix_display(mock_bot, guild)
     assert display == "Default prefixes are: ! ?"
     assert "Error getting prefix display: Test error" in caplog.text

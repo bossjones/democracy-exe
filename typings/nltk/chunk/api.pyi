@@ -23,11 +23,11 @@ class ChunkParserI(ParserI):
         :rtype: Tree
         """
         ...
-
+    
     @deprecated("Use accuracy(gold) instead.")
     def evaluate(self, gold): # -> ChunkScore:
         ...
-
+    
     def accuracy(self, gold): # -> ChunkScore:
         """
         Score the accuracy of the chunker against the gold standard.
@@ -40,3 +40,6 @@ class ChunkParserI(ParserI):
         :rtype: ChunkScore
         """
         ...
+    
+
+

@@ -19,7 +19,7 @@ class ContextIndex:
     """
     def __init__(self, tokens, context_func=..., filter=..., key=...) -> None:
         ...
-
+    
     def tokens(self): # -> Any:
         """
         :rtype: list(str)
@@ -27,18 +27,18 @@ class ContextIndex:
             created from.
         """
         ...
-
-    def word_similarity_dict(self, word): # -> dict:
+    
+    def word_similarity_dict(self, word): # -> dict[Any, Any]:
         """
         Return a dictionary mapping from words to 'similarity scores,'
         indicating how often these two words occur in the same
         context.
         """
         ...
-
+    
     def similar_words(self, word, n=...):
         ...
-
+    
     def common_contexts(self, words, fail_on_unknown=...): # -> FreqDist:
         """
         Find contexts where the specified words can all appear; and
@@ -51,7 +51,7 @@ class ContextIndex:
             any of the given words do not occur at all in the index.
         """
         ...
-
+    
 
 
 class ConcordanceIndex:
@@ -72,7 +72,7 @@ class ConcordanceIndex:
             case-insensitive.
         """
         ...
-
+    
     def tokens(self): # -> Any:
         """
         :rtype: list(str)
@@ -80,8 +80,8 @@ class ConcordanceIndex:
             created from.
         """
         ...
-
-    def offsets(self, word): # -> list:
+    
+    def offsets(self, word): # -> list[Any]:
         """
         :rtype: list(int)
         :return: A list of the offset positions at which the given
@@ -89,18 +89,18 @@ class ConcordanceIndex:
             index, then given word's key will be looked up.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
-    def find_concordance(self, word, width=...): # -> list:
+    
+    def find_concordance(self, word, width=...): # -> list[Any]:
         """
         Find all concordance lines given the query word.
 
         Provided with a list of words, these will be found as a phrase.
         """
         ...
-
+    
     def print_concordance(self, word, width=..., lines=...): # -> None:
         """
         Print concordance lines given the query word.
@@ -114,7 +114,7 @@ class ConcordanceIndex:
         :type save: bool
         """
         ...
-
+    
 
 
 class TokenSearcher:
@@ -129,7 +129,7 @@ class TokenSearcher:
     """
     def __init__(self, tokens) -> None:
         ...
-
+    
     def findall(self, regexp): # -> list[Any]:
         """
         Find instances of the regular expression in the text.
@@ -154,7 +154,7 @@ class TokenSearcher:
         :type regexp: str
         """
         ...
-
+    
 
 
 class Text:
@@ -185,13 +185,13 @@ class Text:
         :type tokens: sequence of str
         """
         ...
-
+    
     def __getitem__(self, i):
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def concordance(self, word, width=..., lines=...): # -> None:
         """
         Prints a concordance for ``word`` with the specified context window.
@@ -207,8 +207,8 @@ class Text:
         :seealso: ``ConcordanceIndex``
         """
         ...
-
-    def concordance_list(self, word, width=..., lines=...): # -> list:
+    
+    def concordance_list(self, word, width=..., lines=...): # -> list[Any]:
         """
         Generate a concordance for ``word`` with the specified context window.
         Word matching is not case-sensitive.
@@ -223,8 +223,8 @@ class Text:
         :seealso: ``ConcordanceIndex``
         """
         ...
-
-    def collocation_list(self, num=..., window_size=...): # -> list:
+    
+    def collocation_list(self, num=..., window_size=...): # -> list[Any]:
         """
         Return collocations derived from the text, ignoring stopwords.
 
@@ -239,7 +239,7 @@ class Text:
         :rtype: list(tuple(str, str))
         """
         ...
-
+    
     def collocations(self, num=..., window_size=...): # -> None:
         """
         Print collocations derived from the text, ignoring stopwords.
@@ -259,22 +259,22 @@ class Text:
         :type window_size: int
         """
         ...
-
+    
     def count(self, word): # -> int:
         """
         Count the number of times this word appears in the text.
         """
         ...
-
+    
     def index(self, word): # -> int:
         """
         Find the index of the first occurrence of the word in the text.
         """
         ...
-
+    
     def readability(self, method):
         ...
-
+    
     def similar(self, word, num=...): # -> None:
         """
         Distributional similarity: find other words which appear in the
@@ -287,7 +287,7 @@ class Text:
         :seealso: ContextIndex.similar_words()
         """
         ...
-
+    
     def common_contexts(self, words, num=...): # -> None:
         """
         Find contexts where the specified words appear; list
@@ -300,7 +300,7 @@ class Text:
         :seealso: ContextIndex.common_contexts()
         """
         ...
-
+    
     def dispersion_plot(self, words): # -> None:
         """
         Produce a plot showing the distribution of the words through the text.
@@ -311,7 +311,7 @@ class Text:
         :seealso: nltk.draw.dispersion_plot()
         """
         ...
-
+    
     def generate(self, length=..., text_seed=..., random_seed=...): # -> str:
         """
         Print random text, generated using a trigram language model.
@@ -328,20 +328,20 @@ class Text:
         :type random_seed: int
         """
         ...
-
+    
     def plot(self, *args): # -> Axes:
         """
         See documentation for FreqDist.plot()
         :seealso: nltk.prob.FreqDist.plot()
         """
         ...
-
+    
     def vocab(self): # -> FreqDist:
         """
         :seealso: nltk.prob.FreqDist
         """
         ...
-
+    
     def findall(self, regexp): # -> None:
         """
         Find instances of the regular expression in the text.
@@ -365,14 +365,14 @@ class Text:
         :type regexp: str
         """
         ...
-
+    
     _CONTEXT_RE = ...
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class TextCollection(Text):
@@ -392,20 +392,20 @@ class TextCollection(Text):
     """
     def __init__(self, source) -> None:
         ...
-
+    
     def tf(self, term, text):
         """The frequency of the term in text."""
         ...
-
+    
     def idf(self, term): # -> float:
         """The number of texts in the corpus divided by the
         number of texts that the term appears in.
         If a term does not appear in the corpus, 0.0 is returned."""
         ...
-
+    
     def tf_idf(self, term, text):
         ...
-
+    
 
 
 def demo(): # -> None:

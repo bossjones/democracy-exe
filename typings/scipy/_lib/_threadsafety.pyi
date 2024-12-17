@@ -20,16 +20,16 @@ class ReentrancyLock:
     """
     def __init__(self, err_msg) -> None:
         ...
-
+    
     def __enter__(self): # -> None:
         ...
-
+    
     def __exit__(self, type, value, traceback): # -> None:
         ...
-
+    
     def decorate(self, func):
         ...
-
+    
 
 
 def non_reentrant(err_msg=...): # -> Callable[..., Any]:
@@ -37,3 +37,4 @@ def non_reentrant(err_msg=...): # -> Callable[..., Any]:
     Decorate a function with a threading lock and prevent reentrant calls.
     """
     ...
+

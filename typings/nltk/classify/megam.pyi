@@ -72,8 +72,9 @@ def parse_megam_weights(s, features_count, explicit=...): # -> NDArray[Any]:
     """
     ...
 
-def call_megam(args): # -> <subclass of bytes and str> | <subclass of bytearray and str> | str:
+def call_megam(args): # -> <subclass of bytes and str> | str:
     """
     Call the ``megam`` binary with the given arguments.
     """
     ...
+

@@ -26,7 +26,7 @@ class Attribute:
     type_name = ...
     def __init__(self, name) -> None:
         ...
-
+    
     @classmethod
     def parse_attribute(cls, name, attr_string): # -> None:
         """
@@ -34,26 +34,26 @@ class Attribute:
         attribute, or None.
         """
         ...
-
+    
     def parse_data(self, data_str): # -> None:
         """
         Parse a value of this type.
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Parse a value of this type.
         """
         ...
-
+    
 
 
 class NominalAttribute(Attribute):
     type_name = ...
     def __init__(self, name, values) -> None:
         ...
-
+    
     @classmethod
     def parse_attribute(cls, name, attr_string): # -> Self | None:
         """
@@ -64,22 +64,22 @@ class NominalAttribute(Attribute):
          <attr2>, <attr_3>}'.
         """
         ...
-
+    
     def parse_data(self, data_str): # -> Literal['?']:
         """
         Parse a value of this type.
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class NumericAttribute(Attribute):
     def __init__(self, name) -> None:
         ...
-
+    
     @classmethod
     def parse_attribute(cls, name, attr_string): # -> Self | None:
         """
@@ -90,7 +90,7 @@ class NumericAttribute(Attribute):
         'numeric' or 'int' or 'real'.
         """
         ...
-
+    
     def parse_data(self, data_str): # -> float:
         """
         Parse a value of this type.
@@ -117,13 +117,13 @@ class NumericAttribute(Attribute):
         nan
         """
         ...
-
+    
 
 
 class StringAttribute(Attribute):
     def __init__(self, name) -> None:
         ...
-
+    
     @classmethod
     def parse_attribute(cls, name, attr_string): # -> Self | None:
         """
@@ -134,13 +134,13 @@ class StringAttribute(Attribute):
         'string'.
         """
         ...
-
+    
 
 
 class DateAttribute(Attribute):
     def __init__(self, name, date_format, datetime_unit) -> None:
         ...
-
+    
     @classmethod
     def parse_attribute(cls, name, attr_string): # -> Self | None:
         """
@@ -151,22 +151,22 @@ class DateAttribute(Attribute):
         'date <format>'.
         """
         ...
-
+    
     def parse_data(self, data_str): # -> datetime64 | Any:
         """
         Parse a value of this type.
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class RelationalAttribute(Attribute):
     def __init__(self, name) -> None:
         ...
-
+    
     @classmethod
     def parse_attribute(cls, name, attr_string): # -> Self | None:
         """
@@ -177,13 +177,13 @@ class RelationalAttribute(Attribute):
         'date <format>'.
         """
         ...
-
+    
     def parse_data(self, data_str): # -> NDArray[Any]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 def to_attribute(name, attr_string): # -> NominalAttribute | NumericAttribute | DateAttribute | StringAttribute | RelationalAttribute:
@@ -293,16 +293,16 @@ class MetaData:
     """
     def __init__(self, rel, attr) -> None:
         ...
-
+    
     def __repr__(self): # -> LiteralString | str:
         ...
-
+    
     def __iter__(self): # -> Iterator[Any]:
         ...
-
+    
     def __getitem__(self, key): # -> tuple[Any, Any]:
         ...
-
+    
     def names(self): # -> list[Any]:
         """Return the list of attribute names.
 
@@ -312,7 +312,7 @@ class MetaData:
             The attribute names.
         """
         ...
-
+    
     def types(self): # -> list[Any]:
         """Return the list of attribute types.
 
@@ -322,7 +322,7 @@ class MetaData:
             The attribute types.
         """
         ...
-
+    
 
 
 def loadarff(f): # -> tuple[NDArray[Any], MetaData]:

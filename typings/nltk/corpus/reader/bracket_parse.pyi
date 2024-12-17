@@ -34,7 +34,7 @@ class BracketParseCorpusReader(SyntaxCorpusReader):
             ``tagged_...()`` methods.
         """
         ...
-
+    
 
 
 class CategorizedBracketParseCorpusReader(CategorizedCorpusReader, BracketParseCorpusReader):
@@ -53,25 +53,25 @@ class CategorizedBracketParseCorpusReader(CategorizedCorpusReader, BracketParseC
         <BracketParseCorpusReader.__init__>}.
         """
         ...
-
-    def tagged_words(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., categories=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def tagged_paras(self, fileids=..., categories=..., tagset=...):
         ...
-
+    
     def parsed_words(self, fileids=..., categories=...):
         ...
-
-    def parsed_sents(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def parsed_sents(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def parsed_paras(self, fileids=..., categories=...):
         ...
-
+    
 
 
 class AlpinoCorpusReader(BracketParseCorpusReader):
@@ -86,3 +86,6 @@ class AlpinoCorpusReader(BracketParseCorpusReader):
     """
     def __init__(self, root, encoding=..., tagset=...) -> None:
         ...
+    
+
+

@@ -1293,3 +1293,4 @@ def idzr_rsvd(m, n, matveca, matvec, k): # -> tuple[Any, Any, Any]:
     :rtype: :class:`numpy.ndarray`
     """
     ...
+

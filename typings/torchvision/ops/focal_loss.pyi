@@ -26,3 +26,4 @@ def sigmoid_focal_loss(inputs: torch.Tensor, targets: torch.Tensor, alpha: float
         Loss tensor with the reduction option applied.
     """
     ...
+

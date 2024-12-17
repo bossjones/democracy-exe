@@ -35,3 +35,6 @@ class _MatrixM1PowerOperator(LinearOperator):
     """
     def __init__(self, A, p) -> None:
         ...
+    
+
+

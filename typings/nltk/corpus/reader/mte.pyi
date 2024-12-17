@@ -17,10 +17,10 @@ class MTECorpusView(XMLCorpusView):
     """
     def __init__(self, fileid, tagspec, elt_handler=...) -> None:
         ...
-
+    
     def read_block(self, stream, tagspec=..., elt_handler=...): # -> list[Element | Any]:
         ...
-
+    
 
 
 class MTEFileReader:
@@ -37,34 +37,34 @@ class MTEFileReader:
     para_path = ...
     def __init__(self, file_path) -> None:
         ...
-
+    
     def words(self): # -> MTECorpusView:
         ...
-
+    
     def sents(self): # -> MTECorpusView:
         ...
-
+    
     def paras(self): # -> MTECorpusView:
         ...
-
+    
     def lemma_words(self): # -> MTECorpusView:
         ...
-
+    
     def tagged_words(self, tagset, tags): # -> MTECorpusView:
         ...
-
+    
     def lemma_sents(self): # -> MTECorpusView:
         ...
-
+    
     def tagged_sents(self, tagset, tags): # -> MTECorpusView:
         ...
-
+    
     def lemma_paras(self): # -> MTECorpusView:
         ...
-
+    
     def tagged_paras(self, tagset, tags): # -> MTECorpusView:
         ...
-
+    
 
 
 class MTETagConverter:
@@ -82,7 +82,7 @@ class MTETagConverter:
         Unknown Tags will be mapped to X. Punctuation marks are not supported in MSD tags, so
         """
         ...
-
+    
 
 
 class MTECorpusReader(TaggedCorpusReader):
@@ -104,16 +104,16 @@ class MTECorpusReader(TaggedCorpusReader):
         :param encoding: The encoding of the given files (default is utf8)
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a list of words and punctuation symbols.
         :rtype: list(str)
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a list of sentences or utterances,
@@ -121,8 +121,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a list of paragraphs, each encoded as a list
@@ -130,8 +130,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(list(list(str)))
         """
         ...
-
-    def lemma_words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def lemma_words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a list of words, the corresponding lemmas
@@ -139,8 +139,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(tuple(str,str))
         """
         ...
-
-    def tagged_words(self, fileids=..., tagset=..., tags=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element | None:
+    
+    def tagged_words(self, fileids=..., tagset=..., tags=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element | None:
         """
         :param fileids: A list specifying the fileids that should be used.
         :param tagset: The tagset that should be used in the returned object,
@@ -152,8 +152,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(tuple(str, str))
         """
         ...
-
-    def lemma_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def lemma_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a list of sentences or utterances, each
@@ -162,8 +162,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(list(tuple(str, str)))
         """
         ...
-
-    def tagged_sents(self, fileids=..., tagset=..., tags=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element | None:
+    
+    def tagged_sents(self, fileids=..., tagset=..., tags=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element | None:
         """
         :param fileids: A list specifying the fileids that should be used.
         :param tagset: The tagset that should be used in the returned object,
@@ -175,8 +175,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(list(tuple(str, str)))
         """
         ...
-
-    def lemma_paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def lemma_paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a list of paragraphs, each encoded as a
@@ -185,8 +185,8 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(List(List(tuple(str, str))))
         """
         ...
-
-    def tagged_paras(self, fileids=..., tagset=..., tags=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element | None:
+    
+    def tagged_paras(self, fileids=..., tagset=..., tags=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element | None:
         """
         :param fileids: A list specifying the fileids that should be used.
         :param tagset: The tagset that should be used in the returned object,
@@ -199,3 +199,6 @@ class MTECorpusReader(TaggedCorpusReader):
         :rtype: list(list(list(tuple(str, str))))
         """
         ...
+    
+
+

@@ -12,3 +12,4 @@ def tree(): # -> tuple[Literal[''], RootLogger, list[Any]]:
 
     """
     ...
+

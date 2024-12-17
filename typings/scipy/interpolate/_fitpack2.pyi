@@ -172,11 +172,11 @@ class UnivariateSpline:
     """
     def __init__(self, x, y, w=..., bbox=..., k=..., s=..., ext=..., check_finite=...) -> None:
         ...
-
+    
     @staticmethod
     def validate_input(x, y, w, bbox, k, s, ext, check_finite): # -> tuple[NDArray[Any], NDArray[Any], Any | NDArray[Any], NDArray[Any], int]:
         ...
-
+    
     def set_smoothing_factor(self, s): # -> None:
         """ Continue spline computation with the given smoothing
         factor s and with the knots found at the last call.
@@ -185,7 +185,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def __call__(self, x, nu=..., ext=...): # -> NDArray[Any] | list[Any]:
         """
         Evaluate spline (or its nu-th derivative) at positions x.
@@ -212,18 +212,18 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def get_knots(self):
         """ Return positions of interior knots of the spline.
 
         Internally, the knot vector contains ``2*k`` additional boundary knots.
         """
         ...
-
+    
     def get_coeffs(self):
         """Return spline coefficients."""
         ...
-
+    
     def get_residual(self):
         """Return weighted sum of squared residuals of the spline approximation.
 
@@ -233,7 +233,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def integral(self, a, b): # -> list[Any] | tuple[Any, Any]:
         """ Return definite integral of the spline between two given points.
 
@@ -272,7 +272,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def derivatives(self, x): # -> list[Any]:
         """ Return all derivatives of the spline at the point x.
 
@@ -298,7 +298,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def roots(self): # -> list[Any]:
         """ Return the zeros of the spline.
 
@@ -341,7 +341,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def derivative(self, n=...): # -> UnivariateSpline:
         """
         Construct a new spline representing the derivative of this spline.
@@ -388,7 +388,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
     def antiderivative(self, n=...): # -> UnivariateSpline:
         """
         Construct a new spline representing the antiderivative of this spline.
@@ -442,7 +442,7 @@ class UnivariateSpline:
 
         """
         ...
-
+    
 
 
 class InterpolatedUnivariateSpline(UnivariateSpline):
@@ -534,7 +534,7 @@ class InterpolatedUnivariateSpline(UnivariateSpline):
     """
     def __init__(self, x, y, w=..., bbox=..., k=..., ext=..., check_finite=...) -> None:
         ...
-
+    
 
 
 _fpchec_error_string = ...
@@ -652,7 +652,7 @@ class LSQUnivariateSpline(UnivariateSpline):
     """
     def __init__(self, x, y, t, w=..., bbox=..., k=..., ext=..., check_finite=...) -> None:
         ...
-
+    
 
 
 class _BivariateSplineBase:
@@ -676,7 +676,7 @@ class _BivariateSplineBase:
         approximation: sum ((w[i]*(z[i]-s(x[i],y[i])))**2,axis=0)
         """
         ...
-
+    
     def get_knots(self):
         """ Return a tuple (tx,ty) where tx,ty contain knots positions
         of the spline with respect to x-, y-variable, respectively.
@@ -684,11 +684,11 @@ class _BivariateSplineBase:
         t[k+1:-k-1] and t[:k+1]=b, t[-k-1:]=e, respectively.
         """
         ...
-
+    
     def get_coeffs(self):
         """ Return spline coefficients."""
         ...
-
+    
     def __call__(self, x, y, dx=..., dy=..., grid=...): # -> NDArray[float64]:
         """
         Evaluate the spline or its derivatives at given positions.
@@ -762,7 +762,7 @@ class _BivariateSplineBase:
         >>> plt.show()
         """
         ...
-
+    
     def partial_derivative(self, dx, dy): # -> Self | _DerivedBivariateSpline:
         """Construct a new spline representing a partial derivative of this
         spline.
@@ -787,7 +787,7 @@ class _BivariateSplineBase:
 
         """
         ...
-
+    
 
 
 _surfit_messages = ...
@@ -886,7 +886,7 @@ class BivariateSpline(_BivariateSplineBase):
         >>> plt.show()
         """
         ...
-
+    
     def integral(self, xa, xb, ya, yb):
         """
         Evaluate the integral of the spline over area [xa,xb] x [ya,yb].
@@ -905,7 +905,7 @@ class BivariateSpline(_BivariateSplineBase):
 
         """
         ...
-
+    
 
 
 class _DerivedBivariateSpline(_BivariateSplineBase):
@@ -925,10 +925,10 @@ class _DerivedBivariateSpline(_BivariateSplineBase):
     @property
     def fp(self):
         ...
-
+    
     def get_residual(self):
         ...
-
+    
 
 
 class SmoothBivariateSpline(BivariateSpline):
@@ -1002,7 +1002,7 @@ class SmoothBivariateSpline(BivariateSpline):
     """
     def __init__(self, x, y, z, w=..., bbox=..., kx=..., ky=..., s=..., eps=...) -> None:
         ...
-
+    
 
 
 class LSQBivariateSpline(BivariateSpline):
@@ -1061,7 +1061,7 @@ class LSQBivariateSpline(BivariateSpline):
     """
     def __init__(self, x, y, z, tx, ty, w=..., bbox=..., kx=..., ky=..., eps=...) -> None:
         ...
-
+    
 
 
 class RectBivariateSpline(BivariateSpline):
@@ -1121,7 +1121,7 @@ class RectBivariateSpline(BivariateSpline):
     """
     def __init__(self, x, y, z, bbox=..., kx=..., ky=..., s=...) -> None:
         ...
-
+    
 
 
 _spherefit_messages = ...
@@ -1219,7 +1219,7 @@ class SphereBivariateSpline(_BivariateSplineBase):
         >>> plt.show()
         """
         ...
-
+    
     def ev(self, theta, phi, dtheta=..., dphi=...): # -> NDArray[float64]:
         """
         Evaluate the spline at points
@@ -1282,7 +1282,7 @@ class SphereBivariateSpline(_BivariateSplineBase):
         >>> plt.show()
         """
         ...
-
+    
 
 
 class SmoothSphereBivariateSpline(SphereBivariateSpline):
@@ -1386,10 +1386,10 @@ class SmoothSphereBivariateSpline(SphereBivariateSpline):
     """
     def __init__(self, theta, phi, r, w=..., s=..., eps=...) -> None:
         ...
-
+    
     def __call__(self, theta, phi, dtheta=..., dphi=..., grid=...): # -> NDArray[float64]:
         ...
-
+    
 
 
 class LSQSphereBivariateSpline(SphereBivariateSpline):
@@ -1501,10 +1501,10 @@ class LSQSphereBivariateSpline(SphereBivariateSpline):
     """
     def __init__(self, theta, phi, r, tt, tp, w=..., eps=...) -> None:
         ...
-
+    
     def __call__(self, theta, phi, dtheta=..., dphi=..., grid=...): # -> NDArray[float64]:
         ...
-
+    
 
 
 _spfit_messages = ...
@@ -1659,6 +1659,9 @@ class RectSphereBivariateSpline(SphereBivariateSpline):
     """
     def __init__(self, u, v, r, s=..., pole_continuity=..., pole_values=..., pole_exact=..., pole_flat=...) -> None:
         ...
-
+    
     def __call__(self, theta, phi, dtheta=..., dphi=..., grid=...): # -> NDArray[float64]:
         ...
+    
+
+

@@ -8,17 +8,20 @@ class Pop2PianoFeatureExtractor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class Pop2PianoTokenizer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class Pop2PianoProcessor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

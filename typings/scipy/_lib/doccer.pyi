@@ -169,3 +169,4 @@ def doc_replace(obj, oldval, newval): # -> Callable[..., Any]:
         The string to replace ``oldval`` with.
     """
     ...
+

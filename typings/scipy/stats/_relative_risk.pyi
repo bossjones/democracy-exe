@@ -76,7 +76,7 @@ class RelativeRiskResult:
         ConfidenceInterval(low=1.1261564003469628, high=5.549850800541033)
         """
         ...
-
+    
 
 
 def relative_risk(exposed_cases, exposed_total, control_cases, control_total): # -> RelativeRiskResult:
@@ -188,3 +188,4 @@ def relative_risk(exposed_cases, exposed_total, control_cases, control_total): #
     that high CAT is associated with greater risk of CHD.
     """
     ...
+

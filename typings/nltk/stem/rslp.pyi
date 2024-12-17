@@ -22,12 +22,15 @@ class RSLPStemmer(StemmerI):
     """
     def __init__(self) -> None:
         ...
-
-    def read_rule(self, filename): # -> list:
+    
+    def read_rule(self, filename): # -> list[Any]:
         ...
-
+    
     def stem(self, word):
         ...
-
+    
     def apply_rule(self, word, rule_index):
         ...
+    
+
+

@@ -197,3 +197,4 @@ def fourier_shift(input, shift, n=..., axis=..., output=...): # -> NDArray[compl
     >>> plt.show()
     """
     ...
+

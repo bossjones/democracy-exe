@@ -8,7 +8,7 @@ extraction of the semantic representation of the root node of the the
 syntax tree, followed by evaluation of the semantic representation in
 a first-order model.
 """
-def parse_sents(inputs, grammar, trace=...): # -> list:
+def parse_sents(inputs, grammar, trace=...): # -> list[Any]:
     """
     Convert input sentences into syntactic trees.
 

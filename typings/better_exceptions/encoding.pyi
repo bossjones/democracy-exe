@@ -8,3 +8,4 @@ def to_byte(val): # -> str:
 
 def to_unicode(val): # -> str:
     ...
+

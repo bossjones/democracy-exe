@@ -11,7 +11,7 @@ class WordListCorpusReader(CorpusReader):
     """
     def words(self, fileids=..., ignore_lines_startswith=...): # -> list[str]:
         ...
-
+    
 
 
 class SwadeshCorpusReader(WordListCorpusReader):
@@ -20,7 +20,7 @@ class SwadeshCorpusReader(WordListCorpusReader):
         :return: a tuple of words for the specified fileids.
         """
         ...
-
+    
 
 
 class NonbreakingPrefixesCorpusReader(WordListCorpusReader):
@@ -44,7 +44,7 @@ class NonbreakingPrefixesCorpusReader(WordListCorpusReader):
         :return: a list words for the specified language(s).
         """
         ...
-
+    
 
 
 class UnicharsCorpusReader(WordListCorpusReader):
@@ -71,7 +71,7 @@ class UnicharsCorpusReader(WordListCorpusReader):
         :return: a list of characters given the specific unicode character category
         """
         ...
-
+    
 
 
 class MWAPPDBCorpusReader(WordListCorpusReader):
@@ -95,3 +95,6 @@ class MWAPPDBCorpusReader(WordListCorpusReader):
         :return: a tuple of synonym word pairs.
         """
         ...
+    
+
+

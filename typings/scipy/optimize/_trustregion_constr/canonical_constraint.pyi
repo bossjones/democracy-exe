@@ -41,12 +41,12 @@ class CanonicalConstraint:
     """
     def __init__(self, n_eq, n_ineq, fun, jac, hess, keep_feasible) -> None:
         ...
-
+    
     @classmethod
     def from_PreparedConstraint(cls, constraint): # -> Self:
         """Create an instance from `PreparedConstrained` object."""
         ...
-
+    
     @classmethod
     def empty(cls, n): # -> Self:
         """Create an "empty" instance.
@@ -55,7 +55,7 @@ class CanonicalConstraint:
         problems as if they have some constraints.
         """
         ...
-
+    
     @classmethod
     def concatenate(cls, canonical_constraints, sparse_jacobian): # -> Self:
         """Concatenate multiple `CanonicalConstraint` into one.
@@ -65,7 +65,7 @@ class CanonicalConstraint:
         must have their Jacobians in the same format.
         """
         ...
-
+    
 
 
 def initial_constraints_as_canonical(n, prepared_constraints, sparse_jacobian): # -> tuple[NDArray[Any] | NDArray[float64], NDArray[Any] | NDArray[float64], NDArray[Any] | Any | csr_matrix | csc_matrix | csr_array | csc_array | coo_matrix | coo_array | NDArray[float64], NDArray[Any] | Any | csr_matrix | csc_matrix | csr_array | csc_array | coo_matrix | coo_array | NDArray[float64]]:
@@ -76,3 +76,4 @@ def initial_constraints_as_canonical(n, prepared_constraints, sparse_jacobian): 
     concatenates them to the canonical constraint format.
     """
     ...
+

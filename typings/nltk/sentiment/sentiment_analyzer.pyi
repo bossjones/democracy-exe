@@ -13,8 +13,8 @@ class SentimentAnalyzer:
     """
     def __init__(self, classifier=...) -> None:
         ...
-
-    def all_words(self, documents, labeled=...): # -> list:
+    
+    def all_words(self, documents, labeled=...): # -> list[Any]:
         """
         Return all words/tokens from the documents (with duplicates).
 
@@ -26,7 +26,7 @@ class SentimentAnalyzer:
         :return: A list of all words/tokens in `documents`.
         """
         ...
-
+    
     def apply_features(self, documents, labeled=...): # -> LazyMap:
         """
         Apply all feature extractor functions to the documents. This is a wrapper
@@ -42,8 +42,8 @@ class SentimentAnalyzer:
         :rtype: LazyMap
         """
         ...
-
-    def unigram_word_feats(self, words, top_n=..., min_freq=...): # -> list:
+    
+    def unigram_word_feats(self, words, top_n=..., min_freq=...): # -> list[Any]:
         """
         Return most common top_n word features.
 
@@ -54,7 +54,7 @@ class SentimentAnalyzer:
             frequency.
         """
         ...
-
+    
     def bigram_collocation_feats(self, documents, top_n=..., min_freq=..., assoc_measure=...):
         """
         Return `top_n` bigram features (using `assoc_measure`).
@@ -71,7 +71,7 @@ class SentimentAnalyzer:
         :return: `top_n` ngrams scored by the given association measure.
         """
         ...
-
+    
     def classify(self, instance):
         """
         Classify a single instance applying the features that have already been
@@ -81,7 +81,7 @@ class SentimentAnalyzer:
         :return: the classification result given by applying the classifier.
         """
         ...
-
+    
     def add_feat_extractor(self, function, **kwargs): # -> None:
         """
         Add a new function to extract features from a document. This function will
@@ -95,8 +95,8 @@ class SentimentAnalyzer:
         :param kwargs: additional parameters required by the `function` function.
         """
         ...
-
-    def extract_features(self, document): # -> dict:
+    
+    def extract_features(self, document): # -> dict[Any, Any]:
         """
         Apply extractor functions (and their parameters) to the present document.
         We pass `document` as the first parameter of the extractor functions.
@@ -110,7 +110,7 @@ class SentimentAnalyzer:
         :rtype: dict
         """
         ...
-
+    
     def train(self, trainer, training_set, save_classifier=..., **kwargs):
         """
         Train classifier on the training set, optionally saving the output in the
@@ -131,14 +131,14 @@ class SentimentAnalyzer:
         :rtype:
         """
         ...
-
+    
     def save_file(self, content, filename): # -> None:
         """
         Store `content` in `filename`. Can be used to store a SentimentAnalyzer.
         """
         ...
-
-    def evaluate(self, test_set, classifier=..., accuracy=..., f_measure=..., precision=..., recall=..., verbose=...): # -> dict:
+    
+    def evaluate(self, test_set, classifier=..., accuracy=..., f_measure=..., precision=..., recall=..., verbose=...): # -> dict[Any, Any]:
         """
         Evaluate and print classifier performance on the test set.
 
@@ -152,3 +152,6 @@ class SentimentAnalyzer:
         :rtype: dict(str): float
         """
         ...
+    
+
+

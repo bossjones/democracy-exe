@@ -578,3 +578,4 @@ def idst(x, type=..., n=..., axis=..., norm=..., overwrite_x=...): # -> NDArray[
 
     """
     ...
+

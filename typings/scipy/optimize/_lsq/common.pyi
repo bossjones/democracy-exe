@@ -74,7 +74,7 @@ def solve_lsq_trust_region(n, m, uf, s, V, Delta, initial_alpha=..., rtol=..., m
     """
     ...
 
-def solve_trust_region_2d(B, g, Delta): # -> tuple[Any, Literal[True]] | tuple[Any, Literal[False]]:
+def solve_trust_region_2d(B, g, Delta): # -> tuple[NDArray[Any] | Any, Literal[True]] | tuple[Any, Literal[False]]:
     """Solve a general trust-region problem in 2 dimensions.
 
     The problem is reformulated as a 4th order algebraic equation,
@@ -330,3 +330,4 @@ def scale_for_robust_loss_function(J, f, rho): # -> tuple[Any | LinearOperator, 
     Arrays are modified in place.
     """
     ...
+

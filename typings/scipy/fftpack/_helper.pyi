@@ -88,3 +88,4 @@ def next_fast_len(target):
 
     """
     ...
+

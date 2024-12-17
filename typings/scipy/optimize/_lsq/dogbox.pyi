@@ -88,3 +88,4 @@ def dogleg_step(x, newton_step, g, a, b, tr_bounds, lb, ub): # -> tuple[Any, NDA
 
 def dogbox(fun, jac, x0, f0, J0, lb, ub, ftol, xtol, gtol, max_nfev, x_scale, loss_function, tr_solver, tr_options, verbose):
     ...
+

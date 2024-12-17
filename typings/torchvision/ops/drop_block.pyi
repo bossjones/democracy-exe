@@ -48,7 +48,7 @@ class DropBlock2d(nn.Module):
     """
     def __init__(self, p: float, block_size: int, inplace: bool = ..., eps: float = ...) -> None:
         ...
-
+    
     def forward(self, input: Tensor) -> Tensor:
         """
         Args:
@@ -58,10 +58,10 @@ class DropBlock2d(nn.Module):
             Tensor: The tensor after DropBlock layer.
         """
         ...
-
+    
     def __repr__(self) -> str:
         ...
-
+    
 
 
 class DropBlock3d(DropBlock2d):
@@ -70,7 +70,7 @@ class DropBlock3d(DropBlock2d):
     """
     def __init__(self, p: float, block_size: int, inplace: bool = ..., eps: float = ...) -> None:
         ...
-
+    
     def forward(self, input: Tensor) -> Tensor:
         """
         Args:
@@ -80,3 +80,6 @@ class DropBlock3d(DropBlock2d):
             Tensor: The tensor after DropBlock layer.
         """
         ...
+    
+
+

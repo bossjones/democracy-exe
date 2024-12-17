@@ -31,10 +31,13 @@ class EqualityComparable:
     id: int
     def __eq__(self, other: object) -> bool:
         ...
-
+    
 
 
 class Hashable(EqualityComparable):
     __slots__ = ...
     def __hash__(self) -> int:
         ...
+    
+
+

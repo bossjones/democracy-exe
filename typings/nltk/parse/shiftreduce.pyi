@@ -59,13 +59,13 @@ class ShiftReduceParser(ParserI):
             output.
         """
         ...
-
+    
     def grammar(self): # -> Any:
         ...
-
+    
     def parse(self, tokens): # -> Generator[Any, Any, None]:
         ...
-
+    
     def trace(self, trace=...): # -> None:
         """
         Set the level of tracing output that should be generated when
@@ -78,7 +78,7 @@ class ShiftReduceParser(ParserI):
         :rtype: None
         """
         ...
-
+    
 
 
 class SteppingShiftReduceParser(ShiftReduceParser):
@@ -101,17 +101,17 @@ class SteppingShiftReduceParser(ShiftReduceParser):
     """
     def __init__(self, grammar, trace=...) -> None:
         ...
-
+    
     def parse(self, tokens): # -> Generator[Any, Any, None]:
         ...
-
-    def stack(self): # -> list | None:
+    
+    def stack(self): # -> list[Any] | None:
         """
         :return: The parser's stack.
         :rtype: list(str and Tree)
         """
         ...
-
+    
     def remaining_text(self): # -> None:
         """
         :return: The portion of the text that is not yet covered by the
@@ -119,14 +119,14 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :rtype: list(str)
         """
         ...
-
+    
     def initialize(self, tokens): # -> None:
         """
         Start parsing a given text.  This sets the parser's stack to
         ``[]`` and sets its remaining text to ``tokens``.
         """
         ...
-
+    
     def step(self): # -> bool:
         """
         Perform a single parsing operation.  If a reduction is
@@ -141,7 +141,7 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :rtype: Production or bool
         """
         ...
-
+    
     def shift(self): # -> bool:
         """
         Move a token from the beginning of the remaining text to the
@@ -152,7 +152,7 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :rtype: bool
         """
         ...
-
+    
     def reduce(self, production=...): # -> None:
         """
         Use ``production`` to combine the rightmost stack elements into
@@ -166,7 +166,7 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :rtype: Production or None
         """
         ...
-
+    
     def undo(self): # -> bool:
         """
         Return the parser to its state before the most recent
@@ -179,15 +179,15 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :rtype: bool
         """
         ...
-
-    def reducible_productions(self): # -> list:
+    
+    def reducible_productions(self): # -> list[Any]:
         """
         :return: A list of the productions for which reductions are
             available for the current parser state.
         :rtype: list(Production)
         """
         ...
-
+    
     def parses(self): # -> Generator[Any, Any, None]:
         """
         :return: An iterator of the parses that have been found by this
@@ -195,7 +195,7 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :rtype: iter(Tree)
         """
         ...
-
+    
     def set_grammar(self, grammar): # -> None:
         """
         Change the grammar used to parse texts.
@@ -204,7 +204,7 @@ class SteppingShiftReduceParser(ShiftReduceParser):
         :type grammar: CFG
         """
         ...
-
+    
 
 
 def demo(): # -> None:

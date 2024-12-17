@@ -32,3 +32,4 @@ def generalized_box_iou_loss(boxes1: torch.Tensor, boxes2: torch.Tensor, reducti
         https://arxiv.org/abs/1902.09630
     """
     ...
+

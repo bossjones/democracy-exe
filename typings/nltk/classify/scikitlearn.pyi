@@ -51,11 +51,11 @@ class SklearnClassifier(ClassifierI):
         :type sparse: boolean.
         """
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
-    def classify_many(self, featuresets): # -> list[ndarray[Any, Any]]:
+    
+    def classify_many(self, featuresets): # -> list[ndarray[Any, dtype[Any]] | Any | ndarray[Any, dtype[intp]]]:
         """Classify a batch of samples.
 
         :param featuresets: An iterable over featuresets, each a dict mapping
@@ -64,7 +64,7 @@ class SklearnClassifier(ClassifierI):
         :rtype: list
         """
         ...
-
+    
     def prob_classify_many(self, featuresets): # -> list[DictionaryProbDist]:
         """Compute per-class probabilities for a batch of samples.
 
@@ -73,14 +73,14 @@ class SklearnClassifier(ClassifierI):
         :rtype: list of ``ProbDistI``
         """
         ...
-
+    
     def labels(self): # -> list[Any]:
         """The class labels used by this classifier.
 
         :rtype: list
         """
         ...
-
+    
     def train(self, labeled_featuresets): # -> Self:
         """
         Train (fit) the scikit-learn estimator.
@@ -90,7 +90,7 @@ class SklearnClassifier(ClassifierI):
             numbers, booleans or strings.
         """
         ...
-
+    
 
 
 if __name__ == "__main__":

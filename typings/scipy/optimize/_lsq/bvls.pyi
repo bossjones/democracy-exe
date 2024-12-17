@@ -9,3 +9,4 @@ def compute_kkt_optimality(g, on_bound):
 
 def bvls(A, b, x_lsq, lb, ub, tol, max_iter, verbose, rcond=...): # -> OptimizeResult:
     ...
+

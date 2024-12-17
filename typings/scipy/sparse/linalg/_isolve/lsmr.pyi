@@ -187,3 +187,4 @@ def lsmr(A, b, damp=..., atol=..., btol=..., conlim=..., maxiter=..., show=..., 
     contains the minimal distance that was found.
     """
     ...
+

@@ -9,28 +9,31 @@ from nltk.tokenize import *
 class DependencyCorpusReader(SyntaxCorpusReader):
     def __init__(self, root, fileids, encoding=..., word_tokenizer=..., sent_tokenizer=..., para_block_reader=...) -> None:
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def parsed_sents(self, fileids=...): # -> list[DependencyGraph]:
         ...
-
+    
 
 
 class DependencyCorpusView(StreamBackedCorpusView):
     _DOCSTART = ...
     def __init__(self, corpus_file, tagged, group_by_sent, dependencies, chunk_types=..., encoding=...) -> None:
         ...
-
-    def read_block(self, stream): # -> list[list | list[tuple] | Any] | list[tuple]:
+    
+    def read_block(self, stream): # -> list[list[Any] | list[tuple[Any, Any]] | Any] | list[tuple[Any, Any]]:
         ...
+    
+
+

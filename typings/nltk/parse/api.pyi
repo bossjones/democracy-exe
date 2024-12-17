@@ -22,8 +22,8 @@ class ParserI:
         :return: The grammar used by this parser.
         """
         ...
-
-    def parse(self, sent, *args, **kwargs): # -> Generator[Any, None, None] | Iterator:
+    
+    def parse(self, sent, *args, **kwargs): # -> Generator[Any, None, None] | Iterator[Any]:
         """
         :return: An iterator that generates parse trees for the sentence.
             When possible this list is sorted from most likely to least likely.
@@ -33,18 +33,21 @@ class ParserI:
         :rtype: iter(Tree)
         """
         ...
-
-    def parse_sents(self, sents, *args, **kwargs): # -> Generator[Any | Generator[Any, None, None] | Iterator, None, None]:
+    
+    def parse_sents(self, sents, *args, **kwargs): # -> Generator[Any | Generator[Any, None, None] | Iterator[Any], None, None]:
         """
         Apply ``self.parse()`` to each element of ``sents``.
         :rtype: iter(iter(Tree))
         """
         ...
-
-    def parse_all(self, sent, *args, **kwargs): # -> list:
+    
+    def parse_all(self, sent, *args, **kwargs): # -> list[Any]:
         """:rtype: list(Tree)"""
         ...
-
+    
     def parse_one(self, sent, *args, **kwargs): # -> None:
         """:rtype: Tree or None"""
         ...
+    
+
+

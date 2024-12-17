@@ -46,7 +46,7 @@ def describe_handler(h): # -> Generator[Any | str | LiteralString, Any, None]:
     """Yield one or more lines describing the logging handler `h`."""
     ...
 
-def class_of(obj): # -> Any:
+def class_of(obj): # -> type[Any] | Any:
     """Try to learn the class of `obj`.
 
     We perform the operation gingerly, as `obj` could be any kind of
@@ -55,3 +55,4 @@ def class_of(obj): # -> Any:
 
     """
     ...
+

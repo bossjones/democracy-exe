@@ -18,3 +18,4 @@ def count_blocks(A, blocksize):
     blocks in a sparse matrix A
     """
     ...
+

@@ -81,16 +81,16 @@ class PorterStemmer(StemmerI):
     ORIGINAL_ALGORITHM = ...
     def __init__(self, mode=...) -> None:
         ...
-
+    
     def stem(self, word, to_lowercase=...):
         """
         :param to_lowercase: if `to_lowercase=True` the word always lowercase
         """
         ...
-
+    
     def __repr__(self): # -> Literal['<PorterStemmer>']:
         ...
-
+    
 
 
 def demo(): # -> None:
@@ -99,3 +99,4 @@ def demo(): # -> None:
     the Penn Treebank corpus.
     """
     ...
+

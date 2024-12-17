@@ -25,3 +25,4 @@ def alignment_error_rate(reference, hypothesis, possible=...): # -> float:
     :rtype: float or None
     """
     ...
+

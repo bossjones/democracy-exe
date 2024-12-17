@@ -35,9 +35,12 @@ class LazyCorpusLoader:
     """
     def __init__(self, name, reader_cls, *args, **kwargs) -> None:
         ...
-
+    
     def __getattr__(self, attr): # -> Any:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
+
+

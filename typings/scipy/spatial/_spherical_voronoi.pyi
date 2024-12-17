@@ -148,7 +148,7 @@ class SphericalVoronoi:
     """
     def __init__(self, points, radius=..., center=..., threshold=...) -> None:
         ...
-
+    
     def sort_vertices_of_regions(self): # -> None:
         """Sort indices of the vertices to be (counter-)clockwise ordered.
 
@@ -178,8 +178,8 @@ class SphericalVoronoi:
         of its surrounding region.
         """
         ...
-
-    def calculate_areas(self): # -> Any:
+    
+    def calculate_areas(self): # -> Any | NDArray[floating[Any]]:
         """Calculates the areas of the Voronoi regions.
 
         For 2D point sets, the regions are circular arcs. The sum of the areas
@@ -196,3 +196,6 @@ class SphericalVoronoi:
             The areas of the Voronoi regions.
         """
         ...
+    
+
+

@@ -6,7 +6,6 @@ import os
 from concurrent import futures
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-
 from huggingface_hub import constants
 from huggingface_hub.utils._deprecation import _deprecate_method
 
@@ -73,7 +72,7 @@ def extract_commit_hash(resolved_file: Optional[str], commit_hash: Optional[str]
     """
     ...
 
-def cached_file(path_or_repo_id: Union[str, os.PathLike], filename: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: bool = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., subfolder: str = ..., repo_type: Optional[str] = ..., user_agent: Optional[Union[str, Dict[str, str]]] = ..., _raise_exceptions_for_gated_repo: bool = ..., _raise_exceptions_for_missing_entries: bool = ..., _raise_exceptions_for_connection_errors: bool = ..., _commit_hash: Optional[str] = ..., **deprecated_kwargs) -> Optional[str]:
+def cached_file(path_or_repo_id: Union[str, os.PathLike], filename: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: Optional[bool] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., subfolder: str = ..., repo_type: Optional[str] = ..., user_agent: Optional[Union[str, Dict[str, str]]] = ..., _raise_exceptions_for_gated_repo: bool = ..., _raise_exceptions_for_missing_entries: bool = ..., _raise_exceptions_for_connection_errors: bool = ..., _commit_hash: Optional[str] = ..., **deprecated_kwargs) -> Optional[str]:
     """
     Tries to locate a file in a local folder and repo, downloads and cache it if necessary.
 
@@ -91,8 +90,9 @@ def cached_file(path_or_repo_id: Union[str, os.PathLike], filename: str, cache_d
         force_download (`bool`, *optional*, defaults to `False`):
             Whether or not to force to (re-)download the configuration files and override the cached versions if they
             exist.
-        resume_download (`bool`, *optional*, defaults to `False`):
-            Whether or not to delete incompletely received file. Attempts to resume the download if such a file exists.
+        resume_download:
+            Deprecated and ignored. All downloads are now resumed by default when possible.
+            Will be removed in v5 of Transformers.
         proxies (`Dict[str, str]`, *optional*):
             A dictionary of proxy servers to use by protocol or endpoint, e.g., `{'http': 'foo.bar:3128',
             'http://hostname': 'foo.bar:4012'}.` The proxies are used on each request.
@@ -129,7 +129,7 @@ def cached_file(path_or_repo_id: Union[str, os.PathLike], filename: str, cache_d
     """
     ...
 
-def get_file_from_repo(path_or_repo: Union[str, os.PathLike], filename: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: bool = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., subfolder: str = ..., **deprecated_kwargs): # -> str | None:
+def get_file_from_repo(path_or_repo: Union[str, os.PathLike], filename: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: Optional[bool] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., subfolder: str = ..., **deprecated_kwargs): # -> str | None:
     """
     Tries to locate a file in a local folder and repo, downloads and cache it if necessary.
 
@@ -147,8 +147,9 @@ def get_file_from_repo(path_or_repo: Union[str, os.PathLike], filename: str, cac
         force_download (`bool`, *optional*, defaults to `False`):
             Whether or not to force to (re-)download the configuration files and override the cached versions if they
             exist.
-        resume_download (`bool`, *optional*, defaults to `False`):
-            Whether or not to delete incompletely received file. Attempts to resume the download if such a file exists.
+        resume_download:
+            Deprecated and ignored. All downloads are now resumed by default when possible.
+            Will be removed in v5 of Transformers.
         proxies (`Dict[str, str]`, *optional*):
             A dictionary of proxy servers to use by protocol or endpoint, e.g., `{'http': 'foo.bar:3128',
             'http://hostname': 'foo.bar:4012'}.` The proxies are used on each request.
@@ -202,9 +203,11 @@ def download_url(url, proxies=...): # -> str:
     """
     ...
 
-def has_file(path_or_repo: Union[str, os.PathLike], filename: str, revision: Optional[str] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., **deprecated_kwargs): # -> bool:
+def has_file(path_or_repo: Union[str, os.PathLike], filename: str, revision: Optional[str] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., *, local_files_only: bool = ..., cache_dir: Union[str, Path, None] = ..., repo_type: Optional[str] = ..., **deprecated_kwargs): # -> bool:
     """
     Checks if a repo contains a given file without downloading it. Works for remote repos and local folders.
+
+    If offline mode is enabled, checks if the file exists in the cache.
 
     <Tip warning={false}>
 
@@ -269,7 +272,7 @@ class PushToHubMixin:
         ```
         """
         ...
-
+    
 
 
 def send_example_telemetry(example_name, *example_args, framework=...): # -> None:
@@ -284,7 +287,7 @@ def send_example_telemetry(example_name, *example_args, framework=...): # -> Non
     """
     ...
 
-def convert_file_size_to_int(size: Union[int, str]): # -> int | Any:
+def convert_file_size_to_int(size: Union[int, str]): # -> int:
     """
     Converts a size expressed as a string with digits an unit (like `"5MB"`) to an integer (in bytes).
 
@@ -362,16 +365,16 @@ class PushInProgress:
     """
     def __init__(self, jobs: Optional[futures.Future] = ...) -> None:
         ...
-
+    
     def is_done(self): # -> bool:
         ...
-
+    
     def wait_until_done(self): # -> None:
         ...
-
+    
     def cancel(self) -> None:
         ...
-
+    
 
 
 cache_version_file = ...

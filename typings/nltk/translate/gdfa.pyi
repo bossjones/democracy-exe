@@ -59,3 +59,4 @@ def grow_diag_final_and(srclen, trglen, e2f, f2e): # -> list[tuple[int, ...]]:
     :return: the symmetrized alignment points from the GDFA algorithm
     """
     ...
+

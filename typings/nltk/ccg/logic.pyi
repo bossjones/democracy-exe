@@ -18,3 +18,4 @@ def compute_composition_semantics(function, argument): # -> LambdaExpression:
 
 def compute_substitution_semantics(function, argument): # -> LambdaExpression:
     ...
+

@@ -9,18 +9,21 @@ from nltk.corpus.reader.xmldocs import *
 class NPSChatCorpusReader(XMLCorpusReader):
     def __init__(self, root, fileids, wrap_etree=..., tagset=...) -> None:
         ...
-
-    def xml_posts(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def xml_posts(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def posts(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def posts(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_posts(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_posts(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def words(self, fileids=...): # -> LazyConcatenation:
         ...
-
+    
     def tagged_words(self, fileids=..., tagset=...): # -> LazyConcatenation:
         ...
+    
+
+

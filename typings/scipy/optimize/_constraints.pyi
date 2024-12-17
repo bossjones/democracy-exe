@@ -94,7 +94,7 @@ class NonlinearConstraint:
     """
     def __init__(self, fun, lb, ub, jac=..., hess=..., keep_feasible=..., finite_diff_rel_step=..., finite_diff_jac_sparsity=...) -> None:
         ...
-
+    
 
 
 class LinearConstraint:
@@ -131,7 +131,7 @@ class LinearConstraint:
     """
     def __init__(self, A, lb=..., ub=..., keep_feasible=...) -> None:
         ...
-
+    
     def residual(self, x): # -> tuple[Any, Any]:
         """
         Calculate the residual between the constraint function and the limits
@@ -161,7 +161,7 @@ class LinearConstraint:
             The lower and upper residuals
         """
         ...
-
+    
 
 
 class Bounds:
@@ -192,10 +192,10 @@ class Bounds:
     """
     def __init__(self, lb=..., ub=..., keep_feasible=...) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def residual(self, x): # -> tuple[Any, Any]:
         """Calculate the residual (slack) between the input and the bounds
 
@@ -223,7 +223,7 @@ class Bounds:
             The lower and upper residuals
         """
         ...
-
+    
 
 
 class PreparedConstraint:
@@ -262,7 +262,7 @@ class PreparedConstraint:
     """
     def __init__(self, constraint, x0, sparse_jacobian=..., finite_diff_bounds=...) -> None:
         ...
-
+    
     def violation(self, x): # -> NDArray[bool_]:
         """How much the constraint is exceeded by.
 
@@ -278,7 +278,7 @@ class PreparedConstraint:
             constraints specified by `PreparedConstraint.fun`.
         """
         ...
-
+    
 
 
 def new_bounds_to_old(lb, ub, n): # -> list[tuple[float | None, float | None]]:
@@ -318,3 +318,4 @@ def old_constraint_to_new(ic, con): # -> NonlinearConstraint:
     Converts old-style constraint dictionaries to new-style constraint objects.
     """
     ...
+

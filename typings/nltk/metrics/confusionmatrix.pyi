@@ -34,7 +34,7 @@ class ConfusionMatrix:
             the same length.
         """
         ...
-
+    
     def __getitem__(self, li_lj_tuple): # -> int:
         """
         :return: The number of times that value ``li`` was expected and
@@ -42,13 +42,13 @@ class ConfusionMatrix:
         :rtype: int
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def pretty_format(self, show_percents=..., values_in_chart=..., truncate=..., sort_by_count=...): # -> LiteralString | str:
         """
         :return: A multi-line string representation of this confusion matrix.
@@ -65,10 +65,10 @@ class ConfusionMatrix:
         @todo: add marginals?
         """
         ...
-
+    
     def key(self): # -> str:
         ...
-
+    
     def recall(self, value): # -> float:
         """Given a value in the confusion matrix, return the recall
         that corresponds to this value. The recall is defined as:
@@ -84,7 +84,7 @@ class ConfusionMatrix:
         :rtype: float
         """
         ...
-
+    
     def precision(self, value): # -> float:
         """Given a value in the confusion matrix, return the precision
         that corresponds to this value. The precision is defined as:
@@ -100,7 +100,7 @@ class ConfusionMatrix:
         :rtype: float
         """
         ...
-
+    
     def f_measure(self, value, alpha=...): # -> float:
         """
         Given a value used in the confusion matrix, return the f-measure
@@ -127,7 +127,7 @@ class ConfusionMatrix:
         :rtype: float
         """
         ...
-
+    
     def evaluate(self, alpha=..., truncate=..., sort_by_count=...): # -> LiteralString | str:
         """
         Tabulate the **recall**, **precision** and **f-measure**
@@ -161,7 +161,7 @@ class ConfusionMatrix:
         :rtype: str
         """
         ...
-
+    
 
 
 def demo(): # -> None:

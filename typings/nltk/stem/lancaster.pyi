@@ -47,7 +47,7 @@ class LancasterStemmer(StemmerI):
     def __init__(self, rule_tuple=..., strip_prefix_flag=...) -> None:
         """Create an instance of the Lancaster stemmer."""
         ...
-
+    
     def parseRules(self, rule_tuple=...): # -> None:
         """Validate the set of rules used in this stemmer.
 
@@ -57,10 +57,13 @@ class LancasterStemmer(StemmerI):
 
         """
         ...
-
+    
     def stem(self, word):
         """Stem a word using the Lancaster stemmer."""
         ...
-
+    
     def __repr__(self): # -> Literal['<LancasterStemmer>']:
         ...
+    
+
+

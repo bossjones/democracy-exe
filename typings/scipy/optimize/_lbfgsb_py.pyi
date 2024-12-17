@@ -165,13 +165,13 @@ def fmin_l_bfgs_b(func, x0, fprime=..., args=..., approx_grad=..., bounds=..., m
 
     The optimized parameters in ``x_opt`` agree with the ground truth parameters
     ``m`` and ``b``. Next, let us perform a bound contrained optimization using the `bounds`
-    parameter.
+    parameter. 
 
     >>> bounds = [(0, 5), (5, 10)]
     >>> x_opt, f_op, info = fmin_l_bfgs_b(func, x0=initial_values, args=(X, Y),
     ...                                   approx_grad=True, bounds=bounds)
     >>> x_opt, f_opt
-    array([1.65990508, 5.31649385]), 15.721334516453945  # may vary
+    array([1.65990508, 5.31649385]), 15.721334516453945  # may vary    
     """
     ...
 
@@ -203,7 +203,7 @@ class LbfgsInvHessProduct(LinearOperator):
     def __init__(self, sk, yk) -> None:
         """Construct the operator."""
         ...
-
+    
     def todense(self): # -> NDArray[Any]:
         """Return a dense array representation of this operator.
 
@@ -215,3 +215,6 @@ class LbfgsInvHessProduct(LinearOperator):
 
         """
         ...
+    
+
+

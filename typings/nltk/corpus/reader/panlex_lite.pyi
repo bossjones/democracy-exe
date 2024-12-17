@@ -14,7 +14,7 @@ class PanLexLiteCorpusReader(CorpusReader):
     TRANSLATION_Q = ...
     def __init__(self, root) -> None:
         ...
-
+    
     def language_varieties(self, lc=...): # -> list[Any]:
         """
         Return a list of PanLex language varieties.
@@ -27,7 +27,7 @@ class PanLexLiteCorpusReader(CorpusReader):
         :rtype: list(tuple)
         """
         ...
-
+    
     def meanings(self, expr_uid, expr_tt): # -> list[Meaning]:
         """
         Return a list of meanings for an expression.
@@ -39,7 +39,7 @@ class PanLexLiteCorpusReader(CorpusReader):
         :rtype: list(Meaning)
         """
         ...
-
+    
     def translations(self, from_uid, from_tt, to_uid): # -> list[Any]:
         """
         Return a list of translations for an expression into a single language
@@ -55,7 +55,7 @@ class PanLexLiteCorpusReader(CorpusReader):
         :rtype: list(tuple)
         """
         ...
-
+    
 
 
 class Meaning(dict):
@@ -65,35 +65,35 @@ class Meaning(dict):
     """
     def __init__(self, mn, attr) -> None:
         ...
-
+    
     def id(self):
         """
         :return: the meaning's id.
         :rtype: int
         """
         ...
-
+    
     def quality(self):
         """
         :return: the meaning's source's quality (0=worst, 9=best).
         :rtype: int
         """
         ...
-
+    
     def source(self):
         """
         :return: the meaning's source id.
         :rtype: int
         """
         ...
-
+    
     def source_group(self):
         """
         :return: the meaning's source group id.
         :rtype: int
         """
         ...
-
+    
     def expressions(self):
         """
         :return: the meaning's expressions as a dictionary whose keys are language
@@ -102,3 +102,6 @@ class Meaning(dict):
         :rtype: dict
         """
         ...
+    
+
+

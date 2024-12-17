@@ -11,7 +11,7 @@ def step(word, x, xf, y, yf, grid): # -> bool:
 def check(word, dir, x, y, grid, rows, cols): # -> bool | None:
     ...
 
-def wordfinder(words, rows=..., cols=..., attempts=..., alph=...): # -> tuple[list, list]:
+def wordfinder(words, rows=..., cols=..., attempts=..., alph=...): # -> tuple[list[Any], list[Any]]:
     """
     Attempt to arrange words into a letter-grid with the specified
     number of rows and columns.  Try each word in several positions

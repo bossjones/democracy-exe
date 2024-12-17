@@ -9,3 +9,6 @@ logger = ...
 class BeitFeatureExtractor(BeitImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

@@ -8,28 +8,28 @@ if sys.version_info.major == 2:
     ...
 else:
     ...
-def translate(image, x, y): # -> Any:
+def translate(image, x, y):
     ...
 
-def rotate(image, angle, center=..., scale=...): # -> Any:
+def rotate(image, angle, center=..., scale=...): # -> MatLike:
     ...
 
-def rotate_bound(image, angle): # -> Any:
+def rotate_bound(image, angle): # -> MatLike:
     ...
 
-def resize(image, width=..., height=..., inter=...): # -> Any:
+def resize(image, width=..., height=..., inter=...):
     ...
 
-def skeletonize(image, size, structuring=...): # -> Any:
+def skeletonize(image, size, structuring=...): # -> MatLike:
     ...
 
-def opencv2matplotlib(image): # -> Any:
+def opencv2matplotlib(image):
     ...
 
-def url_to_image(url, readFlag=...): # -> Any:
+def url_to_image(url, readFlag=...): # -> MatLike:
     ...
 
-def auto_canny(image, sigma=...): # -> Any:
+def auto_canny(image, sigma=...):
     ...
 
 def grab_contours(cnts):
@@ -50,7 +50,7 @@ def get_opencv_major_version(lib=...): # -> int:
 def check_opencv_version(major, lib=...): # -> bool:
     ...
 
-def build_montages(image_list, image_shape, montage_shape): # -> list[Unknown]:
+def build_montages(image_list, image_shape, montage_shape): # -> list[Any]:
     """
     ---------------------------------------------------------------------------------------------
     author: Kyle Hounslow
@@ -85,7 +85,7 @@ def build_montages(image_list, image_shape, montage_shape): # -> list[Unknown]:
     """
     ...
 
-def adjust_brightness_contrast(image, brightness=..., contrast=...): # -> Any:
+def adjust_brightness_contrast(image, brightness=..., contrast=...):
     """
     Adjust the brightness and/or contrast of an image
 
@@ -94,3 +94,4 @@ def adjust_brightness_contrast(image, brightness=..., contrast=...): # -> Any:
     :param brightness: Float, brightness adjustment with 0 meaning no change
     """
     ...
+

@@ -28,13 +28,13 @@ class ARLSTem(StemmerI):
     """
     def __init__(self) -> None:
         ...
-
+    
     def stem(self, token): # -> None:
         """
         call this function to get the word's stem based on ARLSTem .
         """
         ...
-
+    
     def norm(self, token): # -> str:
         """
         normalize the word by removing diacritics, replacing hamzated Alif
@@ -42,69 +42,72 @@ class ARLSTem(StemmerI):
         beginning.
         """
         ...
-
+    
     def pref(self, token): # -> None:
         """
         remove prefixes from the words' beginning.
         """
         ...
-
+    
     def suff(self, token):
         """
         remove suffixes from the word's end.
         """
         ...
-
+    
     def fem2masc(self, token): # -> None:
         """
         transform the word from the feminine form to the masculine form.
         """
         ...
-
+    
     def plur2sing(self, token): # -> None:
         """
         transform the word from the plural form to the singular form.
         """
         ...
-
+    
     def verb(self, token):
         """
         stem the verb prefixes and suffixes or both
         """
         ...
-
+    
     def verb_t1(self, token): # -> None:
         """
         stem the present prefixes and suffixes
         """
         ...
-
+    
     def verb_t2(self, token): # -> None:
         """
         stem the future prefixes and suffixes
         """
         ...
-
+    
     def verb_t3(self, token): # -> None:
         """
         stem the present suffixes
         """
         ...
-
+    
     def verb_t4(self, token): # -> None:
         """
         stem the present prefixes
         """
         ...
-
+    
     def verb_t5(self, token):
         """
         stem the future prefixes
         """
         ...
-
+    
     def verb_t6(self, token):
         """
         stem the order prefixes
         """
         ...
+    
+
+

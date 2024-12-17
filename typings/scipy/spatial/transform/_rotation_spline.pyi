@@ -82,7 +82,7 @@ class RotationSpline:
     TOL = ...
     def __init__(self, times, rotations) -> None:
         ...
-
+    
     def __call__(self, times, order=...): # -> Any:
         """Compute interpolated values.
 
@@ -102,3 +102,6 @@ class RotationSpline:
         Interpolated Rotation, angular rate or acceleration.
         """
         ...
+    
+
+

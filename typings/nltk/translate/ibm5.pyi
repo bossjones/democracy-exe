@@ -197,21 +197,21 @@ class IBMModel5(IBMModel):
         :type probability_tables: dict[str]: object
         """
         ...
-
+    
     def reset_probabilities(self): # -> None:
         ...
-
+    
     def set_uniform_probabilities(self, sentence_aligned_corpus): # -> None:
         """
         Set vacancy probabilities uniformly to
         1 / cardinality of vacancy difference values
         """
         ...
-
+    
     def train(self, parallel_corpus): # -> None:
         ...
-
-    def sample(self, sentence_pair): # -> tuple[set, AlignmentInfo | Any]:
+    
+    def sample(self, sentence_pair): # -> tuple[set[Any], Any]:
         """
         Sample the most probable alignments from the entire alignment
         space according to Model 4
@@ -236,8 +236,8 @@ class IBMModel5(IBMModel):
         :rtype: set(AlignmentInfo), AlignmentInfo
         """
         ...
-
-    def prune(self, alignment_infos): # -> set:
+    
+    def prune(self, alignment_infos): # -> set[Any]:
         """
         Removes alignments from ``alignment_infos`` that have
         substantially lower Model 4 scores than the best alignment
@@ -246,7 +246,7 @@ class IBMModel5(IBMModel):
         :rtype: set(AlignmentInfo)
         """
         ...
-
+    
     def hillclimb(self, alignment_info, j_pegged=...):
         """
         Starting from the alignment in ``alignment_info``, look at
@@ -268,17 +268,17 @@ class IBMModel5(IBMModel):
         :rtype: AlignmentInfo
         """
         ...
-
+    
     def prob_t_a_given_s(self, alignment_info): # -> float:
         """
         Probability of target sentence and an alignment given the
         source sentence
         """
         ...
-
+    
     def maximize_vacancy_probabilities(self, counts): # -> None:
         ...
-
+    
 
 
 class Model5Counts(Counts):
@@ -288,7 +288,7 @@ class Model5Counts(Counts):
     """
     def __init__(self) -> None:
         ...
-
+    
     def update_vacancy(self, count, alignment_info, i, trg_classes, slots): # -> None:
         """
         :param count: Value to add to the vacancy counts
@@ -300,7 +300,7 @@ class Model5Counts(Counts):
             in the target sentence.
         """
         ...
-
+    
 
 
 class Slots:
@@ -310,18 +310,21 @@ class Slots:
     """
     def __init__(self, target_sentence_length) -> None:
         ...
-
+    
     def occupy(self, position): # -> None:
         """
         :return: Mark slot at ``position`` as occupied
         """
         ...
-
+    
     def vacancies_at(self, position): # -> int:
         """
         :return: Number of vacant slots up to, and including, ``position``
         """
         ...
-
+    
     def __len__(self): # -> int:
         ...
+    
+
+

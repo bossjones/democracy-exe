@@ -296,10 +296,19 @@ else:
 def compile_expression_raw(expr, name=..., globals=...): # -> partial[Any]:
     ...
 
-def compile_expression_tryexcept(expr, name=..., globals=...): # -> Callable[..., Any | Literal[False]]:
+def compile_expression_defaultdict(expr, name=..., globals=...): # -> partial[Any]:
+    ...
+
+def compile_expression_defaultdict_impl(expr, name=..., globals=...): # -> partial[Any]:
+    ...
+
+def compile_expression_tryexcept(expr, name=..., globals=...): # -> Callable[..., Any | CustomNone]:
     ...
 
 compile_expression = ...
+def compile_filter(expr, name=..., globals=...): # -> Callable[..., Any | CustomNone]:
+    ...
+
 def import_file(path): # -> Any:
     """Import a Python module from a filesystem path"""
     ...
@@ -348,7 +357,7 @@ class FilterPredicate:
     def __init__(self, expr, target=...) -> None:
         ...
     
-    def __call__(self, _, kwdict): # -> Any | Literal[False]:
+    def __call__(self, _, kwdict): # -> Any | CustomNone:
         ...
     
 

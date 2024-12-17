@@ -13,26 +13,26 @@ class WittenBell(Smoothing):
     """Witten-Bell smoothing."""
     def __init__(self, vocabulary, counter, **kwargs) -> None:
         ...
-
-    def alpha_gamma(self, word, context): # -> tuple:
+    
+    def alpha_gamma(self, word, context): # -> tuple[Any, Any]:
         ...
-
+    
     def unigram_score(self, word):
         ...
-
+    
 
 
 class AbsoluteDiscounting(Smoothing):
     """Smoothing with absolute discount."""
     def __init__(self, vocabulary, counter, discount=..., **kwargs) -> None:
         ...
-
-    def alpha_gamma(self, word, context): # -> tuple:
+    
+    def alpha_gamma(self, word, context): # -> tuple[Any, Any]:
         ...
-
+    
     def unigram_score(self, word):
         ...
-
+    
 
 
 class KneserNey(Smoothing):
@@ -49,9 +49,12 @@ class KneserNey(Smoothing):
     """
     def __init__(self, vocabulary, counter, order, discount=..., **kwargs) -> None:
         ...
-
+    
     def unigram_score(self, word): # -> float:
         ...
-
+    
     def alpha_gamma(self, word, context): # -> tuple[Any | float, Any | float]:
         ...
+    
+
+

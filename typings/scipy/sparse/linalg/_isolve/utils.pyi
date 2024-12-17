@@ -45,3 +45,4 @@ def make_system(A, M, x0, b): # -> tuple[LinearOperator | MatrixLinearOperator, 
 
     """
     ...
+

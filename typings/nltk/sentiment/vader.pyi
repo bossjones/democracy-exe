@@ -24,27 +24,27 @@ class VaderConstants:
     PUNC_LIST = ...
     def __init__(self) -> None:
         ...
-
+    
     def negated(self, input_words, include_nt=...): # -> bool:
         """
         Determine if input contains negation words
         """
         ...
-
+    
     def normalize(self, score, alpha=...):
         """
         Normalize the score to be between -1 and 1 using an alpha that
         approximates the max expected value
         """
         ...
-
+    
     def scalar_inc_dec(self, word, valence, is_cap_diff): # -> float:
         """
         Check if the preceding words increase, decrease, or negate/nullify the
         valence
         """
         ...
-
+    
 
 
 class SentiText:
@@ -53,7 +53,7 @@ class SentiText:
     """
     def __init__(self, text, punc_list, regex_remove_punctuation) -> None:
         ...
-
+    
     def allcap_differential(self, words): # -> bool:
         """
         Check whether just some words in the input are ALL CAPS
@@ -62,7 +62,7 @@ class SentiText:
         :returns: `True` if some but not all items in `words` are ALL CAPS
         """
         ...
-
+    
 
 
 class SentimentIntensityAnalyzer:
@@ -71,13 +71,13 @@ class SentimentIntensityAnalyzer:
     """
     def __init__(self, lexicon_file=...) -> None:
         ...
-
-    def make_lex_dict(self): # -> dict:
+    
+    def make_lex_dict(self): # -> dict[Any, Any]:
         """
         Convert lexicon file to a dictionary
         """
         ...
-
+    
     def polarity_scores(self, text): # -> dict[str, float]:
         """
         Return a float for sentiment strength based on the input text.
@@ -90,9 +90,12 @@ class SentimentIntensityAnalyzer:
             matched as if it was a normal word in the sentence.
         """
         ...
-
+    
     def sentiment_valence(self, valence, sentitext, item, i, sentiments):
         ...
-
+    
     def score_valence(self, sentiments, text): # -> dict[str, float]:
         ...
+    
+
+
