@@ -308,11 +308,18 @@ init-aicommits:
 aider:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore
 
+
+# Run aider with O1 preview
 aider-o1-preview:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --o1-preview --architect --edit-format whole --model o1-mini --no-stream
 
+# Run aider with Sonnet
 aider-sonnet:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff
+
+# Run aider with Gemini
+aider-gemini:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --model gemini/gemini-exp-1206 --cache-prompts --edit-format whole
 
 # Run aider with Claude
 aider-claude:

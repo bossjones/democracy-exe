@@ -378,6 +378,7 @@ class AioSettings(BaseSettings):
 
     # openai_token: str = ""
     openai_api_key: SecretStr = ""
+    gemini_api_key: SecretStr = ""
 
     discord_admin_user_invited: bool = False
 
