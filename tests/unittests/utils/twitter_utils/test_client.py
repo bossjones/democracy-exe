@@ -171,7 +171,14 @@ class TestTwitterClient:
             twitter_client: Twitter client fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", side_effect=NoExtractorError)
+
+        def raise_no_extractor(*args: Any, **kwargs: Any) -> None:
+            raise NoExtractorError("No suitable extractor found")
+
+        mocker.patch(
+            "gallery_dl.extractor.twitter.TwitterExtractor",
+            side_effect=raise_no_extractor,
+        )
 
         with pytest.raises(NoExtractorError, match="No suitable extractor found"):
             twitter_client.get_tweet_metadata("https://example.com")
@@ -234,7 +241,14 @@ class TestTwitterClient:
             twitter_client: Twitter client fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", side_effect=NoExtractorError)
+
+        def raise_no_extractor(*args: Any, **kwargs: Any) -> None:
+            raise NoExtractorError("No suitable extractor found")
+
+        mocker.patch(
+            "gallery_dl.extractor.twitter.TwitterExtractor",
+            side_effect=raise_no_extractor,
+        )
 
         with pytest.raises(NoExtractorError, match="No suitable extractor found"):
             twitter_client.get_thread_tweets("https://example.com")
@@ -271,7 +285,13 @@ class TestTwitterClient:
         assert twitter_client.validate_tweet("https://twitter.com/user/status/123456789") is True
 
         # Test invalid URL
-        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", side_effect=NoExtractorError)
+        def raise_no_extractor(*args: Any, **kwargs: Any) -> None:
+            raise NoExtractorError("No suitable extractor found")
+
+        mocker.patch(
+            "gallery_dl.extractor.twitter.TwitterExtractor",
+            side_effect=raise_no_extractor,
+        )
         assert twitter_client.validate_tweet("invalid_url") is False
 
         # Test no data

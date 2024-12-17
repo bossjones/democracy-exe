@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 import discord
 
@@ -30,6 +30,19 @@ if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
 
     from pytest_mock.plugin import MockerFixture
+
+
+# Type hints for discord.Embed attributes
+class DiscordEmbed(discord.Embed):
+    """Type hints for discord.Embed attributes."""
+
+    description: str
+    title: str
+    color: discord.Color
+    footer: discord.embeds.EmbedProxy
+    image: discord.embeds.EmbedProxy
+    author: discord.embeds.EmbedProxy
+    fields: list[discord.embeds.EmbedProxy]
 
 
 # Test Data
@@ -115,7 +128,7 @@ class TestTweetEmbed:
         Args:
             sample_metadata: Sample tweet metadata
         """
-        embed = create_tweet_embed(sample_metadata)
+        embed = cast(DiscordEmbed, create_tweet_embed(sample_metadata))
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == BLUE
@@ -133,11 +146,10 @@ class TestTweetEmbed:
         metadata = sample_metadata.copy()
         metadata["media_urls"] = TEST_MEDIA_URLS
 
-        embed = create_tweet_embed(metadata)
+        embed = cast(DiscordEmbed, create_tweet_embed(metadata))
 
         assert isinstance(embed, discord.Embed)
-        assert any(f.name == "Media URLs" for f in embed.fields)
-        media_field = next(f for f in embed.fields if f.name == "Media")
+        media_field = next(f for f in embed.fields if f.name == "Media URLs")
         assert all(url in media_field.value for url in metadata["media_urls"])
 
     def test_create_without_optional_fields(self) -> None:
@@ -150,7 +162,7 @@ class TestTweetEmbed:
             "url": TEST_URL,
         }
 
-        embed = create_tweet_embed(minimal_metadata)
+        embed = cast(DiscordEmbed, create_tweet_embed(minimal_metadata))
 
         assert isinstance(embed, discord.Embed)
         assert embed.author.name == minimal_metadata["author"]
@@ -166,7 +178,7 @@ class TestThreadEmbed:
         Args:
             sample_thread_metadata: Sample thread metadata
         """
-        embed = create_thread_embed(sample_thread_metadata)
+        embed = cast(DiscordEmbed, create_thread_embed(sample_thread_metadata))
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == BLUE
@@ -177,7 +189,7 @@ class TestThreadEmbed:
 
     def test_create_empty_thread(self) -> None:
         """Test creation of thread embed with empty thread."""
-        embed = create_thread_embed([])
+        embed = cast(DiscordEmbed, create_thread_embed([]))
 
         assert isinstance(embed, discord.Embed)
         assert embed.title == "Empty Thread"
@@ -189,7 +201,7 @@ class TestThreadEmbed:
         Args:
             sample_metadata: Sample tweet metadata
         """
-        embed = create_thread_embed([sample_metadata])
+        embed = cast(DiscordEmbed, create_thread_embed([sample_metadata]))
 
         assert isinstance(embed, discord.Embed)
         assert embed.author.name == sample_metadata["author"]
@@ -206,7 +218,7 @@ class TestCardEmbed:
         Args:
             sample_card_metadata: Sample card metadata
         """
-        embed = create_card_embed(sample_card_metadata)
+        embed = cast(DiscordEmbed, create_card_embed(sample_card_metadata))
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == BLUE
@@ -225,7 +237,7 @@ class TestCardEmbed:
         metadata = sample_card_metadata.copy()
         del metadata["card_image"]
 
-        embed = create_card_embed(metadata)
+        embed = cast(DiscordEmbed, create_card_embed(metadata))
 
         assert isinstance(embed, discord.Embed)
         assert embed.image.url is None
@@ -240,7 +252,7 @@ class TestInfoEmbed:
         Args:
             sample_metadata: Sample tweet metadata
         """
-        embed = create_info_embed(sample_metadata)
+        embed = cast(DiscordEmbed, create_info_embed(sample_metadata))
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == BLUE
@@ -262,7 +274,7 @@ class TestInfoEmbed:
         metadata = sample_metadata.copy()
         metadata["media_urls"] = TEST_MEDIA_URLS
 
-        embed = create_info_embed(metadata)
+        embed = cast(DiscordEmbed, create_info_embed(metadata))
 
         assert isinstance(embed, discord.Embed)
         assert any(f.name == "Media URLs" for f in embed.fields)
@@ -280,7 +292,7 @@ class TestProgressEmbed:
         Args:
             mode: Download mode to test
         """
-        embed = create_download_progress_embed(TEST_URL, mode)
+        embed = cast(DiscordEmbed, create_download_progress_embed(TEST_URL, mode))
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == GOLD
@@ -296,7 +308,7 @@ class TestErrorEmbed:
     def test_create_error(self) -> None:
         """Test creation of error embed."""
         error_message = "Test error message"
-        embed = create_error_embed(error_message)
+        embed = cast(DiscordEmbed, create_error_embed(error_message))
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == RED
@@ -305,7 +317,7 @@ class TestErrorEmbed:
 
     def test_create_error_with_empty_message(self) -> None:
         """Test creation of error embed with empty message."""
-        embed = create_error_embed("")
+        embed = cast(DiscordEmbed, create_error_embed(""))
 
         assert isinstance(embed, discord.Embed)
         assert embed.description == ""
