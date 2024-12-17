@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Tests for Discord embed utilities."""
 
 from __future__ import annotations

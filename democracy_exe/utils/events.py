@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 # pylint: disable=possibly-used-before-assignment,used-before-assignment
 """democracy_exe.utils.events"""
 

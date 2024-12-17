@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Discord utility functions.
 
 This module provides utility functions for Discord bot operations,

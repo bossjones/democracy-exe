@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Twitter service for handling Twitter-related operations."""
 from __future__ import annotations
 

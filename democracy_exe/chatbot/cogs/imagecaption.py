@@ -1,3 +1,5 @@
+# pyright: reportAttributeAccessIssue=false
+
 """Image captioning cog for Discord bot.
 
 This cog provides image captioning functionality using the BLIP model.

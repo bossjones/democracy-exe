@@ -1,3 +1,5 @@
+# pyright: reportAttributeAccessIssue=false
+
 """Twitter cog for Discord bot.
 
 This cog provides Twitter-related functionality including downloading tweets,

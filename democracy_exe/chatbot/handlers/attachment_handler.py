@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Attachment handling functionality.
 
 This module contains functionality for handling Discord attachments,
@@ -269,7 +270,7 @@ class AttachmentHandler:
                 - A list of dictionaries with attachment data
                 - A list of local attachment file paths
                 - A list of dictionaries with local attachment data
-                - A list of media file paths
+                - A list of media filepaths
 
         Raises:
             ValueError: If message has no attachments

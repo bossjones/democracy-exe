@@ -93,10 +93,14 @@ async def test_get_guild_prefix_error(mock_bot: Any, mocker: MockerFixture, capl
 
     Args:
         mock_bot: Mock bot fixture
+        mocker: Pytest mocker fixture
         caplog: Pytest log capture fixture
     """
-    mock_bot.prefixes = {123: ["!"]}
-    mock_bot.prefixes.get = mocker.MagicMock(side_effect=Exception("Test error"))
+    # Create a mock dictionary that raises an exception when get is called
+    mock_dict = mocker.MagicMock()
+    mock_dict.get.side_effect = Exception("Test error")
+    mock_bot.prefixes = mock_dict
+
     prefix = get_guild_prefix(mock_bot, 123)
     assert prefix == aiosettings.prefix
     assert "Error getting guild prefix: Test error" in caplog.text
@@ -191,7 +195,7 @@ async def test_get_prefix_error(mock_bot: Any, mock_message: Any, caplog: LogCap
     result = await get_prefix(mock_bot, mock_message)
     assert isinstance(result, list)
     assert any(aiosettings.prefix in prefix for prefix in result)
-    assert "Error getting prefix" in caplog.text
+    assert "Error getting prefix:" in caplog.text
 
 
 def test_prefix_callable_dm(mock_bot: Any, mock_message: Any) -> None:
@@ -238,7 +242,7 @@ def test_prefix_callable_error(mock_bot: Any, mock_message: Any, caplog: LogCapt
     assert isinstance(prefixes, list)
     assert "!" in prefixes
     assert "?" in prefixes
-    assert "Error in prefix_callable" in caplog.text
+    assert "Error in prefix_callable:" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -251,7 +255,7 @@ async def test_update_guild_prefix_success(mock_bot: Any, caplog: LogCaptureFixt
     """
     await update_guild_prefix(mock_bot, 123, "$")
     assert mock_bot.prefixes[123] == ["$"]
-    assert "Updated prefix for guild 123 to $" in caplog.text
+    assert f"Updated prefix for guild {123} to $" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -278,7 +282,7 @@ async def test_update_guild_prefix_nonexistent(mock_bot: Any, caplog: LogCapture
     """
     await update_guild_prefix(mock_bot, 999, "$")
     assert 999 not in mock_bot.prefixes
-    assert "Guild 999 not found in prefix cache" in caplog.text
+    assert f"Guild {999} not found in prefix cache" in caplog.text
 
 
 def test_get_prefix_display_dm(mock_bot: Any) -> None:
@@ -329,8 +333,10 @@ def test_get_prefix_display_error(mock_bot: Any, mocker: MockerFixture, caplog: 
         caplog: Pytest log capture fixture
     """
     guild = mocker.MagicMock()
-    mock_bot.prefixes = mocker.MagicMock()
-    mock_bot.prefixes.get = mocker.MagicMock(side_effect=Exception("Test error"))
+    mock_dict = mocker.MagicMock()
+    mock_dict.get.side_effect = Exception("Test error")
+    mock_bot.prefixes = mock_dict
+
     display = get_prefix_display(mock_bot, guild)
     assert display == "Default prefixes are: ! ?"
     assert "Error getting prefix display: Test error" in caplog.text

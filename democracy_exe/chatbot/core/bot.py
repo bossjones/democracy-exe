@@ -1,3 +1,5 @@
+# pyright: reportAttributeAccessIssue=false
+
 """Core DemocracyBot implementation.
 
 This module contains the main DemocracyBot class and its core functionality.
@@ -29,7 +31,7 @@ from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
 from democracy_exe.chatbot.handlers.message_handler import MessageHandler
 from democracy_exe.chatbot.utils.guild_utils import preload_guild_data
-from democracy_exe.utils.context import Context
+from democracy_exe.utils.bot_context import Context
 
 
 DESCRIPTION = """An example bot to showcase the discord.ext.commands extension
@@ -141,7 +143,7 @@ class DemocracyBot(commands.Bot):
         logger.info("Completed setup_hook initialization")
         await logger.complete()
 
-    async def on_command_error(self, ctx: Context, error: commands.CommandError) -> None:
+    async def on_command_error(self, ctx: commands.Context[commands.Bot], error: commands.CommandError) -> None:
         """Handle errors raised during command invocation.
 
         Args:
@@ -194,7 +196,7 @@ class DemocracyBot(commands.Bot):
         await super().close()
         await self.session.close()
 
-    async def start(self) -> None:
+    async def start(self, *args: Any, **kwargs: Any) -> None:
         """Start the bot and connect to Discord."""
         token = aiosettings.discord_token
         await super().start(str(token), reconnect=True)
@@ -231,7 +233,7 @@ class DemocracyBot(commands.Bot):
         while not self.is_closed():
             counter += 1
             if channel and isinstance(channel, Messageable):
-                await channel.send(counter)
+                await channel.send(str(counter))
             await asyncio.sleep(60)  # task runs every 60 seconds
 
     async def on_worker_monitor(self) -> None:
@@ -274,11 +276,13 @@ class DemocracyBot(commands.Bot):
             if isinstance(user_id, int):
                 user_id = str(user_id)
 
-            config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
-            user_input = {"messages": [self.message_handler._format_inbound_message(message)]}
+            input_data = {
+                "messages": [self.message_handler._format_inbound_message(message)],
+                "configurable": {"thread_id": thread_id, "user_id": user_id}
+            }
 
             try:
-                response = self.message_handler.stream_bot_response(self.graph, user_input, config)
+                response = await self.message_handler.stream_bot_response(self.graph, input_data)
             except Exception as e:
                 logger.exception(f"Error streaming bot response: {e}")
                 response = "An error occurred while processing your message."

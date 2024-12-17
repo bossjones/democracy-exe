@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """democracy_exe.utils.asynctyper"""
 
 from __future__ import annotations

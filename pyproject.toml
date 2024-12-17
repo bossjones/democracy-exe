@@ -1828,7 +1828,8 @@ exclude = [
     ".git",
     "**/build",
     "tasks",
-    "typings",
+    "democracy_exe/vendored/*",
+    "**/vendored/*",
 ]
 extraPaths = [
     ".venv",

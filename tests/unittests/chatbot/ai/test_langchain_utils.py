@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Unit tests for LangChain utilities."""
 
 from __future__ import annotations

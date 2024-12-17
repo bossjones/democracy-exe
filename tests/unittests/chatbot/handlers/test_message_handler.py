@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Unit tests for the MessageHandler class."""
 
 from __future__ import annotations

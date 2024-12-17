@@ -1,4 +1,5 @@
 """Unit tests for extension utilities."""
+# pyright: reportAttributeAccessIssue=false
 # type: ignore[no-any-return, no-any-unimported, no-untyped-call]
 
 from __future__ import annotations

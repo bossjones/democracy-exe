@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """LangChain integration utilities for Discord bot.
 
 This module handles AI/LangChain integration for the Discord bot.

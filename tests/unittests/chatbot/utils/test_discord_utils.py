@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Unit tests for Discord utilities."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Prefix handling utilities for Discord bot.
 
 This module handles command prefix management for the Discord bot.

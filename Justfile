@@ -426,7 +426,13 @@ uv_typecheck:
 
 # Run Pyright type checker
 uv_typecheck_pyright:
-	{{UV_RUN}} pyright -p pyproject.toml .
+	rm pyright.log || true
+	touch pyright.log
+	{{UV_RUN}} pyright --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
+	cat pyright.log
+
+# Verify types using Pyright, ignoring external packages
+typecheck: uv_typecheck_pyright
 
 # Verify types using Pyright, ignoring external packages
 uv_typecheck_verify_types:
