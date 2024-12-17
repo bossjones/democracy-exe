@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from loguru import logger
 
 import pytest
 
-from democracy_exe.utils.twitter_utils.client import GalleryDLError, NoExtractorError, NoTweetDataError, TwitterClient
+from democracy_exe.utils.twitter_utils.client import (
+    GalleryDLError,
+    GalleryDLTweetItem,
+    NoExtractorError,
+    NoTweetDataError,
+    TwitterClient,
+)
 from democracy_exe.utils.twitter_utils.types import TweetMetadata
 
 
@@ -23,11 +29,11 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def mock_tweet_item() -> dict[str, Any]:
+def mock_tweet_item() -> GalleryDLTweetItem:
     """Create mock tweet data.
 
     Returns:
-        Mock tweet item dictionary
+        Mock tweet item dictionary with required fields
     """
     return {
         "tweet_id": 123456789,
@@ -44,7 +50,7 @@ def twitter_client() -> TwitterClient:
     """Create test Twitter client.
 
     Returns:
-        TwitterClient instance
+        TwitterClient instance with test auth token
     """
     return TwitterClient(auth_token="test_token")  # noqa: S106
 
@@ -53,24 +59,25 @@ class TestTwitterClient:
     """Test suite for Twitter client."""
 
     def test_extract_tweet_id(self, twitter_client: TwitterClient) -> None:
-        """Test tweet ID extraction from URLs.
+        """Test tweet ID extraction from various URL formats.
 
         Args:
             twitter_client: Twitter client fixture
         """
-        urls = [
-            "https://twitter.com/user/status/123456789",
-            "https://x.com/user/status/123456789",
-            "https://twitter.com/user/status/123456789?s=20",
-            "invalid_url",
+        test_cases = [
+            ("https://twitter.com/user/status/123456789", "123456789"),
+            ("https://x.com/user/status/123456789", "123456789"),
+            ("https://twitter.com/user/status/123456789?s=20", "123456789"),
+            ("https://x.com/user/status/123456789?s=20&t=abc", "123456789"),
+            ("invalid_url", None),
+            ("https://twitter.com/user/", None),
+            ("https://x.com/user/status/", None),
         ]
 
-        assert twitter_client.extract_tweet_id(urls[0]) == "123456789"
-        assert twitter_client.extract_tweet_id(urls[1]) == "123456789"
-        assert twitter_client.extract_tweet_id(urls[2]) == "123456789"
-        assert twitter_client.extract_tweet_id(urls[3]) is None
+        for url, expected in test_cases:
+            assert twitter_client.extract_tweet_id(url) == expected
 
-    def test_parse_tweet_item(self, twitter_client: TwitterClient, mock_tweet_item: dict[str, Any]) -> None:
+    def test_parse_tweet_item(self, twitter_client: TwitterClient, mock_tweet_item: GalleryDLTweetItem) -> None:
         """Test parsing of gallery-dl tweet items.
 
         Args:
@@ -87,23 +94,55 @@ class TestTwitterClient:
         assert metadata["media_urls"][0] == "https://example.com/image.jpg"
         assert metadata["created_at"] == "2024-03-10T12:00:00+00:00"
 
+    def test_parse_tweet_item_no_media(
+        self, twitter_client: TwitterClient, mock_tweet_item: GalleryDLTweetItem
+    ) -> None:
+        """Test parsing tweet item without media.
+
+        Args:
+            twitter_client: Twitter client fixture
+            mock_tweet_item: Mock tweet data fixture
+        """
+        mock_tweet_item["media"] = None
+        metadata = twitter_client._parse_tweet_item(mock_tweet_item)
+        assert metadata["media_urls"] == []
+
     def test_parse_tweet_item_missing_field(self, twitter_client: TwitterClient) -> None:
-        """Test parsing tweet item with missing required field.
+        """Test parsing tweet item with missing required fields.
 
         Args:
             twitter_client: Twitter client fixture
         """
-        invalid_item = {
-            "tweet_id": 123456789,
-            # Missing required fields
-        }
+        invalid_items = [
+            {
+                "tweet_url": "url",
+                "content": "content",
+                "date": datetime.now(UTC),
+                "author": {"name": "author"},
+            },  # Missing tweet_id
+            {
+                "tweet_id": 123,
+                "content": "content",
+                "date": datetime.now(UTC),
+                "author": {"name": "author"},
+            },  # Missing tweet_url
+            {
+                "tweet_id": 123,
+                "tweet_url": "url",
+                "date": datetime.now(UTC),
+                "author": {"name": "author"},
+            },  # Missing content
+            {"tweet_id": 123, "tweet_url": "url", "content": "content", "author": {"name": "author"}},  # Missing date
+            {"tweet_id": 123, "tweet_url": "url", "content": "content", "date": datetime.now(UTC)},  # Missing author
+        ]
 
-        with pytest.raises(ValueError, match="Missing required field"):
-            twitter_client._parse_tweet_item(invalid_item)  # type: ignore
+        for item in invalid_items:
+            with pytest.raises(ValueError, match="Missing required field"):
+                twitter_client._parse_tweet_item(item)  # type: ignore
 
     @pytest.mark.vcr()
     def test_get_tweet_metadata(
-        self, twitter_client: TwitterClient, mocker: MockerFixture, mock_tweet_item: dict[str, Any]
+        self, twitter_client: TwitterClient, mocker: MockerFixture, mock_tweet_item: GalleryDLTweetItem
     ) -> None:
         """Test tweet metadata fetching.
 
@@ -114,7 +153,7 @@ class TestTwitterClient:
         """
         mock_extractor = mocker.MagicMock()
         mock_extractor.__iter__.return_value = iter([mock_tweet_item])
-        mocker.patch("gallery_dl.extractor.find", return_value=mock_extractor)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", return_value=mock_extractor)
 
         metadata = twitter_client.get_tweet_metadata("https://twitter.com/user/status/123456789")
 
@@ -132,7 +171,7 @@ class TestTwitterClient:
             twitter_client: Twitter client fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("gallery_dl.extractor.find", return_value=None)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", side_effect=NoExtractorError)
 
         with pytest.raises(NoExtractorError, match="No suitable extractor found"):
             twitter_client.get_tweet_metadata("https://example.com")
@@ -147,14 +186,14 @@ class TestTwitterClient:
         """
         mock_extractor = mocker.MagicMock()
         mock_extractor.__iter__.return_value = iter([])
-        mocker.patch("gallery_dl.extractor.find", return_value=mock_extractor)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", return_value=mock_extractor)
 
         with pytest.raises(NoTweetDataError, match="No tweet data found"):
             twitter_client.get_tweet_metadata("https://twitter.com/user/status/123")
 
     @pytest.mark.vcr()
     def test_get_thread_tweets(
-        self, twitter_client: TwitterClient, mocker: MockerFixture, mock_tweet_item: dict[str, Any]
+        self, twitter_client: TwitterClient, mocker: MockerFixture, mock_tweet_item: GalleryDLTweetItem
     ) -> None:
         """Test thread tweets fetching.
 
@@ -177,7 +216,7 @@ class TestTwitterClient:
 
         mock_extractor = mocker.MagicMock()
         mock_extractor.__iter__.return_value = iter(thread_items)
-        mocker.patch("gallery_dl.extractor.find", return_value=mock_extractor)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", return_value=mock_extractor)
 
         thread = twitter_client.get_thread_tweets("https://twitter.com/user/status/123456789")
 
@@ -195,7 +234,7 @@ class TestTwitterClient:
             twitter_client: Twitter client fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("gallery_dl.extractor.find", return_value=None)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", side_effect=NoExtractorError)
 
         with pytest.raises(NoExtractorError, match="No suitable extractor found"):
             twitter_client.get_thread_tweets("https://example.com")
@@ -210,13 +249,13 @@ class TestTwitterClient:
         """
         mock_extractor = mocker.MagicMock()
         mock_extractor.__iter__.return_value = iter([])
-        mocker.patch("gallery_dl.extractor.find", return_value=mock_extractor)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", return_value=mock_extractor)
 
         with pytest.raises(NoTweetDataError, match="No tweets found in thread"):
             twitter_client.get_thread_tweets("https://twitter.com/user/status/123")
 
     def test_validate_tweet(
-        self, twitter_client: TwitterClient, mocker: MockerFixture, mock_tweet_item: dict[str, Any]
+        self, twitter_client: TwitterClient, mocker: MockerFixture, mock_tweet_item: GalleryDLTweetItem
     ) -> None:
         """Test tweet validation.
 
@@ -227,10 +266,16 @@ class TestTwitterClient:
         """
         mock_extractor = mocker.MagicMock()
         mock_extractor.__iter__.return_value = iter([mock_tweet_item])
-        mocker.patch("gallery_dl.extractor.find", return_value=mock_extractor)
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", return_value=mock_extractor)
 
-        assert twitter_client.validate_tweet("https://twitter.com/user/status/123456789")
+        assert twitter_client.validate_tweet("https://twitter.com/user/status/123456789") is True
 
         # Test invalid URL
-        mocker.patch("gallery_dl.extractor.find", return_value=None)
-        assert not twitter_client.validate_tweet("invalid_url")
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", side_effect=NoExtractorError)
+        assert twitter_client.validate_tweet("invalid_url") is False
+
+        # Test no data
+        mock_extractor = mocker.MagicMock()
+        mock_extractor.__iter__.return_value = iter([])
+        mocker.patch("gallery_dl.extractor.twitter.TwitterExtractor", return_value=mock_extractor)
+        assert twitter_client.validate_tweet("https://twitter.com/user/status/123456789") is False
