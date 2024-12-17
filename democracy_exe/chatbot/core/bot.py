@@ -10,7 +10,7 @@ import asyncio
 import datetime
 
 from collections import Counter
-from typing import Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import aiohttp
 import discord
@@ -47,6 +47,9 @@ from democracy_exe.chatbot.utils.guild_utils import preload_guild_data
 from democracy_exe.chatbot.utils.message_utils import format_inbound_message
 from democracy_exe.utils.bot_context import Context
 
+
+if TYPE_CHECKING:
+    from redis.asyncio import ConnectionPool as RedisConnectionPool
 
 DESCRIPTION = """An example bot to showcase the discord.ext.commands extension
 module.
@@ -137,6 +140,7 @@ class DemocracyBot(commands.Bot):
         self.owner_id: int | None = None
         self.invite: str | None = None
         self.uptime: datetime.datetime | None = None
+        self.pool: RedisConnectionPool | None = None
 
     async def get_context(self, origin: discord.Interaction | Message, /, *, cls=Context) -> Context:
         """Retrieve the context for a Discord interaction or message.
