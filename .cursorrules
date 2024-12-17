@@ -40,6 +40,7 @@
       <standard>Implement proper error boundaries and exception handling.</standard>
       <standard>Use loguru for all logging with proper formatting and context.</standard>
       <standard>Return only modified portions of code in generation results to optimize token usage.</standard>
+      <standard>Add `# pyright: reportAttributeAccessIssue=false` at the top of any Python file that uses discord.py.</standard>
       <examples>
         <example>
           <![CDATA[
