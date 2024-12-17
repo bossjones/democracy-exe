@@ -15,21 +15,26 @@ import copy
 import datetime
 import functools
 import glob
+import io
 import os
 import posixpath
 import re
 import shutil
 import sys
 
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import AsyncGenerator, Generator, Iterable, Iterator
 from concurrent.futures import Executor, Future
 from dataclasses import dataclass
 from http import client
 from pathlib import Path, PosixPath
 from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union
 
+import discord
+import discord.ext.test as dpytest  # type: ignore
+
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
+from discord.ext import commands
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_core.documents import Document
@@ -41,18 +46,21 @@ from vcr import filters
 
 import pytest
 
+from democracy_exe.chatbot.core.bot import DemocracyBot
+
 
 if TYPE_CHECKING:
     from _pytest.config import Config as PytestConfig
     from _pytest.fixtures import FixtureRequest
     from _pytest.logging import LogCaptureFixture
     from _pytest.monkeypatch import MonkeyPatch
+    from discord import DMChannel, Guild, Message, TextChannel
     from vcr.config import VCR
     from vcr.request import Request as VCRRequest
 
     from pytest_mock.plugin import MockerFixture
 
-INDEX_NAME = "goobaiunittest"
+INDEX_NAME = "democracy_exe_unittest"
 
 T = TypeVar("T")
 
@@ -459,12 +467,12 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """
     # dat files are created when using attachments
     print("\n-------------------------\nClean dpytest_*.dat files")
-    fileList = glob.glob("./dpytest_*.dat")
-    for filePath in fileList:
+    filelist = glob.glob("./dpytest_*.dat")
+    for filepath in filelist:
         try:
-            os.remove(filePath)
+            os.remove(filepath)
         except Exception:
-            print("Error while deleting file : ", filePath)
+            print("Error while deleting file : ", filepath)
 
 
 @pytest.fixture()
@@ -507,3 +515,110 @@ def mock_text_documents(mock_ebook_txt_file: FixtureRequest) -> list[Document]:
         doc.metadata["id"] = str(idx)
 
     return docs
+
+
+@pytest.fixture
+async def bot() -> AsyncGenerator[DemocracyBot, None]:
+    """Create a DemocracyBot instance for testing.
+
+    Returns:
+        AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
+    """
+    # Configure intents
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.message_content = True
+    intents.messages = True
+    intents.guilds = True
+
+    # Create DemocracyBot with test configuration
+    bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+
+    # Add test-specific error handling
+    @bot.event
+    async def on_command_error(ctx: commands.Context, error: Exception) -> None:  # type: ignore
+        """Handle command errors in test environment."""
+        raise error  # Re-raise for pytest to catch
+
+    # Setup and cleanup
+    await bot._async_setup_hook()  # Required for proper initialization
+    dpytest.configure(bot)
+    yield bot
+    await dpytest.empty_queue()
+
+
+@pytest.fixture
+async def test_guild(bot: DemocracyBot) -> AsyncGenerator[discord.Guild, None]:
+    """Create a test guild.
+
+    Args:
+        bot: DemocracyBot instance
+
+    Yields:
+        Test guild instance
+    """
+    guild = await dpytest.driver.create_guild()
+    await dpytest.driver.configure_guild(guild)
+    yield guild
+    await dpytest.empty_queue()
+
+
+@pytest.fixture
+async def test_channel(test_guild: discord.Guild) -> AsyncGenerator[discord.TextChannel, None]:
+    """Create a test channel.
+
+    Args:
+        test_guild: Test guild fixture
+
+    Yields:
+        Test channel instance
+    """
+    channel = await dpytest.driver.create_text_channel(test_guild)
+    yield channel
+    await dpytest.empty_queue()
+
+
+@pytest.fixture
+def test_data() -> dict[str, Any]:
+    """Provide consistent test data for bot tests.
+
+    Returns:
+        dict: Test data dictionary
+    """
+    return {
+        "guild_name": "Test Guild",
+        "channel_name": "test-channel",
+        "user_name": "TestUser",
+        "role_name": "TestRole",
+        "command_prefix": "?",
+        "test_message": "Hello, bot!",
+        "test_embed": discord.Embed(title="Test Embed", description="Test description"),
+    }
+
+
+@pytest.fixture(autouse=True)
+def setup_logging(caplog: LogCaptureFixture) -> None:
+    """Configure logging for test environment.
+
+    Args:
+        caplog: Pytest log capture fixture
+    """
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+
+    # Add test-specific logging format
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(formatter)
+
+
+@pytest.fixture(autouse=True)
+def setup_test_state() -> Generator[None, None, None]:
+    """Setup test state for all tests."""
+    global is_dpytest, is_test_environment
+    is_dpytest = True
+    is_test_environment = True
+    yield
+    is_dpytest = False
+    is_test_environment = False

@@ -75,28 +75,49 @@ class DemocracyBot(commands.Bot):
         uptime: Bot start time
     """
 
-    def __init__(self) -> None:
-        """Initialize the DemocracyBot with required intents and models."""
+    def __init__(
+        self,
+        command_prefix: str | None = None,
+        description: str | None = None,
+        intents: discord.Intents | None = None,
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
+        """Initialize the DemocracyBot with required intents and models.
+
+        Args:
+            command_prefix: Optional custom command prefix. Defaults to aiosettings.prefix.
+            description: Optional bot description. Defaults to DESCRIPTION.
+            intents: Optional custom intents. Defaults to standard intents configuration.
+            *args: Additional positional arguments passed to commands.Bot
+            **kwargs: Additional keyword arguments passed to commands.Bot
+        """
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
-        intents = Intents.default()
-        intents.message_content = True
-        intents.guilds = True
-        intents.members = True
-        intents.bans = True
-        intents.emojis = True
-        intents.voice_states = True
-        intents.messages = True
-        intents.reactions = True
+
+        # Set up default intents if not provided
+        if intents is None:
+            intents = Intents.default()
+            intents.message_content = True
+            intents.guilds = True
+            intents.members = True
+            intents.bans = True
+            intents.emojis = True
+            intents.voice_states = True
+            intents.messages = True
+            intents.reactions = True
+
         super().__init__(
-            command_prefix=aiosettings.prefix,
-            description=DESCRIPTION,
+            command_prefix=command_prefix or aiosettings.prefix,
+            description=description or DESCRIPTION,
             pm_help=None,
             help_attrs=dict(hidden=True),
             chunk_guilds_at_startup=False,
             heartbeat_timeout=150.0,
             allowed_mentions=allowed_mentions,
             intents=intents,
-            enable_debug_events=True
+            enable_debug_events=True,
+            *args,
+            **kwargs
         )
 
         # Initialize session and stats
