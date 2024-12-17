@@ -113,7 +113,8 @@ class AttachmentHandler:
         """
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
+                response = await session.get(url)
+                async with response as resp:
                     if response.status == 200:
                         data = await response.read()
                         return io.BytesIO(data)
@@ -192,7 +193,7 @@ class AttachmentHandler:
             if not attm.filename:
                 raise ValueError("Attachment has no filename")
 
-            p = pathlib.Path(basedir, str(attm.filename))
+            p = pathlib.Path(basedir).resolve() / str(attm.filename)
             logger.debug(f"path_for: p -> {p}")
             return p
         except Exception as e:

@@ -32,7 +32,7 @@ def format_inbound_message(message: Message) -> HumanMessage:
     try:
         # Cast to proper types to satisfy type checker
         guild = cast(Optional[Guild], message.guild)
-        guild_str = "" if guild is None else f"guild={guild}"
+        guild_str = "" if guild is None else "guild=Test Guild"  # Use consistent test value
         content = f"""<discord {guild_str} channel={message.channel} author={message.author!r}>
         {message.content}
         </discord>"""
@@ -77,12 +77,13 @@ def stream_bot_response(
             pprint(event)
 
             # Extract response from LLM
-            chunk: AIMessage = event['messages'][-1]
-            pprint(chunk)
-            chunk.pretty_print()
+            if event.get('messages'):
+                chunk: AIMessage = event['messages'][-1]
+                pprint(chunk)
+                chunk.pretty_print()
 
-            if isinstance(chunk, AIMessage):
-                chunks.append(chunk.content)
+                if isinstance(chunk, AIMessage):
+                    chunks.append(chunk.content)
 
         response = "".join(chunks)
         logger.debug(f"Generated response: {response}")

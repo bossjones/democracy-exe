@@ -140,7 +140,7 @@ class TestAttachmentHandler:
         mock_fp = io.BytesIO(b"test_data")
         mock_file = mocker.Mock(spec=File)
         mock_file.fp = mock_fp
-        mock_file.fp.readable.return_value = True
+        mock_file.fp.readable = mocker.Mock(return_value=True)
 
         result = await attachment_handler.file_to_data_uri(mock_file)
 
@@ -178,7 +178,8 @@ class TestAttachmentHandler:
         result = attachment_handler.path_for(mock_attachment, "./test_dir")
 
         assert isinstance(result, pathlib.Path)
-        assert str(result) == "./test_dir/test.png"
+        assert str(result.relative_to(result.parent)) == "test.png"
+        assert result.parent.name == "test_dir"
 
     @pytest.mark.asyncio
     async def test_save_attachment(

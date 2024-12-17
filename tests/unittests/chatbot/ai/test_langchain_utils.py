@@ -106,7 +106,7 @@ class TestLangChainUtils:
         assert result.id == "123456789"
         assert "Test message" in result.content
         assert "Test Guild" in result.content
-        assert "test-channel" in result.content
+        assert str(mock_message.channel) in result.content
 
     def test_format_inbound_message_no_guild(self, mock_message: Message) -> None:
         """Test formatting inbound message without guild.

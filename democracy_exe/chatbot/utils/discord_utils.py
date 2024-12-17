@@ -196,7 +196,8 @@ async def get_or_create_role(
             return existing_role
 
         logger.info(f"Creating new role: {role_name}")
-        return await guild.create_role(name=role_name, **role_params)
+        role = await guild.create_role(name=role_name, **role_params)
+        return existing_role or role
     except discord.Forbidden as e:
         logger.error(f"Insufficient permissions to manage roles: {e}")
         raise
@@ -366,7 +367,7 @@ async def details_from_file(
 
         if sys.platform == "darwin":
             get_timestamp = await shell._aio_run_process_and_communicate(
-                ["gstat", "-c", "%y", f"{p.stem}{p.suffix}"], cwd=cwd
+                ["gstat", "-c", "%y", str(p.absolute())], cwd=cwd
             )
         elif sys.platform == "linux":
             get_timestamp = await shell._aio_run_process_and_communicate(

@@ -201,7 +201,12 @@ upgrade-dry-run:
 
 # Upgrade all dependencies and sync the environment
 sync-upgrade-all:
-	uv sync --update-all --all-features
+	uv sync --upgrade
+
+uv-upgrade-all:
+	uv sync --upgrade
+
+uv-upgrade: uv-upgrade-all
 
 # Start a background HTTP server for test fixtures
 http-server-background:

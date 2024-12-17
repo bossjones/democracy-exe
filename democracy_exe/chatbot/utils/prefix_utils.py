@@ -26,6 +26,8 @@ def get_guild_prefix(bot: Any, guild_id: int) -> str:
         The guild's prefix or default prefix
     """
     try:
+        if not hasattr(bot, 'prefixes'):
+            raise AttributeError("Bot has no prefixes attribute")
         return bot.prefixes.get(guild_id, [aiosettings.prefix])[0]
     except Exception as e:
         logger.error(f"Error getting guild prefix: {e}")
@@ -53,7 +55,10 @@ async def get_prefix(bot: Any, message: Message) -> Any:
         )
         logger.debug(f"Using prefix: {prefix}")
         await logger.complete()
-        return commands.when_mentioned_or(*prefix)(bot, message)
+        base = [f"<@!{bot.user.id}> ", f"<@{bot.user.id}> "]
+        prefixes = [aiosettings.prefix] if isinstance(channel, DMChannel) else bot.prefixes.get(cast(Guild, message.guild).id, [aiosettings.prefix])
+        base.extend(prefixes)
+        return base
     except Exception as e:
         logger.error(f"Error getting prefix: {e}")
         # Fallback to default prefix

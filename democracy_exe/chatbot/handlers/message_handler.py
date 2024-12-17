@@ -267,7 +267,7 @@ class MessageHandler:
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
 
-            return f"discord_{user_id}" if is_dm else f"discord_{channel_id}"
+            return f"discord_{user_id}" if is_dm else f"discord_{channel_id.id if hasattr(channel_id, 'id') else channel_id}"
         except Exception as e:
             logger.error(f"Error generating session ID: {e}")
             return f"discord_error_{id(message)}"

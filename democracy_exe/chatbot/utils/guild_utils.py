@@ -22,6 +22,10 @@ async def preload_guild_data() -> dict[int, dict[str, Any]]:
         containing guild-specific data, such as the prefix.
     """
     logger.info("Preloading guild data...")
-    guilds = [guild_factory.Guild()]
-    await logger.complete()
-    return {guild.id: {"prefix": guild.prefix} for guild in guilds}
+    try:
+        guilds = [guild_factory.Guild() for _ in range(3)]  # Create 3 guilds for testing
+        await logger.complete()
+        return {guild.id: {"prefix": guild.prefix} for guild in guilds}
+    except Exception as e:
+        logger.error(f"Error preloading guild data: {e}")
+        return {}

@@ -1,17 +1,26 @@
 """Unit tests for extension utilities."""
+# type: ignore[no-any-return, no-any-unimported, no-untyped-call]
 
 from __future__ import annotations
 
 import os
 import pathlib
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 import aiofiles
+import discord.ext.commands
 
+from _pytest.capture import CaptureFixture
+from _pytest.fixtures import FixtureRequest
+from _pytest.logging import LogCaptureFixture
+from _pytest.monkeypatch import MonkeyPatch
+from discord.ext import commands
 from loguru import logger
 
 import pytest
+
+from pytest_mock import MockFixture
 
 from democracy_exe.chatbot.utils.extension_utils import (
     aio_extensions,
@@ -22,30 +31,21 @@ from democracy_exe.chatbot.utils.extension_utils import (
 )
 
 
-if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
-
-    from pytest_mock.plugin import MockerFixture
-
-
 @pytest.fixture
-def mock_bot(mocker: MockerFixture) -> Any:
+def mock_bot(mocker: MockFixture) -> commands.Bot:
     """Create a mock Discord bot for testing.
 
     Args:
         mocker: Pytest mocker fixture
 
     Returns:
-        Any: A mocked Discord bot object
+        commands.Bot: A mocked Discord bot object
     """
-    mock_b = mocker.Mock()
+    mock_b = mocker.Mock(spec=commands.Bot)
     mock_b.load_extension = mocker.AsyncMock()
     mock_b.reload_extension = mocker.AsyncMock()
     mock_b.unload_extension = mocker.AsyncMock()
-    return mock_b
+    return cast(commands.Bot, mock_b)
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ def mock_cogs_dir(tmp_path: pathlib.Path) -> pathlib.Path:
 class TestExtensionUtils:
     """Test suite for extension utilities."""
 
-    def test_extensions(self, mock_cogs_dir: pathlib.Path, mocker: MockerFixture) -> None:
+    def test_extensions(self, mock_cogs_dir: pathlib.Path, mocker: MockFixture) -> None:
         """Test synchronous extension discovery.
 
         Args:
@@ -97,7 +97,7 @@ class TestExtensionUtils:
         assert not any("__init__" in ext for ext in ext_list)
 
     @pytest.mark.asyncio
-    async def test_aio_extensions(self, mock_cogs_dir: pathlib.Path, mocker: MockerFixture) -> None:
+    async def test_aio_extensions(self, mock_cogs_dir: pathlib.Path, mocker: MockFixture) -> None:
         """Test asynchronous extension discovery.
 
         Args:
@@ -115,7 +115,7 @@ class TestExtensionUtils:
         assert not any("__init__" in ext for ext in ext_list)
 
     @pytest.mark.asyncio
-    async def test_load_extensions(self, mock_bot: Any, mocker: MockerFixture) -> None:
+    async def test_load_extensions(self, mock_bot: commands.Bot, mocker: MockFixture) -> None:
         """Test loading multiple extensions.
 
         Args:
@@ -131,7 +131,7 @@ class TestExtensionUtils:
             mock_bot.load_extension.assert_any_call(ext)
 
     @pytest.mark.asyncio
-    async def test_reload_extension(self, mock_bot: Any) -> None:
+    async def test_reload_extension(self, mock_bot: commands.Bot) -> None:
         """Test reloading a specific extension.
 
         Args:
@@ -144,7 +144,7 @@ class TestExtensionUtils:
         mock_bot.reload_extension.assert_called_once_with(extension)
 
     @pytest.mark.asyncio
-    async def test_unload_extension(self, mock_bot: Any) -> None:
+    async def test_unload_extension(self, mock_bot: commands.Bot) -> None:
         """Test unloading a specific extension.
 
         Args:
@@ -157,7 +157,7 @@ class TestExtensionUtils:
         mock_bot.unload_extension.assert_called_once_with(extension)
 
     @pytest.mark.asyncio
-    async def test_load_extensions_error(self, mock_bot: Any) -> None:
+    async def test_load_extensions_error(self, mock_bot: commands.Bot) -> None:
         """Test error handling when loading extensions fails.
 
         Args:
@@ -169,7 +169,7 @@ class TestExtensionUtils:
             await load_extensions(mock_bot, ["cogs.test_cog1"])
 
     @pytest.mark.asyncio
-    async def test_reload_extension_error(self, mock_bot: Any) -> None:
+    async def test_reload_extension_error(self, mock_bot: commands.Bot) -> None:
         """Test error handling when reloading extension fails.
 
         Args:
@@ -181,7 +181,7 @@ class TestExtensionUtils:
             await reload_extension(mock_bot, "cogs.test_cog1")
 
     @pytest.mark.asyncio
-    async def test_unload_extension_error(self, mock_bot: Any) -> None:
+    async def test_unload_extension_error(self, mock_bot: commands.Bot) -> None:
         """Test error handling when unloading extension fails.
 
         Args:
@@ -192,7 +192,7 @@ class TestExtensionUtils:
         with pytest.raises(Exception, match="Failed to unload"):
             await unload_extension(mock_bot, "cogs.test_cog1")
 
-    def test_extensions_with_invalid_dir(self, mocker: MockerFixture) -> None:
+    def test_extensions_with_invalid_dir(self, mocker: MockFixture) -> None:
         """Test extension discovery with invalid directory.
 
         Args:
@@ -204,9 +204,7 @@ class TestExtensionUtils:
             list(extensions())
 
     @pytest.mark.asyncio
-    async def test_aio_extensions_with_unreadable_file(
-        self, mock_cogs_dir: pathlib.Path, mocker: MockerFixture
-    ) -> None:
+    async def test_aio_extensions_with_unreadable_file(self, mock_cogs_dir: pathlib.Path, mocker: MockFixture) -> None:
         """Test async extension discovery with unreadable file.
 
         Args:
