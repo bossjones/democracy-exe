@@ -33,10 +33,10 @@ check:
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
 	uv run deptry .
 
-# Test the code with pytest
-test:
-	@echo "🚀 Testing code: Running pytest"
-	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+# # Test the code with pytest
+# test:
+# 	@echo "🚀 Testing code: Running pytest"
+# 	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
 
 # Build wheel file
 build: clean-build

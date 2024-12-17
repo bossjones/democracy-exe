@@ -58,17 +58,21 @@ def mock_cogs_dir(tmp_path: pathlib.Path) -> pathlib.Path:
     Returns:
         pathlib.Path: Path to the mock cogs directory
     """
-    cogs_dir = tmp_path / "cogs"
+    module_dir = tmp_path / "democracy_exe" / "chatbot"
+    module_dir.mkdir(parents=True)
+    cogs_dir = module_dir / "cogs"
     cogs_dir.mkdir()
 
     # Create some test cog files
     (cogs_dir / "__init__.py").touch()
     (cogs_dir / "test_cog1.py").write_text("# Test cog 1")
     (cogs_dir / "test_cog2.py").write_text("# Test cog 2")
-    (cogs_dir / "subcogs").mkdir()
-    (cogs_dir / "subcogs" / "test_cog3.py").write_text("# Test cog 3")
+    subcogs_dir = cogs_dir / "subcogs"
+    subcogs_dir.mkdir()
+    (subcogs_dir / "__init__.py").touch()
+    (subcogs_dir / "test_cog3.py").write_text("# Test cog 3")
 
-    return cogs_dir
+    return module_dir
 
 
 @pytest.mark.asyncio
@@ -82,14 +86,14 @@ class TestExtensionUtils:
             mock_cogs_dir: Mock cogs directory fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_dir.parent))
+        mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_dir))
 
         ext_list = list(extensions())
 
         assert len(ext_list) == 3
-        assert any("test_cog1" in ext for ext in ext_list)
-        assert any("test_cog2" in ext for ext in ext_list)
-        assert any("test_cog3" in ext for ext in ext_list)
+        assert "cogs.test_cog1" in ext_list
+        assert "cogs.test_cog2" in ext_list
+        assert "cogs.subcogs.test_cog3" in ext_list
         assert not any("__init__" in ext for ext in ext_list)
 
     @pytest.mark.asyncio
@@ -100,14 +104,14 @@ class TestExtensionUtils:
             mock_cogs_dir: Mock cogs directory fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_dir.parent))
+        mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_dir))
 
         ext_list = [ext async for ext in aio_extensions()]
 
         assert len(ext_list) == 3
-        assert any("test_cog1" in ext for ext in ext_list)
-        assert any("test_cog2" in ext for ext in ext_list)
-        assert any("test_cog3" in ext for ext in ext_list)
+        assert "cogs.test_cog1" in ext_list
+        assert "cogs.test_cog2" in ext_list
+        assert "cogs.subcogs.test_cog3" in ext_list
         assert not any("__init__" in ext for ext in ext_list)
 
     @pytest.mark.asyncio
@@ -196,7 +200,7 @@ class TestExtensionUtils:
         """
         mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", "/nonexistent")
 
-        with pytest.raises(Exception):  # noqa: B017
+        with pytest.raises(FileNotFoundError):
             list(extensions())
 
     @pytest.mark.asyncio
@@ -209,7 +213,7 @@ class TestExtensionUtils:
             mock_cogs_dir: Mock cogs directory fixture
             mocker: Pytest mocker fixture
         """
-        mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_dir.parent))
+        mocker.patch("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_dir))
         mocker.patch("aiofiles.open", side_effect=OSError("Permission denied"))
 
         ext_list = [ext async for ext in aio_extensions()]

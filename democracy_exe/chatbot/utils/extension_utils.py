@@ -29,14 +29,16 @@ def extensions() -> Iterable[str]:
         The module path for each Python file in the 'cogs' directory
 
     Raises:
+        FileNotFoundError: If the cogs directory doesn't exist
         OSError: If there's an error accessing the cogs directory
     """
     logger.debug(f"Starting extension discovery from HERE={HERE}")
-    module_dir = pathlib.Path(HERE).parent
-    logger.debug(f"Module directory: {module_dir}")
-
-    cogs_path = pathlib.Path(module_dir, "cogs")
+    cogs_path = pathlib.Path(HERE) / "cogs"
     logger.debug(f"Looking for cogs in: {cogs_path}")
+
+    if not cogs_path.exists():
+        logger.error(f"Cogs directory not found: {cogs_path}")
+        raise FileNotFoundError(f"Cogs directory not found: {cogs_path}")
 
     try:
         files = list(cogs_path.rglob("*.py"))
@@ -46,7 +48,9 @@ def extensions() -> Iterable[str]:
             if file.name == "__init__.py":
                 continue
 
-            extension_path = file.as_posix()[:-3].replace("/", ".")
+            # Get path relative to the cogs directory
+            relative_path = file.relative_to(pathlib.Path(HERE))
+            extension_path = str(relative_path)[:-3].replace(os.sep, ".")
             logger.debug(f"Found extension file: {file}")
             logger.debug(f"Converting to module path: {extension_path}")
             yield extension_path
@@ -68,14 +72,16 @@ async def aio_extensions() -> AsyncIterator[str]:
         The module path for each Python file in the 'cogs' directory
 
     Raises:
+        FileNotFoundError: If the cogs directory doesn't exist
         OSError: If there's an error accessing the cogs directory
     """
     logger.debug(f"Starting async extension discovery from HERE={HERE}")
-    module_dir = pathlib.Path(HERE).parent
-    logger.debug(f"Module directory: {module_dir}")
-
-    cogs_path = module_dir / "cogs"
+    cogs_path = pathlib.Path(HERE) / "cogs"
     logger.debug(f"Looking for cogs in: {cogs_path}")
+
+    if not cogs_path.exists():
+        logger.error(f"Cogs directory not found: {cogs_path}")
+        raise FileNotFoundError(f"Cogs directory not found: {cogs_path}")
 
     try:
         # Get list of all .py files in cogs directory
@@ -94,9 +100,9 @@ async def aio_extensions() -> AsyncIterator[str]:
                     # Just check if we can open it
                     await f.read(1)
 
-                # Convert file path to module path
-                relative_path = file.relative_to(module_dir.parent)
-                extension_path = str(relative_path).replace(os.sep, ".")[:-3]  # Remove .py
+                # Get path relative to the cogs directory
+                relative_path = file.relative_to(pathlib.Path(HERE))
+                extension_path = str(relative_path)[:-3].replace(os.sep, ".")
 
                 logger.debug(f"Found extension file: {file}")
                 logger.debug(f"Converting to module path: {extension_path}")
