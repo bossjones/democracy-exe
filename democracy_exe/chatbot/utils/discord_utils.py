@@ -12,6 +12,7 @@ import sys
 import uuid
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, cast
 
 import aiofiles
@@ -25,9 +26,31 @@ from discord.ext import commands
 from logging_tree import printout
 from loguru import logger
 
-from democracy_exe import shell
 from democracy_exe.bot_logger import generate_tree, get_lm_from_tree
 from democracy_exe.models.loggers import LoggerModel
+from democracy_exe.utils import async_, shell
+
+
+def extensions() -> list[str]:
+    """Get list of extension paths.
+
+    Returns:
+        List of extension paths as strings
+    """
+    cogs_dir = Path(__file__).parent.parent / "cogs"
+    return [
+        f"democracy_exe.chatbot.cogs.{f.stem}"
+        for f in cogs_dir.glob("*.py")
+        if not f.name.startswith("_")
+    ]
+
+async def aio_extensions() -> list[str]:
+    """Get list of extension paths asynchronously.
+
+    Returns:
+        List of extension paths as strings
+    """
+    return extensions()
 
 
 def has_required_permissions(
@@ -426,7 +449,7 @@ async def co_task(name: str, queue: asyncio.Queue) -> AsyncIterator[None]:
             continue
 
 
-@shell.async_.to_async
+@async_.to_async
 def get_logger_tree_printout() -> None:
     """Print the logger tree structure."""
     printout()

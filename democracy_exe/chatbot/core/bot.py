@@ -196,8 +196,8 @@ class DemocracyBot(commands.Bot):
 
     async def start(self) -> None:
         """Start the bot and connect to Discord."""
-        token = cast(SecretStr, aiosettings.discord_token)
-        await super().start(token.get_secret_value(), reconnect=True)
+        token = aiosettings.discord_token
+        await super().start(str(token), reconnect=True)
 
     async def _load_extensions(self) -> None:
         """Load bot extensions.

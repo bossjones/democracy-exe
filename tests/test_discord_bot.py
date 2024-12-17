@@ -12,7 +12,7 @@ from loguru import logger
 
 import pytest
 
-from democracy_exe.chatbot.discord_bot import aio_extensions
+from democracy_exe.chatbot.utils.discord_utils import aio_extensions
 
 
 if TYPE_CHECKING:

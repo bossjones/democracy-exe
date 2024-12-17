@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from democracy_exe.chatbot.discord_bot import unlink_orig_file
+from democracy_exe.chatbot.utils.discord_utils import unlink_orig_file
 
 
 if TYPE_CHECKING:

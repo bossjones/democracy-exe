@@ -185,6 +185,11 @@ def get_session_id(message: Message | Thread) -> str:
         - If the message is from a guild channel, the session ID is based on the channel ID
     """
     try:
+        # Initialize variables with default values
+        is_dm = False
+        user_id = None
+        channel_id = None
+
         if isinstance(message, Thread):
             # Cast to proper types to satisfy type checker
             starter_message = cast(Message, message.starter_message)
@@ -197,6 +202,9 @@ def get_session_id(message: Message | Thread) -> str:
             is_dm = str(channel.type) == "private"
             user_id = message.author.id
             channel_id = channel.id
+
+        if user_id is None or channel_id is None:
+            raise ValueError("Could not determine user_id or channel_id")
 
         return f"discord_{user_id}" if is_dm else f"discord_{channel_id}"
     except Exception as e:
