@@ -27,12 +27,22 @@ def extensions() -> Iterable[str]:
 
     Yields:
         The module path for each Python file in the 'cogs' directory
+
+    Raises:
+        FileNotFoundError: If cogs directory doesn't exist
     """
-    module_dir = pathlib.Path(HERE)
-    files = pathlib.Path(module_dir.stem, "cogs").rglob("*.py")
-    for file in files:
-        logger.debug(f"extension = {file.as_posix()[:-3].replace('/', '.')}")
-        yield file.as_posix()[:-3].replace("/", ".")
+    cogs_dir = pathlib.Path(HERE) / "cogs"
+    if not cogs_dir.exists():
+        raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
+
+    for file in cogs_dir.rglob("*.py"):
+        if file.name != "__init__.py":
+            # Get path relative to the module root
+            relative_path = file.relative_to(pathlib.Path(HERE))
+            extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+            logger.debug(f"Found extension file: {file}")
+            logger.debug(f"Converting to module path: {extension_path}")
+            yield extension_path
 
 
 class AsyncExtensionIterator:
