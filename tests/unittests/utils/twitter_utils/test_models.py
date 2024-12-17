@@ -477,6 +477,25 @@ class TestDownloadedContent:
     """Tests for DownloadedContent class."""
 
     @pytest.fixture
+    def tweet_thread(self) -> TweetThread:
+        """Create a sample tweet thread.
+
+        Returns:
+            Sample tweet thread
+        """
+        tweets = [
+            Tweet(
+                id=f"123456789{i}",
+                author="test_user",
+                content=f"Tweet {i + 1}",
+                created_at=datetime(2024, 1, 1, 12, 0, 0),
+                url="https://twitter.com/test_user/status/123456789",
+            )
+            for i in range(3)
+        ]
+        return TweetThread(tweets=tweets, author="test_user", created_at=datetime(2024, 1, 1, 12, 0, 0))
+
+    @pytest.fixture
     def downloaded_content(self, tweet_thread: TweetThread, tmp_path: Path) -> DownloadedContent:
         """Create a sample downloaded content.
 

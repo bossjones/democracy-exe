@@ -136,7 +136,7 @@ class TestTweetEmbed:
         embed = create_tweet_embed(metadata)
 
         assert isinstance(embed, discord.Embed)
-        assert any(f.name == "Media" for f in embed.fields)
+        assert any(f.name == "Media URLs" for f in embed.fields)
         media_field = next(f for f in embed.fields if f.name == "Media")
         assert all(url in media_field.value for url in metadata["media_urls"])
 
@@ -228,7 +228,7 @@ class TestCardEmbed:
         embed = create_card_embed(metadata)
 
         assert isinstance(embed, discord.Embed)
-        assert embed.image is None
+        assert embed.image.url is None
 
 
 class TestInfoEmbed:

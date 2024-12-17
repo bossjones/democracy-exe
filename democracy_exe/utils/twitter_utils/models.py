@@ -66,10 +66,14 @@ class MediaType(str, Enum):
         Raises:
             ValueError: If MIME type is not supported
         """
+        # Handle exact matches first
+        if mime_type == "image/gif":
+            return MediaType.GIF
+
+        # Then handle prefix matches
         mime_map = {
             "image/": MediaType.IMAGE,
             "video/": MediaType.VIDEO,
-            "image/gif": MediaType.GIF,
             "audio/": MediaType.AUDIO,
         }
         for mime_prefix, media_type in mime_map.items():
@@ -144,9 +148,9 @@ class TweetCard:
         """Check if card has an image.
 
         Returns:
-            True if card has an image URL
+            True if card has a non-empty image URL
         """
-        return self.image_url is not None
+        return bool(self.image_url)
 
     @property
     def is_downloaded(self) -> bool:
@@ -195,7 +199,7 @@ class Tweet:
         Returns:
             True if tweet has media
         """
-        return len(self.media) > 0
+        return bool(self.media and len(self.media) > 0)
 
     @property
     def has_card(self) -> bool:
@@ -265,7 +269,7 @@ class TweetThread:
         Returns:
             Number of tweets
         """
-        return len(self.tweets)
+        return len(self.tweets) if self.tweets else 0
 
     @property
     def first_tweet(self) -> Tweet | None:

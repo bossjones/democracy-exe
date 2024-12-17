@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import re
+import sys
+import traceback
 
 from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Dict, Final, List, Optional, TypedDict, cast, final
 
-from gallery_dl.extractor import twitter
+from gallery_dl.extractor import twitter  # type: ignore
 from loguru import logger
 
 from .types import TweetMetadata
@@ -142,7 +144,10 @@ class TwitterClient:
             >>> print(metadata["content"])
         """
         try:
+            # Create extractor instance
             extractor = twitter.TwitterExtractor(url)
+
+            # Configure extractor with our settings
             for key, value in self.config.get("extractor", {}).get("twitter", {}).items():
                 setattr(extractor, key, value)
 
@@ -153,11 +158,10 @@ class TwitterClient:
 
             return self._parse_tweet_item(cast(GalleryDLTweetItem, items[0]))
 
-        except (NoExtractorError, NoTweetDataError) as e:
-            logger.error(str(e))
-            raise
         except Exception as e:
             logger.exception("Error fetching tweet metadata")
+            if isinstance(e, (NoExtractorError, NoTweetDataError)):
+                raise
             raise ValueError(f"Failed to fetch tweet: {e!s}") from e
 
     def get_thread_tweets(self, url: str) -> list[TweetMetadata]:
@@ -200,11 +204,10 @@ class TwitterClient:
             # Sort by date
             return sorted(thread_tweets, key=lambda t: t["created_at"])
 
-        except (NoExtractorError, NoTweetDataError) as e:
-            logger.error(str(e))
-            raise
         except Exception as e:
             logger.exception("Error fetching thread")
+            if isinstance(e, (NoExtractorError, NoTweetDataError)):
+                raise
             raise ValueError(f"Failed to fetch thread: {e!s}") from e
 
     def _parse_tweet_item(self, item: GalleryDLTweetItem) -> TweetMetadata:

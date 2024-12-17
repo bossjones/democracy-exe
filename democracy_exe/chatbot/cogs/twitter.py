@@ -1,15 +1,23 @@
-"""Twitter cog for Discord bot."""
+"""Twitter cog for Discord bot.
+
+This cog provides Twitter-related functionality including downloading tweets,
+threads, cards and displaying tweet metadata.
+
+Attributes:
+    bot: The Discord bot instance
+"""
 from __future__ import annotations
 
 import asyncio
 import pathlib
 import tempfile
 
-from typing import Any, Dict, Final, List, Optional, cast
+from typing import Any, Dict, Final, List, Optional, Tuple, Union, cast
 
 import discord
 
 from discord.ext import commands
+from discord.ext.commands import Context
 from loguru import logger
 from rich.pretty import pprint
 
@@ -54,10 +62,25 @@ class Twitter(commands.Cog):
 
     async def _handle_download(
         self,
-        ctx: commands.Context,
+        ctx: Context,
         url: str,
         mode: TweetDownloadMode
-    ) -> None:
+    ) -> tuple[bool, str | None]:
+        """Handle tweet download and send response.
+
+        Args:
+            ctx: Command context
+            url: Tweet URL
+            mode: Download mode (single/thread/card)
+
+        Returns:
+            Tuple containing:
+                - Success status (bool)
+                - Error message if any (Optional[str])
+
+        Raises:
+            TwitterError: If download fails
+        """
         """Handle tweet download and send response.
 
         Args:
@@ -104,12 +127,14 @@ class Twitter(commands.Cog):
                 await progress.edit(content="Download complete!", embed=embed)
                 if files:
                     await ctx.send(files=files)
+                return True, None
 
             except Exception as e:
                 logger.exception("Error downloading tweet")
                 error_embed = create_error_embed(str(e))
                 await progress.edit(embed=error_embed)
-                raise TwitterError(f"Failed to download tweet: {e}") from e
+                error_msg = f"Failed to download tweet: {e}"
+                raise TwitterError(error_msg) from e
 
     @commands.group(name="tweet")
     async def tweet(self, ctx: commands.Context) -> None:
