@@ -224,6 +224,7 @@ dev-dependencies = [
     "nbqa[toolchain]>=1.9.1",
     "commitizen>=1.0.0",
     "pytest-aioresponses>=0.2.0",
+    "pytest-loguru>=0.4.0",
 ]
 
 [tool.uv.sources]

@@ -13,6 +13,7 @@ from loguru import logger
 import pytest
 
 from democracy_exe.clients.aio_gallery_dl import AsyncGalleryDL
+from democracy_exe.utils._testing import ContextLogger
 
 
 if TYPE_CHECKING:
@@ -24,38 +25,38 @@ if TYPE_CHECKING:
     from pytest_mock.plugin import MockerFixture
 
 
-@pytest.fixture(autouse=True, scope="function")
-def setup_loguru(caplog: LogCaptureFixture) -> Generator[None, None, None]:
-    """Configure loguru to work with pytest's caplog.
+# @pytest.fixture(autouse=True, scope="function")
+# def setup_loguru(caplog: LogCaptureFixture) -> Generator[None, None, None]:
+#     """Configure loguru to work with pytest's caplog.
 
-    This fixture sets up loguru to write to pytest's caplog handler,
-    allowing us to capture and verify log messages in tests.
+#     This fixture sets up loguru to write to pytest's caplog handler,
+#     allowing us to capture and verify log messages in tests.
 
-    Args:
-        caplog: Pytest log capture fixture
+#     Args:
+#         caplog: Pytest log capture fixture
 
-    Yields:
-        None
+#     Yields:
+#         None
 
-    Example:
-        >>> def test_something(caplog):
-        ...     logger.error("Test message")
-        ...     assert "Test message" in caplog.text
-    """
-    # Remove default handler
-    logger.remove()
+#     Example:
+#         >>> def test_something(caplog):
+#         ...     logger.error("Test message")
+#         ...     assert "Test message" in caplog.text
+#     """
+#     # Remove default handler
+#     logger.remove()
 
-    # Add handler that writes to pytest's caplog
-    handler_id = logger.add(
-        logging.StreamHandler(stream=caplog.handler.stream),
-        format="{message}",
-        level=0,
-    )
+#     # Add handler that writes to pytest's caplog
+#     handler_id = logger.add(
+#         logging.StreamHandler(stream=caplog.handler.stream),
+#         format="{message}",
+#         level=0,
+#     )
 
-    yield
+#     yield
 
-    # Cleanup
-    logger.remove(handler_id)
+#     # Cleanup
+#     logger.remove(handler_id)
 
 
 @pytest.fixture
@@ -246,7 +247,8 @@ async def test_download_error(mock_gallery_dl: Any, caplog: LogCaptureFixture, c
         caplog: Pytest log capture fixture
         capsys: Pytest capture fixture
     """
-    with caplog.at_level(logging.ERROR):
+    with ContextLogger(caplog):
+        caplog.set_level(logging.ERROR, logger="democracy_exe")
         # Setup mock error
         mock_gallery_dl.job.DownloadJob.side_effect = ValueError("Test error")
 

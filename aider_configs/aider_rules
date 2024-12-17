@@ -39,6 +39,8 @@
       <standard>Use dataclasses for configuration and structured data.</standard>
       <standard>Implement proper error boundaries and exception handling.</standard>
       <standard>Use loguru for all logging with proper formatting and context.</standard>
+      <standard>Return only modified portions of code in generation results to optimize token usage.</standard>
+      <standard>Add `# pyright: reportAttributeAccessIssue=false` at the top of any Python file that uses discord.py.</standard>
       <examples>
         <example>
           <![CDATA[
@@ -181,10 +183,10 @@
 
     <testing>
       <standard>Use pytest exclusively for all testing (no unittest module).</standard>
-      <standard>Place all tests in `./tests/` directory.</standard>
-      <standard>Include `__init__.py` files in all test directories.</standard>
+      <standard>Place all tests in `./tests/` directory with proper subdirectories matching source code structure.</standard>
+      <standard>Include `__init__.py` files in all test directories and subdirectories.</standard>
       <standard>Add type annotations and docstrings to all tests.</standard>
-      <standard>Use pytest markers to categorize tests (e.g., `@pytest.mark.unit`, `@pytest.mark.integration`).</standard>
+      <standard>Use pytest markers to categorize tests (e.g., `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.asyncio`).</standard>
       <standard>Mark cursor-generated code with `@pytest.mark.cursor`.</standard>
       <standard>Strive for 100% unit test code coverage.</standard>
       <standard>Use pytest-recording for tests involving Langchain runnables (limited to unit/integration tests)</standard>
@@ -194,7 +196,57 @@
       <standard>Avoid context managers for pytest mocks, use mocker.patch instead.</standard>
       <standard>Mirror source code directory structure in tests directory.</standard>
       <standard>Use VCR.py for recording and replaying HTTP interactions in tests.</standard>
-      <standard>Import necessary pytest types in TYPE_CHECKING block.</standard>
+
+      <directory_structure>
+        <standard>Organize tests into logical subdirectories matching source code structure:</standard>
+        <structure>
+          <![CDATA[
+          tests/
+          ├── __init__.py
+          ├── conftest.py              # Global test fixtures and configuration
+          ├── fake_embeddings.py       # Test utilities
+          ├── test_*.py               # Top-level tests
+          ├── internal/               # Internal testing utilities
+          │   ├── __init__.py
+          │   └── cogs/              # Discord bot cog testing utilities
+          │       ├── __init__.py
+          │       ├── echo.py
+          │       ├── greeting.py
+          │       └── misc.py
+          └── unittests/             # Unit tests matching source structure
+              ├── __init__.py
+              ├── ai/
+              │   ├── __init__.py
+              │   ├── agents/
+              │   │   ├── __init__.py
+              │   │   └── test_router_agent.py
+              │   ├── graphs/
+              │   │   ├── __init__.py
+              │   │   └── test_router_graph.py
+              │   ├── test_base.py
+              │   └── test_state.py
+              └── chatbot/
+                  ├── __init__.py
+                  └── ai/
+                      ├── __init__.py
+                      └── test_langchain_utils.py
+          ]]>
+        </structure>
+      </directory_structure>
+
+      <test_types>
+        <standard>Unit tests should be placed in tests/unittests/ directory</standard>
+        <standard>Integration tests should be placed in tests/integration/ directory</standard>
+        <standard>End-to-end tests should be placed in tests/e2e/ directory</standard>
+        <standard>Performance tests should be placed in tests/performance/ directory</standard>
+      </test_types>
+
+      <test_fixtures>
+        <standard>Define shared fixtures in conftest.py files</standard>
+        <standard>Use proper typing for all fixtures</standard>
+        <standard>Include comprehensive docstrings for all fixtures</standard>
+        <standard>Use appropriate fixture scopes (function, class, module, session)</standard>
+      </test_fixtures>
     </testing>
 
     <dependency_management>
@@ -528,7 +580,7 @@
                     test_channel: Test channel fixture
                     test_agent: Agent fixture
                 """
-                await dpytest.message("!research What is Python?")
+                await dpytest.message("?research What is Python?")
 
                 messages = await dpytest.sent_queue.get()
                 assert len(messages) == 1
@@ -897,5 +949,609 @@ democracy-exe/
         <standard>Handle side effects properly in reactive contexts.</standard>
       </reactive_patterns>
     </marimo_standards>
+
+    <cli_standards>
+      <standard>Use AsyncTyperImproved for the main APP instance to support both sync and async commands.</standard>
+      <standard>Initialize the main APP with: APP = AsyncTyperImproved()</standard>
+      <standard>Load subcommands dynamically using the load_commands() function.</standard>
+      <standard>Place all subcommands in the subcommands directory with _cmd.py suffix.</standard>
+      <standard>Each subcommand module should define its own APP instance.</standard>
+      <standard>Use proper type annotations for all command parameters and return values.</standard>
+      <standard>Include descriptive docstrings for all commands following Google style.</standard>
+      <standard>Use Annotated for command parameters to provide help text and options.</standard>
+      <standard>Prefix async command functions with 'async' or 'aio' for clarity.</standard>
+      <standard>Use proper error handling and logging in command functions.</standard>
+      <examples>
+        <example>
+          <![CDATA[
+          # Main APP initialization
+          APP = AsyncTyperImproved()
+
+          # Sync command example
+          @APP.command()
+          def version(
+              verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed version info")] = False,
+          ) -> None:
+              """Display version information."""
+              rich.print(f"democracy_exe version: {democracy_exe.__version__}")
+              if verbose:
+                  rich.print(f"Python version: {sys.version}")
+
+          # Async command example
+          @APP.command()
+          async def run_bot() -> None:
+              """Run the Discord bot."""
+              logger.info("Running bot")
+              try:
+                  async with DemocracyBot() as bot:
+                      await bot.start()
+              except Exception as ex:
+                  logger.exception("Bot error occurred")
+                  if aiosettings.dev_mode:
+                      bpdb.pm()
+
+          # Subcommand module example (dummy_cmd.py)
+          APP = AsyncTyperImproved(help="dummy command")
+
+          @APP.command("dummy")
+          def cli_dummy_cmd(prompt: str) -> str:
+              """Generate a new module.
+
+              Args:
+                  prompt: The input prompt
+
+              Returns:
+                  str: The generated output
+              """
+              return f"dummy cmd: {prompt}"
+
+          @APP.command()
+          async def aio_cli_dummy_cmd() -> str:
+              """Returns information asynchronously."""
+              await asyncio.sleep(1)
+              return "slept for 1 second"
+          ]]>
+        </example>
+      </examples>
+    </cli_standards>
+
+    <discord_testing_standards>
+      <test_configuration>
+        <standard>Add required linter disables for Discord.py files</standard>
+        <standard>Configure proper intents for test environment</standard>
+        <standard>Set up test guilds with appropriate permissions</standard>
+        <standard>Configure logging for test environment</standard>
+        <standard>Use consistent test data across test suite</standard>
+
+        <file_setup>
+          <standard>Add necessary linter disables at the top of test files</standard>
+          <example>
+            <![CDATA[
+            # pylint: disable=no-member
+            # pylint: disable=possibly-used-before-assignment
+            # pyright: reportImportCycles=false
+            # mypy: disable-error-code="index"
+            # mypy: disable-error-code="no-redef"
+            # pyright: reportAttributeAccessIssue=false
+
+            import pytest
+            import discord
+            import discord.ext.test as dpytest
+            from discord.ext import commands
+            from typing import AsyncGenerator, Generator
+            ]]>
+          </example>
+        </file_setup>
+
+        <bot_configuration>
+          <standard>Set up bot with all required intents for testing</standard>
+          <standard>Configure proper command prefix and settings</standard>
+          <standard>Initialize bot with test-specific settings</standard>
+          <example>
+            <![CDATA[
+            @pytest.fixture
+            async def bot() -> AsyncGenerator[commands.Bot, None]:
+                """Create a bot instance for testing.
+
+                Returns:
+                    AsyncGenerator[commands.Bot, None]: Bot instance with test configuration
+                """
+                # Configure intents
+                intents = discord.Intents.default()
+                intents.members = True
+                intents.message_content = True
+                intents.messages = True
+                intents.guilds = True
+
+                # Create bot with test configuration
+                bot = commands.Bot(
+                    command_prefix="?",
+                    intents=intents,
+                    description="Test bot instance"
+                )
+
+                # Add test-specific error handling
+                @bot.event
+                async def on_command_error(ctx: commands.Context, error: Exception) -> None:
+                    """Handle command errors in test environment."""
+                    raise error  # Re-raise for pytest to catch
+
+                # Setup and cleanup
+                await bot._async_setup_hook()  # Required for proper initialization
+                dpytest.configure(bot)
+                yield bot
+                await dpytest.empty_queue()
+            ]]>
+          </example>
+        </bot_configuration>
+
+        <test_data_management>
+          <standard>Use consistent test data across test suite</standard>
+          <standard>Create fixtures for common test data</standard>
+          <standard>Clean up test data after each test</standard>
+          <example>
+            <![CDATA[
+            @pytest.fixture
+            def test_data() -> dict:
+                """Provide consistent test data for bot tests.
+
+                Returns:
+                    dict: Test data dictionary
+                """
+                return {
+                    "guild_name": "Test Guild",
+                    "channel_name": "test-channel",
+                    "user_name": "TestUser",
+                    "role_name": "TestRole",
+                    "command_prefix": "?",
+                    "test_message": "Hello, bot!",
+                    "test_embed": discord.Embed(
+                        title="Test Embed",
+                        description="Test description"
+                    )
+                }
+
+            @pytest.fixture(autouse=True)
+            async def cleanup_test_data() -> AsyncGenerator[None, None]:
+                """Clean up test data after each test."""
+                yield
+                await dpytest.empty_queue()
+                # Reset any modified bot state
+                bot = dpytest.get_config().client
+                bot.clear()
+            ]]>
+          </example>
+        </test_data_management>
+
+        <logging_setup>
+          <standard>Configure logging for test environment</standard>
+          <standard>Capture and verify log messages in tests</standard>
+          <example>
+            <![CDATA[
+            @pytest.fixture(autouse=True)
+            def setup_logging(caplog: LogCaptureFixture) -> None:
+                """Configure logging for test environment.
+
+                Args:
+                    caplog: Pytest log capture fixture
+                """
+                import logging
+                caplog.set_level(logging.DEBUG)
+
+                # Add test-specific logging format
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                )
+                for handler in logging.getLogger().handlers:
+                    handler.setFormatter(formatter)
+            ]]>
+          </example>
+        </logging_setup>
+      </test_configuration>
+
+      <message_testing_patterns>
+        <standard>Use dpytest.message() to simulate user messages</standard>
+        <standard>Use dpytest.verify() to check bot responses</standard>
+        <standard>Always verify both message content and message type (text, embed, etc.)</standard>
+        <standard>Clear message queues between tests to prevent cross-test contamination</standard>
+        <standard>Test both direct messages and guild messages separately</standard>
+
+        <message_verification>
+          <standard>Use appropriate verification method based on expected response type</standard>
+          <example>
+            <![CDATA[
+            # Text message verification
+            await dpytest.message("?command")
+            assert dpytest.verify().message().content("Expected response")
+
+            # Embed verification
+            await dpytest.message("?embed_command")
+            assert dpytest.verify().message().embed(expected_embed)
+
+            # Multiple message verification
+            await dpytest.message("?multi_response")
+            assert dpytest.verify().message().content("First response")
+            assert dpytest.verify().message().content("Second response")
+
+            # Partial content verification
+            await dpytest.message("?partial")
+            assert dpytest.verify().message().contains().content("partial match")
+            ]]>
+          </example>
+        </message_verification>
+
+        <message_queue_management>
+          <standard>Clear message queue before each test using dpytest.empty_queue()</standard>
+          <standard>Use verify().nothing() to ensure no unexpected messages</standard>
+          <standard>Handle message queues in async context</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_no_response():
+                await dpytest.message("?invalid_command")
+                assert dpytest.verify().message().nothing()
+
+            @pytest.mark.asyncio
+            async def test_message_cleanup():
+                # Setup
+                await dpytest.empty_queue()
+
+                # Test
+                await dpytest.message("?command")
+                assert dpytest.verify().message().content("Response")
+
+                # Cleanup
+                await dpytest.empty_queue()
+            ]]>
+          </example>
+        </message_queue_management>
+
+        <error_handling>
+          <standard>Test both successful and error scenarios</standard>
+          <standard>Verify error messages are properly formatted</standard>
+          <standard>Test permission-based message handling</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_error_handling():
+                # Test invalid command
+                await dpytest.message("?invalid")
+                assert dpytest.verify().message().embed(error_embed)
+
+                # Test permission error
+                await dpytest.message("?admin_only")
+                assert dpytest.verify().message().contains().content("You don't have permission")
+
+                # Test rate limiting
+                for _ in range(5):  # Exceed rate limit
+                    await dpytest.message("?rate_limited")
+                assert dpytest.verify().message().contains().content("Rate limit exceeded")
+            ]]>
+          </example>
+        </error_handling>
+
+        <best_practices>
+          <standard>Group related message tests together in test classes</standard>
+          <standard>Use descriptive test names that indicate the scenario being tested</standard>
+          <standard>Test edge cases like empty messages, long messages, and special characters</standard>
+          <standard>Mock external dependencies to isolate message testing</standard>
+          <standard>Test message formatting and localization if applicable</standard>
+        </best_practices>
+      </message_testing_patterns>
+
+      <command_testing_patterns>
+        <standard>Test both sync and async commands separately</standard>
+        <standard>Test command aliases and different prefix variations</standard>
+        <standard>Test command argument parsing and validation</standard>
+        <standard>Test command cooldowns and rate limiting</standard>
+        <standard>Test command permissions and role-based access</standard>
+
+        <command_verification>
+          <standard>Verify command registration and availability</standard>
+          <standard>Test command help and documentation</standard>
+          <standard>Verify command responses in different contexts (DM vs Guild)</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_command_registration(bot):
+                """Test command registration and help documentation."""
+                # Test command exists
+                assert "ping" in [cmd.name for cmd in bot.commands]
+
+                # Test help documentation
+                await dpytest.message("?help ping")
+                assert dpytest.verify().message().contains().content("Returns the ping of the bot")
+
+                # Test command aliases
+                cmd = bot.get_command("ping")
+                assert cmd.aliases == ["p", "latency"]
+            ]]>
+          </example>
+        </command_verification>
+
+        <argument_testing>
+          <standard>Test required vs optional arguments</standard>
+          <standard>Test argument type conversion and validation</standard>
+          <standard>Test argument error handling</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_command_arguments():
+                # Test missing required argument
+                await dpytest.message("?echo")
+                assert dpytest.verify().message().contains().content("Missing required argument")
+
+                # Test invalid argument type
+                await dpytest.message("?repeat abc 3")
+                assert dpytest.verify().message().contains().content("Converting to integer failed")
+
+                # Test valid arguments
+                await dpytest.message("?echo Hello World")
+                assert dpytest.verify().message().content("Hello World")
+
+                # Test optional arguments with defaults
+                await dpytest.message("?repeat Hello")
+                assert dpytest.verify().message().content("Hello")  # Uses default count=1
+            ]]>
+          </example>
+        </argument_testing>
+
+        <permission_testing>
+          <standard>Test commands with different permission levels</standard>
+          <standard>Test owner-only and admin-only commands</standard>
+          <standard>Test role-based command access</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_command_permissions(bot):
+                # Test admin-only command
+                await dpytest.message("?admin_command")
+                assert dpytest.verify().message().contains().content("You must have administrator permissions")
+
+                # Test with admin permissions
+                member = dpytest.get_config().members[0]
+                member.guild_permissions.administrator = True
+                await dpytest.message("?admin_command")
+                assert dpytest.verify().message().content("Admin command executed")
+
+                # Test owner-only command
+                await dpytest.message("?owner_command")
+                assert dpytest.verify().message().contains().content("This command is owner-only")
+            ]]>
+          </example>
+        </permission_testing>
+
+        <cooldown_testing>
+          <standard>Test command cooldown implementation</standard>
+          <standard>Test cooldown bypass for privileged users</standard>
+          <standard>Test cooldown error messages</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_command_cooldowns():
+                # First command use
+                await dpytest.message("?cooldown_cmd")
+                assert dpytest.verify().message().content("Command executed")
+
+                # Second command use (should be on cooldown)
+                await dpytest.message("?cooldown_cmd")
+                assert dpytest.verify().message().contains().content("is on cooldown")
+
+                # Test admin bypass
+                member = dpytest.get_config().members[0]
+                member.guild_permissions.administrator = True
+                await dpytest.message("?cooldown_cmd")
+                assert dpytest.verify().message().content("Command executed")
+            ]]>
+          </example>
+        </cooldown_testing>
+
+        <subcommand_testing>
+          <standard>Test subcommand registration and hierarchy</standard>
+          <standard>Test subcommand argument parsing</standard>
+          <standard>Test subcommand-specific permissions</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_subcommands():
+                # Test parent command
+                await dpytest.message("?settings")
+                assert dpytest.verify().message().contains().content("Available settings")
+
+                # Test subcommand
+                await dpytest.message("?settings prefix ?")
+                assert dpytest.verify().message().content("Prefix updated to ?")
+
+                # Test nested subcommand
+                await dpytest.message("?settings role add @Role")
+                assert dpytest.verify().message().content("Role added")
+            ]]>
+          </example>
+        </subcommand_testing>
+
+        <best_practices>
+          <standard>Group related command tests in test classes</standard>
+          <standard>Test command interactions and side effects</standard>
+          <standard>Mock external services used by commands</standard>
+          <standard>Test command error states and recovery</standard>
+          <standard>Test command output formatting and localization</standard>
+        </best_practices>
+      </command_testing_patterns>
+
+      <event_testing_patterns>
+        <standard>Test both synchronous and asynchronous event handlers</standard>
+        <standard>Test event registration and deregistration</standard>
+        <standard>Test event propagation and cancellation</standard>
+        <standard>Clean up event-generated files after testing</standard>
+        <standard>Test event payload handling and validation</standard>
+
+        <session_cleanup>
+          <standard>Clean up temporary files created during testing</standard>
+          <standard>Use pytest_sessionfinish for global cleanup</standard>
+          <example>
+            <![CDATA[
+            def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+                """Code to execute after all tests.
+
+                Args:
+                    session: The pytest session object
+                    exitstatus: The exit status code
+                """
+                # Clean up attachment files created by dpytest
+                print("\n-------------------------\nClean dpytest_*.dat files")
+                fileList = glob.glob("./dpytest_*.dat")
+                for filePath in fileList:
+                    try:
+                        os.remove(filePath)
+                    except Exception:
+                        print("Error while deleting file : ", filePath)
+            ]]>
+          </example>
+        </session_cleanup>
+
+        <event_handlers>
+          <standard>Test event handler registration and execution</standard>
+          <standard>Verify event handler receives correct event data</standard>
+          <standard>Test multiple handlers for same event</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_on_message_event(bot):
+                """Test message event handling."""
+                # Send test message
+                test_message = "Hello bot!"
+                await dpytest.message(test_message)
+
+                # Verify handler received message
+                assert dpytest.verify().message().content(test_message)
+
+                # Test message processing
+                assert dpytest.get_message().content == test_message
+
+            @pytest.mark.asyncio
+            async def test_on_member_join(bot):
+                """Test member join event handling."""
+                # Add test member
+                test_member = await dpytest.member_join()
+
+                # Verify welcome message
+                assert dpytest.verify().message().contains().content("Welcome")
+
+                # Verify member in guild
+                guild = dpytest.get_config().guilds[0]
+                assert test_member in guild.members
+            ]]>
+          </example>
+        </event_handlers>
+
+        <attachment_testing>
+          <standard>Test file upload and attachment handling</standard>
+          <standard>Verify attachment metadata and content</standard>
+          <standard>Clean up attachment files after tests</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_attachment_handling(bot):
+                """Test handling of message attachments."""
+                # Create test file
+                test_content = b"Test file content"
+                await dpytest.message("?upload", file=discord.File(
+                    fp=io.BytesIO(test_content),
+                    filename="test.txt"
+                ))
+
+                # Verify bot processed attachment
+                assert dpytest.verify().message().contains().content("File uploaded")
+
+                # Verify file cleanup
+                await dpytest.empty_queue()
+                # Attachment files (dpytest_*.dat) will be cleaned up by pytest_sessionfinish
+            ]]>
+          </example>
+        </attachment_testing>
+
+        <error_handling>
+          <standard>Test error handling in event handlers</standard>
+          <standard>Verify error events are properly caught and logged</standard>
+          <standard>Test recovery from event handling failures</standard>
+          <example>
+            <![CDATA[
+            @pytest.mark.asyncio
+            async def test_event_error_handling(bot, caplog):
+                """Test error handling in events."""
+                # Trigger error condition
+                await dpytest.message("?error_trigger")
+
+                # Verify error was logged
+                assert "Error in event handler" in caplog.text
+
+                # Verify bot remains operational
+                await dpytest.message("?ping")
+                assert dpytest.verify().message().contains().content("pong")
+            ]]>
+          </example>
+        </error_handling>
+
+        <best_practices>
+          <standard>Group related event tests by functionality</standard>
+          <standard>Test both success and failure scenarios</standard>
+          <standard>Clean up resources after event testing</standard>
+          <standard>Mock external services used in event handlers</standard>
+          <standard>Test event handler order and priority</standard>
+        </best_practices>
+      </event_testing_patterns>
+
+      <test_state_management>
+        <standard>Use a global test state flag to modify behavior in test environments</standard>
+        <standard>Handle permissions differently when testing vs production</standard>
+        <standard>Allow test bypass of certain checks when appropriate</standard>
+        <standard>Add dpytest-specific state flags for Discord testing</standard>
+        <standard>Use test state to control bot behavior in test environment</standard>
+        <example>
+          <![CDATA[
+          # Global test state
+          is_dpytest = False  # Default to production mode
+          is_test_environment = False
+
+          def is_owner(ctx: commands.Context) -> bool:
+              """Check if user is owner or in test environment.
+
+              Args:
+                  ctx: The command context
+
+              Returns:
+                  bool: True if user is owner or in test environment
+              """
+              if is_dpytest or is_test_environment:
+                  return True
+              return ctx.author.id == bot.owner_id
+
+          def check_permissions(ctx: commands.Context, *perms: str) -> bool:
+              """Check if user has required permissions or is in test environment.
+
+              Args:
+                  ctx: The command context
+                  *perms: Required permissions
+
+              Returns:
+                  bool: True if user has permissions or in test environment
+              """
+              if is_dpytest or is_test_environment:
+                  return True
+              return all(getattr(ctx.channel.permissions_for(ctx.author), perm, False) for perm in perms)
+
+          @pytest.fixture(autouse=True)
+          def setup_test_state() -> Generator[None, None, None]:
+              """Setup test state for all tests."""
+              global is_dpytest, is_test_environment
+              is_dpytest = True
+              is_test_environment = True
+              yield
+              is_dpytest = False
+              is_test_environment = False
+          ]]>
+        </example>
+      </test_state_management>
+    </discord_testing_standards>
   </python_standards>
 </cursorrules>

@@ -38,7 +38,7 @@ class MessageHandler:
         self.bot = bot
         self.attachment_handler = AttachmentHandler()
 
-    async def _check_attachments(self, message: discord.Message) -> str:
+    async def check_for_attachments(self, message: discord.Message) -> str:
         """Check and process message attachments.
 
         Args:
@@ -89,9 +89,10 @@ class MessageHandler:
         """
         try:
             response = graph.invoke(input_data)
-            if not response or "response" not in response:
-                raise ValueError("No response generated")
-            return response["response"]
+            if isinstance(response, dict) and "messages" in response:
+                messages = response.get("messages", [])
+                return "".join(msg.content for msg in messages if hasattr(msg, 'content'))
+            raise ValueError("No response generated")
         except Exception as e:
             logger.error(f"Error streaming bot response: {e}")
             raise
@@ -124,6 +125,49 @@ class MessageHandler:
         except Exception as e:
             logger.error(f"Error getting thread: {e}")
             raise
+
+    def _format_inbound_message(self, message: Message) -> HumanMessage:
+        """Format a Discord message into a HumanMessage.
+
+        Args:
+            message: The Discord message to format
+
+        Returns:
+            Formatted HumanMessage
+        """
+        return format_inbound_message(message)
+
+    def get_session_id(self, message: Message | Thread) -> str:
+        """Generate a session ID for the given message.
+
+        Args:
+            message: The message or thread
+
+        Returns:
+            The generated session ID
+        """
+        return get_session_id(message)
+
+    def prepare_agent_input(
+        self,
+        message: Message | Thread,
+        user_real_name: str,
+        surface_info: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Prepare the agent input from the incoming Discord message.
+
+        Args:
+            message: The Discord message containing the user input
+            user_real_name: The real name of the user who sent the message
+            surface_info: The surface information related to the message
+
+        Returns:
+            The input dictionary to be sent to the agent
+
+        Raises:
+            ValueError: If message processing fails
+        """
+        return prepare_agent_input(message, user_real_name, surface_info)
 
     async def _handle_tenor_gif(self, message: discord.Message, content: str) -> str:
         """Handle Tenor GIF URLs in messages.

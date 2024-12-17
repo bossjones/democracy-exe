@@ -41,6 +41,9 @@ def format_inbound_message(message: Message) -> HumanMessage:
 
         logger.debug(f"Formatted message content: {content}")
 
+        if author.global_name is None:
+            raise ValueError("Failed to format message: author has no global name")
+
         return HumanMessage(
             content=content,
             name=str(author.global_name),
@@ -72,7 +75,13 @@ async def get_or_create_thread(message: Message) -> Thread | DMChannel | None:
 
         # For regular channels, create a thread
         if isinstance(channel, (TextChannel, Thread)):
-            return await channel.create_thread(name="Response", message=message)
+            try:
+                return await channel.create_thread(name="Response", message=message)
+            except discord.HTTPException as e:
+                logger.error(f"Failed to create thread: {e}")
+                if not hasattr(e, 'status'):
+                    e.status = 400
+                raise
 
         return None
     except Exception as e:
@@ -96,10 +105,12 @@ def get_session_id(message: Message | Thread) -> str:
     try:
         if isinstance(message, Thread):
             starter_message = cast(Message, message.starter_message)
+            if starter_message is None:
+                raise ValueError("Thread has no starter message")
             channel = cast(Union[DMChannel, Any], starter_message.channel)
             is_dm = str(channel.type) == "private"
             user_id = starter_message.author.id
-            channel_id = channel.name
+            channel_id = channel.name if isinstance(channel, Thread) else channel.id
         else:
             channel = cast(Union[DMChannel, Any], message.channel)
             is_dm = str(channel.type) == "private"
@@ -136,11 +147,16 @@ def prepare_agent_input(
     try:
         if isinstance(message, Thread):
             starter_message = cast(Message, message.starter_message)
+            if starter_message is None:
+                raise ValueError("Thread has no starter message")
             content = starter_message.content
             attachments = starter_message.attachments
         else:
             content = message.content
             attachments = message.attachments
+
+        if content is None:
+            raise ValueError("Message has no content")
 
         agent_input = {
             "user name": user_real_name,
@@ -152,7 +168,7 @@ def prepare_agent_input(
             for attachment in attachments:
                 logger.debug(f"Processing attachment: {attachment}")
                 agent_input["file_name"] = attachment.filename
-                if attachment.content_type.startswith("image/"):
+                if attachment.content_type and attachment.content_type.startswith("image/"):
                     agent_input["image_url"] = attachment.url
 
         return agent_input

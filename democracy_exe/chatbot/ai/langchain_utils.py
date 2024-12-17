@@ -37,7 +37,7 @@ async def get_thread(message: Message) -> Thread | DMChannel:
     return thread
 
 
-def stream_bot_response(
+async def stream_bot_response(
     graph: Any = memgraph,
     user_input: dict[str, list[HumanMessage]] | None = None,
     thread: dict[str, Any] | None = None,
@@ -58,14 +58,14 @@ def stream_bot_response(
         ValueError: If response generation fails
     """
     try:
-        if user_input is None or thread is None:
-            raise ValueError("user_input and thread must be provided")
+        if user_input is None:
+            raise ValueError("user_input must be provided")
 
-        response = graph.invoke(user_input, thread)
-        if not response or "response" not in response:
-            raise ValueError("No response generated")
-
-        return response["response"]
+        response = graph.invoke(user_input)
+        if isinstance(response, dict) and "messages" in response:
+            messages = response.get("messages", [])
+            return "".join(msg.content for msg in messages if hasattr(msg, 'content'))
+        raise ValueError("No response generated")
     except Exception as e:
         logger.error(f"Error streaming bot response: {e}")
         raise
