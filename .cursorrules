@@ -39,6 +39,7 @@
       <standard>Use dataclasses for configuration and structured data.</standard>
       <standard>Implement proper error boundaries and exception handling.</standard>
       <standard>Use loguru for all logging with proper formatting and context.</standard>
+      <standard>Return only modified portions of code in generation results to optimize token usage.</standard>
       <examples>
         <example>
           <![CDATA[
