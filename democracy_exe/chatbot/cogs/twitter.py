@@ -5,7 +5,7 @@ import asyncio
 import pathlib
 import tempfile
 
-from typing import Any, Optional
+from typing import Any, Dict, Final, List, Optional, cast
 
 import discord
 
@@ -14,7 +14,30 @@ from loguru import logger
 from rich.pretty import pprint
 
 from democracy_exe.utils.twitter_utils.download import download_tweet
+from democracy_exe.utils.twitter_utils.embed import (
+    TweetMetadata,
+    create_card_embed,
+    create_download_progress_embed,
+    create_error_embed,
+    create_info_embed,
+    create_thread_embed,
+    create_tweet_embed,
+)
 from democracy_exe.utils.twitter_utils.types import DownloadResult, TweetDownloadMode
+
+
+# Command constants
+HELP_MESSAGE: Final[str] = """
+Available commands:
+- !tweet download <url>: Download tweet media and metadata
+- !tweet thread <url>: Download full tweet thread
+- !tweet card <url>: Download tweet card preview
+- !tweet info <url>: Show tweet metadata
+"""
+
+
+class TwitterError(Exception):
+    """Base exception for Twitter-related errors."""
 
 
 class Twitter(commands.Cog):
@@ -41,29 +64,42 @@ class Twitter(commands.Cog):
             ctx: Command context
             url: Tweet URL
             mode: Download mode (single/thread/card)
+
+        Raises:
+            TwitterError: If download fails
         """
         async with ctx.typing():
-            # Create progress message
-            progress = await ctx.send(f"Downloading tweet {mode}...")
+            # Create progress message with embed
+            progress_embed = create_download_progress_embed(url, mode)
+            progress = await ctx.send(embed=progress_embed)
 
             try:
                 # Download tweet content
                 result = await download_tweet(url, mode=mode)
 
                 if not result["success"]:
-                    await progress.edit(content=f"Failed to download tweet: {result['error']}")
+                    error_embed = create_error_embed(result["error"])
+                    await progress.edit(embed=error_embed)
                     return
 
-                # Create embed with tweet info
-                embed = discord.Embed(title="Tweet Download")
-                embed.add_field(name="Author", value=result["metadata"]["author"])
-                embed.add_field(name="Created", value=result["metadata"]["created_at"])
-                embed.description = result["metadata"]["content"]
+                # Create appropriate embed based on mode
+                if mode == "thread":
+                    metadata_list = cast(list[TweetMetadata], result["metadata"])
+                    embed = create_thread_embed(metadata_list)
+                elif mode == "card":
+                    metadata = cast(TweetMetadata, result["metadata"])
+                    embed = create_card_embed(metadata)
+                else:
+                    metadata = cast(TweetMetadata, result["metadata"])
+                    embed = create_tweet_embed(metadata)
 
-                # Upload media files
+                # Upload media files if any
                 files = []
                 for file_path in result["local_files"]:
-                    files.append(discord.File(file_path))
+                    try:
+                        files.append(discord.File(file_path))
+                    except Exception as e:
+                        logger.warning(f"Failed to create discord.File for {file_path}: {e}")
 
                 await progress.edit(content="Download complete!", embed=embed)
                 if files:
@@ -71,13 +107,15 @@ class Twitter(commands.Cog):
 
             except Exception as e:
                 logger.exception("Error downloading tweet")
-                await progress.edit(content=f"Error: {e!s}")
+                error_embed = create_error_embed(str(e))
+                await progress.edit(embed=error_embed)
+                raise TwitterError(f"Failed to download tweet: {e}") from e
 
     @commands.group(name="tweet")
     async def tweet(self, ctx: commands.Context) -> None:
         """Twitter command group."""
         if ctx.invoked_subcommand is None:
-            await ctx.send("Invalid tweet command. Use !help tweet")
+            await ctx.send(HELP_MESSAGE)
 
     @tweet.command(name="download")
     async def download(self, ctx: commands.Context, url: str) -> None:
@@ -116,36 +154,35 @@ class Twitter(commands.Cog):
         Args:
             ctx: Command context
             url: Tweet URL to get info for
+
+        Raises:
+            TwitterError: If getting info fails
         """
         async with ctx.typing():
             try:
                 result = await download_tweet(url, mode="single")
 
                 if not result["success"]:
-                    await ctx.send(f"Failed to get tweet info: {result['error']}")
+                    error_embed = create_error_embed(result["error"])
+                    await ctx.send(embed=error_embed)
                     return
 
-                # Create detailed embed
-                embed = discord.Embed(title="Tweet Information")
-                embed.add_field(name="ID", value=result["metadata"]["id"])
-                embed.add_field(name="Author", value=result["metadata"]["author"])
-                embed.add_field(name="Created", value=result["metadata"]["created_at"])
-                embed.add_field(name="URL", value=result["metadata"]["url"])
-                embed.description = result["metadata"]["content"]
-
-                if result["metadata"]["media_urls"]:
-                    embed.add_field(
-                        name="Media URLs",
-                        value="\n".join(result["metadata"]["media_urls"])
-                    )
-
+                # Create detailed info embed
+                metadata = cast(TweetMetadata, result["metadata"])
+                embed = create_info_embed(metadata)
                 await ctx.send(embed=embed)
 
             except Exception as e:
                 logger.exception("Error getting tweet info")
-                await ctx.send(f"Error: {e!s}")
+                error_embed = create_error_embed(str(e))
+                await ctx.send(embed=error_embed)
+                raise TwitterError(f"Failed to get tweet info: {e}") from e
 
 
 async def setup(bot: commands.Bot) -> None:
-    """Add Twitter cog to bot."""
+    """Add Twitter cog to bot.
+
+    Args:
+        bot: Discord bot instance
+    """
     await bot.add_cog(Twitter(bot))
