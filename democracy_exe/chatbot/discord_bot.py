@@ -545,7 +545,7 @@ async def preload_guild_data() -> dict[int, dict[str, str]]:
 
 def extensions() -> Iterable[str]:
     """
-    Yield extension module paths.
+    Yield extension module paths synchronously.
 
     This function searches for Python files in the 'cogs' directory relative to the current file's directory.
     It constructs the module path for each file and yields it.
@@ -555,11 +555,91 @@ def extensions() -> Iterable[str]:
         str: The module path for each Python file in the 'cogs' directory.
 
     """
+    logger.debug(f"Starting extension discovery from HERE={HERE}")
     module_dir = pathlib.Path(HERE)
-    files = pathlib.Path(module_dir.stem, "cogs").rglob("*.py")
-    for file in files:
-        logger.debug(f"exension = {file.as_posix()[:-3].replace('/', '.')}")
-        yield file.as_posix()[:-3].replace("/", ".")
+    logger.debug(f"Module directory: {module_dir}")
+
+    cogs_path = pathlib.Path(module_dir.stem, "cogs")
+    logger.debug(f"Looking for cogs in: {cogs_path}")
+
+    try:
+        files = pathlib.Path(module_dir.stem, "cogs").rglob("*.py")
+        logger.debug("Successfully initialized file search")
+
+        for file in files:
+            extension_path = file.as_posix()[:-3].replace("/", ".")
+            logger.debug(f"Found extension file: {file}")
+            logger.debug(f"Converting to module path: {extension_path}")
+            yield extension_path
+
+    except Exception as e:
+        logger.error(f"Error discovering extensions: {e!s}")
+        logger.exception("Extension discovery failed")
+        raise
+
+    logger.debug("Completed extension discovery")
+
+
+async def aio_extensions() -> AsyncIterator[str]:
+    """Yield extension module paths asynchronously.
+
+    This function asynchronously searches for Python files in the 'cogs' directory
+    relative to the current file's directory. It constructs the module path for each
+    file and yields it. Uses aiofiles for asynchronous file operations.
+
+    Yields
+    ------
+        str: The module path for each Python file in the 'cogs' directory.
+
+    Example
+    -------
+        >>> async for extension in aio_extensions():
+        ...     await bot.load_extension(extension)
+    """
+    logger.debug(f"Starting async extension discovery from HERE={HERE}")
+    module_dir = pathlib.Path(HERE)
+    logger.debug(f"Module directory: {module_dir}")
+
+    cogs_path = module_dir / "cogs"
+    logger.debug(f"Looking for cogs in: {cogs_path}")
+
+    try:
+        # Get list of all .py files in cogs directory
+        files = list(cogs_path.rglob("*.py"))
+        logger.debug(f"Found files: {files}")
+        logger.debug("Successfully initialized async file search")
+
+        for file in files:
+            # Skip __init__.py files
+            if file.name == "__init__.py":
+                continue
+
+            # Verify file exists and is readable
+            try:
+                async with aiofiles.open(file) as f:
+                    # Just check if we can open it
+                    await f.read(1)
+
+                # Convert file path to module path
+                relative_path = file.relative_to(module_dir.parent.parent)
+                extension_path = str(relative_path).replace(os.sep, ".")[:-3]  # Remove .py
+
+                logger.debug(f"Found extension file: {file}")
+                logger.debug(f"Converting to module path: {extension_path}")
+                yield extension_path
+                await logger.complete()
+
+            except OSError as e:
+                logger.warning(f"Skipping inaccessible extension file {file}: {e!s}")
+                continue
+
+    except Exception as e:
+        logger.error(f"Error discovering extensions: {e!s}")
+        logger.exception("Extension discovery failed")
+        raise
+
+    logger.debug("Completed async extension discovery")
+    await logger.complete()
 
 
 def _prefix_callable(bot: DemocracyBot, msg: discord.Message) -> list[str]: # pyright: ignore[reportUninitializedInstanceVariable,reportUnusedFunction]
@@ -657,7 +737,7 @@ class DemocracyBot(commands.Bot):
         intents.voice_states = True
         intents.messages = True
         intents.reactions = True
-        super().__init__(command_prefix=aiosettings.discord_command_prefix, description=DESCRIPTION,
+        super().__init__(command_prefix=aiosettings.prefix, description=DESCRIPTION,
             pm_help=None,
             help_attrs=dict(hidden=True),
             chunk_guilds_at_startup=False,
@@ -666,25 +746,11 @@ class DemocracyBot(commands.Bot):
             intents=intents,
             enable_debug_events=True)
 
-        # Initialize AI models and stores
-        # self.chat_model = ChatOpenAI()
-        # self.embedding_model = OpenAIEmbeddings()
-        # self.vector_store = None
-
         # Initialize session and stats
         self.session = aiohttp.ClientSession()
         self.command_stats = Counter()
         self.socket_stats = Counter()
         self.graph: CompiledStateGraph = memgraph
-
-    # async def setup_hook(self) -> None:
-    #     """Set up the bot's initial configuration and load extensions.
-
-    #     This method is called automatically when the bot starts up.
-    #     """
-    #     self.session = aiohttp.ClientSession()
-    #     await logger.complete()
-
 
     async def get_context(self, origin: discord.Interaction | discord.Message, /, *, cls=Context) -> Context:
         """
@@ -722,7 +788,7 @@ class DemocracyBot(commands.Bot):
                         detailed error information.
 
         """
-
+        logger.debug("Starting setup_hook initialization")
         self.prefixes: list[str] = [aiosettings.prefix]
 
         self.version = democracy_exe.__version__
@@ -730,23 +796,37 @@ class DemocracyBot(commands.Bot):
         self.intents.members = True
         self.intents.message_content = True
 
+        logger.debug("Retrieving bot application info")
         self.bot_app_info: discord.AppInfo = await self.application_info()
         self.owner_id: int = self.bot_app_info.owner.id  # pyright: ignore[reportAttributeAccessIssue]
 
-        for ext in extensions():
+        logger.info("Beginning extension loading process")
+        logger.debug(f"Current directory: {os.getcwd()}")
+        logger.debug(f"HERE path: {HERE}")
+        logger.debug(f"Looking for extensions in: {pathlib.Path(HERE) / 'cogs'}")
+
+        extensions_found = []
+        async for ext in aio_extensions():
+            extensions_found.append(ext)
+        logger.info(f"Found extensions: {extensions_found}")
+
+        for ext in extensions_found:
             try:
+                logger.debug(f"Loading extension: {ext}")
                 await self.load_extension(ext)
+                logger.info(f"Successfully loaded extension: {ext}")
             except Exception as ex:
-                print(f"Failed to load extension {ext} - exception: {ex}")
+                logger.error(f"Failed to load extension {ext} - exception: {ex}")
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logger.error(f"Error Class: {ex.__class__!s}")
                 output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
                 logger.warning(output)
                 logger.error(f"exc_type: {exc_type}")
                 logger.error(f"exc_value: {exc_value}")
-                traceback.print_tb(exc_traceback)
+                logger.error("Traceback:", exc_info=True)
                 raise
 
+        logger.info("Completed setup_hook initialization")
         await logger.complete()
 
 
