@@ -86,6 +86,7 @@ import vcr
 
 from loguru import logger
 from loguru._defaults import LOGURU_FORMAT
+from loguru._logger import Core
 from tqdm import tqdm
 
 from democracy_exe.aio_settings import aiosettings
@@ -103,6 +104,7 @@ LOGLEVEL_MAPPING = {
     30: "WARNING",
     20: "INFO",
     10: "DEBUG",
+    5: "VVVV",
     0: "NOTSET",
 }
 
@@ -143,6 +145,7 @@ NEW_LOGGER_FORMAT = (
 
 LOG_LEVEL = Literal[
     "TRACE",
+    "VVVV",
     "DEBUG",
     "INFO",
     "SUCCESS",
@@ -218,25 +221,6 @@ def _log_warning(exc: BaseException, dev_mode: bool = False) -> None:
         logger.opt(exception=True).warning(exc)
     else:
         logger.warning(exc)
-
-
-# def _log_exception(exc: BaseException, dev_mode: bool = False) -> None:
-#     """If dev mode, log the entire traceback"""
-#     if dev_mode:
-#         logger.opt(exception=True).error(exc)
-#     else:
-#         logger.error(exc)
-
-
-# def _log_warning(exc: BaseException, dev_mode: bool = False) -> None:
-#     """If dev mode, log the entire traceback"""
-#     if dev_mode:
-#         logger.opt(exception=True).warning(exc)
-#     else:
-#         logger.error(exc)
-
-
-# --------------------------------------------------------------------------
 
 
 def filter_out_serialization_errors(record: dict[str, Any]):
@@ -331,33 +315,6 @@ _old_log_dir: str | None = None
 _old_console_log_level: LOG_LEVEL | None = None
 _old_backup_count: int | None = None
 
-# ###################################################################################################
-# # NOTE: Make sure we don't log secrets
-# # SOURCE: https://github.com/Delgan/loguru/issues/537#issuecomment-986259036
-# def obfuscate_message(message: str):
-#     """Obfuscate sensitive information."""
-#     result = re.sub(r"pass: .*", "pass: xxx", s)
-#     return result
-#
-# def formatter(record):
-#     record["extra"]["obfuscated_message"] = obfuscate_message(record["message"])
-#     return "[{level}] {extra[obfuscated_message]}\n{exception}"
-#
-# logger.add(sys.stderr, format=formatter)
-# ###################################################################################################
-
-
-# SOURCE: https://github.com/bossjones/sandbox/blob/8ad412d9726e8ffc76ea8822f32e18a0cb5fc84f/dancedetector/dancedetector/dbx_logger/__init__.py
-# References
-# Solution comes from:
-#   https://pawamoy.github.io/posts/unify-logging-for-a-gunicorn-uvicorn-app/
-#   https://github.com/pahntanapat/Unified-FastAPI-Gunicorn-Log
-#   https://github.com/Delgan/loguru/issues/365
-#   https://loguru.readthedocs.io/en/stable/api/logger.html#sink
-
-# request_id_contextvar is a context variable that will store the request id
-# ContextVar works with asyncio out of the box.
-# see https://docs.python.org/3/library/contextvars.html
 REQUEST_ID_CONTEXTVAR = contextvars.ContextVar("request_id", default=None)
 
 # initialize the context variable with a default value
@@ -386,21 +343,6 @@ def format_record(record: dict[str, Any]) -> str:
     Returns:
         The formatted log record.
     """
-    # """
-    # Custom format for loguru loggers.
-    # Uses pformat for log any data like request/response body during debug.
-    # Works with logging if loguru handler it.
-
-    # Example:
-    # -------
-    # >>> payload = [{"users":[{"name": "Nick", "age": 87, "is_active": True},
-    # >>>     {"name": "Alex", "age": 27, "is_active": True}], "count": 2}]
-    # >>> logger.bind(payload=).debug("users payload")
-    # >>> [   {   'count': 2,
-    # >>>         'users': [   {'age': 87, 'is_active': True, 'name': 'Nick'},
-    # >>>                      {'age': 27, 'is_active': True, 'name': 'Alex'}]}]
-
-    # """
     format_string = NEW_LOGGER_FORMAT
     if record["extra"].get("payload") is not None:
         record["extra"]["payload"] = pformat(record["extra"]["payload"], indent=4, compact=True, width=88)
@@ -427,12 +369,6 @@ class InterceptHandler(logging.Handler):
         0: "NOTSET",
     }
 
-    # from logging import DEBUG
-    # from logging import ERROR
-    # from logging import FATAL
-    # from logging import INFO
-    # from logging import WARN
-    # https://issueexplorer.com/issue/tiangolo/fastapi/4026
     def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover
         """
         Intercept all logging calls (with standard logging) into our Loguru Sink.
@@ -599,23 +535,6 @@ def reset_logging(
         _old_backup_count = backup_count
 
 
-# def reset_logging(log_dir: str, *, console_log_level: LOG_LEVEL = "INFO", backup_count: Optional[int] = None) -> None:
-
-#     global _console_handler_id, _file_handler_id
-#     global _old_log_dir, _old_console_log_level, _old_backup_count
-#     logger.configure(extra={"room_id": ""})
-
-#     if console_log_level != _old_console_log_level:
-#         if _console_handler_id is not None:
-#             logger.remove(_console_handler_id)
-#         else:
-#             logger.remove()  # remove the default stderr handler
-
-#         _console_handler_id = logger.add(sys.stderr, level=console_log_level, format=LOGURU_CONSOLE_FORMAT)
-
-#         _old_console_log_level = console_log_level
-
-
 def timeit(func):
     def wrapped(*args, **kwargs):
         start = time.time()
@@ -650,7 +569,7 @@ def logger_wraps(*, entry=True, exit=True, level="DEBUG"):
 # @pysnooper.snoop(thread_info=True)
 # FIXME: https://github.com/abnerjacobsen/fastapi-mvc-loguru-demo/blob/main/mvc_demo/core/loguru_logs.py
 # SOURCE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger
-def global_log_config(log_level: str | int = logging.DEBUG, json: bool = False) -> _Logger:
+def global_log_config(log_level: str | int = logging.INFO, json: bool = False) -> _Logger:
     """Configure global logging settings.
 
     Args:
@@ -661,9 +580,6 @@ def global_log_config(log_level: str | int = logging.DEBUG, json: bool = False) 
         The configured logger instance.
     """
 
-    # The logger is pre-configured for convenience with a default handler which writes messages to |sys.stderr|. You should |remove| it first if you plan to |add| another handler logging messages to the console, otherwise you may end up with duplicated logs.
-    # logger.remove()  # Remove all handlers added so far, including the default one.
-    # logger.add(sys.stdout, level="DEBUG")
 
     # SOURCE: https://github.com/acgnhiki/blrec/blob/975fa2794a3843a883597acd5915a749a4e196c8/src/blrec/logging/configure_logging.py#L21
     global _console_handler_id, _file_handler_id
@@ -675,13 +591,7 @@ def global_log_config(log_level: str | int = logging.DEBUG, json: bool = False) 
 
     # NOTE: Original
     intercept_handler = InterceptHandler()
-    # logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
-    # intercept_handler = InterceptHandlerImproved()
-    # logging.basicConfig(handlers=[intercept_handler], level=log_level, force=True)
-
-    # logging.basicConfig(handlers=[intercept_handler], level=LOG_LEVEL)
-    # logging.root.handlers = [intercept_handler]
     logging.root.setLevel(log_level)
 
     seen = set()
@@ -694,19 +604,6 @@ def global_log_config(log_level: str | int = logging.DEBUG, json: bool = False) 
         "discord.http",
         "chromadb",
         "langchain_chroma",
-        # "selenium",
-        # "webdriver_manager",
-        # "arsenic",
-        # "aiohttp",
-        # "tensorflow",
-        # "keras",
-        # "gunicorn",
-        # "gunicorn.access",
-        # "gunicorn.error",
-        # "uvicorn",
-        # "uvicorn.access",
-        # "uvicorn.error",
-        # "uvicorn.config",
     ]:
         if name not in seen:
             seen.add(name.split(".")[0])
