@@ -115,13 +115,12 @@ class AttachmentHandler:
         try:
             async with aiohttp.ClientSession() as session:
                 response = await session.get(url)
-                async with response as resp:
-                    if response.status == 200:
-                        data = await response.read()
-                        return io.BytesIO(data)
-                    else:
-                        logger.error(f"Failed to download image. Status: {response.status}")
-                        return None
+                if response.status == 200:
+                    data = await response.read()
+                    return io.BytesIO(data)
+                else:
+                    logger.error(f"Failed to download image. Status: {response.status}")
+                    return None
         except aiohttp.ClientError as e:
             logger.error(f"Error downloading image: {e}")
             raise

@@ -39,10 +39,12 @@ def extensions() -> list[str]:
         List of extension paths as strings
     """
     cogs_dir = Path(__file__).parent.parent / "cogs"
+    if not cogs_dir.exists():
+        raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
     return [
-        f"democracy_exe.chatbot.cogs.{f.stem}"
-        for f in cogs_dir.glob("*.py")
-        if not f.name.startswith("_")
+        f"chatbot.cogs.{f.stem}"
+        for f in cogs_dir.glob("**/*.py")
+        if not f.name.startswith("_") and f.name != "__init__.py"
     ]
 
 async def aio_extensions() -> list[str]:
@@ -197,8 +199,7 @@ async def get_or_create_role(
             return existing_role
 
         logger.info(f"Creating new role: {role_name}")
-        role = await guild.create_role(name=role_name, **role_params)
-        return existing_role or role
+        return await guild.create_role(name=role_name, **role_params)
     except discord.Forbidden as e:
         logger.error(f"Insufficient permissions to manage roles: {e}")
         raise
@@ -368,7 +369,7 @@ async def details_from_file(
 
         if sys.platform == "darwin":
             get_timestamp = await shell._aio_run_process_and_communicate(
-                ["gstat", "-c", "%y", str(p.absolute())], cwd=cwd
+                ["stat", "-f", "%Sm", "-t", "%Y-%m-%d %H:%M:%S", str(p.absolute())], cwd=cwd
             )
         elif sys.platform == "linux":
             get_timestamp = await shell._aio_run_process_and_communicate(
