@@ -205,6 +205,7 @@ async def run_bot():
     try:
         async with DemocracyBot() as bot:
             # await bot.start(aiosettings.discord_token.get_secret_value())
+            typer.echo("Running bot")
             await bot.start()
     except Exception as ex:
         print(f"{ex}")
@@ -222,41 +223,9 @@ async def run_bot():
 
 
 async def run_bot_with_redis():
-    # try:
-    #     bot = SandboxAgent()
-    # except Exception as ex:
-    #     print(f"{ex}")
-    #     exc_type, exc_value, exc_traceback = sys.exc_info()
-    #     print(f"Error Class: {ex.__class__}")
-    #     output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-    #     print(output)
-    #     print(f"exc_type: {exc_type}")
-    #     print(f"exc_value: {exc_value}")
-    #     traceback.print_tb(exc_traceback)
-    #     if aiosettings.dev_mode:
-    #         bpdb.pm()
-    # async with SandboxAgent() as bot:
-    #     await bot.start()
 
     await logger.complete()
 
-# async def run_terminal_bot():
-#     try:
-#         await go_terminal_bot()
-#     except Exception as ex:
-#         print(f"{ex}")
-#         exc_type, exc_value, exc_traceback = sys.exc_info()
-#         print(f"Error Class: {ex.__class__}")
-#         output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-#         print(output)
-#         print(f"exc_type: {exc_type}")
-#         print(f"exc_value: {exc_value}")
-#         traceback.print_tb(exc_traceback)
-#         if aiosettings.dev_mode:
-#             bpdb.pm()
-
-
-#     await logger.complete()
 
 @APP.command()
 def run_terminal_bot() -> None:

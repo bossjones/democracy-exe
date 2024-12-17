@@ -65,7 +65,8 @@ def test_unlink_orig_file(
 
     # Verify correct message was printed
     captured = capsys.readouterr()
-    assert f"deleting ... {mock_file}" in captured.out
+    expected_output = f"deleting ... {mock_file}\n"
+    assert captured.out == expected_output
 
 
 def test_unlink_orig_file_nonexistent(tmp_path: pathlib.Path) -> None:
