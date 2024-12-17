@@ -860,16 +860,6 @@ class DemocracyBot(commands.Bot):
 
         await logger.complete()
 
-    # async def close(self) -> None:
-    #     """Clean up resources when shutting down the bot."""
-    #     await super().close()
-    #     await self.session.close()
-
-    # async def on_ready(self) -> None:
-    #     """Handle bot ready event and set up initial state."""
-    #     logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
-    #     print("------")
-
     async def on_ready(self) -> None:
         """
         Handle the event when the bot is ready.
@@ -1463,5 +1453,3 @@ async def send_long_message(channel: Any, message: discord.Message, max_length: 
     chunks = [message[i : i + max_length] for i in range(0, len(message), max_length)]  # type: ignore
     for chunk in chunks:
         await channel.send(chunk)
-
-# bot = DemocracyBot()
