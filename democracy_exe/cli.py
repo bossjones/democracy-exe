@@ -295,6 +295,7 @@ def run_pyright() -> None:
 def go() -> None:
     """Main entry point for DemocracyBot"""
     typer.echo("Starting up DemocracyBot")
+    # NOTE: This is the approved way to run the bot, via asyncio.run.
     asyncio.run(run_bot())
 
 

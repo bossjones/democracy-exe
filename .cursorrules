@@ -897,5 +897,70 @@ democracy-exe/
         <standard>Handle side effects properly in reactive contexts.</standard>
       </reactive_patterns>
     </marimo_standards>
+
+    <cli_standards>
+      <standard>Use AsyncTyperImproved for the main APP instance to support both sync and async commands.</standard>
+      <standard>Initialize the main APP with: APP = AsyncTyperImproved()</standard>
+      <standard>Load subcommands dynamically using the load_commands() function.</standard>
+      <standard>Place all subcommands in the subcommands directory with _cmd.py suffix.</standard>
+      <standard>Each subcommand module should define its own APP instance.</standard>
+      <standard>Use proper type annotations for all command parameters and return values.</standard>
+      <standard>Include descriptive docstrings for all commands following Google style.</standard>
+      <standard>Use Annotated for command parameters to provide help text and options.</standard>
+      <standard>Prefix async command functions with 'async' or 'aio' for clarity.</standard>
+      <standard>Use proper error handling and logging in command functions.</standard>
+      <examples>
+        <example>
+          <![CDATA[
+          # Main APP initialization
+          APP = AsyncTyperImproved()
+
+          # Sync command example
+          @APP.command()
+          def version(
+              verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed version info")] = False,
+          ) -> None:
+              """Display version information."""
+              rich.print(f"democracy_exe version: {democracy_exe.__version__}")
+              if verbose:
+                  rich.print(f"Python version: {sys.version}")
+
+          # Async command example
+          @APP.command()
+          async def run_bot() -> None:
+              """Run the Discord bot."""
+              logger.info("Running bot")
+              try:
+                  async with DemocracyBot() as bot:
+                      await bot.start()
+              except Exception as ex:
+                  logger.exception("Bot error occurred")
+                  if aiosettings.dev_mode:
+                      bpdb.pm()
+
+          # Subcommand module example (dummy_cmd.py)
+          APP = AsyncTyperImproved(help="dummy command")
+
+          @APP.command("dummy")
+          def cli_dummy_cmd(prompt: str) -> str:
+              """Generate a new module.
+
+              Args:
+                  prompt: The input prompt
+
+              Returns:
+                  str: The generated output
+              """
+              return f"dummy cmd: {prompt}"
+
+          @APP.command()
+          async def aio_cli_dummy_cmd() -> str:
+              """Returns information asynchronously."""
+              await asyncio.sleep(1)
+              return "slept for 1 second"
+          ]]>
+        </example>
+      </examples>
+    </cli_standards>
   </python_standards>
 </cursorrules>

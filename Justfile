@@ -33,10 +33,10 @@ check:
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
 	uv run deptry .
 
-# Test the code with pytest
-test:
-	@echo "🚀 Testing code: Running pytest"
-	{{PYTHON}} -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
+# # Test the code with pytest
+# test:
+# 	@echo "🚀 Testing code: Running pytest"
+# 	{{PYTHON}} -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
 
 # Build wheel file
 build: clean-build
@@ -703,16 +703,7 @@ outdated:
 install-llm-cli-plugins:
 	uv add llm
 	uv add llm-cmd llm-clip llm-sentence-transformers llm-replicate llm-perplexity llm-claude-3 llm-python llm-gemini llm-jq
-# {{UV_RUN}} llm install llm-cmd
-# {{UV_RUN}} llm install llm-clip
-# {{UV_RUN}} llm install llm-sentence-transformers
-# {{UV_RUN}} llm install llm-replicate
-# {{UV_RUN}} llm install llm-perplexity
-# {{UV_RUN}} llm install llm-claude-3
-# {{UV_RUN}} llm install llm-python
-# {{UV_RUN}} llm install llm-json
-# {{UV_RUN}} llm install llm-markdown
-# {{UV_RUN}} llm install llm-sql
+
 
 smoke-test:
 	cd democracy_exe/agentic/studio/react && {{UV_RUN}} python -m memory_agent
@@ -764,3 +755,25 @@ ai-commit:
 # Run the bot
 run:
 	{{UV_RUN}} democracyctl run-bot
+
+
+# Test the code with pytest
+test:
+	@echo "🚀 Testing code: Running pytest"
+	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+
+# Test the code with pytest in debug mode
+test-debug: uv_new_unittests_debug open-coverage
+
+# Getting corefiles
+corefiles:
+	{{UV_RUN}} files-to-prompt -e rs -e py -e toml --ignore "node_modules|__pycache__|scripts|debug|.o|deps|release|target|inputs" . | pbcopy
+
+# Install youtube-transcript
+install-youtube-transcript:
+	cargo install youtube-transcript
+
+# Run linting
+test-lint:
+	uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
