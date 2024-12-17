@@ -7,8 +7,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Dict, Final, List, Optional, TypedDict, cast, final
 
-import gallery_dl
-
+from gallery_dl.extractor import twitter
 from loguru import logger
 
 from .types import TweetMetadata
@@ -143,15 +142,16 @@ class TwitterClient:
             >>> print(metadata["content"])
         """
         try:
-            extractor = gallery_dl.extractor.find(url, self.config)  # type: ignore[attr-defined]
-            if not extractor:
-                raise NoExtractorError(f"No suitable extractor found for URL: {url}")
+            extractor = twitter.TwitterExtractor(url)
+            for key, value in self.config.get("extractor", {}).get("twitter", {}).items():
+                setattr(extractor, key, value)
 
             # Get first (and should be only) item for single tweet
-            for item in extractor:
-                return self._parse_tweet_item(cast(GalleryDLTweetItem, item))
+            items = list(extractor)
+            if not items:
+                raise NoTweetDataError(f"No tweet data found for URL: {url}")
 
-            raise NoTweetDataError(f"No tweet data found for URL: {url}")
+            return self._parse_tweet_item(cast(GalleryDLTweetItem, items[0]))
 
         except (NoExtractorError, NoTweetDataError) as e:
             logger.error(str(e))
@@ -184,12 +184,11 @@ class TwitterClient:
             ...     print(tweet["content"])
         """
         try:
-            extractor = gallery_dl.extractor.find(url, self.config)  # type: ignore[attr-defined]
-            if not extractor:
-                raise NoExtractorError(f"No suitable extractor found for URL: {url}")
+            extractor = twitter.TwitterExtractor(url)
+            for key, value in self.config.get("extractor", {}).get("twitter", {}).items():
+                setattr(extractor, key, value)
 
             thread_tweets = []
-
             for item in extractor:
                 thread_tweets.append(
                     self._parse_tweet_item(cast(GalleryDLTweetItem, item))

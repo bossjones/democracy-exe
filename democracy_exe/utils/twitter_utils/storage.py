@@ -125,6 +125,10 @@ class TwitterMediaStorage:
         """
         stats = await self.get_storage_stats()
         if stats["total_size"] > self.max_cache_size:
+            # Check size first before attempting cleanup
+            if stats["total_size"] > self.max_cache_size * 2:  # If way over limit
+                raise StorageFullError("Storage is critically full")
+
             await self.cleanup_old_files()
             # Check if cleanup was sufficient
             new_stats = await self.get_storage_stats()
