@@ -4,7 +4,8 @@ from __future__ import annotations
 import re
 
 from collections.abc import Iterator
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Any, Dict, Final, List, Optional, TypedDict, cast, final
 
 import gallery_dl
 
@@ -13,21 +14,77 @@ from loguru import logger
 from .types import TweetMetadata
 
 
+class GalleryDLTweetItem(TypedDict, total=True):
+    """Type definition for gallery-dl tweet item.
+
+    Attributes:
+        tweet_id: Unique identifier of the tweet
+        tweet_url: Full URL of the tweet
+        content: Tweet text content
+        date: Tweet creation datetime
+        author: Author information dictionary
+        media: Optional list of media attachments
+    """
+
+    tweet_id: int
+    tweet_url: str
+    content: str
+    date: datetime
+    author: dict[str, str]
+    media: list[dict[str, str]] | None
+
+
+class GalleryDLError(Exception):
+    """Base exception for gallery-dl related errors."""
+
+
+class NoExtractorError(GalleryDLError):
+    """Raised when no suitable extractor is found."""
+
+
+class NoTweetDataError(GalleryDLError):
+    """Raised when no tweet data is found."""
+
+
+@final
 class TwitterClient:
     """Client for Twitter interactions using gallery-dl.
 
-    Handles tweet metadata extraction and validation.
+    This class provides methods to extract and validate tweet metadata using
+    gallery-dl as the backend. It handles authentication and configuration
+    for gallery-dl's Twitter extractor.
 
     Attributes:
-        auth_token: Twitter auth token for authentication
-        config: Gallery-dl configuration
+        auth_token: Twitter authentication token
+        config: Gallery-dl configuration dictionary
+
+    Example:
+        >>> client = TwitterClient("your_auth_token")
+        >>> metadata = client.get_tweet_metadata("https://twitter.com/user/status/123")
+        >>> print(metadata["content"])
     """
+
+    # URL patterns for tweet ID extraction
+    URL_PATTERNS: Final[list[str]] = [
+        r"twitter\.com/\w+/status/(\d+)",
+        r"x\.com/\w+/status/(\d+)"
+    ]
+
+    # Gallery-dl configuration keys
+    CONFIG_KEYS: Final[dict[str, Any]] = {
+        "text-tweets": True,
+        "include": "metadata",
+        "videos": True
+    }
 
     def __init__(self, auth_token: str) -> None:
         """Initialize Twitter client.
 
         Args:
-            auth_token: Twitter authentication token
+            auth_token: Twitter authentication token for API access
+
+        Example:
+            >>> client = TwitterClient("your_auth_token")
         """
         self.auth_token = auth_token
         self.config = {
@@ -36,9 +93,7 @@ class TwitterClient:
                     "cookies": {
                         "auth_token": auth_token
                     },
-                    "text-tweets": True,
-                    "include": "metadata",
-                    "videos": True
+                    **self.CONFIG_KEYS
                 }
             }
         }
@@ -47,18 +102,21 @@ class TwitterClient:
     def extract_tweet_id(url: str) -> str | None:
         """Extract tweet ID from URL.
 
+        Supports both twitter.com and x.com URLs in various formats.
+
         Args:
-            url: Tweet URL to parse
+            url: Tweet URL to parse (twitter.com or x.com)
 
         Returns:
             Tweet ID if found, None otherwise
-        """
-        patterns = [
-            r"twitter\.com/\w+/status/(\d+)",
-            r"x\.com/\w+/status/(\d+)"
-        ]
 
-        for pattern in patterns:
+        Example:
+            >>> TwitterClient.extract_tweet_id("https://twitter.com/user/status/123")
+            '123'
+            >>> TwitterClient.extract_tweet_id("invalid_url")
+            None
+        """
+        for pattern in TwitterClient.URL_PATTERNS:
             if match := re.search(pattern, url):
                 return match.group(1)
         return None
@@ -66,24 +124,38 @@ class TwitterClient:
     def get_tweet_metadata(self, url: str) -> TweetMetadata:
         """Get metadata for a tweet.
 
+        Fetches and parses metadata for a single tweet using gallery-dl.
+
         Args:
-            url: Tweet URL
+            url: Tweet URL to fetch metadata for
 
         Returns:
-            Tweet metadata
+            Parsed tweet metadata
 
         Raises:
-            ValueError: If tweet cannot be fetched
+            NoExtractorError: If no suitable extractor is found
+            NoTweetDataError: If no tweet data is found
+            ValueError: If tweet cannot be parsed
+            RuntimeError: If gallery-dl encounters an error
+
+        Example:
+            >>> metadata = client.get_tweet_metadata("https://twitter.com/user/status/123")
+            >>> print(metadata["content"])
         """
         try:
-            extractor = gallery_dl.extractor.from_url(url, self.config)
+            extractor = gallery_dl.extractor.find(url, self.config)  # type: ignore[attr-defined]
+            if not extractor:
+                raise NoExtractorError(f"No suitable extractor found for URL: {url}")
 
             # Get first (and should be only) item for single tweet
             for item in extractor:
-                return self._parse_tweet_item(item)
+                return self._parse_tweet_item(cast(GalleryDLTweetItem, item))
 
-            raise ValueError("No tweet data found")
+            raise NoTweetDataError(f"No tweet data found for URL: {url}")
 
+        except (NoExtractorError, NoTweetDataError) as e:
+            logger.error(str(e))
+            raise
         except Exception as e:
             logger.exception("Error fetching tweet metadata")
             raise ValueError(f"Failed to fetch tweet: {e!s}") from e
@@ -91,67 +163,106 @@ class TwitterClient:
     def get_thread_tweets(self, url: str) -> list[TweetMetadata]:
         """Get metadata for all tweets in a thread.
 
+        Fetches and parses metadata for all tweets in a thread, starting from
+        any tweet in the thread.
+
         Args:
             url: URL of any tweet in the thread
 
         Returns:
-            List of tweet metadata for thread
+            List of tweet metadata for thread, sorted by creation date
 
         Raises:
-            ValueError: If thread cannot be fetched
+            NoExtractorError: If no suitable extractor is found
+            NoTweetDataError: If no tweets are found in thread
+            ValueError: If thread cannot be parsed
+            RuntimeError: If gallery-dl encounters an error
+
+        Example:
+            >>> thread = client.get_thread_tweets("https://twitter.com/user/status/123")
+            >>> for tweet in thread:
+            ...     print(tweet["content"])
         """
         try:
-            extractor = gallery_dl.extractor.from_url(url, self.config)
+            extractor = gallery_dl.extractor.find(url, self.config)  # type: ignore[attr-defined]
+            if not extractor:
+                raise NoExtractorError(f"No suitable extractor found for URL: {url}")
+
             thread_tweets = []
 
             for item in extractor:
-                thread_tweets.append(self._parse_tweet_item(item))
+                thread_tweets.append(
+                    self._parse_tweet_item(cast(GalleryDLTweetItem, item))
+                )
 
             if not thread_tweets:
-                raise ValueError("No tweets found in thread")
+                raise NoTweetDataError(f"No tweets found in thread at URL: {url}")
 
             # Sort by date
             return sorted(thread_tweets, key=lambda t: t["created_at"])
 
+        except (NoExtractorError, NoTweetDataError) as e:
+            logger.error(str(e))
+            raise
         except Exception as e:
             logger.exception("Error fetching thread")
             raise ValueError(f"Failed to fetch thread: {e!s}") from e
 
-    def _parse_tweet_item(self, item: dict[str, Any]) -> TweetMetadata:
+    def _parse_tweet_item(self, item: GalleryDLTweetItem) -> TweetMetadata:
         """Parse gallery-dl tweet item into metadata.
 
+        Converts a gallery-dl tweet item into our standardized metadata format.
+
         Args:
-            item: Gallery-dl tweet item
+            item: Gallery-dl tweet item to parse
 
         Returns:
-            Parsed tweet metadata
-        """
-        media_urls = []
-        if "media" in item:
-            for media in item["media"]:
-                if "url" in media:
-                    media_urls.append(media["url"])
+            Parsed tweet metadata in standardized format
 
-        return {
-            "id": str(item["tweet_id"]),
-            "url": item["tweet_url"],
-            "author": item["author"]["name"],
-            "content": item["content"],
-            "media_urls": media_urls,
-            "created_at": item["date"].isoformat()
-        }
+        Raises:
+            ValueError: If required fields are missing
+
+        Example:
+            >>> item = {"tweet_id": 123, "content": "Hello", ...}
+            >>> metadata = client._parse_tweet_item(item)
+            >>> print(metadata["content"])
+        """
+        try:
+            media_urls: list[str] = []
+            if item.get("media"):
+                for media in item["media"]:
+                    if url := media.get("url"):
+                        media_urls.append(url)
+
+            return {
+                "id": str(item["tweet_id"]),
+                "url": item["tweet_url"],
+                "author": item["author"]["name"],
+                "content": item["content"],
+                "media_urls": media_urls,
+                "created_at": item["date"].isoformat()
+            }
+        except KeyError as e:
+            raise ValueError(f"Missing required field in tweet data: {e}") from e
 
     def validate_tweet(self, url: str) -> bool:
         """Check if a tweet URL exists and is accessible.
+
+        Attempts to fetch tweet metadata to verify if the URL is valid and
+        accessible with the current authentication.
 
         Args:
             url: Tweet URL to validate
 
         Returns:
             True if tweet exists and is accessible
+
+        Example:
+            >>> if client.validate_tweet("https://twitter.com/user/status/123"):
+            ...     print("Tweet exists!")
         """
         try:
             self.get_tweet_metadata(url)
             return True
-        except Exception:
+        except (NoExtractorError, NoTweetDataError, ValueError):
             return False
