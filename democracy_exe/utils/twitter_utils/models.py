@@ -332,9 +332,9 @@ class DownloadedContent:
         """Check if content has local files.
 
         Returns:
-            True if there are local files
+            True if there are local files, False if files list is empty or None
         """
-        return len(self.local_files) > 0
+        return bool(self.local_files and len(self.local_files) > 0)
 
     def to_dict(self) -> DownloadDict:
         """Convert download result to dictionary format.

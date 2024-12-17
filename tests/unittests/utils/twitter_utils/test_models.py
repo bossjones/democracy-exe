@@ -548,6 +548,8 @@ class TestDownloadedContent:
         Args:
             downloaded_content: Sample downloaded content
         """
+        # Test with files
+        downloaded_content.local_files = [Path("test.jpg")]
         assert downloaded_content.has_files is True
 
         # Test with empty files list
