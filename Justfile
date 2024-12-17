@@ -33,10 +33,10 @@ check:
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
 	uv run deptry .
 
-# Test the code with pytest
-test:
-	@echo "🚀 Testing code: Running pytest"
-	{{PYTHON}} -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
+# # Test the code with pytest
+# test:
+# 	@echo "🚀 Testing code: Running pytest"
+# 	{{PYTHON}} -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
 
 # Build wheel file
 build: clean-build
@@ -494,6 +494,10 @@ uv_unittests_debug:
 uv_unittests_debug_services:
 	{{UV_RUN}} pytest -m services -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
 
+# Run asynciotyper-related unit tests in debug mode
+uv_unittests_debug_asynciotyper:
+	{{UV_RUN}} pytest -s -vv --diff-width=60 --diff-symbols --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=. -m asynciotyper
+
 # Run pgvector-related unit tests in debug mode
 uv_unittests_debug_pgvector:
 	{{UV_RUN}} pytest -m pgvectoronly -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
@@ -677,6 +681,7 @@ add-cursor-context:
 	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
 	gh repo clone langchain-ai/langchain democracy_exe/vendored/langchain || true
 	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
+	gh repo clone CraftSpider/dpytest democracy_exe/vendored/dpytest || true
 
 	rm -rf democracy_exe/vendored/cerebro-bot/.git
 	rm -rf democracy_exe/vendored/sandbox_agent/.git
@@ -688,7 +693,8 @@ add-cursor-context:
 	rm -rf democracy_exe/vendored/goob_ai/.git
 	rm -rf democracy_exe/vendored/langchain/.git
 	rm -rf democracy_exe/vendored/langgraph/.git
-
+	rm -rf democracy_exe/vendored/langchain-academy/.git
+	rm -rf democracy_exe/vendored/dpytest/.git
 
 # List outdated packages
 outdated:
@@ -697,16 +703,77 @@ outdated:
 install-llm-cli-plugins:
 	uv add llm
 	uv add llm-cmd llm-clip llm-sentence-transformers llm-replicate llm-perplexity llm-claude-3 llm-python llm-gemini llm-jq
-# {{UV_RUN}} llm install llm-cmd
-# {{UV_RUN}} llm install llm-clip
-# {{UV_RUN}} llm install llm-sentence-transformers
-# {{UV_RUN}} llm install llm-replicate
-# {{UV_RUN}} llm install llm-perplexity
-# {{UV_RUN}} llm install llm-claude-3
-# {{UV_RUN}} llm install llm-python
-# {{UV_RUN}} llm install llm-json
-# {{UV_RUN}} llm install llm-markdown
-# {{UV_RUN}} llm install llm-sql
+
 
 smoke-test:
 	cd democracy_exe/agentic/studio/react && {{UV_RUN}} python -m memory_agent
+
+# Commitizen commands
+# commit using commitizen
+commit:
+	{{UV_RUN}} cz commit
+
+commit-help:
+	{{UV_RUN}} cz commit -h
+
+# bump version using commitizen
+bump:
+	{{UV_RUN}} cz bump
+
+# tag using commitizen
+tag:
+	{{UV_RUN}} cz tag
+
+# release using commitizen
+release:
+	{{UV_RUN}} cz release
+
+# bump patch version using commitizen
+bump-patch:
+	{{UV_RUN}} cz bump --patch
+
+# bump minor version using commitizen
+bump-minor:
+	{{UV_RUN}} cz bump --minor
+
+# bump major version using commitizen
+bump-major:
+	{{UV_RUN}} cz bump --major
+
+# bump prerelease version using commitizen
+bump-prerelease:
+	{{UV_RUN}} cz bump --prerelease
+
+# bump postrelease version using commitizen
+bump-postrelease:
+	{{UV_RUN}} cz bump --postrelease
+
+# Generate AI commit messages
+ai-commit:
+	aicommits --generate 3 --type conventional
+
+# Run the bot
+run:
+	{{UV_RUN}} democracyctl run-bot
+
+
+# Test the code with pytest
+test:
+	@echo "🚀 Testing code: Running pytest"
+	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+
+# Test the code with pytest in debug mode
+test-debug: uv_new_unittests_debug open-coverage
+
+# Getting corefiles
+corefiles:
+	{{UV_RUN}} files-to-prompt -e rs -e py -e toml --ignore "node_modules|__pycache__|scripts|debug|.o|deps|release|target|inputs" . | pbcopy
+
+# Install youtube-transcript
+install-youtube-transcript:
+	cargo install youtube-transcript
+
+# Run linting
+test-lint:
+	uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests

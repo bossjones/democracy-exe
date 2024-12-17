@@ -41,7 +41,7 @@ repos:
       - id: check-ast
         exclude: (.vscode|contrib)
       - id: check-json
-        exclude: (.vscode|.devcontainer|hack|cookbook)
+        exclude: (.vscode|.devcontainer|hack|cookbook|ai_docs)
 
   # When running with --fix, Ruff's lint hook should be placed before Ruff's formatter hook, and before Black, isort, and other formatting tools, as Ruff's fix behavior can output code changes that require reformatting.
   # SOURCE: https://github.com/astral-sh/ruff-pre-commit
@@ -59,7 +59,7 @@ repos:
         # SOURCE: https://github.com/girder/large_image/blob/2e6fd90cfb9179f2c0bd59031f45805018f3f04a/.pre-commit-config.yaml
         types_or:
           - python
-          - pyi
+          # - pyi
           # - jupyter
         exclude: ^(scripts|typings)/.*
 
@@ -68,25 +68,24 @@ repos:
         # entry: ruff format --force-exclude
         types_or:
           - python
-          - pyi
+          # - pyi
           # - jupyter
         args:
           - --config=pyproject.toml
         files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|pyi|ipynb)$
-        exclude: (.tasks|hack)
+        exclude: (.tasks|hack|scripts)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      # - id: check-added-large-files
-      #   args: [--maxkb=15000]
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-symlinks
-      # - id: check-json
-      #   exclude: ^\.vscode/
       - id: end-of-file-fixer
+        exclude: (.*\.pyi$)
       - id: mixed-line-ending
+        exclude: (.*\.pyi$)
       - id: trailing-whitespace
+        exclude: (.*\.pyi$)
   ##########################################################################################
   # #  # NOTE: if we are going to use this, it needs to run AFTER ruff.
   ##########################################################################################
@@ -99,30 +98,30 @@ repos:
       - id: python-no-log-warn
       - id: text-unicode-replacement-char
 
-  # NOTE: This requires you to brew install taplo
-  - repo: local
-    hooks:
-      - id: taplo-lint
-        name: taplo
-        entry: taplo lint  --config taplo.toml --schema=https://json.schemastore.org/pyproject.json pyproject.toml
-        language: system
-        types:
-          - toml
-        files: ^pyproject.*$
-      - id: taplo-format
-        name: taplo
-        entry: taplo format --config taplo.toml
-        language: system
-        types:
-          - toml
-        files: ^pyproject.*$
-      - id: detect-pytest-live-log
-        name: detect-pytest-live-log
-        entry: bash -x ./detect_pytest_live_logging.sh
-        language: system
-        types:
-          - toml
-        files: ^pyproject.*$
+  # # NOTE: This requires you to brew install taplo
+  # - repo: local
+  #   hooks:
+  #     - id: taplo-lint
+  #       name: taplo
+  #       entry: taplo lint  --config taplo.toml --schema=https://json.schemastore.org/pyproject.json pyproject.toml
+  #       language: system
+  #       types:
+  #         - toml
+  #       files: ^pyproject.*$
+  #     - id: taplo-format
+  #       name: taplo
+  #       entry: taplo format --config taplo.toml
+  #       language: system
+  #       types:
+  #         - toml
+  #       files: ^pyproject.*$
+  #     - id: detect-pytest-live-log
+  #       name: detect-pytest-live-log
+  #       entry: bash -x ./detect_pytest_live_logging.sh
+  #       language: system
+  #       types:
+  #         - toml
+  #       files: ^pyproject.*$
 
   # SOURCE: https://github.com/3MAH/microgen/blob/0a7b86ccffb6a904443049e475c1c571a94addb5/.pre-commit-config.yaml#L42
   - repo: https://github.com/DanielNoord/pydocstringformatter

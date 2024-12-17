@@ -23,10 +23,24 @@ FIVE_THOUSAND = 5000
 
 PREFIX = "%"
 
+# Discord upload limits
 MAX_BYTES_UPLOAD_DISCORD = 50000000
 MAX_FILE_UPLOAD_IMAGES_IMGUR = 20000000
 MAX_FILE_UPLOAD_VIDEO_IMGUR = 200000000
 MAX_RUNTIME_VIDEO_IMGUR = 20  # seconds
+
+# Twitter download commands
+DL_SAFE_TWITTER_COMMAND = """
+gallery-dl --no-mtime --user-agent Wget/1.21.1 -v --netrc --cookies ~/.config/gallery-dl/cookies-twitter.txt --write-info-json {dl_uri}
+"""
+
+DL_TWITTER_CARD_COMMAND = """
+gallery-dl --no-mtime -o cards=true --user-agent Wget/1.21.1 -v --netrc --write-info-json {dl_uri}
+"""
+
+DL_TWITTER_THREAD_COMMAND = """
+gallery-dl --no-mtime --user-agent Wget/1.21.1 --netrc --cookies ~/.config/gallery-dl/cookies-twitter.txt -v -c ~/dev/universityofprofessorex/cerebro-bot/thread.conf {dl_uri}
+"""
 
 CURRENT_USER = "n/a"
 # Add constants for input classification schema

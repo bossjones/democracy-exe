@@ -28,6 +28,7 @@ import aiofiles
 import aiohttp
 import bpdb
 import discord
+import pysnooper
 import rich
 
 from codetiming import Timer
@@ -48,6 +49,7 @@ from logging_tree import printout
 from loguru import logger
 from PIL import Image
 from redis.asyncio import ConnectionPool as RedisConnectionPool
+from rich.pretty import pprint
 from starlette.responses import JSONResponse, StreamingResponse
 
 import democracy_exe
@@ -543,7 +545,7 @@ async def preload_guild_data() -> dict[int, dict[str, str]]:
 
 def extensions() -> Iterable[str]:
     """
-    Yield extension module paths.
+    Yield extension module paths synchronously.
 
     This function searches for Python files in the 'cogs' directory relative to the current file's directory.
     It constructs the module path for each file and yields it.
@@ -553,11 +555,91 @@ def extensions() -> Iterable[str]:
         str: The module path for each Python file in the 'cogs' directory.
 
     """
+    logger.debug(f"Starting extension discovery from HERE={HERE}")
     module_dir = pathlib.Path(HERE)
-    files = pathlib.Path(module_dir.stem, "cogs").rglob("*.py")
-    for file in files:
-        logger.debug(f"exension = {file.as_posix()[:-3].replace('/', '.')}")
-        yield file.as_posix()[:-3].replace("/", ".")
+    logger.debug(f"Module directory: {module_dir}")
+
+    cogs_path = pathlib.Path(module_dir.stem, "cogs")
+    logger.debug(f"Looking for cogs in: {cogs_path}")
+
+    try:
+        files = pathlib.Path(module_dir.stem, "cogs").rglob("*.py")
+        logger.debug("Successfully initialized file search")
+
+        for file in files:
+            extension_path = file.as_posix()[:-3].replace("/", ".")
+            logger.debug(f"Found extension file: {file}")
+            logger.debug(f"Converting to module path: {extension_path}")
+            yield extension_path
+
+    except Exception as e:
+        logger.error(f"Error discovering extensions: {e!s}")
+        logger.exception("Extension discovery failed")
+        raise
+
+    logger.debug("Completed extension discovery")
+
+
+async def aio_extensions() -> AsyncIterator[str]:
+    """Yield extension module paths asynchronously.
+
+    This function asynchronously searches for Python files in the 'cogs' directory
+    relative to the current file's directory. It constructs the module path for each
+    file and yields it. Uses aiofiles for asynchronous file operations.
+
+    Yields
+    ------
+        str: The module path for each Python file in the 'cogs' directory.
+
+    Example
+    -------
+        >>> async for extension in aio_extensions():
+        ...     await bot.load_extension(extension)
+    """
+    logger.debug(f"Starting async extension discovery from HERE={HERE}")
+    module_dir = pathlib.Path(HERE)
+    logger.debug(f"Module directory: {module_dir}")
+
+    cogs_path = module_dir / "cogs"
+    logger.debug(f"Looking for cogs in: {cogs_path}")
+
+    try:
+        # Get list of all .py files in cogs directory
+        files = list(cogs_path.rglob("*.py"))
+        logger.debug(f"Found files: {files}")
+        logger.debug("Successfully initialized async file search")
+
+        for file in files:
+            # Skip __init__.py files
+            if file.name == "__init__.py":
+                continue
+
+            # Verify file exists and is readable
+            try:
+                async with aiofiles.open(file) as f:
+                    # Just check if we can open it
+                    await f.read(1)
+
+                # Convert file path to module path
+                relative_path = file.relative_to(module_dir.parent.parent)
+                extension_path = str(relative_path).replace(os.sep, ".")[:-3]  # Remove .py
+
+                logger.debug(f"Found extension file: {file}")
+                logger.debug(f"Converting to module path: {extension_path}")
+                yield extension_path
+                await logger.complete()
+
+            except OSError as e:
+                logger.warning(f"Skipping inaccessible extension file {file}: {e!s}")
+                continue
+
+    except Exception as e:
+        logger.error(f"Error discovering extensions: {e!s}")
+        logger.exception("Extension discovery failed")
+        raise
+
+    logger.debug("Completed async extension discovery")
+    await logger.complete()
 
 
 def _prefix_callable(bot: DemocracyBot, msg: discord.Message) -> list[str]: # pyright: ignore[reportUninitializedInstanceVariable,reportUnusedFunction]
@@ -655,7 +737,7 @@ class DemocracyBot(commands.Bot):
         intents.voice_states = True
         intents.messages = True
         intents.reactions = True
-        super().__init__(command_prefix=aiosettings.discord_command_prefix, description=DESCRIPTION,
+        super().__init__(command_prefix=aiosettings.prefix, description=DESCRIPTION,
             pm_help=None,
             help_attrs=dict(hidden=True),
             chunk_guilds_at_startup=False,
@@ -664,25 +746,11 @@ class DemocracyBot(commands.Bot):
             intents=intents,
             enable_debug_events=True)
 
-        # Initialize AI models and stores
-        # self.chat_model = ChatOpenAI()
-        # self.embedding_model = OpenAIEmbeddings()
-        # self.vector_store = None
-
         # Initialize session and stats
         self.session = aiohttp.ClientSession()
         self.command_stats = Counter()
         self.socket_stats = Counter()
         self.graph: CompiledStateGraph = memgraph
-
-    # async def setup_hook(self) -> None:
-    #     """Set up the bot's initial configuration and load extensions.
-
-    #     This method is called automatically when the bot starts up.
-    #     """
-    #     self.session = aiohttp.ClientSession()
-    #     await logger.complete()
-
 
     async def get_context(self, origin: discord.Interaction | discord.Message, /, *, cls=Context) -> Context:
         """
@@ -720,7 +788,7 @@ class DemocracyBot(commands.Bot):
                         detailed error information.
 
         """
-
+        logger.debug("Starting setup_hook initialization")
         self.prefixes: list[str] = [aiosettings.prefix]
 
         self.version = democracy_exe.__version__
@@ -728,23 +796,37 @@ class DemocracyBot(commands.Bot):
         self.intents.members = True
         self.intents.message_content = True
 
+        logger.debug("Retrieving bot application info")
         self.bot_app_info: discord.AppInfo = await self.application_info()
         self.owner_id: int = self.bot_app_info.owner.id  # pyright: ignore[reportAttributeAccessIssue]
 
-        for ext in extensions():
+        logger.info("Beginning extension loading process")
+        logger.debug(f"Current directory: {os.getcwd()}")
+        logger.debug(f"HERE path: {HERE}")
+        logger.debug(f"Looking for extensions in: {pathlib.Path(HERE) / 'cogs'}")
+
+        extensions_found = []
+        async for ext in aio_extensions():
+            extensions_found.append(ext)
+        logger.info(f"Found extensions: {extensions_found}")
+
+        for ext in extensions_found:
             try:
+                logger.debug(f"Loading extension: {ext}")
                 await self.load_extension(ext)
+                logger.info(f"Successfully loaded extension: {ext}")
             except Exception as ex:
-                print(f"Failed to load extension {ext} - exception: {ex}")
+                logger.error(f"Failed to load extension {ext} - exception: {ex}")
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logger.error(f"Error Class: {ex.__class__!s}")
                 output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
                 logger.warning(output)
                 logger.error(f"exc_type: {exc_type}")
                 logger.error(f"exc_value: {exc_value}")
-                traceback.print_tb(exc_traceback)
+                logger.error("Traceback:", exc_info=True)
                 raise
 
+        logger.info("Completed setup_hook initialization")
         await logger.complete()
 
 
@@ -778,16 +860,6 @@ class DemocracyBot(commands.Bot):
 
         await logger.complete()
 
-    # async def close(self) -> None:
-    #     """Clean up resources when shutting down the bot."""
-    #     await super().close()
-    #     await self.session.close()
-
-    # async def on_ready(self) -> None:
-    #     """Handle bot ready event and set up initial state."""
-    #     logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
-    #     print("------")
-
     async def on_ready(self) -> None:
         """
         Handle the event when the bot is ready.
@@ -806,13 +878,17 @@ class DemocracyBot(commands.Bot):
         print("------")
         self.invite = INVITE_LINK.format(self.user.id)
         self.guild_data = await preload_guild_data()
+        rich.print(f"[bold green]self.guild_data:[/bold green] {self.guild_data}")
         print(
             f"""Logged in as {self.user}..
             Serving {len(self.users)} users in {len(self.guilds)} guilds
             Invite: {INVITE_LINK.format(self.user.id)}
         """
         )
-        await self.change_presence(status=discord.Status.online, activity=discord.Game("GoobBot"))
+        game = discord.Game("DemocracyExe") # pyright: ignore[reportAttributeAccessIssue]
+        await self.change_presence(status=discord.Status.online, activity=game)
+
+        # await bot.change_presence(activity=discord.Game(name="a game"))
 
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
@@ -823,25 +899,26 @@ class DemocracyBot(commands.Bot):
         await logger.complete()
         await get_logger_tree_printout()
 
-    async def _get_thread(self, message: discord.Message) -> discord.Thread:
-        """Get or create a Discord thread for the given message.
-
-        If the message is already in a thread, return that thread.
-        Otherwise, create a new thread in the channel where the message was sent.
+    async def _get_thread(self, message: discord.Message) -> discord.Thread | discord.DMChannel | None:
+        """Get or create a thread for the message.
 
         Args:
-            message (Message): The Discord message to get or create a thread for.
+            message: The message to get/create a thread for
 
         Returns:
-            discord.Thread: The thread associated with the message.
+            Either a Thread object for server channels or DMChannel for direct messages
         """
-        channel: discord.TextChannel = message.channel # pyright: ignore[reportAttributeAccessIssue]
-        logger.debug(f"channel: {channel}")
-        logger.complete()
-        if isinstance(channel, discord.Thread):
+        channel = message.channel
+
+        # If this is a DM channel, just return it directly
+        if isinstance(channel, discord.DMChannel):
             return channel
-        else:
+
+        # For regular channels, create a thread
+        if isinstance(channel, (discord.TextChannel, discord.Thread)):
             return await channel.create_thread(name="Response", message=message)
+
+        return None
 
     def _format_inbound_message(self, message: discord.Message) -> HumanMessage:
         """Format a Discord message into a HumanMessage for LangGraph processing.
@@ -866,7 +943,7 @@ class DemocracyBot(commands.Bot):
             content=content, name=str(message.author.global_name), id=str(message.id)
         )  # pyright: ignore[reportAttributeAccessIssue]
 
-
+    @pysnooper.snoop(max_variable_length=None)
     def stream_bot_response(
         self,
         graph: CompiledStateGraph = memgraph,
@@ -897,11 +974,21 @@ class DemocracyBot(commands.Bot):
         chunks = []
         for event in graph.stream(user_input, thread, stream_mode="values"):
             logger.debug(event)
+            rich.print("[bold green]event:[/bold green]")
+            pprint(event)
+            # this is the response from the LLM
             chunk: AIMessage = event['messages'][-1]
+            rich.print("[bold green]chunk:[/bold green]")
+            rich.print(chunk)
+            # pprint(chunk)
             chunk.pretty_print()
-            chunks.append(chunk.content)
+            if isinstance(chunk, AIMessage):
+                # import bpdb; bpdb.set_trace()
+                chunks.append(chunk.content)
 
-        return "".join(chunks)
+        response = "".join(chunks)
+        logger.error(f"response: {response}")
+        return response
 
     async def on_message(self, message: discord.Message) -> None:
         """Process incoming messages and route them through the AI pipeline.
@@ -914,11 +1001,19 @@ class DemocracyBot(commands.Bot):
 
         if self.user.mentioned_in(message):
 
-            thread: discord.Thread = await self._get_thread(message)
+            thread: discord.Thread | discord.DMChannel = await self._get_thread(message)
             thread_id = thread.id
+            # thread_id = thread.id if isinstance(thread, discord.Thread) else None
             user_id = message.author.id  # TODO: is this unique?
+
+            if isinstance(thread_id, int):
+                thread_id = str(thread_id)
+            if isinstance(user_id, int):
+                user_id = str(user_id)
+
             config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
             user_input = {"messages": [self._format_inbound_message(message)]}
+            # import bpdb; bpdb.set_trace()
             logger.error(f"user_input: {user_input}")
             logger.complete()
 
@@ -927,8 +1022,12 @@ class DemocracyBot(commands.Bot):
             except Exception as e:
                 logger.exception(f"Error streaming bot response: {e}")
                 response = "An error occurred while processing your message."
-            await thread.send(response)
 
+            logger.debug("Sending response to thread...")
+            # split messages into multiple outputs if len(output) is over discord's limit, i.e. 2000 characters
+            chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+            for chunk in chunks:
+                await thread.send(chunk)
 
     # SOURCE: https://github.com/aronweiler/assistant/blob/a8abd34c6973c21bc248f4782f1428a810daf899/src/discord/rag_bot.py#L90
     async def process_attachments(self, message: discord.Message) -> None:
@@ -1354,5 +1453,3 @@ async def send_long_message(channel: Any, message: discord.Message, max_length: 
     chunks = [message[i : i + max_length] for i in range(0, len(message), max_length)]  # type: ignore
     for chunk in chunks:
         await channel.send(chunk)
-
-# bot = DemocracyBot()

@@ -222,6 +222,8 @@ dev-dependencies = [
     "changelogs",
     "pylint-pydantic>=0.3.2",
     "nbqa[toolchain]>=1.9.1",
+    "commitizen>=1.0.0",
+    "pytest-aioresponses>=0.2.0",
 ]
 
 [tool.uv.sources]
@@ -1434,6 +1436,8 @@ markers = [
     "discordonly: marks tests that run code that belongs to the discordonly calls at end of pytest run module  (deselect with '-m \"not discordonly\"')",
     "cursorgenerated: marks tests that are cursor generated (deselect with '-m \"not cursorgenerated\"')",
     "aidergenerated: marks tests that are aider generated (deselect with '-m \"not aidergenerated\"')",
+    "asynciotyper: marks tests that are asyncio typer generated (deselect with '-m \"not asynciotyper\"')",
+    "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
 ]
 
 
@@ -1965,3 +1969,81 @@ blacken-docs = true
 
 [tool.nbqa.shell]
 flake8heavened = true
+
+
+[tool.commitizen]
+name = "cz_customize"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:^version",
+]
+update_changelog_on_bump = true
+changelog_incremental = true
+bump_message = "bump: $current_version → $new_version"
+
+
+[tool.commitizen.customize]
+# Pattern used to identify which commits will be used to decide version bump (major, minor, patch)
+bump_pattern = "^(feat|fix|hotfix|refactor|docs|build|tests)(\\(.+\\))?(!)?"
+# Pattern that decides which type of version bump should be done
+# Any type followed by an '!' = MAJOR, as the '!' represents a breaking change
+bump_map = {"^(\\w+)(\\(.+\\))?!" = "MAJOR", "^(feat|build)" = "MINOR", "^(fix|hotfix|refactor|docs|tests)" = "PATCH"}
+# Pattern that decides which commits will be used to create the changelog
+# This accepts any commit that has a change type and a message.
+changelog_pattern = "^(feat|fix|hotfix|refactor|docs|build|tests)(\\(.+\\))?!?:\\s+\\S"
+# Pattern that extracts the change type, scope, whether the commit is a breaking change and the message as named groups
+commit_parser = "^(?P<change_type>feat|fix|hotfix|refactor|docs|build|tests)(\\((?P<scope>.+)\\))?(?P<breaking>!)?:\\s+(?P<message>.*)"
+# This decides how the change type will look like in the changelog
+change_type_map = {"feat" = "New features", "fix" = "Bugfixes", "hotfix" = "Bugfixes", "docs" = "Documentation updates", "refactor" = "Refactoring", "build" = "Build system", "tests" = "Testing"}
+# This decides the order in which commits are added to the changelog, based on their change type
+change_type_order = [
+    "New features",
+    "Bugfixes",
+    "Build system",
+] # the rest are added after these, alphabetically
+
+# These options help Commitizen create commits with consistent messages
+example = "feat: implement Git crawler\nfix(api)!: crash in api call\ndocs(api): add response code documentation for all endpoints"
+schema = "Normal:\n  <type>: <message>\nScoped:\n  <type>(<scope>): <message>\nBreaking change:\n  <type>(<scope>)!: <message>"
+schema_pattern = "^(\\w+)(\\(.+\\))?(!)?"
+message_template = "{{change_type}}{% if scope %}({{scope}}){% endif %}{% if is_breaking %}!{% endif %}: {{message}}{% if body %}\n\n{{body}}{% endif %}"
+
+# Questions asked by 'cz commit' to create the commit message
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+message = "Select the type of change you are committing:"
+choices = [
+    {value = "feat", name = "new: A new feature, or additions to existing features."},
+    {value = "fix", name = "fix: A bug fix."},
+    {value = "tiny", name = "tiny: A very small change, such as fixing a typo or updating a link."},
+    {value = "refactor", name = "refactor: Code refactoring for better readibility/structure"},
+    {value = "docs", name = "docs: An update to the docs."},
+    {value = "build", name = "build: Update to the build files (e.g. Dockerfile/Jenkinsfile)"},
+    {value = "hotfix", name = "hotfix: An urgent bug fix for production."},
+    {value = "tests", name = "tests: Changes to tests"},
+]
+
+[[tool.commitizen.customize.questions]]
+type = "confirm"
+name = "is_breaking"
+default = false
+message = "Is this a breaking change?"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "scope"
+message = "Scope of this change (skip/leave blank if none):"
+
+[[tool.commitizen.customize.questions]]
+type = "text"
+name = "message"
+message = "Short commit message (lowercase, 3-7 words)."
+
+[[tool.commitizen.customize.questions]]
+type = "text"
+name = "body"
+multiline = true
+message = "Commit message body (leave blank if not needed)."
+instruction = "Ctrl+Escape, then Enter to submit\n>"

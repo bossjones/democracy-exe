@@ -53,6 +53,7 @@ async def test_duration_video(
     assert duration == 36.133333
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio()
 async def test_process_video(
     sample_video: PosixPath, tmp_path: PosixPath, mocker: MockerFixture
@@ -77,6 +78,7 @@ async def test_process_video_low_bitrate(
     await vidops.process_video(sample_video)
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio()
 async def test_process_audio_low_bitrate(
     sample_video: PosixPath, tmp_path: PosixPath, mocker: MockerFixture
