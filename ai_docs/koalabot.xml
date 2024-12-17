@@ -1,0 +1,1192 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/KoalaBot/koalabot.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Base Code
+Run this to start the Bot
+
+Commented using reStructuredText (reST)
+"""
+__author__ = "KoalaBotUK"
+__copyright__ = "Copyright (c) 2020 KoalaBotUK"
+__credits__ = ["See full list of developers at: https://koalabot.uk/"]
+__license__ = "MIT License"
+__version__ = "1.0.0"
+__maintainer__ = "Jack Draper"
+__status__ = "Production"  # "Prototype", "Development", or "Production"
+
+# Futures
+# Built-in/Generic Imports
+import asyncio
+import time
+
+import discord
+# Libs
+from aiohttp import web
+import aiohttp_cors
+from discord.ext import commands
+
+from koala import env
+# Own modules
+from koala.db import extension_enabled
+from koala.env import BOT_TOKEN, BOT_OWNER, API_PORT
+from koala.errors import KoalaException
+from koala.log import logger
+from koala.utils import error_embed
+
+# Constants
+COMMAND_PREFIX = "k!"
+OPT_COMMAND_PREFIX = "K!"
+STREAMING_URL = "https://twitch.tv/thenuel"
+COGS_PACKAGE = "koala.cogs"
+TEST_USER = "TestUser#0001"  # Test user for dpytest
+TEST_BOT_USER = "FakeApp#0001"  # Test bot user for dpytest
+KOALA_GREEN = discord.Colour.from_rgb(0, 170, 110)
+PERMISSION_ERROR_TEXT = "This guild does not have this extension enabled, go to http://koalabot.uk, " \
+                        "or use `k!help enableExt` to enable it"
+KOALA_IMAGE_URL = "https://cdn.discordapp.com/attachments/737280260541907015/752024535985029240/discord1.png"
+ENABLED_COGS = ["base", "announce", "colour_role", "insights", "intro_cog", "react_for_role", "text_filter",
+                "twitch_alert", "verification", "voting"]
+
+# Variables
+intent = discord.Intents.default()
+intent.guilds = True        # on_guild_join, on_guild_remove
+intent.members = True       # on_member_join
+intent.reactions = True     # on_raw_reaction_add
+intent.messages = True      # on_message
+intent.message_content = True
+is_dpytest = False
+
+
+class KoalaBot(commands.Bot):
+    """
+    The commands.Bot subclass for Koala
+    """
+    async def setup_hook(self) -> None:
+        """
+        To perform asynchronous setup after the bot is logged in but before it has connected to the Websocket.
+        """
+        logger.debug("hook setup")
+        await self.tree.sync()
+
+    async def on_command_error(self, ctx, error: Exception):
+        if ctx.guild is None:
+            guild_id = "UNKNOWN"
+            logger.warn("Unknown guild ID threw exception", exc_info=error)
+        else:
+            guild_id = ctx.guild.id
+
+        if error.__class__ in [KoalaException,
+                               commands.MissingRequiredArgument,
+                               commands.CommandNotFound]:
+            await ctx.send(embed=error_embed(description=error))
+        if error.__class__ in [commands.CheckFailure]:
+            await ctx.send(embed=error_embed(error_type=str(type(error).__name__),
+                                             description=str(
+                                                 error) + "\nPlease ensure you have administrator permissions, "
+                                                          "and have enabled this extension."))
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(embed=error_embed(description=f"{ctx.author.mention}, this command is still on cooldown for "
+                                                         f"{str(error.retry_after)}s."))
+        elif isinstance(error, commands.errors.ChannelNotFound):
+            await ctx.send(
+                embed=error_embed(description=f"The channel ID provided is either invalid, or not in this server."))
+        elif isinstance(error, commands.CommandInvokeError):
+            logger.error("CommandInvokeError(%s), guild_id: %s, message: %s", error.original, guild_id, ctx.message,
+                         exc_info=error)
+            await ctx.send(embed=error_embed(description=error.original))
+        else:
+            logger.error(f"Unexpected Error in guild %s : %s", guild_id, error, exc_info=error)
+            await ctx.send(embed=error_embed(
+                description=f"An unexpected error occurred, please contact an administrator Timestamp: {time.time()}"))  # FIXME: better timestamp
+            raise error
+
+
+def is_owner(ctx: commands.Context):
+    """
+    A command used to check if the user of a command is the owner, or the testing bot.
+    The command also allows Senior Devs of KoalaBot to use owner only commands (as given by Admin role in the dev portal)
+    e.g. @commands.check(koalabot.is_owner)
+    :param ctx: The context of the message
+    :return: True if owner or test, False otherwise
+    """
+    if is_dm_channel(ctx):
+        return False
+    elif BOT_OWNER is not None:
+        return ctx.author.id in BOT_OWNER or is_dpytest
+    else:
+        return ctx.bot.is_owner(ctx.author) or is_dpytest
+
+
+def is_admin(ctx):
+    """
+    A command used to check if the user of a command is the admin, or the testing bot
+    e.g. @commands.check(koalabot.is_admin)
+    :param ctx: The context of the message
+    :return: True if admin or test, False otherwise
+    """
+    if is_dm_channel(ctx):
+        return False
+    else:
+        return ctx.author.guild_permissions.administrator or is_dpytest
+
+
+def is_dm_channel(ctx):
+    return isinstance(ctx.channel, discord.channel.DMChannel)
+
+
+def is_guild_channel(ctx):
+    return ctx.guild is not None
+
+
+async def load_all_cogs(bot):
+    """
+    Loads all cogs in ENABLED_COGS into the client
+    """
+
+    for cog in ENABLED_COGS:
+        try:
+            await bot.load_extension("."+cog, package=COGS_PACKAGE)
+        except commands.errors.ExtensionAlreadyLoaded:
+            await bot.reload_extension("."+cog, package=COGS_PACKAGE)
+
+    logger.info("All cogs loaded")
+
+
+async def dm_group_message(members: [discord.Member], message: str):
+    """
+    DMs members in a list of members
+    :param members: list of members to DM
+    :param message: The message to send to the group
+    :return: how many were dm'ed successfully.
+    """
+    count = 0
+    for member in members:
+        try:
+            await member.send(message)
+            count = count + 1
+        except Exception:  # In case of user dms being closed
+            pass
+    return count
+
+
+def check_guild_has_ext(ctx, extension_id):
+    """
+    A check for if a guild has a given koala extension
+    :param ctx: A discord context
+    :param extension_id: The koala extension ID
+    :return: True if has ext
+    """
+    if is_dm_channel(ctx):
+        return False
+    if (not extension_enabled(ctx.message.guild.id, extension_id)) and (not is_dpytest):
+        raise PermissionError(PERMISSION_ERROR_TEXT)
+    return True
+
+
+async def run_bot():
+    app = web.Application()
+
+    bot = KoalaBot(command_prefix=[COMMAND_PREFIX, OPT_COMMAND_PREFIX], intents=intent)
+    setattr(bot, "koala_web_app", app)
+    await load_all_cogs(bot)
+
+    cors = aiohttp_cors.setup(app, defaults={
+        env.FRONTEND_URL: aiohttp_cors.ResourceOptions(
+                expose_headers="*", allow_headers="*")
+    })
+    for route in list(app.router.routes()):
+        cors.add(route)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', API_PORT)
+    await site.start()
+
+    try:
+        async with bot:
+            await bot.start(BOT_TOKEN)
+
+    except Exception:
+        bot.close(),
+        raise
+
+    finally:
+        await runner.cleanup()
+
+if __name__ == '__main__': # pragma: no cover
+    # loop = asyncio.get_event_loop()
+    asyncio.run(run_bot())
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/KoalaBot/tests/conftest.py</source>
+<document_content>
+"""
+A configuration file for methods useful in all testing with pytest
+"""
+# Futures
+
+# Built-in/Generic Imports
+import shutil
+
+import discord
+import discord.ext.test as dpytest
+# Libs
+import pytest
+import pytest_asyncio
+
+import koala.db as db
+# Own modules
+import koalabot
+from koala.db import session_manager
+from tests.log import logger
+
+# Constants
+
+pytest_plugins = 'aiohttp.pytest_plugin'
+
+
+@pytest.fixture(scope='session', autouse=True)
+def teardown_config():
+
+    # yield, to let all tests within the scope run
+    yield
+
+    # tear_down: then clear table at the end of the scope
+    logger.info("Tearing down session")
+
+    from koala.env import CONFIG_PATH
+
+    shutil.rmtree(CONFIG_PATH, ignore_errors=True)
+
+
+@pytest_asyncio.fixture
+async def bot():
+    import koalabot
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.guilds = True
+    intents.messages = True
+    intents.message_content = True
+    b = koalabot.KoalaBot(koalabot.COMMAND_PREFIX, intents=intents)
+    await b._async_setup_hook()
+    await dpytest.empty_queue()
+    dpytest.configure(b)
+    return b
+
+
+@pytest.fixture(autouse=True)
+def setup_is_dpytest():
+    db.__create_sqlite_tables()
+    koalabot.is_dpytest = True
+    yield
+    koalabot.is_dpytest = False
+
+
+@pytest_asyncio.fixture
+async def session():
+    with session_manager() as session:
+        yield session
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/KoalaBot/tests/test_koalabot.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Testing KoalaBot Base Code
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+
+# Libs
+import discord
+import discord.ext.test as dpytest
+import mock
+import pytest
+import pytest_asyncio
+from discord.ext import commands
+
+# Own modules
+import koalabot
+from koala.db import clear_all_tables, fetch_all_tables
+from tests.tests_utils.last_ctx_cog import LastCtxCog
+from tests.tests_utils.utils import FakeAuthor
+
+# Constants
+
+# Variables
+utils_cog = None
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def test_ctx(bot: commands.Bot):
+    global utils_cog
+    utils_cog = LastCtxCog(bot)
+    await bot.add_cog(utils_cog)
+    dpytest.configure(bot)
+    await dpytest.message(koalabot.COMMAND_PREFIX + "store_ctx")
+    return utils_cog.get_last_ctx()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_db():
+    clear_all_tables(fetch_all_tables())
+
+
+@pytest_asyncio.fixture(scope='function', autouse=True)
+async def setup_clean_messages():
+    await dpytest.empty_queue()
+    yield dpytest
+
+
+def test_test_user_is_owner(test_ctx):
+    assert koalabot.is_owner(test_ctx)
+
+
+def test_invalid_test_user_is_owner(test_ctx):
+    for i in range(len(koalabot.BOT_OWNER)):
+        test_ctx.author = FakeAuthor(id=koalabot.BOT_OWNER[i] + 1)
+        koalabot.is_dpytest = False
+        assert not koalabot.is_owner(test_ctx)
+        koalabot.is_dpytest = True
+
+
+def test_owner_is_owner(test_ctx):
+    for i in range(len(koalabot.BOT_OWNER)):
+        test_ctx.author = FakeAuthor(id=(koalabot.BOT_OWNER[i]))
+        assert koalabot.is_owner(test_ctx)
+
+
+def test_test_user_is_admin(test_ctx):
+    assert koalabot.is_admin(test_ctx)
+
+
+def test_invalid_test_user_is_admin(test_ctx):
+    test_ctx.author = FakeAuthor(id=int(koalabot.BOT_OWNER[0]) + 2)
+    koalabot.is_dpytest = False
+    assert not koalabot.is_admin(test_ctx)
+    koalabot.is_dpytest = True
+
+
+def test_admin_test_user_is_admin(test_ctx):
+    test_ctx.author = FakeAuthor(name="TestUser#0001", all_permissions=True)
+    assert koalabot.is_admin(test_ctx)
+
+
+def test_admin_is_admin(test_ctx):
+    test_ctx.author = FakeAuthor(name="TestUser#0002", all_permissions=True)
+    assert koalabot.is_admin(test_ctx)
+
+
+def test_not_admin_is_admin(test_ctx):
+    test_ctx.author = FakeAuthor(all_permissions=False)
+    koalabot.is_dpytest = False
+    assert not koalabot.is_admin(test_ctx)
+    koalabot.is_dpytest = True
+
+
+@mock.patch("koalabot.COGS_PACKAGE", "tests.tests_utils.fake_load_all_cogs")
+@mock.patch("koalabot.ENABLED_COGS", ['greetings_cog'])
+@pytest.mark.asyncio
+async def test_load_all_cogs(bot):
+    with mock.patch.object(discord.ext.commands.bot.Bot, 'load_extension') as mock1:
+        await koalabot.load_all_cogs(bot)
+    mock1.assert_called_with(".greetings_cog", package="tests.tests_utils.fake_load_all_cogs")
+
+
+@pytest.mark.asyncio
+async def test_dm_single_group_message():
+    test_message = 'default message'
+    test_member = dpytest.get_config().members[0]
+    x = await koalabot.dm_group_message([test_member], test_message)
+    assert dpytest.verify().message().content(test_message)
+    assert x == 1
+
+
+@pytest.mark.asyncio
+async def test_dm_plural_group_message():
+    test_message = 'default message'
+    test_member = dpytest.get_config().members[0]
+    test_member_2 = await dpytest.member_join()
+    await dpytest.empty_queue()
+    x = await koalabot.dm_group_message([test_member, test_member_2], test_message)
+    assert dpytest.verify().message().content(test_message)
+    assert dpytest.verify().message().content(test_message)
+    assert x == 2
+
+
+@pytest.mark.asyncio
+async def test_dm_empty_group_message():
+    test_message = 'this should not be sent'
+    x = await koalabot.dm_group_message([], test_message)
+    assert dpytest.verify().message().nothing()
+    assert x == 0
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_is_dpytest():
+    koalabot.is_dpytest = True
+    yield
+    koalabot.is_dpytest = False
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/KoalaBot/tests/test_utils.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Testing KoalaBot Utils
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+
+# Libs
+import discord
+import discord.ext.test as dpytest
+import mock
+import pytest
+import pytest_asyncio
+from discord.ext import commands
+
+# Own modules
+import koalabot
+from koala.utils import __parse_args, format_config_path, wait_for_message
+from tests.log import logger
+from tests.tests_utils.last_ctx_cog import LastCtxCog
+
+
+# Constants
+
+# Variables
+
+
+def test_parse_args_config():
+    assert "/config/" == vars(__parse_args(["--config", "/config/"])).get("config")
+
+
+def test_parse_args_invalid():
+    assert vars(__parse_args(["--test", "/test/"])).get("config") is None
+
+
+@mock.patch("os.name", "posix")
+def test_format_db_path_linux_absolute():
+    db_path = format_config_path("/test_dir/", "test.db")
+    assert db_path == "/test_dir/test.db"
+
+
+@mock.patch("os.name", "nt")
+def test_format_db_path_windows():
+    db_path = format_config_path("/test_dir/", "windows_test.db")
+    assert db_path == "\\test_dir\\windows_test.db"
+
+
+@pytest.mark.parametrize("msg_content", [" ", "something"])
+@pytest.mark.asyncio
+async def test_wait_for_message_not_none(msg_content, utils_cog: LastCtxCog):
+    await dpytest.message(koalabot.COMMAND_PREFIX + "store_ctx")
+    ctx = utils_cog.get_last_ctx()
+    config: dpytest.RunnerConfig = dpytest.get_config()
+    bot: discord.Client = config.client
+    import threading
+    t2 = threading.Timer(interval=0.1, function=dpytest.message, args=(msg_content))
+    t2.start()
+    fut = await wait_for_message(bot, ctx, 0.2)
+    t2.join()
+    assert fut, dpytest.sent_queue
+
+
+@pytest.mark.asyncio
+async def test_wait_for_message_none(utils_cog: LastCtxCog):
+    await dpytest.message(koalabot.COMMAND_PREFIX + "store_ctx")
+    ctx: commands.Context = utils_cog.get_last_ctx()
+    config: dpytest.RunnerConfig = dpytest.get_config()
+    bot: discord.Client = config.client
+    msg, channel = await wait_for_message(bot, ctx, 0.2)
+    assert not msg
+    assert channel == ctx.channel
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def utils_cog(bot: commands.Bot):
+    utils_cog = LastCtxCog(bot)
+    await bot.add_cog(utils_cog)
+    dpytest.configure(bot)
+    logger.info("Tests starting")
+    return utils_cog
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/KoalaBot/koala/utils.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Base Cog code and additional base cog functions
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+import argparse
+import datetime
+import typing
+from pathlib import PurePath
+# Libs
+from typing import Tuple, Optional
+
+import discord
+from discord.ext import commands
+from discord.ext.commands import BadArgument
+
+# Own modules
+from koala.colours import ERROR_RED
+
+# Constants
+ID_LENGTH = 18
+TIMEOUT_TIME = 60
+
+
+# Variables
+
+# Koala Constants
+
+
+def error_embed(description, error_type=None):
+    """
+    Creates a discord embed for error messages
+    :param description: The description of the error
+    :param error_type: The error type (e.g. FileNotFoundError)
+    :return: The completed embed
+    """
+    if isinstance(description, BaseException) and error_type is None:
+        return discord.Embed(title=str(type(description).__name__), description=str(description), colour=ERROR_RED)
+    elif error_type is None:
+        return discord.Embed(title="Error", description=str(description), colour=ERROR_RED)
+    else:
+        return discord.Embed(title=error_type, description=str(description), colour=ERROR_RED)
+
+
+def is_channel_in_guild(bot: discord.client, guild_id, channel_id):
+    return bot.get_channel(int(channel_id)) in bot.get_guild(guild_id).channels
+
+
+def is_int(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
+def extract_id(raw_id):
+    if type(raw_id) is str and raw_id[0] == "<":
+        while not is_int(raw_id[0]):
+            raw_id = raw_id[1:]
+        return int(raw_id[:-1])
+    elif is_int(raw_id):
+        return int(raw_id)
+    else:
+        raise TypeError("ID given is not a valid ID")
+
+
+async def wait_for_message(bot: discord.Client, ctx: commands.Context, timeout: float = TIMEOUT_TIME) \
+        -> Tuple[Optional[discord.Message], Optional[discord.TextChannel]]:
+    """
+        Wraps bot.wait_for with message event, checking that message author is the original context author. Has default
+        timeout of 60 seconds.
+        :param bot: Koala Bot client
+        :param ctx: Context of the original command
+        :param timeout: Time to wait before raising TimeoutError
+        :return: If a message (msg) was received, returns a tuple (msg, None). Else returns (None, ctx.channel)
+        """
+    try:
+        msg = await bot.wait_for('message', timeout=timeout, check=lambda message: message.author == ctx.author)
+    except (Exception, TypeError):
+        return None, ctx.channel
+    if not msg:
+        return msg, ctx.channel
+    return msg, None
+
+
+def format_config_path(directory: str, *filename: str):
+    """
+    Format the path to be used by the database.
+
+    This will be parsed directly into sqlite3 create connection.
+
+    :param directory: The directory for the database file
+    :param filename: The filename of the given database
+    """
+    if not directory:
+        directory = ""
+
+    return str(PurePath(directory, *filename))
+
+
+def __parse_args(args):
+    """
+    Uses argparse to return a parser of all given arguments when running koalabot.py
+
+    :param args: sys.argv[1:]
+    :return: parsed argparse
+    """
+    parser = argparse.ArgumentParser(description='Start the KoalaBot Discord bot')
+    parser.add_argument('--config', help="Config & database directory")
+    args, unknown = parser.parse_known_args(args)
+    return args
+
+
+def convert_iso_datetime(argument):
+    try:
+        return datetime.datetime.fromisoformat(argument)
+    except ValueError:
+        raise BadArgument('Invalid ISO format "%s", instead use the format "2020-01-01 00:00:00"' % argument)
+
+
+
+def cast(type_class, value):
+    if isinstance(value, dict):
+        return type_class(**value)
+    elif typing.get_origin(type_class) == list:
+        return [cast(type_class.__args__[0], v) for v in list(value)]
+    if typing.get_origin(type_class) == dict:
+        return {cast(type_class.__args__[0], k): cast(type_class.__args__[1], v) for k, v in dict(value)}
+    if typing.get_origin(type_class) is not None:
+        return typing.get_origin(type_class)(type_class)
+    else:
+        return type_class(value)
+
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/base/cog.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Base Cog code and additional base cog functions
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+
+# Libs
+
+import discord
+from discord import app_commands
+from discord.ext import commands, tasks
+# Own modules
+from discord.ext.commands import BadArgument
+
+import koalabot
+from koala.utils import convert_iso_datetime
+from . import core
+from .log import logger
+from .utils import AUTO_UPDATE_ACTIVITY_DELAY
+
+
+# Constants
+
+# Variables
+
+
+def convert_activity_type(argument):
+    try:
+        return discord.ActivityType[argument]
+    except KeyError:
+        raise BadArgument('Unknown activity type %s' % argument)
+
+
+class BaseCogSlash(commands.Cog, name='Koala'):
+    """
+    Temporary slash command cog. This will be used to get the new discord dev badge ;)
+    """
+    @app_commands.command(name="support", description="KoalaBot Support server link")
+    async def support(self, interaction: discord.Interaction):
+        """
+        KoalaBot Support server link
+        :param interaction:
+        """
+        await interaction.response.send_message(core.support_link())
+
+
+class BaseCog(commands.Cog, name='KoalaBot'):
+    """
+        A discord.py cog with general commands useful to managers of the bot and servers
+    """
+
+    def __init__(self, bot: commands.Bot):
+        """
+        Initialises local variables
+        :param bot: The bot client for this cog
+        """
+        self.bot = bot
+        self._last_member = None
+        self.started = False
+        self.current_activity = None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        """
+        Ran after all cogs have been started and bot is ready
+        """
+        core.activity_clear_current()
+        await self.update_activity()
+        core.add_all_guilds(self.bot)
+        self.update_activity.start()
+        self.started = True
+        logger.info("Bot is ready.")
+
+
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
+        """
+        On bot joining guild, add this guild to the database of guild welcome messages.
+        :param guild: Guild KoalaBot just joined
+        """
+        core.add_guild(guild.id)
+        logger.info(f"KoalaBot joined new guild, id = {guild.id}, name = {guild.name}.")
+
+    @commands.group(name="activity")
+    @commands.check(koalabot.is_owner)
+    async def activity_group(self, ctx: commands.Context):
+        """
+        Group of commands for activity functionality.
+        :param ctx: Context of the command
+        :return:
+        """
+
+    @activity_group.command(name="set")
+    @commands.check(koalabot.is_owner)
+    async def activity_set(self, ctx, new_activity: convert_activity_type, name: str, url: str = None):
+        """
+        Change the activity of the bot
+        :param ctx: Context of the command
+        :param new_activity: The new activity of the bot
+        :param name: The name of the activity
+        :param url: url for streaming
+        """
+        await core.activity_set(new_activity, name, url, bot=self.bot)
+        await ctx.send(f"I am now {new_activity.name} {name}")
+
+    @activity_group.command(name="schedule")
+    @commands.check(koalabot.is_owner)
+    async def activity_schedule(self, ctx, new_activity: convert_activity_type, message: str,
+                                start_time: convert_iso_datetime, end_time: convert_iso_datetime, url: str = None):
+        """
+        Schedule an activity
+        :param ctx: Context of the command
+        :param new_activity: activity type (watching, playing etc.)
+        :param message: message
+        :param start_time: iso format start time
+        :param end_time: iso format end time
+        :param url: url
+        """
+        core.activity_schedule(new_activity, message, url, start_time, end_time)
+        await ctx.send("Activity saved")
+
+    @activity_group.command(name="list")
+    @commands.check(koalabot.is_owner)
+    async def activity_list(self, ctx, show_all: bool = False):
+        """
+        List scheduled activities
+        :param ctx: Context of the command
+        :param show_all: false=future activities, true=all activities
+        """
+        activities = core.activity_list(show_all)
+        result = "Activities:"
+        for activity in activities:
+            result += "\n%s, %s, %s, %s, %s, %s" % (activity.activity_id, activity.activity_type.name,
+                                                    activity.stream_url, activity.message, activity.time_start,
+                                                    activity.time_end)
+        await ctx.send(result)
+
+    @activity_group.command(name="remove")
+    @commands.check(koalabot.is_owner)
+    async def activity_remove(self, ctx, activity_id: int):
+        """
+        Remove an existing activity
+        :param ctx: Context of the command
+        :param activity_id: Activity ID
+        """
+        activity = core.activity_remove(activity_id)
+        result = "Removed:"
+        result += "\n%s, %s, %s, %s, %s, %s" % (activity.activity_id, activity.activity_type.name,
+                                                activity.stream_url, activity.message, activity.time_start,
+                                                activity.time_end)
+        await ctx.send(result)
+
+    @tasks.loop(minutes=AUTO_UPDATE_ACTIVITY_DELAY)
+    async def update_activity(self):
+        """
+        Loop for updating the activity of the bot according to scheduled activities
+        """
+        try:
+            await core.activity_set_current_scheduled(self.bot)
+        except Exception as err:
+            logger.error("Error in update_activity loop %s" % err, exc_info=err)
+
+    @commands.command()
+    async def ping(self, ctx):
+        """
+        Returns the ping of the bot
+        :param ctx: Context of the command
+        """
+        await ctx.send(await core.ping(self.bot))
+
+    @commands.command()
+    async def support(self, ctx):
+        """
+        KoalaBot Support server link
+        :param ctx: Context of the command
+        """
+        await ctx.send(core.support_link())
+
+    @commands.command(name="clear")
+    @commands.check(koalabot.is_admin)
+    async def clear(self, ctx, amount: int = 1):
+        """
+        Clears a given number of messages from the given channel
+        :param ctx: Context of the command
+        :param amount: Amount of lines to delete
+        """
+        await core.purge(self.bot, ctx.channel.id, amount)
+
+    @commands.command(name="loadCog", aliases=["load_cog"])
+    @commands.check(koalabot.is_owner)
+    async def load_cog(self, ctx, extension):
+        """
+        Loads a cog from the cogs folder
+        :param ctx: Context of the command
+        :param extension: The name of the cog
+        """
+        await ctx.send(await core.load_cog(self.bot, extension))
+
+    @commands.command(name="unloadCog", aliases=["unload_cog"])
+    @commands.check(koalabot.is_owner)
+    async def unload_cog(self, ctx, extension):
+        """
+        Unloads a running cog
+        :param ctx: Context of the command
+        :param extension: The name of the cog
+        """
+        await ctx.send(await core.unload_cog(self.bot, extension))
+
+    @commands.command(name="enableExt", aliases=["enable_koala_ext"])
+    @commands.check(koalabot.is_admin)
+    async def enable_koala_ext(self, ctx, koala_extension):
+        """
+        Enables a koala extension onto a server, all grants all extensions
+        :param ctx: Context of the command
+        :param koala_extension: The name of the koala
+        """
+        await ctx.send(embed=await core.enable_extension(self.bot, ctx.message.guild.id, koala_extension))
+
+    @commands.command(name="disableExt", aliases=["disable_koala_ext"])
+    @commands.check(koalabot.is_admin)
+    async def disable_koala_ext(self, ctx, koala_extension):
+        """
+        Disables a koala extension onto a server
+        :param ctx: Context of the command
+        :param koala_extension: The name of the koala
+        """
+        await ctx.send(embed=await core.disable_extension(self.bot, ctx.message.guild.id, koala_extension))
+
+    @commands.command(name="listExt", aliases=["list_koala_ext"])
+    @commands.check(koalabot.is_admin)
+    async def list_koala_ext(self, ctx):
+        """
+        Lists the enabled koala extensions of a server
+        :param ctx: Context of the command
+        """
+        await ctx.send(embed=await core.list_enabled_extensions(ctx.message.guild.id))
+
+    @commands.command(name="version")
+    @commands.check(koalabot.is_owner)
+    async def version(self, ctx):
+        """
+        Get the version of KoalaBot
+        """
+        await ctx.send(core.get_version())
+
+
+async def setup(bot: koalabot) -> None:
+    """
+    Load this cog to the KoalaBot.
+
+    :param bot: the bot client for KoalaBot
+    """
+    await bot.add_cog(BaseCog(bot))
+    await bot.add_cog(BaseCogSlash())
+    logger.info("BaseCog is ready.")
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/KoalaBot/tests/cogs/base/test_cog.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Testing KoalaBot BaseCog
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+
+# Libs
+import discord
+import discord.ext.test as dpytest
+import mock
+import pytest
+import pytest_asyncio
+from discord.ext import commands
+
+# Own modules
+import koalabot
+from koala.cogs.base.cog import setup as setup_cog, BaseCog
+from koala.colours import KOALA_GREEN
+
+
+# Constants
+
+# Variables
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_is_dpytest():
+    koalabot.is_dpytest = True
+    yield
+    koalabot.is_dpytest = False
+
+
+@pytest_asyncio.fixture(scope='function', autouse=True)
+async def base_cog(bot: commands.Bot):
+    """ setup any state specific to the execution of the given module."""
+    cog = BaseCog(bot)
+    await bot.add_cog(cog)
+    await dpytest.empty_queue()
+    dpytest.configure(bot)
+    return cog
+
+
+@mock.patch("koalabot.COGS_PACKAGE", "tests.tests_utils.fake_load_all_cogs")
+@mock.patch("koalabot.ENABLED_COGS", ["greetings_cog"])
+@pytest.mark.asyncio
+async def test_list_koala_ext_disabled(bot, base_cog):
+    await koalabot.load_all_cogs(bot)
+    await dpytest.message(koalabot.COMMAND_PREFIX + "listExt")
+    expected_embed = discord.Embed()
+    expected_embed.title = "Enabled extensions"
+    expected_embed.colour = KOALA_GREEN
+    expected_embed.add_field(name=":negative_squared_cross_mark: Disabled", value="Greetings\n")
+    expected_embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    assert dpytest.verify().message().embed(embed=expected_embed)
+
+
+@mock.patch("koalabot.COGS_PACKAGE", "tests.tests_utils.fake_load_all_cogs")
+@mock.patch("koalabot.ENABLED_COGS", ['greetings_cog'])
+@pytest.mark.asyncio
+async def test_enable_koala_ext(bot, base_cog):
+    await koalabot.load_all_cogs(bot)
+    await dpytest.message(koalabot.COMMAND_PREFIX + "enableExt Greetings")
+    expected_embed = discord.Embed()
+    expected_embed.title = "Greetings enabled"
+    expected_embed.colour = KOALA_GREEN
+    expected_embed.add_field(name=":white_check_mark: Enabled", value="Greetings\n")
+    expected_embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    assert dpytest.verify().message().embed(embed=expected_embed)
+
+
+@mock.patch("koalabot.COGS_PACKAGE", "tests.tests_utils.fake_load_all_cogs")
+@mock.patch("koalabot.ENABLED_COGS", ['greetings_cog'])
+@pytest.mark.asyncio
+async def test_disable_koala_ext(bot, base_cog):
+    await test_enable_koala_ext(bot, base_cog)
+    await dpytest.message(koalabot.COMMAND_PREFIX + "disableExt Greetings")
+    expected_embed = discord.Embed()
+    expected_embed.title = "Greetings disabled"
+    expected_embed.colour = KOALA_GREEN
+    expected_embed.add_field(name=":negative_squared_cross_mark: Disabled", value="Greetings\n")
+    expected_embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    assert dpytest.verify().message().embed(embed=expected_embed)
+
+
+@pytest.mark.asyncio
+async def test_on_ready(base_cog: BaseCog):
+    await base_cog.on_ready()
+    assert dpytest.verify().activity().matches(discord.Activity(type=discord.ActivityType.playing,
+                                                                name=koalabot.COMMAND_PREFIX + "help koalabot.uk"))
+
+
+@pytest.mark.asyncio
+async def test_activity():
+    await dpytest.message(koalabot.COMMAND_PREFIX + "activity set watching you")
+    assert dpytest.verify().activity().matches(discord.Activity(type=discord.ActivityType.watching, name="you"))
+    assert dpytest.verify().message().content("I am now watching you")
+
+
+@pytest.mark.asyncio
+async def test_invalid_activity():
+    with pytest.raises(commands.BadArgument):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "activity set oof you")
+
+
+@pytest.mark.asyncio
+async def test_schedule_activity():
+    await dpytest.message(koalabot.COMMAND_PREFIX +
+                          "activity schedule playing test \"2020-01-01 00:00:00\" \"2020-01-01 01:00:00\"")
+    assert dpytest.verify().message().content("Activity saved")
+
+
+@pytest.mark.asyncio
+async def test_schedule_activity_invalid_date():
+    with pytest.raises(commands.BadArgument):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "activity schedule playing test abc abc")
+
+
+@pytest.mark.asyncio
+async def test_list_activity():
+    await test_schedule_activity()
+    await dpytest.message(koalabot.COMMAND_PREFIX + "activity list")
+    assert dpytest.verify().message().content("Activities:")
+
+
+@pytest.mark.asyncio
+async def test_list_activity_show_all():
+    await test_schedule_activity()
+    await dpytest.message(koalabot.COMMAND_PREFIX + "activity list true")
+    assert dpytest.verify().message().content("Activities:"
+                                              "\n1, playing, None, test, 2020-01-01 00:00:00, 2020-01-01 01:00:00")
+
+
+@pytest.mark.asyncio
+async def test_remove_activity():
+    await test_list_activity_show_all()
+    await dpytest.message(koalabot.COMMAND_PREFIX + "activity remove 1")
+    assert dpytest.verify().message().content("Removed:"
+                                              "\n1, playing, None, test, 2020-01-01 00:00:00, 2020-01-01 01:00:00")
+    await dpytest.message(koalabot.COMMAND_PREFIX + "activity list true")
+    assert dpytest.verify().message().content("Activities:")
+
+
+@mock.patch("builtins.round", mock.MagicMock(return_value=4))
+@pytest.mark.asyncio
+async def test_ping(base_cog: BaseCog):
+    await dpytest.message(koalabot.COMMAND_PREFIX + "ping")
+    assert dpytest.verify().message().content("Pong! 4ms")
+
+
+@pytest.mark.asyncio
+async def test_support():
+    await dpytest.message(koalabot.COMMAND_PREFIX + "support")
+    assert dpytest.verify().message().content("Join our support server for more help! https://discord.gg/5etEjVd")
+
+
+@pytest.mark.asyncio
+async def test_default_clear():
+    with mock.patch.object(discord.TextChannel, 'purge') as mock1:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "clear")
+    mock1.assert_called_with(limit=2)
+
+
+@pytest.mark.asyncio
+async def test_clear():
+    with mock.patch.object(discord.TextChannel, 'purge') as mock1:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "clear 4")
+    mock1.assert_called_with(limit=5)
+
+
+@pytest.mark.asyncio
+async def test_invalid_clear(base_cog: BaseCog):
+    with pytest.raises(discord.ext.commands.errors.BadArgument,
+                       match="Converting to \"int\" failed for parameter \"amount\"."):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "clear a")
+
+
+@pytest.mark.asyncio
+async def test_load_cog(base_cog: BaseCog):
+    with mock.patch.object(discord.ext.commands.bot.Bot, 'load_extension') as mock1:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "load_cog base")
+    mock1.assert_called_with(".base", package="koala.cogs")
+
+
+@pytest.mark.asyncio
+async def test_invalid_load_cog(base_cog: BaseCog):
+    with pytest.raises(discord.ext.commands.errors.CommandInvokeError,
+                       match=r".* Extension 'koala.cogs.FakeCog' could not be loaded."):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "load_cog FakeCog")
+
+
+@pytest.mark.asyncio
+async def test_unload_base_cog(base_cog: BaseCog):
+    with pytest.raises(discord.ext.commands.CommandInvokeError, match="Sorry, you can't unload the base cog"):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "unload_cog BaseCog")
+
+
+@mock.patch("koalabot.COGS_PACKAGE", "tests.tests_utils.fake_load_all_cogs")
+@pytest.mark.asyncio
+async def test_load_valid_cog(base_cog: BaseCog):
+    with mock.patch.object(discord.ext.commands.bot.Bot, 'load_extension') as mock1:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "load_cog Greetings")
+    mock1.assert_called_with(".Greetings", package="tests.tests_utils.fake_load_all_cogs")
+
+
+@mock.patch("koalabot.COGS_PACKAGE", "tests.tests_utils.fake_load_all_cogs")
+@pytest.mark.asyncio
+async def test_load_and_unload_valid_cog(base_cog: BaseCog):
+    with mock.patch.object(discord.ext.commands.bot.Bot, 'load_extension') as mock1:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "load_cog Greetings")
+    mock1.assert_called_with(".Greetings", package="tests.tests_utils.fake_load_all_cogs")
+
+    with mock.patch.object(discord.ext.commands.bot.Bot, 'unload_extension') as mock1:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "unload_cog Greetings")
+    mock1.assert_called_with(".Greetings", package="tests.tests_utils.fake_load_all_cogs")
+
+
+@pytest.mark.asyncio
+async def test_invalid_unload_cog(base_cog: BaseCog):
+    with pytest.raises(discord.ext.commands.errors.CommandInvokeError,
+                       match="Command raised an exception: ExtensionNotLoaded:"
+                             " Extension 'koala.cogs.FakeCog' has not been loaded."):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "unload_cog FakeCog")
+
+
+@pytest.mark.asyncio
+async def test_version(base_cog: BaseCog):
+    await dpytest.message(koalabot.COMMAND_PREFIX + "version")
+    assert dpytest.verify().message().content("version: " + koalabot.__version__)
+
+
+@pytest.mark.asyncio
+async def test_setup(bot):
+    with mock.patch.object(discord.ext.commands.bot.Bot, 'add_cog') as mock1:
+        await setup_cog(bot)
+    mock1.assert_called()
+
+</document_content>
+</document>
+</documents>

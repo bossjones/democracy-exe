@@ -183,10 +183,10 @@
 
     <testing>
       <standard>Use pytest exclusively for all testing (no unittest module).</standard>
-      <standard>Place all tests in `./tests/` directory.</standard>
-      <standard>Include `__init__.py` files in all test directories.</standard>
+      <standard>Place all tests in `./tests/` directory with proper subdirectories matching source code structure.</standard>
+      <standard>Include `__init__.py` files in all test directories and subdirectories.</standard>
       <standard>Add type annotations and docstrings to all tests.</standard>
-      <standard>Use pytest markers to categorize tests (e.g., `@pytest.mark.unit`, `@pytest.mark.integration`).</standard>
+      <standard>Use pytest markers to categorize tests (e.g., `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.asyncio`).</standard>
       <standard>Mark cursor-generated code with `@pytest.mark.cursor`.</standard>
       <standard>Strive for 100% unit test code coverage.</standard>
       <standard>Use pytest-recording for tests involving Langchain runnables (limited to unit/integration tests)</standard>
@@ -196,7 +196,57 @@
       <standard>Avoid context managers for pytest mocks, use mocker.patch instead.</standard>
       <standard>Mirror source code directory structure in tests directory.</standard>
       <standard>Use VCR.py for recording and replaying HTTP interactions in tests.</standard>
-      <standard>Import necessary pytest types in TYPE_CHECKING block.</standard>
+
+      <directory_structure>
+        <standard>Organize tests into logical subdirectories matching source code structure:</standard>
+        <structure>
+          <![CDATA[
+          tests/
+          ├── __init__.py
+          ├── conftest.py              # Global test fixtures and configuration
+          ├── fake_embeddings.py       # Test utilities
+          ├── test_*.py               # Top-level tests
+          ├── internal/               # Internal testing utilities
+          │   ├── __init__.py
+          │   └── cogs/              # Discord bot cog testing utilities
+          │       ├── __init__.py
+          │       ├── echo.py
+          │       ├── greeting.py
+          │       └── misc.py
+          └── unittests/             # Unit tests matching source structure
+              ├── __init__.py
+              ├── ai/
+              │   ├── __init__.py
+              │   ├── agents/
+              │   │   ├── __init__.py
+              │   │   └── test_router_agent.py
+              │   ├── graphs/
+              │   │   ├── __init__.py
+              │   │   └── test_router_graph.py
+              │   ├── test_base.py
+              │   └── test_state.py
+              └── chatbot/
+                  ├── __init__.py
+                  └── ai/
+                      ├── __init__.py
+                      └── test_langchain_utils.py
+          ]]>
+        </structure>
+      </directory_structure>
+
+      <test_types>
+        <standard>Unit tests should be placed in tests/unittests/ directory</standard>
+        <standard>Integration tests should be placed in tests/integration/ directory</standard>
+        <standard>End-to-end tests should be placed in tests/e2e/ directory</standard>
+        <standard>Performance tests should be placed in tests/performance/ directory</standard>
+      </test_types>
+
+      <test_fixtures>
+        <standard>Define shared fixtures in conftest.py files</standard>
+        <standard>Use proper typing for all fixtures</standard>
+        <standard>Include comprehensive docstrings for all fixtures</standard>
+        <standard>Use appropriate fixture scopes (function, class, module, session)</standard>
+      </test_fixtures>
     </testing>
 
     <dependency_management>

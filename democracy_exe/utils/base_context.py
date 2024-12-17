@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Base context implementation for Discord commands.
 
 This module contains the base context class used for Discord command handling.

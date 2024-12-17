@@ -15,11 +15,24 @@ from typing import Any, Optional, cast
 import aiohttp
 import discord
 
-from discord import Activity, AllowedMentions, AppInfo, DMChannel, Game, Guild, Intents, Message, Status, Thread, User
+from discord import (
+    Activity,
+    AllowedMentions,
+    AppInfo,
+    DMChannel,
+    Game,
+    Guild,
+    Intents,
+    Message,
+    Status,
+    TextChannel,
+    Thread,
+    User,
+)
 from discord.abc import Messageable
 from discord.ext import commands
 from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph
+from langgraph.graph.state import CompiledStateGraph  # type: ignore[import]
 from loguru import logger
 from pydantic import SecretStr
 
@@ -31,6 +44,7 @@ from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
 from democracy_exe.chatbot.handlers.message_handler import MessageHandler
 from democracy_exe.chatbot.utils.guild_utils import preload_guild_data
+from democracy_exe.chatbot.utils.message_utils import format_inbound_message
 from democracy_exe.utils.bot_context import Context
 
 
@@ -229,10 +243,11 @@ class DemocracyBot(commands.Bot):
         await self.wait_until_ready()
         counter = 0
 
-        channel = self.get_channel(aiosettings.discord_general_channel)
+        channel_id = aiosettings.discord_general_channel
+        channel = self.get_channel(channel_id)
         while not self.is_closed():
             counter += 1
-            if channel and isinstance(channel, Messageable):
+            if channel and isinstance(channel, (TextChannel, DMChannel, Thread)):
                 await channel.send(str(counter))
             await asyncio.sleep(60)  # task runs every 60 seconds
 
@@ -277,7 +292,7 @@ class DemocracyBot(commands.Bot):
                 user_id = str(user_id)
 
             input_data = {
-                "messages": [self.message_handler._format_inbound_message(message)],
+                "messages": [format_inbound_message(message)],
                 "configurable": {"thread_id": thread_id, "user_id": user_id}
             }
 

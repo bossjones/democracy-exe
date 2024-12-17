@@ -161,7 +161,7 @@ def create_embed(
                 embed.add_field(
                     name=field["name"],
                     value=field["value"],
-                    inline=field.get("inline", True)
+                    inline=bool(field.get("inline", True))
                 )
 
         if footer:

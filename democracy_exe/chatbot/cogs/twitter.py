@@ -76,7 +76,7 @@ class Twitter(commands.Cog):
     async def on_guild_join(self, guild):
         """Add new guilds to the database"""
         logger.debug(f"Adding new guild to database: {guild.id}")
-        _ = await Guild(id=guild.id)
+        guild_obj = Guild(id=guild.id)
         logger.debug(f"Successfully added guild {guild.id} to database")
 
     async def _handle_download(
@@ -115,7 +115,7 @@ class Twitter(commands.Cog):
 
                 if not result["success"]:
                     logger.debug(f"Download failed: {result['error']}")
-                    error_embed = create_error_embed(result["error"])
+                    error_embed = create_error_embed(str(result.get("error", "Unknown error")))
                     await progress.edit(embed=error_embed)
                     return False, result["error"]
 

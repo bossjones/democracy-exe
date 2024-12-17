@@ -9,8 +9,7 @@ from typing import Annotated, Any, Dict, List, Optional, TypedDict, Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langgraph.graph import StateGraph
-from langgraph.graph.message import add_messages
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from loguru import logger
 from rich import print as rprint
@@ -52,7 +51,7 @@ async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
     rprint("[bold green]Welcome to the DemocracyExeAI Chatbot! Type 'quit' to exit.[/bold green]")
     logger.info("Welcome to the DemocracyExeAI Chatbot! Type 'quit' to exit.")
 
-    config: dict[str, dict[str, str]] = {"configurable": {"thread_id": "1", "user_id": "1"}}
+    config: RunnableConfig = {"configurable": {"thread_id": "1", "user_id": "1"}}
 
     # User input
     await logger.complete()

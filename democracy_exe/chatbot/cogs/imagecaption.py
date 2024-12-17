@@ -84,7 +84,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
             guild: The guild that was joined
         """
         logger.info(f"Joined new guild: {guild.id}")
-        await guild_factory.Guild(id=guild.id)
+        guild_obj = guild_factory.Guild(id=guild.id)
         await logger.complete()
 
     def _validate_image_url(self, url: str) -> bool:
@@ -236,16 +236,18 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
                         await ctx.send("Failed to process image attachment!")
                         return
 
-                # Generate and send caption
-                caption = self.caption_image(image)
-                await ctx.send(f"I see {caption}")
-
-                # Cleanup
+                # Generate and send caption if image was loaded
                 if image:
                     try:
-                        image.close()
-                    except Exception as e:
-                        logger.warning(f"Error closing image: {e!s}")
+                        caption = self.caption_image(image)
+                        await ctx.send(f"I see {caption}")
+                    finally:
+                        try:
+                            image.close()
+                        except Exception as e:
+                            logger.warning(f"Error closing image: {e!s}")
+                else:
+                    await ctx.send("Failed to process image!")
 
             except commands.CommandOnCooldown as e:
                 await ctx.send(f"This command is on cooldown. Try again in {e.retry_after:.1f} seconds.") # type: ignore

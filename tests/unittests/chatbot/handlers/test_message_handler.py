@@ -11,7 +11,7 @@ import discord
 
 from discord import DMChannel, Message, TextChannel, Thread
 from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph
+from langgraph.graph.state import CompiledStateGraph  # type: ignore[import]
 from loguru import logger
 from PIL import Image
 

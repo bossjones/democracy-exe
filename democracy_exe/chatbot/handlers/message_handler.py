@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from typing import Any, Optional, cast
+from typing import Any, Optional, Union, cast
 
 import discord
 
@@ -18,7 +18,7 @@ from discord.abc import Messageable
 from discord.member import Member
 from discord.user import User
 from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph
+from langgraph.graph.state import CompiledStateGraph  # type: ignore
 from loguru import logger
 from PIL import Image
 

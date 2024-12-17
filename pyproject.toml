@@ -1822,9 +1822,7 @@ exclude = [
     "build",
     "dist",
     "docs",
-    "**/.venv",
     "**/node_modules",
-    "**/__pycache__",
     ".git",
     "**/build",
     "tasks",
@@ -1832,7 +1830,7 @@ exclude = [
     "**/vendored/*",
 ]
 extraPaths = [
-    ".venv",
+    # ".venv",
 ]
 ############################################################################
 # FIXME: THIS MIGHT BREAK SHIT

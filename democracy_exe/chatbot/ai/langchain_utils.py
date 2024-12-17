@@ -9,13 +9,32 @@ from typing import Any, Dict, Optional
 
 import discord
 
-from discord import Message, Thread
+from discord import DMChannel, Message, Thread
 from langchain_core.messages import HumanMessage
 from loguru import logger
 
 from democracy_exe.agentic.workflows.react.graph import graph as memgraph
 from democracy_exe.ai.graphs import AgentState
 from democracy_exe.chatbot.utils.message_utils import format_inbound_message, get_session_id, prepare_agent_input
+
+
+async def get_thread(message: Message) -> Thread | DMChannel:
+    """Get or create a thread for the message.
+
+    Args:
+        message: The Discord message
+
+    Returns:
+        Thread or DMChannel for responses
+    """
+    if isinstance(message.channel, DMChannel):
+        return message.channel
+
+    thread = await message.channel.create_thread(
+        name="Response",
+        message=message
+    )
+    return thread
 
 
 def stream_bot_response(
