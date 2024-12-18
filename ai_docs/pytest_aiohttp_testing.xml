@@ -77,7 +77,7 @@ proxy methods to the client for common operations such as
 <h3>Pytest<a class="headerlink" href="#pytest" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="#pytest_aiohttp.aiohttp_client" title="pytest_aiohttp.aiohttp_client"><code class="xref py py-data docutils literal notranslate"><span class="pre">aiohttp_client</span></code></a> fixture available from <a class="reference external" href="https://pypi.python.org/pypi/pytest-aiohttp">pytest-aiohttp</a> plugin
 allows you to create a client to make requests to test your app.</p>
-<p>To run these examples, you need to use <cite>–asyncio-mode=auto</cite> or add to your
+<p>To run these examples, you need to use <cite>-asyncio-mode=auto</cite> or add to your
 pytest config file:</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">asyncio_mode</span> <span class="o">=</span> <span class="n">auto</span>
 </pre></div>
@@ -415,7 +415,7 @@ conditions that hard to reproduce on real server:</p>
 <p class="admonition-title">Warning</p>
 <p>We don't recommend to apply
 <a class="reference internal" href="#aiohttp.test_utils.make_mocked_request" title="aiohttp.test_utils.make_mocked_request"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_mocked_request()</span></code></a> everywhere for
-testing web-handler's business object – please use test client and
+testing web-handler's business object - please use test client and
 real networking via 'localhost' as shown in examples before.</p>
 <p><a class="reference internal" href="#aiohttp.test_utils.make_mocked_request" title="aiohttp.test_utils.make_mocked_request"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_mocked_request()</span></code></a> exists only for
 testing complex cases (e.g. emulating network errors) which
@@ -431,20 +431,20 @@ specific conditions and errors are hard to trigger.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – str, that represents HTTP method, like; GET, POST.</p></li>
-<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – str, The URL including <em>PATH INFO</em> without the host or scheme</p></li>
-<li><p><strong>headers</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><a class="reference external" href="https://multidict.aio-libs.org/en/stable/multidict/#multidict.CIMultiDict" title="(in multidict v6.1)"><em>multidict.CIMultiDict</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>)</em>) – mapping containing the headers. Can be anything accepted
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - str, that represents HTTP method, like; GET, POST.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - str, The URL including <em>PATH INFO</em> without the host or scheme</p></li>
+<li><p><strong>headers</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><a class="reference external" href="https://multidict.aio-libs.org/en/stable/multidict/#multidict.CIMultiDict" title="(in multidict v6.1)"><em>multidict.CIMultiDict</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>)</em>) - mapping containing the headers. Can be anything accepted
 by the multidict.CIMultiDict constructor.</p></li>
-<li><p><strong>match_info</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – mapping containing the info to match with url parameters.</p></li>
-<li><p><strong>version</strong> (<em>aiohttp.protocol.HttpVersion</em>) – namedtuple with encoded HTTP version</p></li>
-<li><p><strong>closing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – flag indicates that connection should be closed after
+<li><p><strong>match_info</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) - mapping containing the info to match with url parameters.</p></li>
+<li><p><strong>version</strong> (<em>aiohttp.protocol.HttpVersion</em>) - namedtuple with encoded HTTP version</p></li>
+<li><p><strong>closing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) - flag indicates that connection should be closed after
 response.</p></li>
-<li><p><strong>app</strong> (<a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><em>aiohttp.web.Application</em></a>) – the aiohttp.web application attached for fake request</p></li>
-<li><p><strong>writer</strong> (<em>aiohttp.StreamWriter</em>) – object for managing outcoming data</p></li>
-<li><p><strong>transport</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-protocol.html#asyncio.Transport" title="(in Python v3.13)"><em>asyncio.Transport</em></a>) – asyncio transport instance</p></li>
-<li><p><strong>payload</strong> (<a class="reference internal" href="streams.html#aiohttp.StreamReader" title="aiohttp.StreamReader"><em>aiohttp.StreamReader</em></a>) – raw payload reader object</p></li>
-<li><p><strong>sslcontext</strong> (<a class="reference external" href="https://docs.python.org/3/library/ssl.html#ssl.SSLContext" title="(in Python v3.13)"><em>ssl.SSLContext</em></a>) – ssl.SSLContext object, for HTTPS connection</p></li>
-<li><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.AbstractEventLoop</span></code></a>) – An event loop instance, mocked loop by default.</p></li>
+<li><p><strong>app</strong> (<a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><em>aiohttp.web.Application</em></a>) - the aiohttp.web application attached for fake request</p></li>
+<li><p><strong>writer</strong> (<em>aiohttp.StreamWriter</em>) - object for managing outcoming data</p></li>
+<li><p><strong>transport</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-protocol.html#asyncio.Transport" title="(in Python v3.13)"><em>asyncio.Transport</em></a>) - asyncio transport instance</p></li>
+<li><p><strong>payload</strong> (<a class="reference internal" href="streams.html#aiohttp.StreamReader" title="aiohttp.StreamReader"><em>aiohttp.StreamReader</em></a>) - raw payload reader object</p></li>
+<li><p><strong>sslcontext</strong> (<a class="reference external" href="https://docs.python.org/3/library/ssl.html#ssl.SSLContext" title="(in Python v3.13)"><em>ssl.SSLContext</em></a>) - ssl.SSLContext object, for HTTPS connection</p></li>
+<li><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.AbstractEventLoop</span></code></a>) - An event loop instance, mocked loop by default.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -521,16 +521,16 @@ for accessing to the server.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
-<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – a host for TCP socket, IPv4 <em>local host</em>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
 (<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
-<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – <p>optional port for TCP socket, if not provided a
+<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) - <p>optional port for TCP socket, if not provided a
 random unused port is used.</p>
 <div class="versionadded">
 <p><span class="versionmodified added">Added in version 3.0.</span></p>
 </div>
 </p></li>
-<li><p><strong>socket_factory</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.13)"><em>collections.abc.Callable</em></a><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>,</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>,</em><em>socket.AddressFamily</em><em>]</em><em>,</em><a class="reference external" href="https://docs.python.org/3/library/socket.html#socket.socket" title="(in Python v3.13)"><em>socket.socket</em></a><em>]</em>) – <dl class="simple">
+<li><p><strong>socket_factory</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.13)"><em>collections.abc.Callable</em></a><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>,</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>,</em><em>socket.AddressFamily</em><em>]</em><em>,</em><a class="reference external" href="https://docs.python.org/3/library/socket.html#socket.socket" title="(in Python v3.13)"><em>socket.socket</em></a><em>]</em>) - <dl class="simple">
 <dt>optional</dt><dd><p>Factory to create a socket for the server.
 By default creates a TCP socket and binds it
 to <code class="docutils literal notranslate"><span class="pre">host</span></code> and <code class="docutils literal notranslate"><span class="pre">port</span></code>.</p>
@@ -588,7 +588,7 @@ run and <code class="docutils literal notranslate"><span class="pre">'https'</sp
 <em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#BaseTestServer.start_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.start_server" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) – the event_loop to use</p>
+<dd class="field-odd"><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) - the event_loop to use</p>
 </dd>
 </dl>
 <p>Start a test server.</p>
@@ -615,7 +615,7 @@ run and <code class="docutils literal notranslate"><span class="pre">'https'</sp
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>handler</strong> – <p>a coroutine for handling web requests. The
+<li><p><strong>handler</strong> - <p>a coroutine for handling web requests. The
 handler should accept
 <a class="reference internal" href="web_reference.html#aiohttp.web.BaseRequest" title="aiohttp.web.BaseRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.BaseRequest</span></code></a> and return a
 response instance,
@@ -625,10 +625,10 @@ e.g. <a class="reference internal" href="web_reference.html#aiohttp.web.StreamRe
 <a class="reference internal" href="web_reference.html#aiohttp.web.HTTPException" title="aiohttp.web.HTTPException"><code class="xref py py-class docutils literal notranslate"><span class="pre">HTTPException</span></code></a> as a signal for
 non-200 HTTP response.</p>
 </p></li>
-<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
-<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – a host for TCP socket, IPv4 <em>local host</em>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
 (<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
-<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – <p>optional port for TCP socket, if not provided a
+<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) - <p>optional port for TCP socket, if not provided a
 random unused port is used.</p>
 <div class="versionadded">
 <p><span class="versionmodified added">Added in version 3.0.</span></p>
@@ -647,11 +647,11 @@ random unused port is used.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>app</strong> – <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance to run.</p></li>
-<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
-<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – a host for TCP socket, IPv4 <em>local host</em>
+<li><p><strong>app</strong> - <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance to run.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
 (<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
-<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – <p>optional port for TCP socket, if not provided a
+<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) - <p>optional port for TCP socket, if not provided a
 random unused port is used.</p>
 <div class="versionadded">
 <p><span class="versionmodified added">Added in version 3.0.</span></p>
@@ -678,19 +678,19 @@ random unused port is used.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>app_or_server</strong> – <p><a class="reference internal" href="#aiohttp.test_utils.BaseTestServer" title="aiohttp.test_utils.BaseTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTestServer</span></code></a> instance for making
+<li><p><strong>app_or_server</strong> - <p><a class="reference internal" href="#aiohttp.test_utils.BaseTestServer" title="aiohttp.test_utils.BaseTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTestServer</span></code></a> instance for making
 client requests to it.</p>
 <p>In order to pass a <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a>
 you need to convert it first to <a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a>
 first with <code class="docutils literal notranslate"><span class="pre">TestServer(app)</span></code>.</p>
 </p></li>
-<li><p><strong>cookie_jar</strong> – an optional <a class="reference internal" href="client_reference.html#aiohttp.CookieJar" title="aiohttp.CookieJar"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.CookieJar</span></code></a> instance,
+<li><p><strong>cookie_jar</strong> - an optional <a class="reference internal" href="client_reference.html#aiohttp.CookieJar" title="aiohttp.CookieJar"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.CookieJar</span></code></a> instance,
 may be useful with
 <code class="docutils literal notranslate"><span class="pre">CookieJar(unsafe=True,</span> <span class="pre">treat_as_secure_origin=&quot;http://127.0.0.1&quot;)</span></code>
 option.</p></li>
-<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
-<li><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) – the event_loop to use</p></li>
-<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – a host for TCP socket, IPv4 <em>local host</em>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) - the event_loop to use</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
 (<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
 </ul>
 </dd>
@@ -833,7 +833,7 @@ also a mock object, you might test it as usual
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>return_value</strong> – A value that the mock object will return when
+<dd class="field-odd"><p><strong>return_value</strong> - A value that the mock object will return when
 called.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -886,7 +886,7 @@ new test loop instance anyway.</p>
 <dd><p>Teardown and cleanup an event_loop created by setup_test_loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) – the loop to teardown</p>
+<dd class="field-odd"><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) - the loop to teardown</p>
 </dd>
 </dl>
 </dd></dl>
