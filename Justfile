@@ -878,4 +878,5 @@ generate-ai-docs:
 	uv run files-to-prompt /Users/malcolm/dev/bossjones/sandbox_agent/tests/test_bot.py \
 	/Users/malcolm/dev/bossjones/sandbox_agent/tests/conftest.py \
 	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/bot.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/cogs \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml
