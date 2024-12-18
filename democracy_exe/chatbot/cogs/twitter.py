@@ -170,18 +170,23 @@ class Twitter(commands.Cog):
             await ctx.send(HELP_MESSAGE)
 
     @tweet.command(name="download", aliases=["dlt", "t", "twitter"])
-    async def download(self, ctx: commands.Context, url: str = None) -> None:
+    async def download(self, ctx: commands.Context, url: str, *args: Any, **kwargs: Any) -> None:
         """Download tweet media and metadata.
 
         Args:
             ctx: Command context
             url: Tweet URL to download
         """
-        logger.info(f"{type(self).__name__} -> ctx = {ctx}, url = {url}")
-        logger.debug(f"Download command invoked - URL: {url}")
-        await self._handle_download(ctx, url, mode="single")
-        logger.debug("Download command completed")
-
+        try:
+            logger.info(f"{type(self).__name__} -> ctx = {ctx}, url = {url}")
+            logger.debug(f"Download command invoked - URL: {url}")
+            await self._handle_download(ctx, url, mode="single")
+            logger.debug("Download command completed")
+        except Exception as e:
+            logger.exception("Error in download command")
+            error_embed = create_error_embed(str(e))
+            await ctx.send(embed=error_embed)
+            raise TwitterError(f"Failed to download tweet: {e}") from e
 
     @download.error
     async def download_error_handler(self, ctx, error):

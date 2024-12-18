@@ -681,3 +681,4 @@ class DemocracyBot(commands.Bot):
                     await thread.send(chunk)
         else:
             logger.info("AI is disabled, skipping message processing... with llm")
+            await self.process_commands(message)
