@@ -75,7 +75,7 @@ async def download_tweet(
         DownloadResult containing success status, metadata and local files
     """
     # Use temporary dir if none provided
-    with tempfile.TemporaryDirectory() as tmpdirname:
+    with tempfile.TemporaryDirectory(delete=False) as tmpdirname:
         work_dir = working_dir or tmpdirname
 
         try:

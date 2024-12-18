@@ -83,6 +83,33 @@ class Twitter(commands.Cog):
         guild_obj = Guild(id=guild.id)
         logger.debug(f"Successfully added guild {guild.id} to database")
 
+    def _cleanup_temp_dir(self, file_path: str) -> None:
+        """Delete temporary directory created for tweet downloads.
+
+        Args:
+            file_path: Path to a file in the temporary directory
+
+        Note:
+            Silently fails if directory doesn't exist or can't be deleted to avoid
+            disrupting the main download flow.
+        """
+        try:
+            # Get the parent directory of the file
+            temp_dir = pathlib.Path(file_path).parent.parent.parent
+            # note this should be something like '/private/var/folders/q_/d5r_s8wd02zdx6qmc5f_96mw0000gp/T/tmp9nvnyeim/gallery-dl'
+            logger.debug(f"temp_dir: {temp_dir}")
+
+            # Verify that we're deleting a gallery-dl directory
+            if temp_dir.exists() and temp_dir.stem == "gallery-dl":
+                logger.debug(f"Cleaning up temporary directory: {temp_dir}")
+                import shutil
+                shutil.rmtree(temp_dir)
+                logger.debug("Temporary directory cleanup complete")
+            else:
+                logger.warning(f"Skipping cleanup - directory {temp_dir} either doesn't exist or isn't a gallery-dl directory")
+        except Exception as e:
+            logger.warning(f"Failed to cleanup temporary directory: {e}")
+
     async def _handle_download(
         self,
         ctx: Context,
@@ -172,6 +199,15 @@ class Twitter(commands.Cog):
                 if files:
                     logger.debug(f"Uploading {len(files)} media files")
                     await ctx.send(files=files)
+                    # Clean up temp directory after files are sent
+                    if result["local_files"]:
+                        logger.debug("Cleaning up temp directory after files are sent")
+                        try:
+                            self._cleanup_temp_dir(result["local_files"][0])
+                        except Exception as e:
+                            logger.warning(f"Failed to cleanup temp directory: {e}")
+                            return False, "Failed to cleanup temp directory"
+
                 logger.debug("Download handler completed successfully")
                 return True, None
 
@@ -181,6 +217,7 @@ class Twitter(commands.Cog):
                 await progress.edit(embed=error_embed)
                 error_msg = f"Failed to download tweet: {e}"
                 raise TwitterError(error_msg) from e
+
 
     @commands.group(name="tweet")
     async def tweet(self, ctx: commands.Context) -> None:
