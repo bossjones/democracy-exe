@@ -150,8 +150,7 @@ class Twitter(commands.Cog):
                 error_embed = create_error_embed(str(result.get("error", "Unknown error")))
                 await progress.edit(embed=error_embed)
                 return False, result["error"]
-                await progress.edit(embed=error_embed)
-                return False, result["error"]
+
 
             # Create appropriate embed based on mode
             logger.debug("Creating response embed")

@@ -880,3 +880,10 @@ generate-ai-docs:
 	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/bot.py \
 	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/cogs \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml
+
+# Run unit tests in debug mode with extended output
+test-twitter-cog-debug:
+	{{UV_RUN}} pytest -s --verbose --pdb --pdbcls bpdb:BPdb --showlocals --tb=short -k  test_download_tweet_success
+
+test-twitter-cog:
+	{{UV_RUN}} pytest -s --verbose  --showlocals --tb=short -k  test_download_tweet_success

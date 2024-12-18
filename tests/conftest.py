@@ -32,9 +32,11 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union
 
 import discord
 import discord.ext.test as dpytest  # type: ignore
+import pytest_asyncio
 
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
+from discord.client import _LoopSentinel
 from discord.ext import commands
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
@@ -518,8 +520,46 @@ def mock_text_documents(mock_ebook_txt_file: FixtureRequest) -> list[Document]:
     return docs
 
 
-@pytest.fixture
-async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
+# @pytest.fixture
+# async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
+#     """Create a DemocracyBot instance for testing.
+
+#     Args:
+#         event_loop: The event loop fixture
+
+#     Returns:
+#         AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
+#     """
+#     # Configure intents
+#     intents = discord.Intents.default()
+#     intents.members = True
+#     intents.message_content = True
+#     intents.messages = True
+#     intents.guilds = True
+
+#     # set up the loop
+#     if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
+#         await test_bot._async_setup_hook()  # type: ignore
+
+#     # Create DemocracyBot with test configuration
+#     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance", loop=event_loop)
+
+#     # Add test-specific error handling
+#     @bot.event
+#     async def on_command_error(ctx: commands.Context, error: Exception) -> None:  # type: ignore
+#         """Handle command errors in test environment."""
+#         raise error  # Re-raise for pytest to catch
+
+#     # Setup and cleanup
+#     await bot._async_setup_hook()  # Required for proper initialization
+#     dpytest.configure(bot)
+#     yield bot
+#     await dpytest.empty_queue()
+
+
+# @pytest.fixture
+@pytest_asyncio.fixture
+async def bot() -> AsyncGenerator[DemocracyBot, None]:
     """Create a DemocracyBot instance for testing.
 
     Args:
@@ -535,8 +575,12 @@ async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
     intents.messages = True
     intents.guilds = True
 
+    # set up the loop
+    if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
+        await test_bot._async_setup_hook()  # type: ignore
+
     # Create DemocracyBot with test configuration
-    bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance", loop=event_loop)
+    bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
 
     # Add test-specific error handling
     @bot.event
@@ -545,10 +589,68 @@ async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
         raise error  # Re-raise for pytest to catch
 
     # Setup and cleanup
-    await bot._async_setup_hook()  # Required for proper initialization
+    # await bot._async_setup_hook()  # Required for proper initialization
+    # await dpytest.empty_queue()
     dpytest.configure(bot)
     yield bot
-    await dpytest.empty_queue()
+    # await dpytest.empty_queue()
+
+    try:
+        # Teardown
+        await dpytest.empty_queue()  # empty the global message queue as test teardown
+    finally:
+        pass
+
+
+@pytest_asyncio.fixture
+async def mockbot(request: FixtureRequest) -> AsyncGenerator[DemocracyBot, None]:
+    """
+    Fixture to create a mock DemocracyBot for testing.
+
+    This fixture sets up a DemocracyBot instance, configures it for testing,
+    and yields it for use in tests. After the test, it performs cleanup.
+
+    Args:
+    ----
+        request (FixtureRequest): The pytest request object.
+
+    Yields:
+    ------
+        AsyncGenerator[DemocracyBot, None]: An instance of DemocracyBot configured for testing.
+
+    """
+    # Configure intents
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.message_content = True
+    intents.messages = True
+    intents.guilds = True
+
+    test_bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+
+    # set up the loop
+    if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
+        await test_bot._async_setup_hook()  # type: ignore
+
+    marks = request.function.pytestmark
+    mark = None
+    for mark in marks:
+        if mark.name == "cogs":
+            break
+
+    if mark is not None:
+        for extension in mark.args:
+            await test_bot.load_extension("tests.internal." + extension)
+
+    dpytest.configure(test_bot)
+
+    yield test_bot
+
+    try:
+        # Teardown
+        await dpytest.empty_queue()  # empty the global message queue as test teardown
+    finally:
+        pass
 
 
 @pytest.fixture

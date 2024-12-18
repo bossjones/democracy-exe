@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import glob
+import json
 import logging
 import os
 import pathlib
@@ -127,18 +129,27 @@ async def download_tweet(
                 error=str(e)
             )
 
+
 def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
-    """Parse tweet metadata from gallery-dl info.json file.
+    """
+    Recursively search for and parse tweet metadata from gallery-dl info.json file.
 
     Args:
-        work_dir: Directory containing info.json file
+        work_dir: Directory to start searching for info.json file
 
     Returns:
         Dictionary containing tweet metadata
     """
-    info_path = pathlib.Path(work_dir) / "info.json"
+    def find_info_json(directory: pathlib.Path) -> pathlib.Path:
+        for root, _, files in os.walk(directory):
+            if 'info.json' in files:
+                return pathlib.Path(root) / 'info.json'
+        return pathlib.Path()
+
+    info_path = find_info_json(pathlib.Path(work_dir))
+
     if not info_path.exists():
-        logger.warning(f"No info.json found in {work_dir}")
+        logger.warning(f"No info.json found in {work_dir} or its subdirectories")
         return {
             "id": "",
             "url": "",
@@ -157,10 +168,7 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
         tweet_data = data.get("tweet", {})
         user_data = tweet_data.get("user", {})
 
-        media_urls = []
-        for media in tweet_data.get("media", []):
-            if "url" in media:
-                media_urls.append(media["url"])
+        media_urls = [media["url"] for media in tweet_data.get("media", []) if "url" in media]
 
         return {
             "id": str(tweet_data.get("id", "")),
