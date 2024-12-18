@@ -23,6 +23,7 @@ from discord.ext.commands import Context
 from loguru import logger
 from rich.pretty import pprint
 
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.factories.guild_factory import Guild
 from democracy_exe.utils.twitter_utils.download import download_tweet
 from democracy_exe.utils.twitter_utils.embed import (
@@ -38,12 +39,12 @@ from democracy_exe.utils.twitter_utils.types import DownloadResult, TweetDownloa
 
 
 # Command constants
-HELP_MESSAGE: Final[str] = """
+HELP_MESSAGE: Final[str] = f"""
 Available commands:
-- !tweet download <url>: Download tweet media and metadata
-- !tweet thread <url>: Download full tweet thread
-- !tweet card <url>: Download tweet card preview
-- !tweet info <url>: Show tweet metadata
+- {aiosettings.prefix}tweet download <url>: Download tweet media and metadata
+- {aiosettings.prefix}tweet thread <url>: Download full tweet thread
+- {aiosettings.prefix}tweet card <url>: Download tweet card preview
+- {aiosettings.prefix}tweet info <url>: Show tweet metadata
 """
 
 
@@ -181,6 +182,14 @@ class Twitter(commands.Cog):
         await self._handle_download(ctx, url, mode="single")
         logger.debug("Download command completed")
 
+
+    @download.error
+    async def download_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the download!")
+            )
+
     @tweet.command(name="thread", aliases=["dt"])
     async def thread(self, ctx: commands.Context, url: str) -> None:
         """Download full tweet thread.
@@ -193,6 +202,13 @@ class Twitter(commands.Cog):
         await self._handle_download(ctx, url, mode="thread")
         logger.debug("Thread command completed")
 
+    @thread.error
+    async def thread_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the thread!")
+            )
+
     @tweet.command(name="card")
     async def card(self, ctx: commands.Context, url: str) -> None:
         """Download tweet card preview.
@@ -204,6 +220,13 @@ class Twitter(commands.Cog):
         logger.debug(f"Card command invoked - URL: {url}")
         await self._handle_download(ctx, url, mode="card")
         logger.debug("Card command completed")
+
+    @card.error
+    async def card_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the card!")
+            )
 
     @tweet.command(name="info")
     async def info(self, ctx: commands.Context, url: str) -> None:
@@ -241,6 +264,13 @@ class Twitter(commands.Cog):
                 error_embed = create_error_embed(str(e))
                 await ctx.send(embed=error_embed)
                 raise TwitterError(f"Failed to get tweet info: {e}") from e
+
+    @info.error
+    async def info_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the info!")
+            )
 
 
 async def setup(bot: commands.Bot) -> None:
