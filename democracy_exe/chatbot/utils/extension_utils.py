@@ -11,12 +11,17 @@ from collections.abc import AsyncIterator, Iterable
 from typing import TYPE_CHECKING, Any, List
 
 import aiofiles
+import pysnooper
 
 from discord.ext import commands
 from loguru import logger
 
 
 HERE = os.path.dirname(os.path.dirname(__file__))
+print(f"HERE: {HERE}")
+print(f"HERE: {HERE}")
+print(f"HERE: {HERE}")
+print(f"HERE: {HERE}")
 
 if TYPE_CHECKING:
     from democracy_exe.chatbot.core.bot import DemocracyBot
@@ -41,7 +46,10 @@ def extensions() -> Iterable[str]:
     for file in cogs_dir.rglob("*.py"):
         if file.name != "__init__.py":
             # Get path relative to the module root
-            relative_path = file.relative_to(pathlib.Path(HERE))
+            base_module_dir = pathlib.Path(HERE).parent.parent
+
+            # relative_path = file.relative_to(pathlib.Path(HERE))
+            relative_path = file.relative_to(base_module_dir)
             logger.error(f"Relative path: {relative_path}")
             extension_path = str(relative_path)[:-3].replace(os.sep, ".")
             logger.error(f"Extension path: {extension_path}")
@@ -68,6 +76,7 @@ class AsyncExtensionIterator:
         """
         return self
 
+    # @pysnooper(thread_info=True, max_variable_length=None, depth=10)
     async def __anext__(self) -> str:
         """Get the next extension path.
 
@@ -93,7 +102,7 @@ class AsyncExtensionIterator:
             self.current_index += 1
 
             # Skip __init__.py files
-            if file.name == "__init__.py":
+            if file.name == "__init__.py" or file.name == "imagecaption.py":
                 continue
 
             try:
@@ -102,11 +111,43 @@ class AsyncExtensionIterator:
                     # Just check if we can open it
                     await f.read(1)
 
+
+
+                # # For testing:
+                # >>> HERE = "/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/chatbot"
+                # >>> cogs_path = pathlib.Path("/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/chatbot/cogs")
+                # >>> file = pathlib.Path("/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/chatbot/cogs/twitter.py")
+                # >>> base_module_dir = pathlib.Path(HERE).parent.parent
+                # >>> relative_path = file.relative_to(base_module_dir)
+                # >>> extension_path = str(relative_path).replace(os.sep, ".")[:-3]
+                # >>> extension_path
+                # 'democracy_exe.chatbot.cogs.twitter'
+                # >>> print(f"HERE: {HERE}")
+                # HERE: /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/chatbot
+                # >>> print(f"cogs_path: {cogs_path}")
+                # cogs_path: /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/chatbot/cogs
+                # >>> print(f"file: {file}")
+                # file: /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/chatbot/cogs/twitter.py
+                # >>> print(f"base_module_dir: {base_module_dir}")
+                # base_module_dir: /Users/malcolm/dev/bossjones/democracy-exe
+                # >>> print(f"relative_path: {relative_path}")
+                # relative_path: democracy_exe/chatbot/cogs/twitter.py
+                # >>> print(f"extension_path: {extension_path}")
+                # extension_path: democracy_exe.chatbot.cogs.twitter
+                # >>>
+
+
                 # Get path relative to the cogs directory
-                relative_path = file.relative_to(pathlib.Path(HERE).parent.parent)
+                base_module_dir = pathlib.Path(HERE).parent.parent
+
+                logger.error(f"base_module_dir: {base_module_dir}")
+
+                relative_path = file.relative_to(base_module_dir)
+                logger.error(f"relative_path: {relative_path}")
+
                 extension_path = str(relative_path).replace(os.sep, ".")[:-3]
-                logger.error(f"Extension path: {extension_path}")
-                logger.error(f"File: {file}")
+                logger.error(f"extension_path: {extension_path}")
+                logger.error(f"file: {file}")
                 logger.error(f"HERE: {HERE}")
                 logger.error(f"relative_path: {relative_path}")
                 # import bpdb; bpdb.set_trace()

@@ -86,6 +86,10 @@ async def download_tweet(
                 "card": DL_TWITTER_CARD_COMMAND,
             }[mode]
 
+            logger.info(f"cmd: {cmd}")
+            logger.info(f"url: {url}")
+            logger.info(f"work_dir: {work_dir}")
+
             # Execute download command
             await shell._aio_run_process_and_communicate(
                 cmd.format(dl_uri=url).split(),

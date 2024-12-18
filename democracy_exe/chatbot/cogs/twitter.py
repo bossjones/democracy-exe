@@ -100,6 +100,7 @@ class Twitter(commands.Cog):
         Raises:
             TwitterError: If download fails
         """
+        logger.info(f"{type(self).__name__} -> _handle_download -> ctx = {ctx}, url = {url}, mode = {mode}")
         logger.debug(f"Starting download handler - URL: {url}, Mode: {mode}")
         async with ctx.typing():
             # Create progress message with embed
@@ -111,6 +112,7 @@ class Twitter(commands.Cog):
                 # Download tweet content
                 logger.debug("Initiating tweet download")
                 result = await download_tweet(url, mode=mode)
+                logger.error(f"result: {result}")
                 logger.debug(f"Download result: success={result['success']}")
 
                 if not result["success"]:
@@ -167,13 +169,14 @@ class Twitter(commands.Cog):
             await ctx.send(HELP_MESSAGE)
 
     @tweet.command(name="download", aliases=["dlt", "t", "twitter"])
-    async def download(self, ctx: commands.Context, url: str) -> None:
+    async def download(self, ctx: commands.Context, url: str = None) -> None:
         """Download tweet media and metadata.
 
         Args:
             ctx: Command context
             url: Tweet URL to download
         """
+        logger.info(f"{type(self).__name__} -> ctx = {ctx}, url = {url}")
         logger.debug(f"Download command invoked - URL: {url}")
         await self._handle_download(ctx, url, mode="single")
         logger.debug("Download command completed")
