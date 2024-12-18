@@ -873,3 +873,9 @@ generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml"
 	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/docs.aiohttp.org/en/stable/testing.html \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml"
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/sandbox_agent/tests/test_bot.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/tests/conftest.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/bot.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml

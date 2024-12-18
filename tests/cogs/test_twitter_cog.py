@@ -8,7 +8,6 @@ import pathlib
 import sys
 
 from collections.abc import AsyncGenerator, Generator
-from lib2to3.pytree import _Results
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -228,6 +227,11 @@ async def test_download_tweet_success(
     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
     mock_download.return_value = mock_tweet_data
 
+    # Mock shell command execution
+    mock_shell = mocker.AsyncMock()
+    mock_shell.return_value = (0, "Success", "")  # Return code 0, stdout, stderr
+    mocker.patch("democracy_exe.utils.shell._aio_run_process_and_communicate", mock_shell)
+
     # Send download command
     await dpytest.message("?tweet download " + TEST_TWEET_URL)
 
@@ -240,6 +244,9 @@ async def test_download_tweet_success(
     messages = dpytest.get_message()
     assert messages is not None
     assert "Download complete!" in messages.content
+
+    # Verify shell command was mocked
+    mock_shell.assert_called()
 
 
 @pytest.mark.asyncio
