@@ -13,6 +13,7 @@ from democracy_exe.chatbot.utils.discord_utils import (
     send_chunked_message,
     setup_channel_permissions,
 )
+from democracy_exe.chatbot.utils.message_utils import format_inbound_message
 
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "safe_delete_messages",
     "get_member_roles_hierarchy",
     "setup_channel_permissions",
-    "format_user_info"
+    "format_user_info",
+    "format_inbound_message",
 ]

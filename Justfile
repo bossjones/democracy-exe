@@ -827,3 +827,34 @@ pyright-createstubs-missing:
 		echo "Creating stub for package: $package"
 		uv run pyright --createstub "$package"
 	done
+
+# generate-ai-docs-koalabot-simple:
+# 	@echo "🚀 Generating AI docs"
+# 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml"
+# 	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/koalabot.py /Users/malcolm/dev/KoalaBot/tests/conftest.py /Users/malcolm/dev/KoalaBot/tests/test_koalabot.py /Users/malcolm/dev/KoalaBot/tests/test_utils.py /Users/malcolm/dev/KoalaBot/koala/utils.py /Users/malcolm/dev/KoalaBot/koala/cogs/base/cog.py /Users/malcolm/dev/KoalaBot/tests/cogs/base/test_cog.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml
+# just generate-ai-docs-koalabot-simple
+
+generate-ai-docs:
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml"
+	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/tests/cogs \
+	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
+	/Users/malcolm/dev/KoalaBot/tests/test_koalabot.py \
+	/Users/malcolm/dev/KoalaBot/tests/test_utils.py \
+	/Users/malcolm/dev/KoalaBot/koala/cogs \
+	/Users/malcolm/dev/KoalaBot/koalabot.py \
+	/Users/malcolm/dev/KoalaBot/koala/utils.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml
+
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/movienightbot.xml"
+	uv run files-to-prompt /Users/malcolm/dev/MovieNightBot/tests/conftest.py \
+	/Users/malcolm/dev/MovieNightBot/tests/utils.py \
+	/Users/malcolm/dev/MovieNightBot/tests/actions \
+	/Users/malcolm/dev/MovieNightBot/movienightbot/application.py \
+	/Users/malcolm/dev/MovieNightBot/movienightbot/util.py \
+	/Users/malcolm/dev/MovieNightBot/movienightbot/commands \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/movienightbot.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dptest.xml"
+	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/dpytest.readthedocs.io/en/latest \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dptest.xml
