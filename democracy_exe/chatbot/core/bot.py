@@ -201,6 +201,7 @@ class DemocracyBot(commands.Bot):
         self.typerCtx: dict | None = None
         self.job_queue: dict[Any, Any] = {}
         self.client_id: int | str = aiosettings.discord_client_id
+        self.enable_ai = aiosettings.enable_ai
 
     async def get_context(self, origin: discord.Interaction | Message, /, *, cls=Context) -> Context:
         """Retrieve the context for a Discord interaction or message.
@@ -621,45 +622,63 @@ class DemocracyBot(commands.Bot):
             logger.info(f"Worker monitor iteration: {counter}")
             await asyncio.sleep(10)
 
+    # Process incoming messages and route them through the AI pipeline
     async def on_message(self, message: Message) -> None:
         """Process incoming messages and route them through the AI pipeline.
 
         Args:
             message: The Discord message to process
         """
+
+        # Check if bot user is properly initialized
         if not self.user:
             logger.error("Bot user is not initialized")
             return
 
+        # Ignore messages from the bot itself to prevent feedback loops
         if message.author == self.user:
             return
 
-        if self.user.mentioned_in(message):
-            thread = await self.message_handler._get_thread(message)
-            if thread is None:
-                return
 
-            thread_id = thread.id
-            user_id = message.author.id
+        if self.enable_ai:
+            logger.info("AI is enabled, processing message...")
+            # Check if the bot is mentioned in the message
+            if self.user.mentioned_in(message):
+                # Get or create a thread for this conversation
+                thread = await self.message_handler._get_thread(message)
+                if thread is None:
+                    return
 
-            if isinstance(thread_id, int):
-                thread_id = str(thread_id)
-            if isinstance(user_id, int):
-                user_id = str(user_id)
+                # Extract thread and user IDs and convert to strings for consistency
+                thread_id = thread.id
+                user_id = message.author.id
 
-            input_data = {
-                "messages": [format_inbound_message(message)],
-                "configurable": {"thread_id": thread_id, "user_id": user_id}
-            }
+                if isinstance(thread_id, int):
+                    thread_id = str(thread_id)
+                if isinstance(user_id, int):
+                    user_id = str(user_id)
 
-            try:
-                response = await self.message_handler.stream_bot_response(self.graph, input_data)
-            except Exception as e:
-                logger.exception(f"Error streaming bot response: {e}")
-                response = "An error occurred while processing your message."
+                # Format the input data for the AI processing pipeline
+                input_data = {
+                    "messages": [format_inbound_message(message)],
+                    "configurable": {"thread_id": thread_id, "user_id": user_id}
+                }
 
-            logger.debug("Sending response to thread...")
-            # split messages into multiple outputs if len(output) is over discord's limit
-            chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
-            for chunk in chunks:
-                await thread.send(chunk)
+                # Process message through AI pipeline and handle any errors
+                try:
+                    response = await self.message_handler.stream_bot_response(self.graph, input_data)
+                except Exception as e:
+                    logger.exception(f"Error streaming bot response: {e}")
+                    response = "An error occurred while processing your message."
+
+                # Log that we're about to send the response
+                logger.debug("Sending response to thread...")
+
+                # Split response into chunks if it exceeds Discord's message length limit
+                chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+
+                # Send each chunk as a separate message in the thread
+                for chunk in chunks:
+                    await thread.send(chunk)
+        else:
+            logger.info("AI is disabled, skipping message processing... with llm")

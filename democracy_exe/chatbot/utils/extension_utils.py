@@ -149,10 +149,12 @@ async def load_extensions(bot: commands.Bot, extension_list: list[str]) -> None:
     """
     for extension in extension_list:
         try:
-            await bot.load_extension(extension)
+            bot.load_extension(extension)
             logger.info(f"Loaded extension: {extension}")
+            await logger.complete()
         except Exception as e:
             logger.error(f"Failed to load extension {extension}: {e}")
+            await logger.complete()
             raise
 
 
