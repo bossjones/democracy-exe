@@ -840,10 +840,21 @@ generate-ai-docs:
 	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
 	/Users/malcolm/dev/KoalaBot/tests/test_koalabot.py \
 	/Users/malcolm/dev/KoalaBot/tests/test_utils.py \
-	/Users/malcolm/dev/KoalaBot/koala/cogs \
+	/Users/malcolm/dev/KoalaBot/tests/tests_utils \
+	/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter \
 	/Users/malcolm/dev/KoalaBot/koalabot.py \
 	/Users/malcolm/dev/KoalaBot/koala/utils.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_cog_testing.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
+	/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/tests/tests_utils \
+	/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koalabot.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_cog_testing.xml
 
 
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/movienightbot.xml"

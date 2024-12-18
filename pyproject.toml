@@ -114,6 +114,8 @@ dependencies = [
     "pinecone-notebooks>=0.1.1",
     "nest-asyncio>=1.6.0",
     "grandalf>=0.8",
+    "emoji==1.7.0",
+    "emoji-country-flag==1.3.2",
 ]
 
 [project.urls]
@@ -1021,7 +1023,8 @@ max-complexity = 31 # C901: Recommended goal is 10
 "conf/*" = ["D"]
 "demo/*" = ["D"]
 "docs/*" = ["D"]
-"test/*" = ["D"]
+"test/*" = ["D", "C410", "S311"]
+"tests/tests_utils/*" = ["D", "C410", "S311"]
 "tests/conftest.py" = ["D", "F811"]
 "*.pyi" = ["D", "E501", "E701", "I002"]
 "democracy_exe/chatbot/core/bot.py" = ["B026"]
