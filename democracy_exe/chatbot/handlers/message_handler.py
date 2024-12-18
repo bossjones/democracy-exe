@@ -87,6 +87,18 @@ class MessageHandler:
         Raises:
             ValueError: If response generation fails
         """
+        """Stream responses from the bot's LangGraph.
+
+        Args:
+            graph: The compiled state graph
+            input_data: Input data for the graph
+
+        Returns:
+            The bot's response
+
+        Raises:
+            ValueError: If response generation fails
+        """
         try:
             response = graph.invoke(input_data)
             if isinstance(response, dict) and "messages" in response:

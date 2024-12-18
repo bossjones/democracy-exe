@@ -540,11 +540,27 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
         """Handle command errors in test environment."""
         raise error  # Re-raise for pytest to catch
 
+    # Create a mock user for the bot
+    mock_user = discord.ClientUser(
+        state=bot._connection,
+        data={
+            "id": 123456789,
+            "username": "TestBot",
+            "discriminator": "0000",
+            "global_name": "TestBot",
+            "bot": True,
+            "avatar": None,  # Add this required field
+        },
+    )
+    bot._connection.user = mock_user
+    bot.user = mock_user
+
     # Setup and cleanup
     await bot._async_setup_hook()  # Required for proper initialization
     dpytest.configure(bot)
     yield bot
     await dpytest.empty_queue()
+    await bot.close()
 
 
 @pytest.fixture

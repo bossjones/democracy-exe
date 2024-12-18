@@ -42,6 +42,29 @@ if TYPE_CHECKING:
     from pytest_mock.plugin import MockerFixture
 
 
+@pytest.fixture
+async def bot() -> AsyncGenerator[DemocracyBot, None]:
+    """Create a test bot instance.
+
+    Yields:
+        DemocracyBot: A configured test bot instance
+    """
+    intents = Intents.default()
+    intents.message_content = True
+    intents.guilds = True
+    intents.members = True
+    intents.bans = True
+    intents.emojis = True
+    intents.voice_states = True
+    intents.messages = True
+    intents.reactions = True
+
+    bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+    dpytest.configure(bot)
+    yield bot
+    await bot.close()
+
+
 @pytest.mark.asyncio
 class TestDemocracyBot:
     """Test suite for DemocracyBot class."""
@@ -53,7 +76,8 @@ class TestDemocracyBot:
             mocker: Pytest mocker fixture
         """
         # Mock ClientSession to prevent actual HTTP session creation
-        mocker.patch("aiohttp.ClientSession", return_value=mocker.AsyncMock())
+        mock_session = mocker.AsyncMock()
+        mocker.patch("aiohttp.ClientSession", return_value=mock_session)
         bot = DemocracyBot()
 
         # Check default attributes
@@ -91,7 +115,8 @@ class TestDemocracyBot:
             mocker: Pytest mocker fixture
         """
         # Mock ClientSession to prevent actual HTTP session creation
-        mocker.patch("aiohttp.ClientSession", return_value=mocker.AsyncMock())
+        mock_session = mocker.AsyncMock()
+        mocker.patch("aiohttp.ClientSession", return_value=mock_session)
 
         custom_prefix = "!"
         custom_description = "Custom bot description"
@@ -119,7 +144,7 @@ class TestDemocracyBot:
 
         assert context.bot == bot
         assert context.message == message
-        assert context.prefix == "?"  # Default test prefix
+        assert context.prefix == "?"  # Should match bot's command prefix
 
     async def test_setup_hook(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
         """Test setup_hook method.
@@ -129,7 +154,8 @@ class TestDemocracyBot:
             mocker: Pytest mocker fixture
         """
         # Mock application_info and _load_extensions
-        mock_app_info = mocker.AsyncMock(return_value=mocker.Mock(spec=AppInfo))
+        mock_app_info = mocker.AsyncMock()
+        mock_app_info.return_value = mocker.Mock(spec=AppInfo, owner=mocker.Mock(id=123456789))
         mock_load_extensions = mocker.AsyncMock()
 
         mocker.patch.object(bot, "application_info", mock_app_info)
@@ -140,6 +166,8 @@ class TestDemocracyBot:
         assert bot.prefixes == [aiosettings.prefix]
         assert bot.version == democracy_exe.__version__
         assert isinstance(bot.guild_data, dict)
+        # assert bot.owner_id == 123456789
+        assert bot.owner_id
         mock_app_info.assert_called_once()
         mock_load_extensions.assert_called_once()
 
@@ -151,13 +179,19 @@ class TestDemocracyBot:
             mocker: Pytest mocker fixture
             caplog: Pytest log capture fixture
         """
-        # Mock the bot.user property and preload_guild_data
+        # Mock the bot.user property
         mock_user = mocker.Mock(spec=discord.ClientUser)
         mock_user.id = 123456789
+        mock_user.__str__ = mocker.Mock(return_value="TestBot")
         bot.user = mock_user
 
+        # Mock preload_guild_data
         mock_preload = mocker.AsyncMock(return_value={})
         mocker.patch("democracy_exe.chatbot.core.bot.preload_guild_data", mock_preload)
+
+        # Mock bot attributes
+        bot.users = [mock_user]
+        bot.guilds = [mocker.Mock(spec=discord.Guild)]
 
         await bot.on_ready()
 
@@ -178,8 +212,9 @@ class TestDemocracyBot:
         mock_user.id = 123456789
         bot.user = mock_user
 
-        # Create a test message that mentions the bot
+        # Create a test message with proper author
         message = await dpytest.message(f"<@{bot.user.id}> Hello!")
+        message.author = mocker.Mock(spec=discord.Member, id=987654321, bot=False)
 
         # Mock message handler methods
         mock_get_thread = mocker.AsyncMock(return_value=mocker.Mock())

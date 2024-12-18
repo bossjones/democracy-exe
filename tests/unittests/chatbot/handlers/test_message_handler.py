@@ -151,10 +151,10 @@ class TestMessageHandler:
         assert result.name == "TestUser"
         assert result.id == "123456789"
         assert "Test message" in result.content
-        assert str(mock_message.guild) in result.content
+        assert "Test Guild" in result.content  # Check for guild name instead of mock string representation
         assert "test-channel" in result.content
 
-    def test_stream_bot_response(self, message_handler: MessageHandler, mocker: MockerFixture) -> None:
+    async def test_stream_bot_response(self, message_handler: MessageHandler, mocker: MockerFixture) -> None:
         """Test streaming bot responses.
 
         Args:

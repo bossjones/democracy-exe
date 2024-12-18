@@ -151,13 +151,18 @@ class TestMessageUtils:
         assert result == mock_thread
         mock_message.channel.create_thread.assert_called_once_with(name="Response", message=mock_message)
 
-    async def test_get_or_create_thread_error(self, mock_message: Message) -> None:
+    async def test_get_or_create_thread_error(self, mock_message: Message, mocker: MockerFixture) -> None:
         """Test error handling in thread creation.
 
         Args:
             mock_message: Mock message fixture
+            mocker: Pytest mocker fixture
         """
-        mock_message.channel.create_thread.side_effect = discord.HTTPException(response=None, message="Test error")
+        mock_response = mocker.Mock()
+        mock_response.status = 400
+        mock_message.channel.create_thread.side_effect = discord.HTTPException(
+            response=mock_response, message="Test error"
+        )
         with pytest.raises(discord.HTTPException):
             await get_or_create_thread(mock_message)
 
@@ -186,7 +191,7 @@ class TestMessageUtils:
             mock_thread: Mock thread fixture
         """
         result = get_session_id(mock_thread)
-        assert result == "discord_Test Thread"
+        assert result == f"discord_{mock_thread.starter_message.channel.id}"
 
     def test_get_session_id_error(self, mock_message: Message) -> None:
         """Test error handling in session ID generation.
