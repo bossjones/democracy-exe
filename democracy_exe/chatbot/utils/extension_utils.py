@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.dirname(__file__))
 
 if TYPE_CHECKING:
     from democracy_exe.chatbot.core.bot import DemocracyBot
+
 def extensions() -> Iterable[str]:
     """Yield extension module paths.
 
@@ -33,6 +34,7 @@ def extensions() -> Iterable[str]:
         FileNotFoundError: If cogs directory doesn't exist
     """
     cogs_dir = pathlib.Path(HERE) / "cogs"
+    logger.error(f"Cogs directory: {cogs_dir}")
     if not cogs_dir.exists():
         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
 
@@ -40,7 +42,9 @@ def extensions() -> Iterable[str]:
         if file.name != "__init__.py":
             # Get path relative to the module root
             relative_path = file.relative_to(pathlib.Path(HERE))
+            logger.error(f"Relative path: {relative_path}")
             extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+            logger.error(f"Extension path: {extension_path}")
             logger.debug(f"Found extension file: {file}")
             logger.debug(f"Converting to module path: {extension_path}")
             yield extension_path
@@ -52,6 +56,7 @@ class AsyncExtensionIterator:
     def __init__(self) -> None:
         """Initialize the iterator."""
         self.cogs_path = pathlib.Path(HERE) / "cogs"
+        logger.error(f"Cogs path: {self.cogs_path}")
         self.files = None
         self.current_index = 0
 
@@ -98,8 +103,14 @@ class AsyncExtensionIterator:
                     await f.read(1)
 
                 # Get path relative to the cogs directory
-                relative_path = file.relative_to(pathlib.Path(HERE))
-                extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+                relative_path = file.relative_to(pathlib.Path(HERE).parent.parent)
+                extension_path = str(relative_path).replace(os.sep, ".")[:-3]
+                logger.error(f"Extension path: {extension_path}")
+                logger.error(f"File: {file}")
+                logger.error(f"HERE: {HERE}")
+                logger.error(f"relative_path: {relative_path}")
+                # import bpdb; bpdb.set_trace()
+
 
                 logger.debug(f"Found extension file: {file}")
                 logger.debug(f"Converting to module path: {extension_path}")
@@ -150,7 +161,7 @@ async def load_extensions(bot: DemocracyBot, extension_list: list[str]) -> None:
     """
     for extension in extension_list:
         try:
-            bot.load_extension(extension)
+            await bot.load_extension(extension)
             logger.info(f"Loaded extension: {extension}")
             await logger.complete()
         except Exception as e:
@@ -170,7 +181,7 @@ async def reload_extension(bot: DemocracyBot, extension: str) -> None:
         Exception: If reloading the extension fails
     """
     try:
-        bot.reload_extension(extension)
+        await bot.reload_extension(extension)
         logger.info(f"Reloaded extension: {extension}")
         await logger.complete()
     except Exception as e:
@@ -190,7 +201,7 @@ async def unload_extension(bot: DemocracyBot, extension: str) -> None:
         Exception: If unloading the extension fails
     """
     try:
-        bot.unload_extension(extension)
+        await bot.unload_extension(extension)
         logger.info(f"Unloaded extension: {extension}")
         await logger.complete()
     except Exception as e:
