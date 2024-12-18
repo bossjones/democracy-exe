@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import datetime
 import functools
@@ -518,8 +519,11 @@ def mock_text_documents(mock_ebook_txt_file: FixtureRequest) -> list[Document]:
 
 
 @pytest.fixture
-async def bot() -> AsyncGenerator[DemocracyBot, None]:
+async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
     """Create a DemocracyBot instance for testing.
+
+    Args:
+        event_loop: The event loop fixture
 
     Returns:
         AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
@@ -532,7 +536,7 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
     intents.guilds = True
 
     # Create DemocracyBot with test configuration
-    bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+    bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance", loop=event_loop)
 
     # Add test-specific error handling
     @bot.event
@@ -540,27 +544,11 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
         """Handle command errors in test environment."""
         raise error  # Re-raise for pytest to catch
 
-    # # Create a mock user for the bot
-    # mock_user = discord.ClientUser(
-    #     state=bot._connection,
-    #     data={
-    #         "id": 123456789,
-    #         "username": "TestBot",
-    #         "discriminator": "0000",
-    #         "global_name": "TestBot",
-    #         "bot": True,
-    #         "avatar": None,  # Add this required field
-    #     },
-    # )
-    # bot._connection.user = mock_user
-    # bot.user = mock_user
-
     # Setup and cleanup
     await bot._async_setup_hook()  # Required for proper initialization
     dpytest.configure(bot)
     yield bot
     await dpytest.empty_queue()
-    # await bot.close()
 
 
 @pytest.fixture
@@ -639,3 +627,16 @@ def setup_test_state() -> Generator[None, None, None]:
     yield
     is_dpytest = False
     is_test_environment = False
+
+
+@pytest.fixture
+def event_loop():
+    """Create an event loop for testing.
+
+    Returns:
+        AbstractEventLoop: The event loop
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    yield loop
+    loop.close()

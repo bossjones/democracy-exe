@@ -8,6 +8,7 @@ import pathlib
 import sys
 
 from collections.abc import AsyncGenerator, Generator
+from lib2to3.pytree import _Results
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -35,7 +36,46 @@ if TYPE_CHECKING:
     from democracy_exe.chatbot.core.bot import DemocracyBot
 
 # Constants for testing
-TEST_TWEET_URL = "https://twitter.com/test/status/123456789"
+TEST_TWEET_URL = "https://x.com/bancodevideo/status/1699925133194858974"
+
+# @pytest.mark.vcronly()
+# @pytest.mark.default_cassette("test_new_dev_questions_success.yaml")
+# @pytest.mark.vcr(
+#     allow_playback_repeats=True,
+#     match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
+#     ignore_localhost=False,
+# )
+# =========================== short test summary info ============================
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_success - asyncio.queues.QueueEmpty
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_with_media - asyncio.queues.QueueEmpty
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_failure - AssertionError: assert 'Download in Progress' == 'Error'
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_invalid_url - AssertionError: assert 'Download in Progress' == 'Error'
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_missing_url - discord.ext.commands.errors.MissingRequiredArgument: url is a required argu...
+# FAILED tests/cogs/test_twitter_cog.py::test_download_thread_success - asyncio.queues.QueueEmpty
+# FAILED tests/cogs/test_twitter_cog.py::test_download_card_success - asyncio.queues.QueueEmpty
+# FAILED tests/cogs/test_twitter_cog.py::test_info_command_success - discord.ext.commands.errors.CommandInvokeError: Command raised an exception...
+# FAILED tests/cogs/test_twitter_cog.py::test_info_command_failure - discord.ext.commands.errors.CommandInvokeError: Command raised an exception...
+# FAILED tests/cogs/test_twitter_cog.py::test_missing_permissions - discord.ext.commands.errors.MissingPermissions: You are missing Manage Serv...
+# FAILED tests/cogs/test_twitter_cog.py::test_command_cooldown - discord.ext.commands.errors.CommandOnCooldown: You are on cooldown. Try aga...
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_network_error - AssertionError: assert 'Download in Progress' == 'Error'
+# FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_rate_limit - AssertionError: assert 'Download in Progress' == 'Error'
+
+# _Results (5.64s):
+#        6 passed
+#       13 failed
+#          - tests/cogs/test_twitter_cog.py:176 test_download_tweet_success
+#          - tests/cogs/test_twitter_cog.py:205 test_download_tweet_with_media
+#          - tests/cogs/test_twitter_cog.py:235 test_download_tweet_failure
+#          - tests/cogs/test_twitter_cog.py:256 test_download_tweet_invalid_url
+#          - tests/cogs/test_twitter_cog.py:272 test_download_tweet_missing_url
+#          - tests/cogs/test_twitter_cog.py:288 test_download_thread_success
+#          - tests/cogs/test_twitter_cog.py:317 test_download_card_success
+#          - tests/cogs/test_twitter_cog.py:379 test_info_command_success
+#          - tests/cogs/test_twitter_cog.py:404 test_info_command_failure
+#          - tests/cogs/test_twitter_cog.py:430 test_missing_permissions
+#          - tests/cogs/test_twitter_cog.py:450 test_command_cooldown
+#          - tests/cogs/test_twitter_cog.py:472 test_download_tweet_network_error
+#          - tests/cogs/test_twitter_cog.py:493 test_download_tweet_rate_limit
 
 
 @pytest.fixture(autouse=True)

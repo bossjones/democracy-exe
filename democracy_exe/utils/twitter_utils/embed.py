@@ -184,7 +184,7 @@ def create_download_progress_embed(url: str, mode: TweetDownloadMode) -> discord
         Discord embed object
     """
     embed = discord.Embed(
-        title="Tweet Download",
+        title="Download in Progress",
         description=f"Downloading tweet {mode} from {url}...",
         color=GOLD
     )

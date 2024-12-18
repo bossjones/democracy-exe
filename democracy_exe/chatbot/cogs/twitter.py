@@ -95,18 +95,17 @@ class Twitter(commands.Cog):
         """
         try:
             # Get the parent directory of the file
-            temp_dir = pathlib.Path(file_path).parent.parent.parent
-            # note this should be something like '/private/var/folders/q_/d5r_s8wd02zdx6qmc5f_96mw0000gp/T/tmp9nvnyeim/gallery-dl'
+            temp_dir = pathlib.Path(file_path).parent
             logger.debug(f"temp_dir: {temp_dir}")
 
             # Verify that we're deleting a gallery-dl directory
-            if temp_dir.exists() and temp_dir.stem == "gallery-dl":
+            if temp_dir.exists():
                 logger.debug(f"Cleaning up temporary directory: {temp_dir}")
                 import shutil
                 shutil.rmtree(temp_dir)
                 logger.debug("Temporary directory cleanup complete")
             else:
-                logger.warning(f"Skipping cleanup - directory {temp_dir} either doesn't exist or isn't a gallery-dl directory")
+                logger.warning(f"Skipping cleanup - directory {temp_dir} doesn't exist")
         except Exception as e:
             logger.warning(f"Failed to cleanup temporary directory: {e}")
 
@@ -133,90 +132,92 @@ class Twitter(commands.Cog):
         """
         logger.info(f"{type(self).__name__} -> _handle_download -> ctx = {ctx}, url = {url}, mode = {mode}")
         logger.debug(f"Starting download handler - URL: {url}, Mode: {mode}")
-        async with ctx.typing():
-            # Create progress message with embed
-            progress_embed = create_download_progress_embed(url, mode)
-            progress = await ctx.send(embed=progress_embed)
-            logger.debug("Created progress embed")
+        # async with ctx.typing():
+        # Create progress message with embed
+        progress_embed = create_download_progress_embed(url, mode)
+        progress = await ctx.send(embed=progress_embed)
+        logger.debug("Created progress embed")
 
-            try:
-                # Download tweet content
-                logger.debug("Initiating tweet download")
-                result = await download_tweet(url, mode=mode)
-                logger.error(f"result: {result}")
-                logger.debug(f"Download result: success={result['success']}")
+        try:
+            # Download tweet content
+            logger.debug("Initiating tweet download")
+            result = await download_tweet(url, mode=mode)
+            logger.error(f"result: {result}")
+            logger.debug(f"Download result: success={result['success']}")
 
-                if not result["success"]:
-                    logger.debug(f"Download failed: {result['error']}")
-                    error_embed = create_error_embed(str(result.get("error", "Unknown error")))
-                    await progress.edit(embed=error_embed)
-                    return False, result["error"]
-
-                # Create appropriate embed based on mode
-                logger.debug("Creating response embed")
-                if mode == "thread":
-                    metadata_list = cast(list[TweetMetadata], result["metadata"])
-                    embed = create_thread_embed(metadata_list)
-                    logger.debug(f"Created thread embed with {len(metadata_list)} tweets")
-                elif mode == "card":
-                    metadata = cast(TweetMetadata, result["metadata"])
-                    embed = create_card_embed(metadata)
-                    logger.debug("Created card embed")
-                else:
-                    metadata = cast(TweetMetadata, result["metadata"])
-                    embed = create_tweet_embed(metadata)
-                    logger.debug("Created single tweet embed")
-
-                # Upload media files if any
-                files = []
-                logger.debug(f"Processing {len(result['local_files'])} media files")
-                # import bpdb; bpdb.set_trace()
-                # {
-                # 'success': True,
-                # 'metadata': {'id': '', 'url': '', 'author': '', 'content': '', 'media_urls': [], 'created_at': ''},
-                # 'local_files': ['/private/var/folders/q_/d5r_s8wd02zdx6qmc5f_96mw0000gp/T/tmpsu3j8yhy/gallery-dl/twitter/UAPJames/UAPJames-1869141126051217764-(20241217_220226)-img1.mp4'],
-                # 'error': None
-                # }
-
-                for file_path in result["local_files"]:
-                    try:
-                        files.append(discord.File(file_path))
-                        logger.debug(f"Added file to upload: {file_path}")
-                    except Exception as ex:
-                        logger.warning(f"Failed to create discord.File for {file_path}: {ex}")
-                        print(f"{ex}")
-                        exc_type, exc_value, exc_traceback = sys.exc_info()
-                        print(f"Error Class: {ex.__class__}")
-                        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-                        print(output)
-                        print(f"exc_type: {exc_type}")
-                        print(f"exc_value: {exc_value}")
-                        traceback.print_tb(exc_traceback)
-                        if aiosettings.dev_mode:
-                            bpdb.pm()
-
-                await progress.edit(content="Download complete!", embed=embed)
-                if files:
-                    logger.debug(f"Uploading {len(files)} media files")
-                    await ctx.send(files=files)
-                    # Clean up temp directory after files are sent
-                    if result["local_files"]:
-                        logger.debug("Cleaning up temp directory after files are sent")
-                        try:
-                            self._cleanup_temp_dir(result["local_files"][0])
-                        except Exception as e:
-                            logger.warning(f"Failed to cleanup temp directory: {e}")
-                            return False, "Failed to cleanup temp directory"
-
-                logger.debug("Download handler completed successfully")
-                return True, None
-
-            except Exception as e:
-                logger.exception("Error in download handler")
-                error_embed = create_error_embed(str(e))
+            if not result["success"]:
+                logger.debug(f"Download failed: {result['error']}")
+                error_embed = create_error_embed(str(result.get("error", "Unknown error")))
                 await progress.edit(embed=error_embed)
-                error_msg = f"Failed to download tweet: {e}"
-                raise TwitterError(error_msg) from e
+                return False, result["error"]
+                await progress.edit(embed=error_embed)
+                return False, result["error"]
+
+            # Create appropriate embed based on mode
+            logger.debug("Creating response embed")
+            if mode == "thread":
+                metadata_list = [cast(TweetMetadata, result["metadata"])]
+                embed = create_thread_embed(metadata_list)
+                logger.debug(f"Created thread embed with {len(metadata_list)} tweets")
+            elif mode == "card":
+                metadata = cast(TweetMetadata, result["metadata"])
+                embed = create_card_embed(metadata)
+                logger.debug("Created card embed")
+            else:
+                metadata = cast(TweetMetadata, result["metadata"])
+                embed = create_tweet_embed(metadata)
+                logger.debug("Created single tweet embed")
+
+            # Upload media files if any
+            files = []
+            logger.debug(f"Processing {len(result['local_files'])} media files")
+            # import bpdb; bpdb.set_trace()
+            # {
+            # 'success': True,
+            # 'metadata': {'id': '', 'url': '', 'author': '', 'content': '', 'media_urls': [], 'created_at': ''},
+            # 'local_files': ['/private/var/folders/q_/d5r_s8wd02zdx6qmc5f_96mw0000gp/T/tmpsu3j8yhy/gallery-dl/twitter/UAPJames/UAPJames-1869141126051217764-(20241217_220226)-img1.mp4'],
+            # 'error': None
+            # }
+
+            for file_path in result["local_files"]:
+                try:
+                    files.append(discord.File(file_path))
+                    logger.debug(f"Added file to upload: {file_path}")
+                except Exception as ex:
+                    logger.warning(f"Failed to create discord.File for {file_path}: {ex}")
+                    print(f"{ex}")
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    print(f"Error Class: {ex.__class__}")
+                    output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                    print(output)
+                    print(f"exc_type: {exc_type}")
+                    print(f"exc_value: {exc_value}")
+                    traceback.print_tb(exc_traceback)
+                    if aiosettings.dev_mode:
+                        bpdb.pm()
+
+            await progress.edit(content="Download complete!", embed=embed)
+            if files:
+                logger.debug(f"Uploading {len(files)} media files")
+                await ctx.send(files=files)
+                # Clean up temp directory after files are sent
+                if result["local_files"]:
+                    logger.debug("Cleaning up temp directory after files are sent")
+                    try:
+                        self._cleanup_temp_dir(result["local_files"][0])
+                    except Exception as e:
+                        logger.warning(f"Failed to cleanup temp directory: {e}")
+                        return False, "Failed to cleanup temp directory"
+
+            logger.debug("Download handler completed successfully")
+            return True, None
+
+        except Exception as e:
+            logger.exception("Error in download handler")
+            error_embed = create_error_embed(str(e))
+            await progress.edit(embed=error_embed)
+            error_msg = f"Failed to download tweet: {e}"
+            raise TwitterError(error_msg) from e
 
 
     @commands.group(name="tweet")

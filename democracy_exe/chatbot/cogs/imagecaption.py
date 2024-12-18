@@ -200,61 +200,61 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
             ctx: Command context
             url: Optional image URL
         """
-        async with ctx.typing():
-            try:
-                # Handle message with no image
-                if not url and not ctx.message.attachments: # type: ignore
-                    await ctx.send("Please provide an image URL or attachment!")
+        # async with ctx.typing():
+        try:
+            # Handle message with no image
+            if not url and not ctx.message.attachments: # type: ignore
+                await ctx.send("Please provide an image URL or attachment!")
+                return
+
+            # Process URL if provided
+            if url:
+                if "tenor.com/view/" in url:
+                    response = await self._process_tenor_gif(ctx.message, url) # type: ignore
+                    await ctx.send(response)
                     return
 
-                # Process URL if provided
-                if url:
-                    if "tenor.com/view/" in url:
-                        response = await self._process_tenor_gif(ctx.message, url) # type: ignore
-                        await ctx.send(response)
-                        return
+                # Validate URL
+                if not self._validate_image_url(url):
+                    await ctx.send("Invalid image URL! Please provide a valid image URL.")
+                    return
 
-                    # Validate URL
-                    if not self._validate_image_url(url):
-                        await ctx.send("Invalid image URL! Please provide a valid image URL.")
-                        return
+                image = await self._download_image(url)
+                if not image:
+                    await ctx.send("Failed to download image from URL!")
+                    return
 
-                    image = await self._download_image(url)
-                    if not image:
-                        await ctx.send("Failed to download image from URL!")
-                        return
+            # Process attachment if present
+            elif ctx.message.attachments: # type: ignore
+                attachment = ctx.message.attachments[0] # type: ignore
+                if not attachment.content_type or not attachment.content_type.startswith("image/"):
+                    await ctx.send("The attachment must be an image!")
+                    return
 
-                # Process attachment if present
-                elif ctx.message.attachments: # type: ignore
-                    attachment = ctx.message.attachments[0] # type: ignore
-                    if not attachment.content_type or not attachment.content_type.startswith("image/"):
-                        await ctx.send("The attachment must be an image!")
-                        return
+                image = await self._download_image(attachment.url)
+                if not image:
+                    await ctx.send("Failed to process image attachment!")
+                    return
 
-                    image = await self._download_image(attachment.url)
-                    if not image:
-                        await ctx.send("Failed to process image attachment!")
-                        return
-
-                # Generate and send caption if image was loaded
-                if image:
+            # Generate and send caption if image was loaded
+            if image:
+                try:
+                    caption = self.caption_image(image)
+                    await ctx.send(f"I see {caption}")
+                finally:
                     try:
-                        caption = self.caption_image(image)
-                        await ctx.send(f"I see {caption}")
-                    finally:
-                        try:
-                            image.close()
-                        except Exception as e:
-                            logger.warning(f"Error closing image: {e!s}")
-                else:
-                    await ctx.send("Failed to process image!")
+                        image.close()
+                    except Exception as e:
+                        logger.warning(f"Error closing image: {e!s}")
+            else:
+                await ctx.send("Failed to process image!")
 
-            except commands.CommandOnCooldown as e:
-                await ctx.send(f"This command is on cooldown. Try again in {e.retry_after:.1f} seconds.") # type: ignore
-            except Exception as e:
-                logger.exception("Error in image_caption command")
-                await logger.complete()
-                await ctx.send(f"An error occurred while processing the image: {e!s}")
+        except commands.CommandOnCooldown as e:
+            await ctx.send(f"This command is on cooldown. Try again in {e.retry_after:.1f} seconds.") # type: ignore
+        except Exception as e:
+            logger.exception("Error in image_caption command")
+            await logger.complete()
+            await ctx.send(f"An error occurred while processing the image: {e!s}")
 
 
 async def setup(bot: commands.Bot) -> None:
