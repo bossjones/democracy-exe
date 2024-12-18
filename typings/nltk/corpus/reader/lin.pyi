@@ -17,7 +17,7 @@ class LinThesaurusCorpusReader(CorpusReader):
         :type badscore: C{float}
         """
         ...
-
+    
     def similarity(self, ngram1, ngram2, fileid=...): # -> float | list[tuple[str | Any, float]] | list[tuple[str | Any, Any | float]]:
         """
         Returns the similarity score for two ngrams.
@@ -32,8 +32,8 @@ class LinThesaurusCorpusReader(CorpusReader):
                  list of tuples of fileids and scores.
         """
         ...
-
-    def scored_synonyms(self, ngram, fileid=...): # -> dict_items | list[tuple[str | Any, dict_items]]:
+    
+    def scored_synonyms(self, ngram, fileid=...): # -> dict_items[Any, Any] | list[tuple[str | Any, dict_items[Any, Any]]]:
         """
         Returns a list of scored synonyms (tuples of synonyms and scores) for the current ngram
 
@@ -46,8 +46,8 @@ class LinThesaurusCorpusReader(CorpusReader):
                  scores and synonyms.
         """
         ...
-
-    def synonyms(self, ngram, fileid=...): # -> dict_keys | list[tuple[str | Any, dict_keys]]:
+    
+    def synonyms(self, ngram, fileid=...): # -> dict_keys[Any, Any] | list[tuple[str | Any, dict_keys[Any, Any]]]:
         """
         Returns a list of synonyms for the current ngram.
 
@@ -59,8 +59,8 @@ class LinThesaurusCorpusReader(CorpusReader):
                  lists, where inner lists contain synonyms.
         """
         ...
-
-    def __contains__(self, ngram): # -> object | bool:
+    
+    def __contains__(self, ngram): # -> bool:
         """
         Determines whether or not the given ngram is in the thesaurus.
 
@@ -69,7 +69,7 @@ class LinThesaurusCorpusReader(CorpusReader):
         :return: whether the given ngram is in the thesaurus.
         """
         ...
-
+    
 
 
 def demo(): # -> None:

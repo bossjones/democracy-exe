@@ -6,13 +6,13 @@ _TORCHFUNCTION_SUBCLASS = ...
 class _ReturnTypeCM:
     def __init__(self, to_restore) -> None:
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, *args): # -> None:
         ...
-
+    
 
 
 def set_return_type(return_type: str): # -> _ReturnTypeCM:

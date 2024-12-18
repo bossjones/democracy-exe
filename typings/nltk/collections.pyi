@@ -7,46 +7,46 @@ from functools import total_ordering
 class OrderedDict(dict):
     def __init__(self, data=..., **kwargs) -> None:
         ...
-
+    
     def __delitem__(self, key): # -> None:
         ...
-
+    
     def __getitem__(self, key):
         ...
-
+    
     def __iter__(self): # -> Generator[Any, None, None]:
         ...
-
+    
     def __missing__(self, key):
         ...
-
+    
     def __setitem__(self, key, item): # -> None:
         ...
-
+    
     def clear(self): # -> None:
         ...
-
-    def copy(self): # -> dict:
+    
+    def copy(self): # -> dict[Any, Any]:
         ...
-
-    def items(self): # -> zip:
+    
+    def items(self): # -> zip[Any]:
         ...
-
-    def keys(self, data=..., keys=...): # -> list | dict_keys | None:
+    
+    def keys(self, data=..., keys=...): # -> list[Any] | dict_keys[Any, Any] | None:
         ...
-
-    def popitem(self): # -> tuple:
+    
+    def popitem(self): # -> tuple[Any, Any]:
         ...
-
+    
     def setdefault(self, key, failobj=...): # -> None:
         ...
-
+    
     def update(self, data): # -> None:
         ...
-
+    
     def values(self): # -> map[Any | None]:
         ...
-
+    
 
 
 @total_ordering
@@ -76,7 +76,7 @@ class AbstractLazySequence:
         corpus view.
         """
         ...
-
+    
     def iterate_from(self, start):
         """
         Return an iterator that generates the tokens in the corpus
@@ -85,50 +85,50 @@ class AbstractLazySequence:
         generate no tokens.
         """
         ...
-
-    def __getitem__(self, i): # -> list | LazySubsequence:
+    
+    def __getitem__(self, i): # -> list[Any] | LazySubsequence:
         """
         Return the *i* th token in the corpus file underlying this
         corpus view.  Negative indices and spans are both supported.
         """
         ...
-
+    
     def __iter__(self):
         """Return an iterator that generates the tokens in the corpus
         file underlying this corpus view."""
         ...
-
+    
     def count(self, value): # -> int:
         """Return the number of times this list contains ``value``."""
         ...
-
+    
     def index(self, value, start=..., stop=...): # -> int:
         """Return the index of the first occurrence of ``value`` in this
         list that is greater than or equal to ``start`` and less than
         ``stop``.  Negative start and stop values are treated like negative
         slice bounds -- i.e., they count from the end of the list."""
         ...
-
+    
     def __contains__(self, value): # -> bool:
         """Return true if this list contains ``value``."""
         ...
-
+    
     def __add__(self, other): # -> LazyConcatenation:
         """Return a list concatenating self with other."""
         ...
-
+    
     def __radd__(self, other): # -> LazyConcatenation:
         """Return a list concatenating other with self."""
         ...
-
+    
     def __mul__(self, count): # -> LazyConcatenation:
         """Return a list concatenating self with itself ``count`` times."""
         ...
-
+    
     def __rmul__(self, count): # -> LazyConcatenation:
         """Return a list concatenating self with itself ``count`` times."""
         ...
-
+    
     _MAX_REPR_SIZE = ...
     def __repr__(self): # -> LiteralString:
         """
@@ -137,22 +137,22 @@ class AbstractLazySequence:
         than 60 characters long, it is truncated.
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         """
         :raise ValueError: Corpus view objects are unhashable.
         """
         ...
-
+    
 
 
 class LazySubsequence(AbstractLazySequence):
@@ -162,7 +162,7 @@ class LazySubsequence(AbstractLazySequence):
     by looking them up in the source sequence.
     """
     MIN_SIZE = ...
-    def __new__(cls, source, start, stop): # -> list | Self:
+    def __new__(cls, source, start, stop): # -> list[Any] | Self:
         """
         Construct a new slice from a given underlying sequence.  The
         ``start`` and ``stop`` indices should be absolute indices --
@@ -170,16 +170,16 @@ class LazySubsequence(AbstractLazySequence):
         of a list) or greater than the length of ``source``.
         """
         ...
-
+    
     def __init__(self, source, start, stop) -> None:
         ...
-
+    
     def __len__(self):
         ...
-
-    def iterate_from(self, start): # -> islice:
+    
+    def iterate_from(self, start): # -> islice[Any]:
         ...
-
+    
 
 
 class LazyConcatenation(AbstractLazySequence):
@@ -192,13 +192,13 @@ class LazyConcatenation(AbstractLazySequence):
     """
     def __init__(self, list_of_lists) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def iterate_from(self, start_index): # -> Generator[Any, Any, None]:
         ...
-
+    
 
 
 class LazyMap(AbstractLazySequence):
@@ -245,16 +245,16 @@ class LazyMap(AbstractLazySequence):
             by this lazy map.  (default=5)
         """
         ...
-
+    
     def iterate_from(self, index): # -> Generator[Any, Any, None]:
         ...
-
+    
     def __getitem__(self, index): # -> LazyMap:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
 
 
 class LazyZip(LazyMap):
@@ -294,13 +294,13 @@ class LazyZip(LazyMap):
         :type lists: list(list)
         """
         ...
-
+    
     def iterate_from(self, index): # -> Generator[Any, Any, None]:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
 
 
 class LazyEnumerate(LazyZip):
@@ -337,7 +337,7 @@ class LazyEnumerate(LazyZip):
         :type lst: list
         """
         ...
-
+    
 
 
 class LazyIteratorList(AbstractLazySequence):
@@ -348,22 +348,22 @@ class LazyIteratorList(AbstractLazySequence):
     """
     def __init__(self, it, known_len=...) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def iterate_from(self, start): # -> Generator[Any, Any, None]:
         """Create a new iterator over this list starting at the given offset."""
         ...
-
+    
     def __add__(self, other): # -> Self:
         """Return a list concatenating self with other."""
         ...
-
+    
     def __radd__(self, other): # -> Self:
         """Return a list concatenating other with self."""
         ...
-
+    
 
 
 class Trie(dict):
@@ -382,7 +382,7 @@ class Trie(dict):
 
         """
         ...
-
+    
     def insert(self, string): # -> None:
         """Inserts ``string`` into the Trie
 
@@ -400,6 +400,9 @@ class Trie(dict):
 
         """
         ...
-
+    
     def __missing__(self, key):
         ...
+    
+
+

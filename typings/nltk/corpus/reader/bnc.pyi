@@ -23,8 +23,8 @@ class BNCCorpusReader(XMLCorpusReader):
     """
     def __init__(self, root, fileids, lazy=...) -> None:
         ...
-
-    def words(self, fileids=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of words
             and punctuation symbols.
@@ -35,8 +35,8 @@ class BNCCorpusReader(XMLCorpusReader):
         :param stem: If true, then use word stems instead of word strings.
         """
         ...
-
-    def tagged_words(self, fileids=..., c5=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., c5=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of tagged
             words and punctuation symbols, encoded as tuples
@@ -50,8 +50,8 @@ class BNCCorpusReader(XMLCorpusReader):
         :param stem: If true, then use word stems instead of word strings.
         """
         ...
-
-    def sents(self, fileids=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences or utterances, each encoded as a list of word
@@ -63,8 +63,8 @@ class BNCCorpusReader(XMLCorpusReader):
         :param stem: If true, then use word stems instead of word strings.
         """
         ...
-
-    def tagged_sents(self, fileids=..., c5=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., c5=..., strip_space=..., stem=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences, each encoded as a list of ``(word,tag)`` tuples.
@@ -77,7 +77,7 @@ class BNCCorpusReader(XMLCorpusReader):
         :param stem: If true, then use word stems instead of word strings.
         """
         ...
-
+    
 
 
 class BNCSentence(list):
@@ -87,7 +87,7 @@ class BNCSentence(list):
     """
     def __init__(self, num, items) -> None:
         ...
-
+    
 
 
 class BNCWordView(XMLCorpusView):
@@ -104,15 +104,18 @@ class BNCWordView(XMLCorpusView):
         :param stem: If true, then substitute stems for words.
         """
         ...
-
+    
     def handle_header(self, elt, context): # -> None:
         ...
-
+    
     def handle_elt(self, elt, context): # -> BNCSentence | tuple[Any | LiteralString | Literal[''], Any] | LiteralString | Literal['']:
         ...
-
+    
     def handle_word(self, elt): # -> tuple[Any | LiteralString | Literal[''], Any] | LiteralString | Literal['']:
         ...
-
+    
     def handle_sent(self, elt): # -> BNCSentence:
         ...
+    
+
+

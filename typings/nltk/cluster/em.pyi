@@ -42,22 +42,22 @@ class EMClusterer(VectorSpaceClusterer):
         :type   svd_dimensions: int
         """
         ...
-
+    
     def num_clusters(self): # -> int:
         ...
-
+    
     def cluster_vectorspace(self, vectors, trace=...): # -> None:
         ...
-
+    
     def classify_vectorspace(self, vector): # -> int:
         ...
-
+    
     def likelihood_vectorspace(self, vector, cluster): # -> Any | NDArray[floating[Any]]:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def demo(): # -> None:

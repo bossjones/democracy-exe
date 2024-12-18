@@ -38,7 +38,7 @@ class BllipParser(ParserI):
         :type reranker_options: dict(str)
         """
         ...
-
+    
     def parse(self, sentence): # -> Generator[Any, Any, None]:
         """
         Use BLLIP Parser to parse a sentence. Takes a sentence as a list
@@ -53,7 +53,7 @@ class BllipParser(ParserI):
         :rtype: iter(Tree)
         """
         ...
-
+    
     def tagged_parse(self, word_and_tag_pairs): # -> Generator[Any, Any, None]:
         """
         Use BLLIP to parse a sentence. Takes a sentence as a list of
@@ -71,7 +71,7 @@ class BllipParser(ParserI):
         :rtype: iter(Tree)
         """
         ...
-
+    
     @classmethod
     def from_unified_model_dir(cls, model_dir, parser_options=..., reranker_options=...): # -> Self:
         """
@@ -97,9 +97,10 @@ class BllipParser(ParserI):
         :rtype: BllipParser
         """
         ...
-
+    
 
 
 def demo(): # -> None:
     """This assumes the Python module bllipparser is installed."""
     ...
+

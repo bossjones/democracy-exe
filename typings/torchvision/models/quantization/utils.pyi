@@ -6,3 +6,4 @@ from torch import nn
 
 def quantize_model(model: nn.Module, backend: str) -> None:
     ...
+

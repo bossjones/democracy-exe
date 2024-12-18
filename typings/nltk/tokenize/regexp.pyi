@@ -90,16 +90,16 @@ class RegexpTokenizer(TokenizerI):
     """
     def __init__(self, pattern, gaps=..., discard_empty=..., flags=...) -> None:
         ...
-
-    def tokenize(self, text): # -> list:
+    
+    def tokenize(self, text): # -> list[Any]:
         ...
-
+    
     def span_tokenize(self, text): # -> Generator[tuple[Any | Literal[0], Any | int] | Any, Any, None]:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class WhitespaceTokenizer(RegexpTokenizer):
@@ -115,7 +115,7 @@ class WhitespaceTokenizer(RegexpTokenizer):
     """
     def __init__(self) -> None:
         ...
-
+    
 
 
 class BlanklineTokenizer(RegexpTokenizer):
@@ -126,7 +126,7 @@ class BlanklineTokenizer(RegexpTokenizer):
     """
     def __init__(self) -> None:
         ...
-
+    
 
 
 class WordPunctTokenizer(RegexpTokenizer):
@@ -142,10 +142,10 @@ class WordPunctTokenizer(RegexpTokenizer):
     """
     def __init__(self) -> None:
         ...
+    
 
 
-
-def regexp_tokenize(text, pattern, gaps=..., discard_empty=..., flags=...): # -> list:
+def regexp_tokenize(text, pattern, gaps=..., discard_empty=..., flags=...): # -> list[Any]:
     """
     Return a tokenized copy of *text*.  See :class:`.RegexpTokenizer`
     for descriptions of the arguments.

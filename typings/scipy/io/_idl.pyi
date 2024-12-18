@@ -10,7 +10,7 @@ class Pointer:
     '''Class used to define pointers'''
     def __init__(self, index) -> None:
         ...
-
+    
 
 
 class ObjectPointer(Pointer):
@@ -45,16 +45,16 @@ class AttrDict(dict):
     '''
     def __init__(self, init=...) -> None:
         ...
-
+    
     def __getitem__(self, name):
         ...
-
+    
     def __setitem__(self, key, value): # -> None:
         ...
-
+    
     def __getattr__(self, name):
         ...
-
+    
     __setattr__ = ...
     __call__ = ...
 
@@ -127,3 +127,4 @@ def readsav(file_name, idict=..., python_dict=..., uncompressed_file_name=..., v
 
     """
     ...
+

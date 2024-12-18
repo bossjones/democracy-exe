@@ -45,16 +45,16 @@ logfile = ...
 class MyServerHandler(BaseHTTPRequestHandler):
     def do_HEAD(self): # -> None:
         ...
-
+    
     def do_GET(self): # -> None:
         ...
-
+    
     def send_head(self, type=...): # -> None:
         ...
-
+    
     def log_message(self, format, *args): # -> None:
         ...
-
+    
 
 
 def get_unique_counter_from_url(sp): # -> int | None:
@@ -108,13 +108,13 @@ CLASS_USAGE = ...
 CLASS_CATEGORY = ...
 DERIVATIONALLY_RELATED_FORM = ...
 INDIRECT_HYPERNYMS = ...
-def lemma_property(word, synset, func): # -> list:
+def lemma_property(word, synset, func): # -> list[Any]:
     ...
 
-def rebuild_tree(orig_tree): # -> tuple[Any, list]:
+def rebuild_tree(orig_tree): # -> tuple[Any, list[Any]]:
     ...
 
-def get_relations_data(word, synset): # -> tuple[tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list | Any], tuple[int, str, list | Any]] | tuple[tuple[int, str, list | Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list | Any]] | tuple[tuple[int, str, list | Any], tuple[int, str, Any], tuple[int, str, list | Any], tuple[int, str, Any], tuple[int, str, Any]] | tuple[tuple[int, str, list | Any]]:
+def get_relations_data(word, synset): # -> tuple[tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list[Any]], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list[Any] | Any], tuple[int, str, list[Any] | Any]] | tuple[tuple[int, str, list[Any] | Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list[Any]], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, Any], tuple[int, str, list[Any] | Any]] | tuple[tuple[int, str, list[Any] | Any], tuple[int, str, Any], tuple[int, str, list[Any] | Any], tuple[int, str, Any], tuple[int, str, Any]] | tuple[tuple[int, str, list[Any] | Any]]:
     """
     Get synset relations data for a synset.  Note that this doesn't
     yet support things such as full hyponym vs direct hyponym.
@@ -145,7 +145,7 @@ class RestrictedUnpickler(pickle.Unpickler):
     """
     def find_class(self, module, name):
         ...
-
+    
 
 
 class Reference:
@@ -164,20 +164,20 @@ class Reference:
         relations for.
         """
         ...
-
+    
     def encode(self): # -> str:
         """
         Encode this reference into a string to be used in a URL.
         """
         ...
-
+    
     @staticmethod
     def decode(string): # -> Reference:
         """
         Decode a reference encoded with Reference.encode
         """
         ...
-
+    
     def toggle_synset_relation(self, synset, relation): # -> Self:
         """
         Toggle the display of the relations for the given synset and
@@ -187,13 +187,13 @@ class Reference:
         not being displayed.
         """
         ...
-
+    
     def toggle_synset(self, synset): # -> Self:
         """
         Toggle displaying of the relation types for the given synset
         """
         ...
-
+    
 
 
 def make_lookup_link(ref, label): # -> str:

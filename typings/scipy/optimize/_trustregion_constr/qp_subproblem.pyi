@@ -284,3 +284,4 @@ def projected_cg(H, c, Z, Y, b, trust_radius=..., lb=..., ub=..., tol=..., max_i
             SIAM Journal on Scientific Computing 23.4 (2001): 1376-1395.
     """
     ...
+

@@ -48,8 +48,8 @@ class ProsConsCorpusReader(CategorizedCorpusReader, CorpusReader):
         :param kwargs: additional parameters passed to CategorizedCorpusReader.
         """
         ...
-
-    def sents(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all sentences in the corpus or in the specified files/categories.
 
@@ -62,8 +62,8 @@ class ProsConsCorpusReader(CategorizedCorpusReader, CorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def words(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all words and punctuation symbols in the corpus or in the specified
         files/categories.
@@ -76,3 +76,6 @@ class ProsConsCorpusReader(CategorizedCorpusReader, CorpusReader):
         :rtype: list(str)
         """
         ...
+    
+
+

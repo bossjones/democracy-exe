@@ -15,7 +15,7 @@ class _ScipyBackend:
     @staticmethod
     def __ua_function__(method, args, kwargs): # -> _NotImplementedType | Any:
         ...
-
+    
 
 
 _named_backends = ...
@@ -155,3 +155,4 @@ def skip_backend(backend):
     BackendNotImplementedError: No selected backends had an implementation ...
     """
     ...
+

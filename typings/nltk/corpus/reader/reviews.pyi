@@ -74,7 +74,7 @@ class Review:
         :param review_lines: the list of the ReviewLines that belong to the Review.
         """
         ...
-
+    
     def add_line(self, review_line): # -> None:
         """
         Add a line (ReviewLine) to the review.
@@ -82,8 +82,8 @@ class Review:
         :param review_line: a ReviewLine instance that belongs to the Review.
         """
         ...
-
-    def features(self): # -> list:
+    
+    def features(self): # -> list[Any]:
         """
         Return a list of features in the review. Each feature is a tuple made of
         the specific item feature and the opinion strength about that feature.
@@ -92,8 +92,8 @@ class Review:
         :rtype: list(tuple)
         """
         ...
-
-    def sents(self): # -> list:
+    
+    def sents(self): # -> list[Any]:
         """
         Return all tokenized sentences in the review.
 
@@ -101,10 +101,10 @@ class Review:
         :rtype: list(list(str))
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class ReviewLine:
@@ -114,10 +114,10 @@ class ReviewLine:
     """
     def __init__(self, sent, features=..., notes=...) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class ReviewsCorpusReader(CorpusReader):
@@ -161,8 +161,8 @@ class ReviewsCorpusReader(CorpusReader):
         :param encoding: the encoding that should be used to read the corpus.
         """
         ...
-
-    def features(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def features(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return a list of features. Each feature is a tuple made of the specific
         item feature and the opinion strength about that feature.
@@ -173,8 +173,8 @@ class ReviewsCorpusReader(CorpusReader):
         :rtype: list(tuple)
         """
         ...
-
-    def reviews(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def reviews(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all the reviews as a list of Review objects. If `fileids` is
         specified, return all the reviews from each of the specified files.
@@ -184,8 +184,8 @@ class ReviewsCorpusReader(CorpusReader):
         :return: the given file(s) as a list of reviews.
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all sentences in the corpus or in the specified files.
 
@@ -196,8 +196,8 @@ class ReviewsCorpusReader(CorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all words and punctuation symbols in the corpus or in the specified
         files.
@@ -208,3 +208,6 @@ class ReviewsCorpusReader(CorpusReader):
         :rtype: list(str)
         """
         ...
+    
+
+

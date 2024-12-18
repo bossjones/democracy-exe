@@ -221,7 +221,7 @@ def lobpcg(A, X, B=..., M=..., Y=..., tol=..., maxiter=..., largest=..., verbosi
 
     The traditional callable `LinearOperator` is no longer
     necessary but still supported as the input to `lobpcg`.
-    Specifying ``matmat=A_matmat`` explicitly improves performance.
+    Specifying ``matmat=A_matmat`` explicitly improves performance. 
 
     >>> A_lo = LinearOperator((n, n), matvec=A_matmat, matmat=A_matmat, dtype=np.int16)
     >>> eigenvalues, _ = lobpcg(A_lo, X, maxiter=80)
@@ -241,8 +241,8 @@ def lobpcg(A, X, B=..., M=..., Y=..., tol=..., maxiter=..., largest=..., verbosi
 
     and ``largest=False`` parameter
 
-    >>> eigenvalues, _ = lobpcg(A, X, largest=False, maxiter=80)
-    >>> print(eigenvalues)
+    >>> eigenvalues, _ = lobpcg(A, X, largest=False, maxiter=90)
+    >>> print(eigenvalues)  
     [1. 2. 3.]
 
     The next example illustrates computing 3 smallest eigenvalues of
@@ -295,3 +295,4 @@ def lobpcg(A, X, B=..., M=..., Y=..., tol=..., maxiter=..., largest=..., verbosi
 
     """
     ...
+

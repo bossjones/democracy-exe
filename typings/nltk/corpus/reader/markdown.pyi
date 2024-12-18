@@ -13,59 +13,59 @@ def comma_separated_string_args(func): # -> _Wrapped[Callable[..., Any], Any, Ca
     """
     ...
 
-def read_parse_blankline_block(stream, parser): # -> list:
+def read_parse_blankline_block(stream, parser): # -> list[Any]:
     ...
 
 class MarkdownBlock:
     def __init__(self, content) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     @property
     def raw(self): # -> Any:
         ...
-
+    
     @property
     def words(self): # -> list[str]:
         ...
-
+    
     @property
     def sents(self): # -> list[list[str]]:
         ...
-
+    
     @property
     def paras(self): # -> list[list[list[str]]]:
         ...
-
+    
 
 
 class CodeBlock(MarkdownBlock):
     def __init__(self, language, *args) -> None:
         ...
-
+    
     @property
     def sents(self): # -> list[list[str]]:
         ...
-
+    
     @property
     def lines(self):
         ...
-
+    
     @property
     def paras(self): # -> list[list[list[str]]]:
         ...
-
+    
 
 
 class MarkdownSection(MarkdownBlock):
     def __init__(self, heading, level, *args) -> None:
         ...
-
+    
 
 
 Image = ...
@@ -74,7 +74,7 @@ List = ...
 class MarkdownCorpusReader(PlaintextCorpusReader):
     def __init__(self, *args, parser=..., **kwargs) -> None:
         ...
-
+    
 
 
 class CategorizedMarkdownCorpusReader(CategorizedCorpusReader, MarkdownCorpusReader):
@@ -93,79 +93,82 @@ class CategorizedMarkdownCorpusReader(CategorizedCorpusReader, MarkdownCorpusRea
         are passed to the ``MarkdownCorpusReader`` constructor.
         """
         ...
-
+    
     @comma_separated_string_args
-    def categories(self, fileids=...): # -> list:
+    def categories(self, fileids=...): # -> list[Any]:
         ...
-
+    
     @comma_separated_string_args
-    def fileids(self, categories=...): # -> list[str | Any] | list | Any:
+    def fileids(self, categories=...): # -> list[str | Any] | list[Any] | Any:
         ...
-
+    
     @comma_separated_string_args
     def raw(self, fileids=..., categories=...):
         ...
-
+    
     @comma_separated_string_args
     def words(self, fileids=..., categories=...):
         ...
-
+    
     @comma_separated_string_args
     def sents(self, fileids=..., categories=...):
         ...
-
+    
     @comma_separated_string_args
     def paras(self, fileids=..., categories=...):
         ...
-
-    def concatenated_view(self, reader, fileids, categories): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def concatenated_view(self, reader, fileids, categories): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def metadata_reader(self, stream): # -> list[Any]:
         ...
-
+    
     @comma_separated_string_args
-    def metadata(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def metadata(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def blockquote_reader(self, stream): # -> list[MarkdownBlock]:
         ...
-
+    
     @comma_separated_string_args
-    def blockquotes(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def blockquotes(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def code_block_reader(self, stream): # -> list[CodeBlock]:
         ...
-
+    
     @comma_separated_string_args
-    def code_blocks(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def code_blocks(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def image_reader(self, stream): # -> list[Image]:
         ...
-
+    
     @comma_separated_string_args
-    def images(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def images(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def link_reader(self, stream): # -> list[Link]:
         ...
-
+    
     @comma_separated_string_args
-    def links(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def links(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def list_reader(self, stream): # -> list[List]:
         ...
-
+    
     @comma_separated_string_args
-    def lists(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def lists(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def section_reader(self, stream): # -> list[MarkdownSection]:
         ...
-
+    
     @comma_separated_string_args
-    def sections(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def sections(self, fileids=..., categories=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
+    
+
+

@@ -281,7 +281,7 @@ def value_indices(arr, *, ignore_value=...):
     value in the input array.
 
     >>> val_indices.keys()
-    dict_keys([0, 1, 2, 3])
+    dict_keys([np.int64(0), np.int64(1), np.int64(2), np.int64(3)])
 
     The entry for each value is an index tuple, locating the elements
     with that value.
@@ -301,7 +301,7 @@ def value_indices(arr, *, ignore_value=...):
 
     >>> val_indices = ndimage.value_indices(a, ignore_value=0)
     >>> val_indices.keys()
-    dict_keys([1, 2, 3])
+    dict_keys([np.int64(1), np.int64(2), np.int64(3)])
 
     """
     ...
@@ -931,7 +931,7 @@ def maximum_position(input, labels=..., index=...): # -> tuple[Any, ...] | list[
     """
     ...
 
-def extrema(input, labels=..., index=...): # -> tuple[generic | bool | int | float | complex | str | bytes | memoryview, Any, tuple[Any, ...], tuple[Any, ...]] | tuple[Any, Any, list[tuple[Any, ...]], list[tuple[Any, ...]]]:
+def extrema(input, labels=..., index=...): # -> tuple[generic | bool | int | float | complex | str | bytes | memoryview[int], Any, tuple[Any, ...], tuple[Any, ...]] | tuple[Any, Any, list[tuple[Any, ...]], list[tuple[Any, ...]]]:
     """
     Calculate the minimums and maximums of the values of an array
     at labels, along with their positions.
@@ -1137,3 +1137,4 @@ def watershed_ift(input, markers, structure=..., output=...): # -> NDArray[float
 
     """
     ...
+

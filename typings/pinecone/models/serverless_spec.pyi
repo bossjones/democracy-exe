@@ -9,3 +9,6 @@ class ServerlessSpec(NamedTuple):
     region: str
     def asdict(self): # -> dict[str, dict[str, Any]]:
         ...
+    
+
+

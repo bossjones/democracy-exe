@@ -75,14 +75,14 @@ class Rectangle:
     def __init__(self, maxes, mins) -> None:
         """Construct a hyperrectangle."""
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def volume(self):
         """Total volume."""
         ...
-
+    
     def split(self, d, split): # -> tuple[Rectangle, Rectangle]:
         """Produce two hyperrectangles by splitting.
 
@@ -99,7 +99,7 @@ class Rectangle:
 
         """
         ...
-
+    
     def min_distance_point(self, x, p=...): # -> Any:
         """
         Return the minimum distance between input and points in the
@@ -114,7 +114,7 @@ class Rectangle:
 
         """
         ...
-
+    
     def max_distance_point(self, x, p=...): # -> Any:
         """
         Return the maximum distance between input and points in the hyperrectangle.
@@ -128,7 +128,7 @@ class Rectangle:
 
         """
         ...
-
+    
     def min_distance_rectangle(self, other, p=...): # -> Any:
         """
         Compute the minimum distance between points in the two hyperrectangles.
@@ -142,7 +142,7 @@ class Rectangle:
 
         """
         ...
-
+    
     def max_distance_rectangle(self, other, p=...): # -> Any:
         """
         Compute the maximum distance between points in the two hyperrectangles.
@@ -156,7 +156,7 @@ class Rectangle:
 
         """
         ...
-
+    
 
 
 class KDTree(cKDTree):
@@ -242,60 +242,60 @@ class KDTree(cKDTree):
     class node:
         def __init__(self, ckdtree_node=...) -> None:
             ...
-
+        
         def __lt__(self, other) -> bool:
             ...
-
+        
         def __gt__(self, other) -> bool:
             ...
-
+        
         def __le__(self, other) -> bool:
             ...
-
+        
         def __ge__(self, other) -> bool:
             ...
-
+        
         def __eq__(self, other) -> bool:
             ...
-
-
-
+        
+    
+    
     class leafnode(node):
         @property
         def idx(self): # -> NDArray[intp]:
             ...
-
+        
         @property
         def children(self): # -> int:
             ...
-
-
-
+        
+    
+    
     class innernode(node):
         def __init__(self, ckdtreenode) -> None:
             ...
-
+        
         @property
         def split_dim(self): # -> int:
             ...
-
+        
         @property
         def split(self): # -> float:
             ...
-
+        
         @property
         def children(self): # -> int:
             ...
-
-
-
+        
+    
+    
     @property
     def tree(self): # -> node | leafnode | innernode:
         ...
-
+    
     def __init__(self, data, leafsize=..., compact_nodes=..., copy_data=..., balanced_tree=..., boxsize=...) -> None:
         ...
-
+    
     def query(self, x, k=..., eps=..., p=..., distance_upper_bound=..., workers=...): # -> tuple[Any, intp | Any]:
         r"""Query the kd-tree for nearest neighbors.
 
@@ -401,7 +401,7 @@ class KDTree(cKDTree):
 
         """
         ...
-
+    
     def query_ball_point(self, x, r, p=..., eps=..., workers=..., return_sorted=..., return_length=...): # -> Any:
         """Find all points within distance r of point(s) x.
 
@@ -473,7 +473,7 @@ class KDTree(cKDTree):
 
         """
         ...
-
+    
     def query_ball_tree(self, other, r, p=..., eps=...): # -> list[list[int]]:
         """
         Find all pairs of points between `self` and `other` whose distance is
@@ -524,7 +524,7 @@ class KDTree(cKDTree):
 
         """
         ...
-
+    
     def query_pairs(self, r, p=..., eps=..., output_type=...):
         """Find all pairs of points in `self` whose distance is at most r.
 
@@ -572,7 +572,7 @@ class KDTree(cKDTree):
 
         """
         ...
-
+    
     def count_neighbors(self, other, r, p=..., weights=..., cumulative=...):
         """Count how many nearby pairs can be formed.
 
@@ -720,7 +720,7 @@ class KDTree(cKDTree):
 
         """
         ...
-
+    
     def sparse_distance_matrix(self, other, max_distance, p=..., output_type=...):
         """Compute a sparse distance matrix.
 
@@ -782,7 +782,7 @@ class KDTree(cKDTree):
 
         """
         ...
-
+    
 
 
 def distance_matrix(x, y, p=..., threshold=...): # -> Any | NDArray[Any]:
@@ -817,3 +817,4 @@ def distance_matrix(x, y, p=..., threshold=...): # -> Any | NDArray[Any]:
 
     """
     ...
+

@@ -14,7 +14,7 @@ class VectorServiceStub:
             channel: A grpc.Channel.
         """
         ...
-
+    
 
 
 class VectorServiceServicer:
@@ -29,7 +29,7 @@ class VectorServiceServicer:
         For guidance and examples, see [Upsert data](https://docs.pinecone.io/docs/upsert-data).
         """
         ...
-
+    
     def Delete(self, request, context):
         """Delete vectors
 
@@ -38,7 +38,7 @@ class VectorServiceServicer:
         For guidance and examples, see [Delete data](https://docs.pinecone.io/docs/delete-data).
         """
         ...
-
+    
     def Fetch(self, request, context):
         """Fetch vectors
 
@@ -47,7 +47,7 @@ class VectorServiceServicer:
         For guidance and examples, see [Fetch data](https://docs.pinecone.io/docs/fetch-data).
         """
         ...
-
+    
     def List(self, request, context):
         """List vector IDs
 
@@ -60,7 +60,7 @@ class VectorServiceServicer:
         **Note:** `list` is supported only for serverless indexes.
         """
         ...
-
+    
     def Query(self, request, context):
         """Query vectors
 
@@ -69,7 +69,7 @@ class VectorServiceServicer:
         For guidance and examples, see [Query data](https://docs.pinecone.io/docs/query-data).
         """
         ...
-
+    
     def Update(self, request, context):
         """Update a vector
 
@@ -78,7 +78,7 @@ class VectorServiceServicer:
         For guidance and examples, see [Update data](https://docs.pinecone.io/docs/update-data).
         """
         ...
-
+    
     def DescribeIndexStats(self, request, context):
         """Get index stats
 
@@ -89,7 +89,7 @@ class VectorServiceServicer:
         For pod-based indexes, the index fullness result may be inaccurate during pod resizing; to get the status of a pod resizing process, use [`describe_index`](https://www.pinecone.io/docs/api/operation/describe_index/).
         """
         ...
-
+    
 
 
 def add_VectorServiceServicer_to_server(servicer, server): # -> None:
@@ -102,27 +102,30 @@ class VectorService:
     @staticmethod
     def Upsert(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
-
+    
     @staticmethod
     def Delete(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
-
+    
     @staticmethod
     def Fetch(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
-
+    
     @staticmethod
     def List(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
-
+    
     @staticmethod
     def Query(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
-
+    
     @staticmethod
     def Update(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
-
+    
     @staticmethod
     def DescribeIndexStats(request, target, options=..., channel_credentials=..., call_credentials=..., insecure=..., compression=..., wait_for_ready=..., timeout=..., metadata=...):
         ...
+    
+
+

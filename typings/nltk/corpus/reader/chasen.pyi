@@ -8,25 +8,25 @@ from nltk.corpus.reader.util import *
 class ChasenCorpusReader(CorpusReader):
     def __init__(self, root, fileids, encoding=..., sent_splitter=...) -> None:
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class ChasenCorpusView(StreamBackedCorpusView):
@@ -36,11 +36,11 @@ class ChasenCorpusView(StreamBackedCorpusView):
     """
     def __init__(self, corpus_file, encoding, tagged, group_by_sent, group_by_para, sent_splitter=...) -> None:
         ...
-
-    def read_block(self, stream): # -> list:
+    
+    def read_block(self, stream): # -> list[Any]:
         """Reads one paragraph at a time."""
         ...
-
+    
 
 
 def demo(): # -> None:

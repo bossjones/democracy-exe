@@ -23,7 +23,6 @@ class Singleton(type):
 
 # SOURCE: https://stackoverflow.com/a/63483209/814221
 class Guild(metaclass=Singleton):
-    # TEMPCHANGE: # def __init__(self, id=int(DISCORD_GUILD), prefix=constants.PREFIX):
     def __init__(self, id=aiosettings.discord_server_id, prefix=aiosettings.prefix):
         # print('Creating Guild')
         self.id = id
@@ -32,7 +31,6 @@ class Guild(metaclass=Singleton):
 
 # smoke tests
 if __name__ == "__main__":
-    # test_guild_metadata = Guild(id=int(DISCORD_GUILD), prefix=constants.PREFIX)
     test_guild_metadata = Guild(id=int(aiosettings.discord_server_id), prefix=aiosettings.prefix)
     print(test_guild_metadata)
     print(test_guild_metadata.id)

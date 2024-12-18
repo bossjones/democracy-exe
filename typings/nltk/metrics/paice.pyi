@@ -15,7 +15,7 @@ References:
 Chris D. Paice (1994). An evaluation method for stemming algorithms.
 In Proceedings of SIGIR, 42--50.
 """
-def get_words_from_dictionary(lemmas): # -> set:
+def get_words_from_dictionary(lemmas): # -> set[Any]:
     """
     Get original set of words used for analysis.
 
@@ -39,14 +39,14 @@ class Paice:
         :type stems: dict(str): set(str)
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def update(self): # -> None:
         """Update statistics after lemmas and stems have been set."""
         ...
-
+    
 
 
 def demo(): # -> None:

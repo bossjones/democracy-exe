@@ -963,3 +963,4 @@ def convolution_matrix(a, n, mode=...): # -> NDArray[Any]:
            [ 0,  0, -2,  4, -1]])
     """
     ...
+

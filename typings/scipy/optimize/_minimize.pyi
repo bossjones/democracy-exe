@@ -44,6 +44,7 @@ def minimize(fun, x0, args=..., method=..., jac=..., hess=..., hessp=..., bounds
             - 'L-BFGS-B'    :ref:`(see here) <optimize.minimize-lbfgsb>`
             - 'TNC'         :ref:`(see here) <optimize.minimize-tnc>`
             - 'COBYLA'      :ref:`(see here) <optimize.minimize-cobyla>`
+            - 'COBYQA'      :ref:`(see here) <optimize.minimize-cobyqa>`
             - 'SLSQP'       :ref:`(see here) <optimize.minimize-slsqp>`
             - 'trust-constr':ref:`(see here) <optimize.minimize-trustconstr>`
             - 'dogleg'      :ref:`(see here) <optimize.minimize-dogleg>`
@@ -110,18 +111,18 @@ def minimize(fun, x0, args=..., method=..., jac=..., hess=..., hessp=..., bounds
         parameters.
     bounds : sequence or `Bounds`, optional
         Bounds on variables for Nelder-Mead, L-BFGS-B, TNC, SLSQP, Powell,
-        trust-constr, and COBYLA methods. There are two ways to specify the
-        bounds:
+        trust-constr, COBYLA, and COBYQA methods. There are two ways to specify
+        the bounds:
 
             1. Instance of `Bounds` class.
             2. Sequence of ``(min, max)`` pairs for each element in `x`. None
                is used to specify no bound.
 
     constraints : {Constraint, dict} or List of {Constraint, dict}, optional
-        Constraints definition. Only for COBYLA, SLSQP and trust-constr.
+        Constraints definition. Only for COBYLA, COBYQA, SLSQP and trust-constr.
 
-        Constraints for 'trust-constr' are defined as a single object or a
-        list of objects specifying constraints to the optimization problem.
+        Constraints for 'trust-constr' and 'cobyqa' are defined as a single object
+        or a list of objects specifying constraints to the optimization problem.
         Available constraints are:
 
             - `LinearConstraint`
@@ -142,6 +143,7 @@ def minimize(fun, x0, args=..., method=..., jac=..., hess=..., hessp=..., bounds
         Equality constraint means that the constraint function result is to
         be zero whereas inequality means that it is to be non-negative.
         Note that COBYLA only supports inequality constraints.
+
     tol : float, optional
         Tolerance for termination. When `tol` is specified, the selected
         minimization algorithm sets some relevant solver-specific tolerance(s)
@@ -299,6 +301,13 @@ def minimize(fun, x0, args=..., method=..., jac=..., hess=..., hessp=..., bounds
     constraints functions 'fun' may return either a single number
     or an array or list of numbers.
 
+    Method :ref:`COBYQA <optimize.minimize-cobyqa>` uses the Constrained
+    Optimization BY Quadratic Approximations (COBYQA) method [18]_. The
+    algorithm is a derivative-free trust-region SQP method based on quadratic
+    approximations to the objective function and each nonlinear constraint. The
+    bounds are treated as unrelaxable constraints, in the sense that the
+    algorithm always respects them throughout the optimization process.
+
     Method :ref:`SLSQP <optimize.minimize-slsqp>` uses Sequential
     Least SQuares Programming to minimize a function of several
     variables with any combination of bounds, equality and inequality
@@ -430,6 +439,10 @@ def minimize(fun, x0, args=..., method=..., jac=..., hess=..., hessp=..., bounds
     .. [17] Lalee, Marucha, Jorge Nocedal, and Todd Plantega. 1998. On the
         implementation of an algorithm for large-scale equality constrained
         optimization. SIAM Journal on Optimization 8.3: 682-706.
+    .. [18] Ragonneau, T. M. *Model-Based Derivative-Free Optimization Methods
+        and Software*. PhD thesis, Department of Applied Mathematics, The Hong
+        Kong Polytechnic University, Hong Kong, China, 2022. URL:
+        https://theses.lib.polyu.edu.hk/handle/200/12294.
 
     Examples
     --------
@@ -495,7 +508,7 @@ def minimize(fun, x0, args=..., method=..., jac=..., hess=..., hessp=..., bounds
     """
     ...
 
-def minimize_scalar(fun, bracket=..., bounds=..., args=..., method=..., tol=..., options=...): # -> OptimizeResult:
+def minimize_scalar(fun, bracket=..., bounds=..., args=..., method=..., tol=..., options=...): # -> object | OptimizeResult:
     """Local minimization of scalar function of one variable.
 
     Parameters
@@ -649,3 +662,4 @@ def standardize_bounds(bounds, x0, meth): # -> Bounds | list[tuple[float | None,
 def standardize_constraints(constraints, x0, meth): # -> list[NonlinearConstraint | LinearConstraint | dict[Any, Any]] | list[Any]:
     """Converts constraints to the form required by the solver."""
     ...
+

@@ -25,8 +25,8 @@ class RTEFeatureExtractor:
         :type stop: bool
         """
         ...
-
-    def overlap(self, toktype, debug=...): # -> set:
+    
+    def overlap(self, toktype, debug=...): # -> set[Any]:
         """
         Compute the overlap between text and hypothesis.
 
@@ -34,8 +34,8 @@ class RTEFeatureExtractor:
         :type toktype: 'ne' or 'word'
         """
         ...
-
-    def hyp_extra(self, toktype, debug=...): # -> set:
+    
+    def hyp_extra(self, toktype, debug=...): # -> set[Any]:
         """
         Compute the extraneous material in the hypothesis.
 
@@ -43,14 +43,15 @@ class RTEFeatureExtractor:
         :type toktype: 'ne' or 'word'
         """
         ...
+    
 
 
-
-def rte_features(rtepair): # -> dict:
+def rte_features(rtepair): # -> dict[Any, Any]:
     ...
 
-def rte_featurize(rte_pairs): # -> list[tuple[dict, Any]]:
+def rte_featurize(rte_pairs): # -> list[tuple[dict[Any, Any], Any]]:
     ...
 
 def rte_classifier(algorithm, sample_N=...): # -> MaxentClassifier | TadmMaxentClassifier:
     ...
+

@@ -51,14 +51,17 @@ class LazyModule:
 
         """
         ...
-
+    
     def __getattr__(self, name): # -> Any:
         """Import the module on demand and get the attribute."""
         ...
-
+    
     def __setattr__(self, name, value): # -> None:
         """Import the module on demand and set the attribute."""
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
+    
+
+

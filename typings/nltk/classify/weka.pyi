@@ -15,24 +15,24 @@ def config_weka(classpath=...): # -> None:
 class WekaClassifier(ClassifierI):
     def __init__(self, formatter, model_filename) -> None:
         ...
-
-    def prob_classify_many(self, featuresets): # -> list | list[DictionaryProbDist]:
+    
+    def prob_classify_many(self, featuresets): # -> list[Any] | list[DictionaryProbDist]:
         ...
-
-    def classify_many(self, featuresets): # -> list | list[DictionaryProbDist]:
+    
+    def classify_many(self, featuresets): # -> list[Any] | list[DictionaryProbDist]:
         ...
-
+    
     def parse_weka_distribution(self, s): # -> DictionaryProbDist:
         ...
-
-    def parse_weka_output(self, lines): # -> list | list[DictionaryProbDist]:
+    
+    def parse_weka_output(self, lines): # -> list[Any] | list[DictionaryProbDist]:
         ...
-
+    
     _CLASSIFIER_CLASS = ...
     @classmethod
     def train(cls, model_filename, featuresets, classifier=..., options=..., quiet=...): # -> WekaClassifier:
         ...
-
+    
 
 
 class ARFF_Formatter:
@@ -52,19 +52,19 @@ class ARFF_Formatter:
             STRING.
         """
         ...
-
+    
     def format(self, tokens): # -> str:
         """Returns a string representation of ARFF output for the given data."""
         ...
-
-    def labels(self): # -> list:
+    
+    def labels(self): # -> list[Any]:
         """Returns the list of classes."""
         ...
-
+    
     def write(self, outfile, tokens): # -> None:
         """Writes ARFF data to a file for the given data."""
         ...
-
+    
     @staticmethod
     def from_train(tokens): # -> ARFF_Formatter:
         """
@@ -73,11 +73,11 @@ class ARFF_Formatter:
         string (note: not nominal) types.
         """
         ...
-
+    
     def header_section(self): # -> str:
         """Returns an ARFF header as a string."""
         ...
-
+    
     def data_section(self, tokens, labeled=...): # -> str:
         """
         Returns the ARFF data section for the given data.
@@ -89,11 +89,11 @@ class ARFF_Formatter:
             labeled if the first token's value is a tuple or list.
         """
         ...
-
+    
 
 
 if __name__ == "__main__":
     def make_classifier(featuresets): # -> WekaClassifier:
         ...
-
+    
     classifier = ...

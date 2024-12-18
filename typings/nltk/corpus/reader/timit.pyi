@@ -139,8 +139,8 @@ class TimitCorpusReader(CorpusReader):
         :param root: The root directory for this corpus.
         """
         ...
-
-    def fileids(self, filetype=...): # -> list[str | Any] | list | list[str]:
+    
+    def fileids(self, filetype=...): # -> list[str | Any] | list[Any] | list[str]:
         """
         Return a list of file identifiers for the files that make up
         this corpus.
@@ -151,7 +151,7 @@ class TimitCorpusReader(CorpusReader):
             ``wav``, or ``metadata``,
         """
         ...
-
+    
     def utteranceids(self, dialect=..., sex=..., spkrid=..., sent_type=..., sentid=...): # -> list[str | Any]:
         """
         :return: A list of the utterance identifiers for all
@@ -160,66 +160,66 @@ class TimitCorpusReader(CorpusReader):
             specified.
         """
         ...
-
-    def transcription_dict(self): # -> dict:
+    
+    def transcription_dict(self): # -> dict[Any, Any]:
         """
         :return: A dictionary giving the 'standard' transcription for
             each word.
         """
         ...
-
+    
     def spkrid(self, utterance):
         ...
-
+    
     def sentid(self, utterance):
         ...
-
+    
     def utterance(self, spkrid, sentid): # -> str:
         ...
-
+    
     def spkrutteranceids(self, speaker): # -> list[str | Any]:
         """
         :return: A list of all utterances associated with a given
             speaker.
         """
         ...
-
+    
     def spkrinfo(self, speaker):
         """
         :return: A dictionary mapping .. something.
         """
         ...
-
-    def phones(self, utterances=...): # -> list:
+    
+    def phones(self, utterances=...): # -> list[Any]:
         ...
-
-    def phone_times(self, utterances=...): # -> list:
+    
+    def phone_times(self, utterances=...): # -> list[Any]:
         """
         offset is represented as a number of 16kHz samples!
         """
         ...
-
-    def words(self, utterances=...): # -> list:
+    
+    def words(self, utterances=...): # -> list[Any]:
         ...
-
-    def word_times(self, utterances=...): # -> list:
+    
+    def word_times(self, utterances=...): # -> list[Any]:
         ...
-
-    def sents(self, utterances=...): # -> list:
+    
+    def sents(self, utterances=...): # -> list[Any]:
         ...
-
+    
     def sent_times(self, utterances=...): # -> list[tuple[bytes | str | Any, int, int]]:
         ...
-
-    def phone_trees(self, utterances=...): # -> list:
+    
+    def phone_trees(self, utterances=...): # -> list[Any]:
         ...
-
+    
     def wav(self, utterance, start=..., end=...): # -> bytes:
         ...
-
+    
     def audiodata(self, utterance, start=..., end=...): # -> bytes | str:
         ...
-
+    
     def play(self, utterance, start=..., end=...): # -> None:
         """
         Play the given audio sample.
@@ -227,21 +227,22 @@ class TimitCorpusReader(CorpusReader):
         :param utterance: The utterance id of the sample to play
         """
         ...
-
+    
 
 
 class SpeakerInfo:
     def __init__(self, id, sex, dr, use, recdate, birthdate, ht, race, edu, comments=...) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
 
 
-
-def read_timit_block(stream): # -> list:
+def read_timit_block(stream): # -> list[Any]:
     """
     Block reader for timit tagged sentences, which are preceded by a sentence
     number that will be ignored.
     """
     ...
+

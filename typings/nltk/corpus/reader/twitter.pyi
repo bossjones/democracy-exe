@@ -49,8 +49,8 @@ class TwitterCorpusReader(CorpusReader):
             smaller units, including but not limited to words.
         """
         ...
-
-    def docs(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def docs(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Returns the full Tweet objects, as specified by `Twitter
         documentation on Tweets
@@ -61,8 +61,8 @@ class TwitterCorpusReader(CorpusReader):
         :rtype: list(dict)
         """
         ...
-
-    def strings(self, fileids=...): # -> list:
+    
+    def strings(self, fileids=...): # -> list[Any]:
         """
         Returns only the text content of Tweets in the file(s)
 
@@ -70,7 +70,7 @@ class TwitterCorpusReader(CorpusReader):
         :rtype: list(str)
         """
         ...
-
+    
     def tokenized(self, fileids=...): # -> list[List[str]]:
         """
         :return: the given file(s) as a list of the text content of Tweets as
@@ -79,3 +79,6 @@ class TwitterCorpusReader(CorpusReader):
         :rtype: list(list(str))
         """
         ...
+    
+
+

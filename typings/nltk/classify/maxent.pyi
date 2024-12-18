@@ -86,10 +86,10 @@ class MaxentClassifier(ClassifierI):
         :param logarithmic: If false, then use non-logarithmic weights.
         """
         ...
-
+    
     def labels(self):
         ...
-
+    
     def set_weights(self, new_weights): # -> None:
         """
         Set the feature weight vector for this classifier.
@@ -97,20 +97,20 @@ class MaxentClassifier(ClassifierI):
         :type new_weights: list of float
         """
         ...
-
+    
     def weights(self): # -> Any:
         """
         :return: The feature weight vector for this classifier.
         :rtype: list of float
         """
         ...
-
+    
     def classify(self, featureset):
         ...
-
+    
     def prob_classify(self, featureset): # -> DictionaryProbDist:
         ...
-
+    
     def explain(self, featureset, columns=...): # -> None:
         """
         Print a table showing the effect of each of the features in
@@ -118,13 +118,13 @@ class MaxentClassifier(ClassifierI):
         probabilities of each label for that featureset.
         """
         ...
-
+    
     def most_informative_features(self, n=...): # -> list[int]:
         """
         Generates the ranked list of informative features from most to least.
         """
         ...
-
+    
     def show_most_informative_features(self, n=..., show=...): # -> None:
         """
         :param show: all, neg, or pos (for negative-only or positive-only)
@@ -133,10 +133,10 @@ class MaxentClassifier(ClassifierI):
         :type n: int
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     ALGORITHMS = ...
     @classmethod
     def train(cls, train_toks, algorithm=..., trace=..., encoding=..., labels=..., gaussian_prior_sigma=..., **cutoffs): # -> MaxentClassifier | TadmMaxentClassifier:
@@ -192,7 +192,7 @@ class MaxentClassifier(ClassifierI):
               log likelihood by less than ``v``.
         """
         ...
-
+    
 
 
 ConditionalExponentialClassifier = MaxentClassifier
@@ -229,7 +229,7 @@ class MaxentFeatureEncodingI:
         :rtype: list(tuple(int, int))
         """
         ...
-
+    
     def length(self):
         """
         :return: The size of the fixed-length joint-feature vectors
@@ -237,7 +237,7 @@ class MaxentFeatureEncodingI:
         :rtype: int
         """
         ...
-
+    
     def labels(self):
         """
         :return: A list of the \"known labels\" -- i.e., all labels
@@ -246,7 +246,7 @@ class MaxentFeatureEncodingI:
         :rtype: list
         """
         ...
-
+    
     def describe(self, fid):
         """
         :return: A string describing the value of the joint-feature
@@ -254,7 +254,7 @@ class MaxentFeatureEncodingI:
         :rtype: str
         """
         ...
-
+    
     def train(cls, train_toks):
         """
         Construct and return new feature encoding, based on a given
@@ -266,7 +266,7 @@ class MaxentFeatureEncodingI:
             and the second of which is a classification label.
         """
         ...
-
+    
 
 
 class FunctionBackedMaxentFeatureEncoding(MaxentFeatureEncodingI):
@@ -299,19 +299,19 @@ class FunctionBackedMaxentFeatureEncoding(MaxentFeatureEncodingI):
             for some value of ``fs``.
         """
         ...
-
+    
     def encode(self, featureset, label):
         ...
-
+    
     def length(self): # -> Any:
         ...
-
+    
     def labels(self): # -> Any:
         ...
-
+    
     def describe(self, fid): # -> Literal['no description available']:
         ...
-
+    
 
 
 class BinaryMaxentFeatureEncoding(MaxentFeatureEncodingI):
@@ -372,19 +372,19 @@ class BinaryMaxentFeatureEncoding(MaxentFeatureEncodingI):
            features in the generated joint-feature vectors.
         """
         ...
-
-    def encode(self, featureset, label): # -> list:
+    
+    def encode(self, featureset, label): # -> list[Any]:
         ...
-
+    
     def describe(self, f_id): # -> str | None:
         ...
-
-    def labels(self): # -> list:
+    
+    def labels(self): # -> list[Any]:
         ...
-
+    
     def length(self): # -> int:
         ...
-
+    
     @classmethod
     def train(cls, train_toks, count_cutoff=..., labels=..., **options): # -> Self:
         """
@@ -414,7 +414,7 @@ class BinaryMaxentFeatureEncoding(MaxentFeatureEncodingI):
             ``unseen_features`` and ``alwayson_features``.
         """
         ...
-
+    
 
 
 class GISEncoding(BinaryMaxentFeatureEncoding):
@@ -439,44 +439,44 @@ class GISEncoding(BinaryMaxentFeatureEncoding):
         :seealso: ``BinaryMaxentFeatureEncoding.__init__``
         """
         ...
-
+    
     @property
     def C(self): # -> int:
         """The non-negative constant that all encoded feature vectors
         will sum to."""
         ...
-
-    def encode(self, featureset, label): # -> list:
+    
+    def encode(self, featureset, label): # -> list[Any]:
         ...
-
+    
     def length(self): # -> int:
         ...
-
+    
     def describe(self, f_id): # -> str | None:
         ...
-
+    
 
 
 class TadmEventMaxentFeatureEncoding(BinaryMaxentFeatureEncoding):
     def __init__(self, labels, mapping, unseen_features=..., alwayson_features=...) -> None:
         ...
-
-    def encode(self, featureset, label): # -> list:
+    
+    def encode(self, featureset, label): # -> list[Any]:
         ...
-
-    def labels(self): # -> list:
+    
+    def labels(self): # -> list[Any]:
         ...
-
-    def describe(self, fid): # -> tuple | None:
+    
+    def describe(self, fid): # -> tuple[Any, Any] | None:
         ...
-
+    
     def length(self): # -> int:
         ...
-
+    
     @classmethod
     def train(cls, train_toks, count_cutoff=..., labels=..., **options): # -> Self:
         ...
-
+    
 
 
 class TypedMaxentFeatureEncoding(MaxentFeatureEncodingI):
@@ -553,19 +553,19 @@ class TypedMaxentFeatureEncoding(MaxentFeatureEncodingI):
            features in the generated joint-feature vectors.
         """
         ...
-
-    def encode(self, featureset, label): # -> list:
+    
+    def encode(self, featureset, label): # -> list[Any]:
         ...
-
+    
     def describe(self, f_id): # -> str | None:
         ...
-
-    def labels(self): # -> list:
+    
+    def labels(self): # -> list[Any]:
         ...
-
+    
     def length(self): # -> int:
         ...
-
+    
     @classmethod
     def train(cls, train_toks, count_cutoff=..., labels=..., **options): # -> Self:
         """
@@ -598,7 +598,7 @@ class TypedMaxentFeatureEncoding(MaxentFeatureEncodingI):
             ``unseen_features`` and ``alwayson_features``.
         """
         ...
-
+    
 
 
 def train_maxent_classifier_with_gis(train_toks, trace=..., encoding=..., labels=..., **cutoffs):
@@ -733,10 +733,10 @@ class TadmMaxentClassifier(MaxentClassifier):
     @classmethod
     def train(cls, train_toks, **kwargs): # -> Self:
         ...
+    
 
 
-
-def load_maxent_params(tab_dir): # -> tuple[NDArray[floating[_64Bit]], dict[tuple[Any, int | Any | bool | None, Any], int], list, dict[Any, int]]:
+def load_maxent_params(tab_dir): # -> tuple[NDArray[floating[_64Bit]], dict[tuple[Any, int | Any | bool | None, Any], int], list[Any], dict[Any, int]]:
     ...
 
 def save_maxent_params(wgt, mpg, lab, aon, tab_dir=...): # -> None:

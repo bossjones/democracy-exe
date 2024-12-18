@@ -39,21 +39,21 @@ class NgramAssocMeasures(metaclass=ABCMeta):
     def raw_freq(*marginals):
         """Scores ngrams by their frequency"""
         ...
-
+    
     @classmethod
     def student_t(cls, *marginals):
         """Scores ngrams using Student's t test with independence hypothesis
         for unigrams, as in Manning and Schutze 5.3.1.
         """
         ...
-
+    
     @classmethod
     def chi_sq(cls, *marginals): # -> int:
         """Scores ngrams using Pearson's chi-square as in Manning and Schutze
         5.3.3.
         """
         ...
-
+    
     @staticmethod
     def mi_like(*marginals, **kwargs):
         """Scores ngrams using a variant of mutual information. The keyword
@@ -61,29 +61,29 @@ class NgramAssocMeasures(metaclass=ABCMeta):
         logarithm of the result is calculated.
         """
         ...
-
+    
     @classmethod
     def pmi(cls, *marginals): # -> float:
         """Scores ngrams by pointwise mutual information, as in Manning and
         Schutze 5.4.
         """
         ...
-
+    
     @classmethod
     def likelihood_ratio(cls, *marginals): # -> int:
         """Scores ngrams using likelihood ratios as in Manning and Schutze 5.3.4."""
         ...
-
+    
     @classmethod
     def poisson_stirling(cls, *marginals):
         """Scores ngrams using the Poisson-Stirling measure."""
         ...
-
+    
     @classmethod
     def jaccard(cls, *marginals):
         """Scores ngrams using the Jaccard index."""
         ...
-
+    
 
 
 class BigramAssocMeasures(NgramAssocMeasures):
@@ -120,14 +120,14 @@ class BigramAssocMeasures(NgramAssocMeasures):
         coefficient.
         """
         ...
-
+    
     @classmethod
     def chi_sq(cls, n_ii, n_ix_xi_tuple, n_xx):
         """Scores bigrams using chi-square, i.e. phi-sq multiplied by the number
         of bigrams, as in Manning and Schutze 5.3.3.
         """
         ...
-
+    
     @classmethod
     def fisher(cls, *marginals):
         """Scores bigrams using Fisher's Exact Test (Pedersen 1996).  Less
@@ -135,12 +135,12 @@ class BigramAssocMeasures(NgramAssocMeasures):
         to compute. Requires scipy.
         """
         ...
-
+    
     @staticmethod
     def dice(n_ii, n_ix_xi_tuple, n_xx):
         """Scores bigrams using Dice's coefficient."""
         ...
-
+    
 
 
 class TrigramAssocMeasures(NgramAssocMeasures):
@@ -195,3 +195,6 @@ class ContingencyMeasures:
     def __init__(self, measures) -> None:
         """Constructs a ContingencyMeasures given a NgramAssocMeasures class"""
         ...
+    
+
+

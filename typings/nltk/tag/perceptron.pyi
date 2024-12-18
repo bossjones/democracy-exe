@@ -17,34 +17,34 @@ class AveragedPerceptron:
     json_tag = ...
     def __init__(self, weights=...) -> None:
         ...
-
+    
     def predict(self, features, return_conf=...): # -> tuple[Any, Any | None]:
         """Dot-product the features and current weights and return the best label."""
         ...
-
+    
     def update(self, truth, guess, features): # -> None:
         """Update the feature weights."""
         ...
-
+    
     def average_weights(self): # -> None:
         """Average weights from all iterations."""
         ...
-
+    
     def save(self, path): # -> None:
         """Save the model weights as json"""
         ...
-
+    
     def load(self, path): # -> None:
         """Load the json model weights."""
         ...
-
-    def encode_json_obj(self): # -> Any | dict:
+    
+    def encode_json_obj(self): # -> Any | dict[Any, Any]:
         ...
-
+    
     @classmethod
     def decode_json_obj(cls, obj): # -> Self:
         ...
-
+    
 
 
 @jsontags.register_tag
@@ -84,15 +84,15 @@ class PerceptronTagger(TaggerI):
         :param load: Load the json model upon instantiation.
         """
         ...
-
-    def tag(self, tokens, return_conf=..., use_tagdict=...): # -> list:
+    
+    def tag(self, tokens, return_conf=..., use_tagdict=...): # -> list[Any]:
         """
         Tag tokenized sentences.
         :params tokens: list of word
         :type tokens: list(str)
         """
         ...
-
+    
     def train(self, sentences, save_loc=..., nr_iter=...): # -> None:
         """Train a model from sentences, and save it at ``save_loc``. ``nr_iter``
         controls the number of Perceptron training iterations.
@@ -103,20 +103,20 @@ class PerceptronTagger(TaggerI):
         :param nr_iter: Number of training iterations.
         """
         ...
-
+    
     def save_to_json(self, loc, lang=...): # -> None:
         ...
-
+    
     def load_from_json(self, lang=...): # -> None:
         ...
-
-    def encode_json_obj(self): # -> tuple[Any | dict, Any | dict, list[Any]]:
+    
+    def encode_json_obj(self): # -> tuple[Any | dict[Any, Any], Any | dict[Any, Any], list[Any]]:
         ...
-
+    
     @classmethod
     def decode_json_obj(cls, obj): # -> Self:
         ...
-
+    
     def normalize(self, word): # -> Literal['!HYPHEN', '!YEAR', '!DIGITS']:
         """
         Normalization used in pre-processing.
@@ -127,7 +127,7 @@ class PerceptronTagger(TaggerI):
         :rtype: str
         """
         ...
-
+    
 
 
 if __name__ == "__main__":

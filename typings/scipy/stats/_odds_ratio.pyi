@@ -28,10 +28,10 @@ class OddsRatioResult:
     """
     def __init__(self, _table, _kind, statistic) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def confidence_interval(self, confidence_level=..., alternative=...): # -> ConfidenceInterval:
         """
         Confidence interval for the odds ratio.
@@ -97,7 +97,7 @@ class OddsRatioResult:
                (second edition), Wiley, Hoboken, NJ, USA (2007).
         """
         ...
-
+    
 
 
 def odds_ratio(table, *, kind=...): # -> OddsRatioResult:
@@ -180,7 +180,7 @@ def odds_ratio(table, *, kind=...): # -> OddsRatioResult:
     between being exposed and being a case.
 
     Interchanging the rows or columns of the contingency table inverts
-    the odds ratio, so it is import to understand the meaning of labels
+    the odds ratio, so it is important to understand the meaning of labels
     given to the rows and columns of the table when interpreting the
     odds ratio.
 
@@ -230,3 +230,4 @@ def odds_ratio(table, *, kind=...): # -> OddsRatioResult:
     statistically significant reduction in ischemic stroke.
     """
     ...
+

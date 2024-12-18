@@ -26,24 +26,24 @@ class CassetteContextDecorator:
     @classmethod
     def from_args(cls, cassette_class, **kwargs): # -> Self:
         ...
-
+    
     def __init__(self, cls, args_getter) -> None:
         ...
-
+    
     def __enter__(self):
         ...
-
+    
     def __exit__(self, *exc_info): # -> None:
         ...
-
+    
     @wrapt.decorator
     def __call__(self, function, instance, args, kwargs): # -> Coroutine[Any, Any, Any] | Generator[Any, Any, Any]:
         ...
-
+    
     @staticmethod
     def get_function_name(function):
         ...
-
+    
 
 
 class Cassette:
@@ -52,56 +52,56 @@ class Cassette:
     def load(cls, **kwargs): # -> Self:
         """Instantiate and load the cassette stored at the specified path."""
         ...
-
+    
     @classmethod
     def use_arg_getter(cls, arg_getter): # -> CassetteContextDecorator:
         ...
-
+    
     @classmethod
     def use(cls, **kwargs): # -> CassetteContextDecorator:
         ...
-
+    
     def __init__(self, path, serializer=..., persister=..., record_mode=..., match_on=..., before_record_request=..., before_record_response=..., custom_patches=..., inject=..., allow_playback_repeats=...) -> None:
         ...
-
+    
     @property
     def play_count(self): # -> int:
         ...
-
+    
     @property
     def all_played(self): # -> bool:
         """Returns True if all responses have been played, False otherwise."""
         ...
-
+    
     @property
     def requests(self): # -> list[Any]:
         ...
-
+    
     @property
     def responses(self): # -> list[Any]:
         ...
-
+    
     @property
     def write_protected(self): # -> bool:
         ...
-
+    
     def append(self, request, response): # -> None:
         """Add a request, response pair to this cassette"""
         ...
-
+    
     def filter_request(self, request):
         ...
-
+    
     def can_play_response_for(self, request): # -> bool:
         ...
-
+    
     def play_response(self, request):
         """
         Get the response corresponding to a request, but only if it
         hasn't been played back before, and mark it as played
         """
         ...
-
+    
     def responses_of(self, request): # -> list[Any]:
         """
         Find the responses corresponding to a request.
@@ -109,10 +109,10 @@ class Cassette:
         provided as an external API.
         """
         ...
-
+    
     def rewind(self): # -> None:
         ...
-
+    
     def find_requests_with_most_matches(self, request): # -> list[Any]:
         """
         Get the most similar request(s) stored in the cassette
@@ -125,14 +125,17 @@ class Cassette:
         we can get the similar request(s) in order to know what have changed in the request parts.
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __len__(self): # -> int:
         """Return the number of request,response pairs stored in here"""
         ...
-
+    
     def __contains__(self, request): # -> bool:
         """Return whether or not a request has been stored"""
         ...
+    
+
+

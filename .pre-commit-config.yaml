@@ -59,7 +59,6 @@ repos:
         # SOURCE: https://github.com/girder/large_image/blob/2e6fd90cfb9179f2c0bd59031f45805018f3f04a/.pre-commit-config.yaml
         types_or:
           - python
-          # - pyi
           # - jupyter
         exclude: ^(scripts|typings)/.*
 
@@ -68,11 +67,10 @@ repos:
         # entry: ruff format --force-exclude
         types_or:
           - python
-          # - pyi
           # - jupyter
         args:
           - --config=pyproject.toml
-        files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|pyi|ipynb)$
+        files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|ipynb)$
         exclude: (.tasks|hack|scripts)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -132,7 +130,7 @@ repos:
           - --style {numpydoc,pep257}
           - --no-strip-whitespace
           - --no-capitalize-first-letter
-        files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|pyi|ipynb)$
+        files: ^((src|tests|notebooks)/.+)?[^/]+\.(py|ipynb)$
         exclude: (.tasks|hack)
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.0

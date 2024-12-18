@@ -15,7 +15,7 @@ class TableQuestionAnsweringArgumentHandler(ArgumentHandler):
     """
     def __call__(self, table=..., query=..., **kwargs): # -> dict[Any, Any] | list[Any] | GeneratorType[Any, Any, Any] | list[dict[Any, Any]] | list[dict[str, Any]]:
         ...
-
+    
 
 
 @add_end_docstrings(build_pipeline_init_args(has_tokenizer=True))
@@ -52,17 +52,17 @@ class TableQuestionAnsweringPipeline(Pipeline):
     default_input_names = ...
     def __init__(self, args_parser=..., *args, **kwargs) -> None:
         ...
-
+    
     def batch_inference(self, **inputs): # -> Any:
         ...
-
+    
     def sequential_inference(self, **inputs):
         """
         Inference used for models that need to process sequences in a sequential fashion, like the SQA models which
         handle conversational query related to a table.
         """
         ...
-
+    
     def __call__(self, *args, **kwargs): # -> Any | Tensor | list[Any] | PipelineIterator | Generator[Any, Any, None] | None:
         r"""
         Answers queries according to a table. The pipeline accepts several types of inputs which are detailed below:
@@ -139,9 +139,12 @@ class TableQuestionAnsweringPipeline(Pipeline):
             - **aggregator** (`str`) -- If the model has an aggregator, this returns the aggregator.
         """
         ...
-
+    
     def preprocess(self, pipeline_input, sequential=..., padding=..., truncation=...): # -> BatchEncoding:
         ...
-
+    
     def postprocess(self, model_outputs): # -> list[dict[str, str]] | dict[str, str]:
         ...
+    
+
+

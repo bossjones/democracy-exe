@@ -45,87 +45,87 @@ _doc_default_disc = ...
 class rv_frozen:
     def __init__(self, dist, *args, **kwds) -> None:
         ...
-
+    
     @property
     def random_state(self):
         ...
-
+    
     @random_state.setter
     def random_state(self, seed): # -> None:
         ...
-
+    
     def cdf(self, x):
         ...
-
+    
     def logcdf(self, x):
         ...
-
+    
     def ppf(self, q):
         ...
-
+    
     def isf(self, q):
         ...
-
+    
     def rvs(self, size=..., random_state=...):
         ...
-
+    
     def sf(self, x):
         ...
-
+    
     def logsf(self, x):
         ...
-
+    
     def stats(self, moments=...):
         ...
-
+    
     def median(self):
         ...
-
+    
     def mean(self):
         ...
-
+    
     def var(self):
         ...
-
+    
     def std(self):
         ...
-
+    
     def moment(self, order=...):
         ...
-
+    
     def entropy(self):
         ...
-
+    
     def interval(self, confidence=...):
         ...
-
+    
     def expect(self, func=..., lb=..., ub=..., conditional=..., **kwds): # -> NDArray[floating[Any]] | float:
         ...
-
+    
     def support(self):
         ...
-
+    
 
 
 class rv_discrete_frozen(rv_frozen):
     def pmf(self, k):
         ...
-
+    
     def logpmf(self, k):
         ...
-
+    
 
 
 class rv_continuous_frozen(rv_frozen):
     def pdf(self, x):
         ...
-
+    
     def logpdf(self, x):
         ...
+    
 
 
-
-def argsreduce(cond, *args): # -> list[ndarray[Any, dtype[Any]]] | list[Any | NDArray[Any]]:
+def argsreduce(cond, *args): # -> list[ndarray[Any, dtype[Any]]]:
     """Clean arguments to:
 
     1. Ensure all arguments are iterable (arrays of dimension at least one
@@ -170,7 +170,7 @@ class rv_generic:
     """
     def __init__(self, seed=...) -> None:
         ...
-
+    
     @property
     def random_state(self): # -> RandomState | Generator:
         """Get or set the generator object for generating random variates.
@@ -184,14 +184,14 @@ class rv_generic:
 
         """
         ...
-
+    
     @random_state.setter
     def random_state(self, seed): # -> None:
         ...
-
+    
     def __setstate__(self, state): # -> None:
         ...
-
+    
     def freeze(self, *args, **kwds): # -> rv_continuous_frozen | rv_discrete_frozen:
         """Freeze the distribution for the given arguments.
 
@@ -208,10 +208,10 @@ class rv_generic:
 
         """
         ...
-
+    
     def __call__(self, *args, **kwds): # -> rv_continuous_frozen | rv_discrete_frozen:
         ...
-
+    
     def rvs(self, *args, **kwds): # -> int:
         """Random variates of given type.
 
@@ -243,7 +243,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def stats(self, *args, **kwds): # -> ndarray[Any, dtype[Any]] | tuple[ndarray[Any, dtype[Any]], ...]:
         """Some statistics of the given RV.
 
@@ -271,7 +271,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def entropy(self, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Differential entropy of the RV.
 
@@ -297,7 +297,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def moment(self, order, *args, **kwds): # -> ndarray[Any, dtype[float64]]:
         """non-central moment of distribution of specified order.
 
@@ -315,7 +315,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def median(self, *args, **kwds):
         """Median of the distribution.
 
@@ -341,7 +341,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def mean(self, *args, **kwds): # -> ndarray[Any, dtype[Any]] | tuple[ndarray[Any, dtype[Any]], ...]:
         """Mean of the distribution.
 
@@ -362,7 +362,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def var(self, *args, **kwds): # -> ndarray[Any, dtype[Any]] | tuple[ndarray[Any, dtype[Any]], ...]:
         """Variance of the distribution.
 
@@ -383,7 +383,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def std(self, *args, **kwds): # -> NDArray[Any]:
         """Standard deviation of the distribution.
 
@@ -404,7 +404,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def interval(self, confidence, *args, **kwds): # -> tuple[Any, Any]:
         """Confidence interval with equal areas around the median.
 
@@ -441,7 +441,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def support(self, *args, **kwargs): # -> tuple[Any, Any] | tuple[NDArray[bool_], NDArray[bool_]]:
         """Support of the distribution.
 
@@ -462,7 +462,7 @@ class rv_generic:
 
         """
         ...
-
+    
     def nnlf(self, theta, x): # -> float | Any:
         """Negative loglikelihood function.
         Notes
@@ -471,13 +471,13 @@ class rv_generic:
         parameters (including loc and scale).
         """
         ...
-
+    
 
 
 class _ShapeInfo:
     def __init__(self, name, integrality=..., domain=..., inclusive=...) -> None:
         ...
-
+    
 
 
 class rv_continuous(rv_generic):
@@ -679,10 +679,10 @@ class rv_continuous(rv_generic):
     """
     def __init__(self, momtype=..., a=..., b=..., xtol=..., badvalue=..., name=..., longname=..., shapes=..., seed=...) -> None:
         ...
-
+    
     def __getstate__(self): # -> dict[str, Any]:
         ...
-
+    
     def pdf(self, x, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Probability density function at x of the given RV.
 
@@ -705,7 +705,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def logpdf(self, x, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Log of the probability density function at x of the given RV.
 
@@ -730,7 +730,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def cdf(self, x, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """
         Cumulative distribution function of the given RV.
@@ -754,7 +754,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def logcdf(self, x, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Log of the cumulative distribution function at x of the given RV.
 
@@ -777,7 +777,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def sf(self, x, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Survival function (1 - `cdf`) at x of the given RV.
 
@@ -800,7 +800,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def logsf(self, x, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Log of the survival function of the given RV.
 
@@ -826,7 +826,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def ppf(self, q, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Percent point function (inverse of `cdf`) at q of the given RV.
 
@@ -849,7 +849,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def isf(self, q, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Inverse survival function (inverse of `sf`) at q of the given RV.
 
@@ -872,7 +872,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def fit(self, data, *args, **kwds): # -> tuple[Any, ...]:
         r"""
         Return estimates of shape (if applicable), location, and scale
@@ -1048,7 +1048,7 @@ class rv_continuous(rv_generic):
         (0.92087172783841631, 2.0015750750324668)
         """
         ...
-
+    
     def fit_loc_scale(self, data, *args): # -> tuple[Any | Literal[0], Any | Literal[1]]:
         """
         Estimate loc and scale parameters from data using 1st and 2nd moments.
@@ -1070,7 +1070,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
     def expect(self, func=..., args=..., loc=..., scale=..., lb=..., ub=..., conditional=..., **kwds): # -> ndarray[Any, dtype[Any]]:
         """Calculate expected value of a function with respect to the
         distribution by numerical integration.
@@ -1170,7 +1170,7 @@ class rv_continuous(rv_generic):
 
         """
         ...
-
+    
 
 
 class rv_discrete(rv_generic):
@@ -1314,13 +1314,13 @@ class rv_discrete(rv_generic):
     """
     def __new__(cls, a=..., b=..., name=..., badvalue=..., moment_tol=..., values=..., inc=..., longname=..., shapes=..., seed=...): # -> Self:
         ...
-
+    
     def __init__(self, a=..., b=..., name=..., badvalue=..., moment_tol=..., values=..., inc=..., longname=..., shapes=..., seed=...) -> None:
         ...
-
+    
     def __getstate__(self): # -> dict[str, Any]:
         ...
-
+    
     def rvs(self, *args, **kwargs): # -> int:
         """Random variates of given type.
 
@@ -1351,7 +1351,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def pmf(self, k, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Probability mass function at k of the given RV.
 
@@ -1372,7 +1372,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def logpmf(self, k, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Log of the probability mass function at k of the given RV.
 
@@ -1393,7 +1393,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def cdf(self, k, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Cumulative distribution function of the given RV.
 
@@ -1414,7 +1414,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def logcdf(self, k, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Log of the cumulative distribution function at k of the given RV.
 
@@ -1435,7 +1435,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def sf(self, k, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Survival function (1 - `cdf`) at k of the given RV.
 
@@ -1456,7 +1456,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def logsf(self, k, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Log of the survival function of the given RV.
 
@@ -1480,7 +1480,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def ppf(self, q, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Percent point function (inverse of `cdf`) at q of the given RV.
 
@@ -1501,7 +1501,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def isf(self, q, *args, **kwds): # -> ndarray[Any, dtype[Any]]:
         """Inverse survival function (inverse of `sf`) at q of the given RV.
 
@@ -1522,7 +1522,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
     def expect(self, func=..., args=..., loc=..., lb=..., ub=..., conditional=..., maxcount=..., tolerance=..., chunksize=...): # -> NDArray[floating[Any]] | float:
         """
         Calculate expected value of a function with respect to the distribution
@@ -1577,7 +1577,7 @@ class rv_discrete(rv_generic):
 
         """
         ...
-
+    
 
 
 class rv_sample(rv_discrete):
@@ -1587,13 +1587,13 @@ class rv_sample(rv_discrete):
     """
     def __init__(self, a=..., b=..., name=..., badvalue=..., moment_tol=..., values=..., inc=..., longname=..., shapes=..., seed=...) -> None:
         ...
-
+    
     def __getstate__(self): # -> dict[str, Any]:
         ...
-
+    
     def generic_moment(self, n): # -> Any:
         ...
-
+    
 
 
 def get_distribution_names(namespace_pairs, rv_base_class): # -> tuple[list[Any], list[Any]]:
@@ -1617,3 +1617,4 @@ def get_distribution_names(namespace_pairs, rv_base_class): # -> tuple[list[Any]
 
     """
     ...
+

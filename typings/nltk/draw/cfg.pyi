@@ -30,25 +30,25 @@ class CFGEditor:
     _BOLD = ...
     def __init__(self, parent, cfg=..., set_cfg_callback=...) -> None:
         ...
-
+    
 
 
 class CFGDemo:
     def __init__(self, grammar, text) -> None:
         ...
-
+    
     def reset_workspace(self): # -> None:
         ...
-
+    
     def workspace_markprod(self, production): # -> None:
         ...
-
+    
     def destroy(self, *args): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         ...
-
+    
 
 
 def demo2(): # -> None:

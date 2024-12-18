@@ -149,26 +149,26 @@ class IBMModel3(IBMModel):
         :type probability_tables: dict[str]: object
         """
         ...
-
+    
     def reset_probabilities(self): # -> None:
         ...
-
+    
     def set_uniform_probabilities(self, sentence_aligned_corpus): # -> None:
         ...
-
+    
     def train(self, parallel_corpus): # -> None:
         ...
-
+    
     def maximize_distortion_probabilities(self, counts): # -> None:
         ...
-
+    
     def prob_t_a_given_s(self, alignment_info): # -> float:
         """
         Probability of target sentence and an alignment given the
         source sentence
         """
         ...
-
+    
 
 
 class Model3Counts(Counts):
@@ -178,6 +178,9 @@ class Model3Counts(Counts):
     """
     def __init__(self) -> None:
         ...
-
+    
     def update_distortion(self, count, alignment_info, j, l, m): # -> None:
         ...
+    
+
+

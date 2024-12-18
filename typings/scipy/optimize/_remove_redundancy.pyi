@@ -8,3 +8,4 @@ programming equality constraints.
 """
 def bg_update_dense(plu, perm_r, v, j): # -> tuple[Any, Any]:
     ...
+

@@ -11,21 +11,24 @@ else:
 class FileVideoStream:
 	def __init__(self, path, transform=..., queue_size=...) -> None:
 		...
-
-	def start(self): # -> FileVideoStream:
+	
+	def start(self): # -> Self:
 		...
-
+	
 	def update(self): # -> None:
 		...
-
+	
 	def read(self):
 		...
-
+	
 	def running(self): # -> bool:
 		...
-
+	
 	def more(self): # -> bool:
 		...
-
+	
 	def stop(self): # -> None:
 		...
+	
+
+

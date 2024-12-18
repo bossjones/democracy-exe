@@ -36,7 +36,7 @@ class RegexpChunkApp:
     _HELPTAB_SPACER = ...
     def normalize_grammar(self, grammar): # -> str:
         ...
-
+    
     def __init__(self, devset_name=..., devset=..., grammar=..., chunk_label=..., tagset=...) -> None:
         """
         :param devset_name: The name of the development set; used for
@@ -49,51 +49,51 @@ class RegexpChunkApp:
             for the help page.  Defaults to ``self.TAGSET``.
         """
         ...
-
+    
     def toggle_show_trace(self, *e): # -> Literal['break']:
         ...
-
+    
     _SCALE_N = ...
     _DRAW_LINES = ...
     _eval_demon_running = ...
     _showing_trace = ...
     def show_trace(self, *e): # -> None:
         ...
-
+    
     def show_help(self, tab): # -> None:
         ...
-
+    
     def destroy(self, *e): # -> None:
         ...
-
+    
     def show_devset(self, index=...): # -> None:
         ...
-
+    
     def update(self, *event): # -> None:
         ...
-
+    
     def reset(self): # -> None:
         ...
-
+    
     SAVE_GRAMMAR_TEMPLATE = ...
     def save_grammar(self, filename=...): # -> None:
         ...
-
+    
     def load_grammar(self, filename=...): # -> None:
         ...
-
+    
     def save_history(self, filename=...): # -> None:
         ...
-
+    
     def about(self, *e): # -> None:
         ...
-
+    
     def set_devset_size(self, size=...): # -> None:
         ...
-
+    
     def resize(self, size=...): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         """
         Enter the Tkinter mainloop.  This function must be called if
@@ -102,7 +102,7 @@ class RegexpChunkApp:
         the script completes.
         """
         ...
-
+    
 
 
 def app(): # -> None:

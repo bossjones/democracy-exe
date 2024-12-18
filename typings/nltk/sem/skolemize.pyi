@@ -13,3 +13,4 @@ def to_cnf(first, second):
     Convert this split disjunction to conjunctive normal form (CNF)
     """
     ...
+

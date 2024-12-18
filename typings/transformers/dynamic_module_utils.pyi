@@ -8,13 +8,14 @@ from typing import Any, Dict, List, Optional, Union
 
 """Utilities to dynamically load objects from the Hub."""
 logger = ...
+_HF_REMOTE_CODE_LOCK = ...
 def init_hf_modules(): # -> None:
     """
     Creates the cache directory for modules with an init, and adds it to the Python path.
     """
     ...
 
-def create_dynamic_module(name: Union[str, os.PathLike]): # -> None:
+def create_dynamic_module(name: Union[str, os.PathLike]) -> None:
     """
     Creates a dynamic module in the cache directory for modules.
 
@@ -75,20 +76,23 @@ def check_imports(filename: Union[str, os.PathLike]) -> List[str]:
     """
     ...
 
-def get_class_in_module(class_name: str, module_path: Union[str, os.PathLike]) -> typing.Type:
+def get_class_in_module(class_name: str, module_path: Union[str, os.PathLike], *, force_reload: bool = ...) -> typing.Type:
     """
     Import a module on the cache directory for modules and extract a class from it.
 
     Args:
         class_name (`str`): The name of the class to import.
         module_path (`str` or `os.PathLike`): The path to the module to import.
+        force_reload (`bool`, *optional*, defaults to `False`):
+            Whether to reload the dynamic module from file if it already exists in `sys.modules`.
+            Otherwise, the module is only reloaded if the file has changed.
 
     Returns:
         `typing.Type`: The class looked for.
     """
     ...
 
-def get_cached_module_file(pretrained_model_name_or_path: Union[str, os.PathLike], module_file: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: bool = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., repo_type: Optional[str] = ..., _commit_hash: Optional[str] = ..., **deprecated_kwargs) -> str:
+def get_cached_module_file(pretrained_model_name_or_path: Union[str, os.PathLike], module_file: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: Optional[bool] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., repo_type: Optional[str] = ..., _commit_hash: Optional[str] = ..., **deprecated_kwargs) -> str:
     """
     Prepares Downloads a module from a local folder or a distant repo and returns its path inside the cached
     Transformers module.
@@ -110,8 +114,9 @@ def get_cached_module_file(pretrained_model_name_or_path: Union[str, os.PathLike
         force_download (`bool`, *optional*, defaults to `False`):
             Whether or not to force to (re-)download the configuration files and override the cached versions if they
             exist.
-        resume_download (`bool`, *optional*, defaults to `False`):
-            Whether or not to delete incompletely received file. Attempts to resume the download if such a file exists.
+        resume_download:
+            Deprecated and ignored. All downloads are now resumed by default when possible.
+            Will be removed in v5 of Transformers.
         proxies (`Dict[str, str]`, *optional*):
             A dictionary of proxy servers to use by protocol or endpoint, e.g., `{'http': 'foo.bar:3128',
             'http://hostname': 'foo.bar:4012'}.` The proxies are used on each request.
@@ -138,7 +143,7 @@ def get_cached_module_file(pretrained_model_name_or_path: Union[str, os.PathLike
     """
     ...
 
-def get_class_from_dynamic_module(class_reference: str, pretrained_model_name_or_path: Union[str, os.PathLike], cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: bool = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., repo_type: Optional[str] = ..., code_revision: Optional[str] = ..., **kwargs) -> typing.Type:
+def get_class_from_dynamic_module(class_reference: str, pretrained_model_name_or_path: Union[str, os.PathLike], cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: Optional[bool] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., repo_type: Optional[str] = ..., code_revision: Optional[str] = ..., **kwargs) -> typing.Type:
     """
     Extracts a class from a module file, present in the local folder or repository of a model.
 
@@ -173,8 +178,9 @@ def get_class_from_dynamic_module(class_reference: str, pretrained_model_name_or
         force_download (`bool`, *optional*, defaults to `False`):
             Whether or not to force to (re-)download the configuration files and override the cached versions if they
             exist.
-        resume_download (`bool`, *optional*, defaults to `False`):
-            Whether or not to delete incompletely received file. Attempts to resume the download if such a file exists.
+        resume_download:
+            Deprecated and ignored. All downloads are now resumed by default when possible.
+            Will be removed in v5 of Transformers.
         proxies (`Dict[str, str]`, *optional*):
             A dictionary of proxy servers to use by protocol or endpoint, e.g., `{'http': 'foo.bar:3128',
             'http://hostname': 'foo.bar:4012'}.` The proxies are used on each request.
@@ -235,3 +241,4 @@ def custom_object_save(obj: Any, folder: Union[str, os.PathLike], config: Option
 TIME_OUT_REMOTE_CODE = ...
 def resolve_trust_remote_code(trust_remote_code, model_name, has_local_code, has_remote_code): # -> bool:
     ...
+

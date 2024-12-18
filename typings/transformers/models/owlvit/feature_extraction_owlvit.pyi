@@ -9,3 +9,6 @@ logger = ...
 class OwlViTFeatureExtractor(OwlViTImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

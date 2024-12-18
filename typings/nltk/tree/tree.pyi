@@ -71,38 +71,38 @@ class Tree(list):
     """
     def __init__(self, node, children=...) -> None:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     __ne__ = ...
     __gt__ = ...
     __le__ = ...
     __ge__ = ...
     def __mul__(self, v):
         ...
-
+    
     def __rmul__(self, v):
         ...
-
+    
     def __add__(self, v):
         ...
-
+    
     def __radd__(self, v):
         ...
-
-    def __getitem__(self, index): # -> list | Self:
+    
+    def __getitem__(self, index): # -> list[Any] | Self:
         ...
-
+    
     def __setitem__(self, index, value): # -> None:
         ...
-
+    
     def __delitem__(self, index): # -> None:
         ...
-
+    
     node = ...
     def label(self): # -> Any:
         """
@@ -116,7 +116,7 @@ class Tree(list):
         :rtype: any
         """
         ...
-
+    
     def set_label(self, label): # -> None:
         """
         Set the node label of the tree.
@@ -130,8 +130,8 @@ class Tree(list):
         :type label: any
         """
         ...
-
-    def leaves(self): # -> list:
+    
+    def leaves(self): # -> list[Any]:
         """
         Return the leaves of the tree.
 
@@ -145,7 +145,7 @@ class Tree(list):
         :rtype: list
         """
         ...
-
+    
     def flatten(self): # -> Tree:
         """
         Return a flat version of the tree, with all non-root non-terminals removed.
@@ -159,7 +159,7 @@ class Tree(list):
         :rtype: Tree
         """
         ...
-
+    
     def height(self): # -> int:
         """
         Return the height of the tree.
@@ -180,8 +180,8 @@ class Tree(list):
         :rtype: int
         """
         ...
-
-    def treepositions(self, order=...): # -> list:
+    
+    def treepositions(self, order=...): # -> list[Any]:
         """
             >>> t = Tree.fromstring("(S (NP (D the) (N dog)) (VP (V chased) (NP (D the) (N cat))))")
             >>> t.treepositions() # doctest: +ELLIPSIS
@@ -195,7 +195,7 @@ class Tree(list):
             ``leaves``.
         """
         ...
-
+    
     def subtrees(self, filter=...): # -> Generator[Self | Any, Any, None]:
         """
         Generate all the subtrees of this tree, optionally restricted
@@ -214,7 +214,7 @@ class Tree(list):
         :param filter: the function to filter all local trees
         """
         ...
-
+    
     def productions(self): # -> list[Production]:
         """
         Generate the productions that correspond to the non-terminal nodes of the tree.
@@ -229,8 +229,8 @@ class Tree(list):
         :rtype: list(Production)
         """
         ...
-
-    def pos(self): # -> list:
+    
+    def pos(self): # -> list[Any]:
         """
         Return a sequence of pos-tagged words extracted from the tree.
 
@@ -243,7 +243,7 @@ class Tree(list):
         :rtype: list(tuple)
         """
         ...
-
+    
     def leaf_treeposition(self, index): # -> tuple[()]:
         """
         :return: The tree position of the ``index``-th leaf in this
@@ -254,7 +254,7 @@ class Tree(list):
             leaves, or if ``index<0``.
         """
         ...
-
+    
     def treeposition_spanning_leaves(self, start, end): # -> tuple[()]:
         """
         :return: The tree position of the lowest descendant of this
@@ -262,7 +262,7 @@ class Tree(list):
         :raise ValueError: if ``end <= start``
         """
         ...
-
+    
     def chomsky_normal_form(self, factor=..., horzMarkov=..., vertMarkov=..., childChar=..., parentChar=...): # -> None:
         """
         This method can modify a tree in three ways:
@@ -288,7 +288,7 @@ class Tree(list):
         :type  parentChar: str
         """
         ...
-
+    
     def un_chomsky_normal_form(self, expandUnary=..., childChar=..., parentChar=..., unaryChar=...): # -> None:
         """
         This method modifies the tree in three ways:
@@ -309,7 +309,7 @@ class Tree(list):
         :type  unaryChar: str
         """
         ...
-
+    
     def collapse_unary(self, collapsePOS=..., collapseRoot=..., joinChar=...): # -> None:
         """
         Collapse subtrees with a single child (ie. unary productions)
@@ -330,7 +330,7 @@ class Tree(list):
         :type  joinChar: str
         """
         ...
-
+    
     @classmethod
     def convert(cls, tree): # -> Self:
         """
@@ -342,19 +342,19 @@ class Tree(list):
         :return: The new Tree.
         """
         ...
-
+    
     def __copy__(self): # -> Self:
         ...
-
+    
     def __deepcopy__(self, memo): # -> Self:
         ...
-
+    
     def copy(self, deep=...): # -> Self:
         ...
-
+    
     def freeze(self, leaf_freezer=...): # -> ImmutableTree:
         ...
-
+    
     @classmethod
     def fromstring(cls, s, brackets=..., read_node=..., read_leaf=..., node_pattern=..., leaf_pattern=..., remove_empty_top_bracketing=...):
         """
@@ -407,7 +407,7 @@ class Tree(list):
         :rtype: Tree
         """
         ...
-
+    
     @classmethod
     def fromlist(cls, l): # -> Tree | str | None:
         """
@@ -420,13 +420,13 @@ class Tree(list):
         Convert nested lists to a NLTK Tree
         """
         ...
-
+    
     def draw(self): # -> None:
         """
         Open a new window containing a graphical diagram of this tree.
         """
         ...
-
+    
     def pretty_print(self, sentence=..., highlight=..., stream=..., **kwargs): # -> None:
         """
         Pretty-print this tree as ASCII or Unicode art.
@@ -434,19 +434,19 @@ class Tree(list):
         `nltk.tree.prettyprinter.TreePrettyPrinter`.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def pprint(self, **kwargs): # -> None:
         """
         Print a string representation of this Tree to 'stream'
         """
         ...
-
+    
     def pformat(self, margin=..., indent=..., nodesep=..., parens=..., quotes=...): # -> str:
         """
         :return: A pretty-printed string representation of this tree.
@@ -462,7 +462,7 @@ class Tree(list):
             trees like ``(S: (NP: I) (VP: (V: saw) (NP: it)))``.
         """
         ...
-
+    
     def pformat_latex_qtree(self): # -> str:
         r"""
         Returns a representation of the tree compatible with the
@@ -482,7 +482,7 @@ class Tree(list):
         :rtype: str
         """
         ...
-
+    
 
 
 def demo(): # -> None:

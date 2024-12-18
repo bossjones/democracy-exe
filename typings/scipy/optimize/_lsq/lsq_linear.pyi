@@ -217,3 +217,4 @@ def lsq_linear(A, b, bounds=..., method=..., tol=..., lsq_solver=..., lsmr_tol=.
     first-order optimality 4.66e-08.
     """
     ...
+

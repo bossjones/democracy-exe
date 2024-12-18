@@ -31,3 +31,4 @@ def equality_constrained_sqp(fun_and_constr, grad_and_jac, lagr_hess, x0, fun0, 
            Second Edition (2006).
     """
     ...
+

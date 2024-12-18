@@ -36,7 +36,7 @@ class IgnoreReadmeCorpusView(StreamBackedCorpusView):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class OpinionLexiconCorpusReader(WordListCorpusReader):
@@ -63,7 +63,7 @@ class OpinionLexiconCorpusReader(WordListCorpusReader):
         'abominate', 'abomination', 'abort']
     """
     CorpusView = IgnoreReadmeCorpusView
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all words in the opinion lexicon. Note that these words are not
         sorted in alphabetical order.
@@ -74,8 +74,8 @@ class OpinionLexiconCorpusReader(WordListCorpusReader):
         :rtype: list(str)
         """
         ...
-
-    def positive(self): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def positive(self): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all positive words in alphabetical order.
 
@@ -83,8 +83,8 @@ class OpinionLexiconCorpusReader(WordListCorpusReader):
         :rtype: list(str)
         """
         ...
-
-    def negative(self): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def negative(self): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Return all negative words in alphabetical order.
 
@@ -92,3 +92,6 @@ class OpinionLexiconCorpusReader(WordListCorpusReader):
         :rtype: list(str)
         """
         ...
+    
+
+

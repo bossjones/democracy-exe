@@ -37,16 +37,16 @@ class ARLSTem2(StemmerI):
     """
     def __init__(self) -> None:
         ...
-
+    
     def stem1(self, token):
         """
         call this function to get the first stem
         """
         ...
-
+    
     def stem(self, token): # -> None:
         ...
-
+    
     def norm(self, token): # -> str:
         """
         normalize the word by removing diacritics, replace hamzated Alif
@@ -54,75 +54,78 @@ class ARLSTem2(StemmerI):
         beginning.
         """
         ...
-
+    
     def pref(self, token): # -> None:
         """
         remove prefixes from the words' beginning.
         """
         ...
-
+    
     def adjective(self, token): # -> None:
         """
         remove the infixes from adjectives
         """
         ...
-
+    
     def suff(self, token):
         """
         remove the suffixes from the word's ending.
         """
         ...
-
+    
     def fem2masc(self, token): # -> None:
         """
         transform the word from the feminine form to the masculine form.
         """
         ...
-
+    
     def plur2sing(self, token): # -> None:
         """
         transform the word from the plural form to the singular form.
         """
         ...
-
+    
     def verb(self, token):
         """
         stem the verb prefixes and suffixes or both
         """
         ...
-
+    
     def verb_t1(self, token): # -> None:
         """
         stem the present tense co-occurred prefixes and suffixes
         """
         ...
-
+    
     def verb_t2(self, token): # -> None:
         """
         stem the future tense co-occurred prefixes and suffixes
         """
         ...
-
+    
     def verb_t3(self, token): # -> None:
         """
         stem the present tense suffixes
         """
         ...
-
+    
     def verb_t4(self, token): # -> None:
         """
         stem the present tense prefixes
         """
         ...
-
+    
     def verb_t5(self, token): # -> None:
         """
         stem the future tense prefixes
         """
         ...
-
+    
     def verb_t6(self, token):
         """
         stem the imperative tense prefixes
         """
         ...
+    
+
+

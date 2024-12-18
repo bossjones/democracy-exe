@@ -66,7 +66,7 @@ class DependencyEvaluator:
         :type parsed_sents: list(DependencyGraph)
         """
         ...
-
+    
     def eval(self): # -> tuple[float, float]:
         """
         Return the Labeled Attachment Score (LAS) and Unlabeled Attachment Score (UAS)
@@ -74,3 +74,6 @@ class DependencyEvaluator:
         :return : tuple(float,float)
         """
         ...
+    
+
+

@@ -178,21 +178,21 @@ class netcdf_file:
     def __init__(self, filename, mode=..., mmap=..., version=..., maskandscale=...) -> None:
         """Initialize netcdf_file from fileobj (str or file-like)."""
         ...
-
+    
     def __setattr__(self, attr, value): # -> None:
         ...
-
+    
     def close(self): # -> None:
         """Closes the NetCDF file."""
         ...
-
+    
     __del__ = ...
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, type, value, traceback): # -> None:
         ...
-
+    
     def createDimension(self, name, length): # -> None:
         """
         Adds a dimension to the Dimension section of the NetCDF data structure.
@@ -214,7 +214,7 @@ class netcdf_file:
 
         """
         ...
-
+    
     def createVariable(self, name, type, dimensions):
         """
         Create an empty variable for the `netcdf_file` object, specifying its data
@@ -247,7 +247,7 @@ class netcdf_file:
 
         """
         ...
-
+    
     def flush(self): # -> None:
         """
         Perform a sync-to-disk flush if the `netcdf_file` object is in write mode.
@@ -258,7 +258,7 @@ class netcdf_file:
 
         """
         ...
-
+    
     sync = ...
     _pack_int32 = ...
     _unpack_int32 = ...
@@ -319,10 +319,10 @@ class netcdf_variable:
     """
     def __init__(self, data, typecode, size, shape, dimensions, attributes=..., maskandscale=...) -> None:
         ...
-
+    
     def __setattr__(self, attr, value): # -> None:
         ...
-
+    
     def isrec(self): # -> bool:
         """Returns whether the variable has a record dimension or not.
 
@@ -333,7 +333,7 @@ class netcdf_variable:
 
         """
         ...
-
+    
     isrec = ...
     def shape(self):
         """Returns the shape tuple of the data variable.
@@ -342,7 +342,7 @@ class netcdf_variable:
         same manner of other numpy arrays.
         """
         ...
-
+    
     shape = ...
     def getValue(self):
         """
@@ -356,7 +356,7 @@ class netcdf_variable:
 
         """
         ...
-
+    
     def assignValue(self, value): # -> None:
         """
         Assign a scalar value to a `netcdf_variable` of length one.
@@ -375,7 +375,7 @@ class netcdf_variable:
 
         """
         ...
-
+    
     def typecode(self): # -> Any:
         """
         Return the typecode of the variable.
@@ -387,7 +387,7 @@ class netcdf_variable:
 
         """
         ...
-
+    
     def itemsize(self): # -> Any:
         """
         Return the itemsize of the variable.
@@ -399,13 +399,13 @@ class netcdf_variable:
 
         """
         ...
-
+    
     def __getitem__(self, index):
         ...
-
+    
     def __setitem__(self, index, data): # -> None:
         ...
-
+    
 
 
 NetCDFFile = netcdf_file

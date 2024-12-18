@@ -23,6 +23,9 @@ class StringCategoryCorpusReader(CorpusReader):
         :param delimiter: Field delimiter
         """
         ...
-
-    def tuples(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tuples(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
+    
+
+

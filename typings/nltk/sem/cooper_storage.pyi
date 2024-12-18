@@ -14,7 +14,7 @@ class CooperStore:
 
         """
         ...
-
+    
     def s_retrieve(self, trace=...): # -> None:
         r"""
         Carry out S-Retrieval of binding operators in store. If hack=True,
@@ -31,10 +31,10 @@ class CooperStore:
              bo(\P.all x.(man(x) -> P(x)),z1)
         """
         ...
+    
 
 
-
-def parse_with_bindops(sentence, grammar=..., trace=...): # -> list:
+def parse_with_bindops(sentence, grammar=..., trace=...): # -> list[Any]:
     """
     Use a grammar with Binding Operators to parse a sentence.
     """

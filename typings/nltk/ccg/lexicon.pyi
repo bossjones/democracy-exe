@@ -27,19 +27,19 @@ class Token:
     """
     def __init__(self, token, categ, semantics=...) -> None:
         ...
-
+    
     def categ(self): # -> Any:
         ...
-
+    
     def semantics(self): # -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __cmp__(self, other): # -> Literal[-1]:
         ...
-
+    
 
 
 class CCGLexicon:
@@ -52,35 +52,35 @@ class CCGLexicon:
     """
     def __init__(self, start, primitives, families, entries) -> None:
         ...
-
+    
     def categories(self, word):
         """
         Returns all the possible categories for a word
         """
         ...
-
+    
     def start(self): # -> PrimitiveCategory:
         """
         Return the target category for the parser
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         String representation of the lexicon. Used for debugging.
         """
         ...
+    
 
 
-
-def matchBrackets(string): # -> tuple[Any | LiteralString, Any | str]:
+def matchBrackets(string): # -> tuple[Any | LiteralString, Any | LiteralString]:
     """
     Separate the contents matching the first set of brackets from the rest of
     the input.
     """
     ...
 
-def nextCategory(string): # -> tuple[Any | LiteralString, Any | str] | tuple[str | Any, ...]:
+def nextCategory(string): # -> tuple[Any | LiteralString, Any | LiteralString] | tuple[str | Any, ...]:
     """
     Separate the string for the next portion of the category from the rest
     of the string
@@ -93,13 +93,13 @@ def parseApplication(app): # -> Direction:
     """
     ...
 
-def parseSubscripts(subscr): # -> list:
+def parseSubscripts(subscr): # -> list[Any]:
     """
     Parse the subscripts for a primitive category
     """
     ...
 
-def parsePrimitiveCategory(chunks, primitives, families, var): # -> tuple[CCGVar | Any, CCGVar | Any] | tuple | tuple[PrimitiveCategory, Any]:
+def parsePrimitiveCategory(chunks, primitives, families, var): # -> tuple[CCGVar | Any, CCGVar | Any] | tuple[Any, Any] | tuple[PrimitiveCategory, Any]:
     """
     Parse a primitive category
 

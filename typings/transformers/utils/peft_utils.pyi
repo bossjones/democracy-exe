@@ -8,7 +8,7 @@ from typing import Dict, Optional, Union
 ADAPTER_CONFIG_NAME = ...
 ADAPTER_WEIGHTS_NAME = ...
 ADAPTER_SAFE_WEIGHTS_NAME = ...
-def find_adapter_config_file(model_id: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: bool = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., subfolder: str = ..., _commit_hash: Optional[str] = ...) -> Optional[str]:
+def find_adapter_config_file(model_id: str, cache_dir: Optional[Union[str, os.PathLike]] = ..., force_download: bool = ..., resume_download: Optional[bool] = ..., proxies: Optional[Dict[str, str]] = ..., token: Optional[Union[bool, str]] = ..., revision: Optional[str] = ..., local_files_only: bool = ..., subfolder: str = ..., _commit_hash: Optional[str] = ...) -> Optional[str]:
     r"""
     Simply checks if the model stored on the Hub or locally is an adapter model or not, return the path of the adapter
     config file if it is, None otherwise.
@@ -22,8 +22,9 @@ def find_adapter_config_file(model_id: str, cache_dir: Optional[Union[str, os.Pa
         force_download (`bool`, *optional*, defaults to `False`):
             Whether or not to force to (re-)download the configuration files and override the cached versions if they
             exist.
-        resume_download (`bool`, *optional*, defaults to `False`):
-            Whether or not to delete incompletely received file. Attempts to resume the download if such a file exists.
+        resume_download:
+            Deprecated and ignored. All downloads are now resumed by default when possible.
+            Will be removed in v5 of Transformers.
         proxies (`Dict[str, str]`, *optional*):
             A dictionary of proxy servers to use by protocol or endpoint, e.g., `{'http': 'foo.bar:3128',
             'http://hostname': 'foo.bar:4012'}.` The proxies are used on each request.
@@ -58,3 +59,4 @@ def check_peft_version(min_version: str) -> None:
             The version of PEFT to check against.
     """
     ...
+

@@ -110,14 +110,14 @@ class Complex:
     """
     def __init__(self, dim, domain=..., sfield=..., sfield_args=..., symmetry=..., constraints=..., workers=...) -> None:
         ...
-
+    
     def __call__(self): # -> list[Any]:
         ...
-
+    
     def cyclic_product(self, bounds, origin, supremum, centroid=...):
         """Generate initial triangulation using cyclic product"""
         ...
-
+    
     def triangulate(self, n=..., symmetry=..., centroid=..., printout=...): # -> None:
         """
         Triangulate the initial domain, if n is not None then a limited number
@@ -160,28 +160,28 @@ class Complex:
         in parallel.
         """
         ...
-
+    
     def refine(self, n=...): # -> None:
         ...
-
+    
     def refine_all(self, centroids=...): # -> None:
         """Refine the entire domain of the current complex."""
         ...
-
+    
     def refine_local_space(self, origin, supremum, bounds, centroid=...):
         ...
-
+    
     def refine_star(self, v): # -> None:
         """Refine the star domain of a vertex `v`."""
         ...
-
+    
     @cache
     def split_edge(self, v1, v2):
         ...
-
+    
     def vpool(self, origin, supremum): # -> set[Any]:
         ...
-
+    
     def vf_to_vv(self, vertices, simplices): # -> None:
         """
         Convert a vertex-face mesh to a vertex-vertex mesh used by this class
@@ -194,7 +194,7 @@ class Complex:
             Simplices
         """
         ...
-
+    
     def connect_vertex_non_symm(self, v_x, near=...): # -> bool | None:
         """
         Adds a vertex at coords v_x to the complex that is not symmetric to the
@@ -215,7 +215,7 @@ class Complex:
             List of vertices, these are points near v to check for
         """
         ...
-
+    
     def in_simplex(self, S, v_x, A_j0=...): # -> bool:
         """Check if a vector v_x is in simplex `S`.
 
@@ -234,7 +234,7 @@ class Complex:
             True if `v_x` is in `S`
         """
         ...
-
+    
     def deg_simplex(self, S, proj=...): # -> bool:
         """Test a simplex S for degeneracy (linear dependence in R^dim).
 
@@ -247,3 +247,6 @@ class Complex:
             computed it can be added as an optional argument.
         """
         ...
+    
+
+

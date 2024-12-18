@@ -40,25 +40,25 @@ class KMeansClusterer(VectorSpaceClusterer):
         :type avoid_empty_clusters: boolean
         """
         ...
-
+    
     def cluster_vectorspace(self, vectors, trace=...): # -> None:
         ...
-
+    
     def classify_vectorspace(self, vector): # -> int | None:
         ...
-
+    
     def num_clusters(self): # -> int | Any:
         ...
-
-    def means(self): # -> list | None:
+    
+    def means(self): # -> list[Any] | None:
         """
         The means used for clustering.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def demo(): # -> None:

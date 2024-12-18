@@ -175,3 +175,4 @@ def quadratic_assignment(A, B, method=..., options=...):
 
     """
     ...
+

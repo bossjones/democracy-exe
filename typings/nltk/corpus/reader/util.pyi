@@ -116,7 +116,7 @@ class StreamBackedCorpusView(AbstractLazySequence):
             string (i.e., a str).
         """
         ...
-
+    
     fileid = ...
     def read_block(self, stream):
         """
@@ -128,7 +128,7 @@ class StreamBackedCorpusView(AbstractLazySequence):
         :type stream: stream
         """
         ...
-
+    
     def close(self): # -> None:
         """
         Close the file stream associated with this corpus view.  This
@@ -139,34 +139,34 @@ class StreamBackedCorpusView(AbstractLazySequence):
         re-opened.
         """
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, type, value, traceback): # -> None:
         ...
-
+    
     def __len__(self): # -> int | None:
         ...
-
-    def __getitem__(self, i): # -> list | LazySubsequence:
+    
+    def __getitem__(self, i): # -> list[Any] | LazySubsequence:
         ...
-
+    
     def iterate_from(self, start_tok): # -> Generator[Any, Any, None]:
         ...
-
-    def __add__(self, other): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def __add__(self, other): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def __radd__(self, other): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def __radd__(self, other): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def __mul__(self, count): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def __mul__(self, count): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def __rmul__(self, count): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def __rmul__(self, count): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class ConcatenatedCorpusView(AbstractLazySequence):
@@ -177,19 +177,19 @@ class ConcatenatedCorpusView(AbstractLazySequence):
     """
     def __init__(self, corpus_views) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def close(self): # -> None:
         ...
-
+    
     def iterate_from(self, start_tok): # -> Generator[Any, Any, None]:
         ...
+    
 
 
-
-def concat(docs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+def concat(docs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
     """
     Concatenate together the contents of multiple documents from a
     single corpus, using an appropriate concatenation function.  This
@@ -198,22 +198,22 @@ def concat(docs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list |
     """
     ...
 
-def read_whitespace_block(stream): # -> list:
+def read_whitespace_block(stream): # -> list[Any]:
     ...
 
-def read_wordpunct_block(stream): # -> list:
+def read_wordpunct_block(stream): # -> list[Any]:
     ...
 
-def read_line_block(stream): # -> list:
+def read_line_block(stream): # -> list[Any]:
     ...
 
-def read_blankline_block(stream): # -> list:
+def read_blankline_block(stream): # -> list[Any]:
     ...
 
-def read_alignedsent_block(stream): # -> list:
+def read_alignedsent_block(stream): # -> list[Any]:
     ...
 
-def read_regexp_block(stream, start_re, end_re=...): # -> list | list[str]:
+def read_regexp_block(stream, start_re, end_re=...): # -> list[Any] | list[str]:
     """
     Read a sequence of tokens from a stream, where tokens begin with
     lines that match ``start_re``.  If ``end_re`` is specified, then
@@ -222,7 +222,7 @@ def read_regexp_block(stream, start_re, end_re=...): # -> list | list[str]:
     """
     ...
 
-def read_sexpr_block(stream, block_size=..., comment_char=...): # -> list | list[str | Any]:
+def read_sexpr_block(stream, block_size=..., comment_char=...): # -> list[Any] | list[str | Any]:
     """
     Read a sequence of s-expressions from the stream, and leave the
     stream's file position at the end the last complete s-expression
@@ -243,8 +243,9 @@ def read_sexpr_block(stream, block_size=..., comment_char=...): # -> list | list
     """
     ...
 
-def find_corpus_fileids(root, regexp): # -> list[str | Any] | list:
+def find_corpus_fileids(root, regexp): # -> list[str | Any] | list[Any]:
     ...
 
-def tagged_treebank_para_block_reader(stream): # -> list[Any | str] | list:
+def tagged_treebank_para_block_reader(stream): # -> list[Any | str] | list[Any]:
     ...
+

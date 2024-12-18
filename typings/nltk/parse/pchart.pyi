@@ -31,41 +31,41 @@ argument beam_size.  If non-zero, this controls the size of the beam
 class ProbabilisticLeafEdge(LeafEdge):
     def prob(self): # -> float:
         ...
-
+    
 
 
 class ProbabilisticTreeEdge(TreeEdge):
     def __init__(self, prob, *args, **kwargs) -> None:
         ...
-
+    
     def prob(self): # -> Any:
         ...
-
+    
     @staticmethod
     def from_production(production, index, p): # -> ProbabilisticTreeEdge:
         ...
-
+    
 
 
 class ProbabilisticBottomUpInitRule(AbstractChartRule):
     NUM_EDGES = ...
     def apply(self, chart, grammar): # -> Generator[ProbabilisticLeafEdge, Any, None]:
         ...
-
+    
 
 
 class ProbabilisticBottomUpPredictRule(AbstractChartRule):
     NUM_EDGES = ...
     def apply(self, chart, grammar, edge): # -> Generator[ProbabilisticTreeEdge, Any, None]:
         ...
-
+    
 
 
 class ProbabilisticFundamentalRule(AbstractChartRule):
     NUM_EDGES = ...
     def apply(self, chart, grammar, left_edge, right_edge): # -> Generator[ProbabilisticTreeEdge, Any, None]:
         ...
-
+    
 
 
 class SingleEdgeProbabilisticFundamentalRule(AbstractChartRule):
@@ -73,10 +73,10 @@ class SingleEdgeProbabilisticFundamentalRule(AbstractChartRule):
     _fundamental_rule = ...
     def apply(self, chart, grammar, edge1): # -> Generator[ProbabilisticTreeEdge, Any, None]:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class BottomUpProbabilisticChartParser(ParserI):
@@ -121,10 +121,10 @@ class BottomUpProbabilisticChartParser(ParserI):
             output.
         """
         ...
-
+    
     def grammar(self): # -> PCFG:
         ...
-
+    
     def trace(self, trace=...): # -> None:
         """
         Set the level of tracing output that should be generated when
@@ -137,10 +137,10 @@ class BottomUpProbabilisticChartParser(ParserI):
         :rtype: None
         """
         ...
-
-    def parse(self, tokens): # -> Iterator:
+    
+    def parse(self, tokens): # -> Iterator[Any]:
         ...
-
+    
     def sort_queue(self, queue, chart):
         """
         Sort the given queue of ``Edge`` objects, placing the edge that should
@@ -158,7 +158,7 @@ class BottomUpProbabilisticChartParser(ParserI):
         :rtype: None
         """
         ...
-
+    
 
 
 class InsideChartParser(BottomUpProbabilisticChartParser):
@@ -192,7 +192,7 @@ class InsideChartParser(BottomUpProbabilisticChartParser):
         :rtype: None
         """
         ...
-
+    
 
 
 class RandomChartParser(BottomUpProbabilisticChartParser):
@@ -202,7 +202,7 @@ class RandomChartParser(BottomUpProbabilisticChartParser):
     """
     def sort_queue(self, queue, chart): # -> None:
         ...
-
+    
 
 
 class UnsortedChartParser(BottomUpProbabilisticChartParser):
@@ -211,7 +211,7 @@ class UnsortedChartParser(BottomUpProbabilisticChartParser):
     """
     def sort_queue(self, queue, chart): # -> None:
         ...
-
+    
 
 
 class LongestChartParser(BottomUpProbabilisticChartParser):
@@ -222,7 +222,7 @@ class LongestChartParser(BottomUpProbabilisticChartParser):
     """
     def sort_queue(self, queue, chart): # -> None:
         ...
-
+    
 
 
 def demo(choice=..., draw_parses=..., print_parses=...): # -> None:

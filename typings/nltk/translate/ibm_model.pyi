@@ -49,10 +49,10 @@ class IBMModel:
     MIN_PROB = ...
     def __init__(self, sentence_aligned_corpus) -> None:
         ...
-
+    
     def reset_probabilities(self): # -> None:
         ...
-
+    
     def set_uniform_probabilities(self, sentence_aligned_corpus): # -> None:
         """
         Initialize probability tables to a uniform distribution
@@ -60,11 +60,11 @@ class IBMModel:
         Derived classes should implement this accordingly.
         """
         ...
-
+    
     def init_vocab(self, sentence_aligned_corpus): # -> None:
         ...
-
-    def sample(self, sentence_pair): # -> tuple[set, AlignmentInfo | Any]:
+    
+    def sample(self, sentence_pair): # -> tuple[set[Any], Any]:
         """
         Sample the most probable alignments from the entire alignment
         space
@@ -88,7 +88,7 @@ class IBMModel:
         :rtype: set(AlignmentInfo), AlignmentInfo
         """
         ...
-
+    
     def best_model2_alignment(self, sentence_pair, j_pegged=..., i_pegged=...): # -> AlignmentInfo:
         """
         Finds the best alignment according to IBM Model 2
@@ -109,7 +109,7 @@ class IBMModel:
         :type i_pegged: int
         """
         ...
-
+    
     def hillclimb(self, alignment_info, j_pegged=...):
         """
         Starting from the alignment in ``alignment_info``, look at
@@ -127,8 +127,8 @@ class IBMModel:
         :rtype: AlignmentInfo
         """
         ...
-
-    def neighboring(self, alignment_info, j_pegged=...): # -> set:
+    
+    def neighboring(self, alignment_info, j_pegged=...): # -> set[Any]:
         """
         Determine the neighbors of ``alignment_info``, obtained by
         moving or swapping one alignment point
@@ -142,19 +142,19 @@ class IBMModel:
         :rtype: set(AlignmentInfo)
         """
         ...
-
+    
     def maximize_lexical_translation_probabilities(self, counts): # -> None:
         ...
-
+    
     def maximize_fertility_probabilities(self, counts): # -> None:
         ...
-
+    
     def maximize_null_generation_probabilities(self, counts): # -> None:
         ...
-
+    
     def prob_of_alignments(self, alignments): # -> float | Literal[0]:
         ...
-
+    
     def prob_t_a_given_s(self, alignment_info): # -> float:
         """
         Probability of target sentence and an alignment given the
@@ -166,7 +166,7 @@ class IBMModel:
         Derived classes should override this method
         """
         ...
-
+    
 
 
 class AlignmentInfo:
@@ -183,34 +183,34 @@ class AlignmentInfo:
     """
     def __init__(self, alignment, src_sentence, trg_sentence, cepts) -> None:
         ...
-
+    
     def fertility_of_i(self, i): # -> int:
         """
         Fertility of word in position ``i`` of the source sentence
         """
         ...
-
+    
     def is_head_word(self, j):
         """
         :return: Whether the word in position ``j`` of the target
             sentence is a head word
         """
         ...
-
+    
     def center_of_cept(self, i): # -> int:
         """
         :return: The ceiling of the average positions of the words in
             the tablet of cept ``i``, or 0 if ``i`` is None
         """
         ...
-
+    
     def previous_cept(self, j): # -> None:
         """
         :return: The previous cept of ``j``, or None if ``j`` belongs to
             the first cept
         """
         ...
-
+    
     def previous_in_tablet(self, j): # -> None:
         """
         :return: The position of the previous word that is in the same
@@ -218,24 +218,24 @@ class AlignmentInfo:
             tablet
         """
         ...
-
-    def zero_indexed_alignment(self): # -> list:
+    
+    def zero_indexed_alignment(self): # -> list[Any]:
         """
         :return: Zero-indexed alignment, suitable for use in external
             ``nltk.translate`` modules like ``nltk.translate.Alignment``
         :rtype: list(tuple)
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
 
 
 class Counts:
@@ -244,12 +244,15 @@ class Counts:
     """
     def __init__(self) -> None:
         ...
-
+    
     def update_lexical_translation(self, count, alignment_info, j): # -> None:
         ...
-
+    
     def update_null_generation(self, count, alignment_info): # -> None:
         ...
-
+    
     def update_fertility(self, count, alignment_info): # -> None:
         ...
+    
+
+

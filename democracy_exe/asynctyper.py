@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """democracy_exe.utils.asynctyper"""
 
 from __future__ import annotations
@@ -67,7 +68,6 @@ class AsyncTyperImproved(Typer):
     # noinspection PyShadowingBuiltins
     def callback(
         self,
-        name: str | None = None,
         *,
         cls: type[TyperGroup] | None = None,
         invoke_without_command: bool = False,
@@ -88,7 +88,6 @@ class AsyncTyperImproved(Typer):
         """Override callback to support async functions.
 
         Args:
-            name: Name of the command
             cls: Custom class to use for the Group
             invoke_without_command: Whether to invoke without subcommand
             no_args_is_help: Show help when no args provided
@@ -109,7 +108,6 @@ class AsyncTyperImproved(Typer):
             Callable that wraps the command function
         """
         decorator = super().callback(
-            name=name,
             cls=cls,
             invoke_without_command=invoke_without_command,
             no_args_is_help=no_args_is_help,

@@ -25,25 +25,25 @@ class VerbnetCorpusReader(XMLCorpusReader):
     """
     def __init__(self, root, fileids, wrap_etree=...) -> None:
         ...
-
+    
     _LONGID_RE = ...
     _SHORTID_RE = ...
     _INDEX_RE = ...
-    def lemmas(self, vnclass=...): # -> list | list[str | Any | None]:
+    def lemmas(self, vnclass=...): # -> list[Any] | list[str | Any | None]:
         """
         Return a list of all verb lemmas that appear in any class, or
         in the ``classid`` if specified.
         """
         ...
-
-    def wordnetids(self, vnclass=...): # -> list | list[str] | Any:
+    
+    def wordnetids(self, vnclass=...): # -> list[Any] | list[str] | Any:
         """
         Return a list of all wordnet identifiers that appear in any
         class, or in ``classid`` if specified.
         """
         ...
-
-    def classids(self, lemma=..., wordnetid=..., fileid=..., classid=...): # -> list | list[str | Any | None]:
+    
+    def classids(self, lemma=..., wordnetid=..., fileid=..., classid=...): # -> list[Any] | list[str | Any | None]:
         """
         Return a list of the VerbNet class identifiers.  If a file
         identifier is specified, then return only the VerbNet class
@@ -57,7 +57,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
         If nothing is specified, return all classids within VerbNet
         """
         ...
-
+    
     def vnclass(self, fileid_or_classid): # -> ElementWrapper | Element | Any:
         """Returns VerbNet class ElementTree
 
@@ -71,16 +71,16 @@ class VerbnetCorpusReader(XMLCorpusReader):
             ``'9.1'``).
         """
         ...
-
-    def fileids(self, vnclass_ids=...): # -> list[str | Any] | list | Any:
+    
+    def fileids(self, vnclass_ids=...): # -> list[str | Any] | list[Any] | Any:
         """
         Return a list of fileids that make up this corpus.  If
         ``vnclass_ids`` is specified, then return the fileids that make
         up the specified VerbNet class(es).
         """
         ...
-
-    def frames(self, vnclass): # -> list:
+    
+    def frames(self, vnclass): # -> list[Any]:
         """Given a VerbNet class, this method returns VerbNet frames
 
         The members returned are:
@@ -94,7 +94,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
         :return: frames - a list of frame dictionaries
         """
         ...
-
+    
     def subclasses(self, vnclass): # -> list[str | Any | None]:
         """Returns subclass ids, if any exist
 
@@ -106,8 +106,8 @@ class VerbnetCorpusReader(XMLCorpusReader):
         :return: list of subclasses
         """
         ...
-
-    def themroles(self, vnclass): # -> list:
+    
+    def themroles(self, vnclass): # -> list[Any]:
         """Returns thematic roles participating in a VerbNet class
 
         Members returned as part of roles are-
@@ -119,7 +119,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
         :return: themroles: A list of thematic roles in the VerbNet class
         """
         ...
-
+    
     def longid(self, shortid):
         """Returns longid of a VerbNet class
 
@@ -127,7 +127,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
         to a long id (eg 'confess-37.10').  If ``shortid`` is already a
         long id, then return it as-is"""
         ...
-
+    
     def shortid(self, longid): # -> str | Any:
         """Returns shortid of a VerbNet class
 
@@ -135,7 +135,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
         map it to a short id (eg '37.10').  If ``longid`` is already a
         short id, then return it as-is."""
         ...
-
+    
     def pprint(self, vnclass): # -> str | Any:
         """Returns pretty printed version of a VerbNet class
 
@@ -146,7 +146,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
             containing the xml contents of a VerbNet class.
         """
         ...
-
+    
     def pprint_subclasses(self, vnclass, indent=...): # -> str:
         """Returns pretty printed version of subclasses of VerbNet class
 
@@ -157,7 +157,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
             containing the xml contents of a VerbNet class.
         """
         ...
-
+    
     def pprint_members(self, vnclass, indent=...): # -> str:
         """Returns pretty printed version of members in a VerbNet class
 
@@ -168,7 +168,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
             containing the xml contents of a VerbNet class.
         """
         ...
-
+    
     def pprint_themroles(self, vnclass, indent=...): # -> LiteralString:
         """Returns pretty printed version of thematic roles in a VerbNet class
 
@@ -179,7 +179,7 @@ class VerbnetCorpusReader(XMLCorpusReader):
             containing the xml contents of a VerbNet class.
         """
         ...
-
+    
     def pprint_frames(self, vnclass, indent=...): # -> LiteralString:
         """Returns pretty version of all frames in a VerbNet class
 
@@ -190,3 +190,6 @@ class VerbnetCorpusReader(XMLCorpusReader):
             containing the xml contents of a VerbNet class.
         """
         ...
+    
+
+

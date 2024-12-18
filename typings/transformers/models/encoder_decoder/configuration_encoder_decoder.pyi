@@ -55,7 +55,7 @@ class EncoderDecoderConfig(PretrainedConfig):
     is_composition = ...
     def __init__(self, **kwargs) -> None:
         ...
-
+    
     @classmethod
     def from_encoder_decoder_configs(cls, encoder_config: PretrainedConfig, decoder_config: PretrainedConfig, **kwargs) -> PretrainedConfig:
         r"""
@@ -66,3 +66,6 @@ class EncoderDecoderConfig(PretrainedConfig):
             [`EncoderDecoderConfig`]: An instance of a configuration object
         """
         ...
+    
+
+

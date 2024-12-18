@@ -11,3 +11,5 @@ class SpecialFunctionWarning(Warning):
 class SpecialFunctionError(Exception):
     """Exception that can be raised by special functions."""
     ...
+
+

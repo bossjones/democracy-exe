@@ -22,16 +22,16 @@ class MarkupLMFeatureExtractor(FeatureExtractionMixin):
     """
     def __init__(self, **kwargs) -> None:
         ...
-
+    
     def xpath_soup(self, element): # -> tuple[list[Any], list[Any]]:
         ...
-
+    
     def get_three_from_single(self, html_string): # -> tuple[list[Any], list[Any], list[Any]]:
         ...
-
+    
     def construct_xpath(self, xpath_tags, xpath_subscripts): # -> str:
         ...
-
+    
     def __call__(self, html_strings) -> BatchFeature:
         """
         Main method to prepare for the model one or several HTML strings.
@@ -79,3 +79,6 @@ class MarkupLMFeatureExtractor(FeatureExtractionMixin):
         >>> # dict_keys(['nodes', 'xpaths'])
         ```"""
         ...
+    
+
+

@@ -23,38 +23,38 @@ class BCP47CorpusReader(CorpusReader):
     def __init__(self, root, fileids) -> None:
         """Read the BCP-47 database"""
         ...
-
+    
     def load_wiki_q(self): # -> None:
         """Load conversion table to Wikidata Q-codes (only if needed)"""
         ...
-
-    def wiki_dict(self, lines): # -> dict:
+    
+    def wiki_dict(self, lines): # -> dict[Any, Any]:
         """Convert Wikidata list of Q-codes to a BCP-47 dictionary"""
         ...
-
-    def subdiv_dict(self, subdivs): # -> dict:
+    
+    def subdiv_dict(self, subdivs): # -> dict[Any, Any]:
         """Convert the CLDR subdivisions list to a dictionary"""
         ...
-
+    
     def morphology(self): # -> None:
         ...
-
-    def data_dict(self, records): # -> dict:
+    
+    def data_dict(self, records): # -> dict[Any, Any]:
         """Convert the BCP-47 language subtag registry to a dictionary"""
         ...
-
+    
     def val2str(self, val):
         """Return only first value"""
         ...
-
+    
     def lang2str(self, lg_record): # -> str:
         """Concatenate subtag values"""
         ...
-
-    def parse_tag(self, tag): # -> dict:
+    
+    def parse_tag(self, tag): # -> dict[Any, Any]:
         """Convert a BCP-47 tag to a dictionary of labelled subtags"""
         ...
-
+    
     def name(self, tag): # -> str | None:
         """
         Convert a BCP-47 tag to a colon-separated string of subtag names
@@ -65,3 +65,6 @@ class BCP47CorpusReader(CorpusReader):
 
         """
         ...
+    
+
+

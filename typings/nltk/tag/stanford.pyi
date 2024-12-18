@@ -28,16 +28,16 @@ class StanfordTagger(TaggerI):
     _JAR = ...
     def __init__(self, model_filename, path_to_jar=..., encoding=..., verbose=..., java_options=...) -> None:
         ...
-
-    def tag(self, tokens): # -> list:
+    
+    def tag(self, tokens): # -> list[Any]:
         ...
-
-    def tag_sents(self, sentences): # -> list:
+    
+    def tag_sents(self, sentences): # -> list[Any]:
         ...
-
-    def parse_output(self, text, sentences=...): # -> list:
+    
+    def parse_output(self, text, sentences=...): # -> list[Any]:
         ...
-
+    
 
 
 class StanfordPOSTagger(StanfordTagger):
@@ -59,7 +59,7 @@ class StanfordPOSTagger(StanfordTagger):
     _JAR = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class StanfordNERTagger(StanfordTagger):
@@ -85,6 +85,9 @@ class StanfordNERTagger(StanfordTagger):
     _FORMAT = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
-    def parse_output(self, text, sentences): # -> list:
+    
+    def parse_output(self, text, sentences): # -> list[Any]:
         ...
+    
+
+

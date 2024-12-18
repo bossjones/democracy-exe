@@ -23,16 +23,19 @@ documents = ...
 class IEERDocument:
     def __init__(self, text, docno=..., doctype=..., date_time=..., headline=...) -> None:
         ...
-
+    
     def __repr__(self): # -> str | LiteralString:
         ...
-
+    
 
 
 class IEERCorpusReader(CorpusReader):
     """ """
-    def docs(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def docs(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
+    
+    def parsed_docs(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
+        ...
+    
 
-    def parsed_docs(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
-        ...
+

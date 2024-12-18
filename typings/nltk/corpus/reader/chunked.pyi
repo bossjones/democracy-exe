@@ -27,16 +27,16 @@ class ChunkedCorpusReader(CorpusReader):
         :param fileids: A list or regexp specifying the fileids in this corpus.
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of words
             and punctuation symbols.
         :rtype: list(str)
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences or utterances, each encoded as a list of word
@@ -44,8 +44,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             paragraphs, each encoded as a list of sentences, which are
@@ -53,8 +53,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(list(list(str)))
         """
         ...
-
-    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of tagged
             words and punctuation symbols, encoded as tuples
@@ -62,8 +62,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(tuple(str,str))
         """
         ...
-
-    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences, each encoded as a list of ``(word,tag)`` tuples.
@@ -71,8 +71,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(list(tuple(str,str)))
         """
         ...
-
-    def tagged_paras(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_paras(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             paragraphs, each encoded as a list of sentences, which are
@@ -80,8 +80,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(list(list(tuple(str,str))))
         """
         ...
-
-    def chunked_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def chunked_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of tagged
             words and chunks.  Words are encoded as ``(word, tag)``
@@ -91,8 +91,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(tuple(str,str) and Tree)
         """
         ...
-
-    def chunked_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def chunked_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences, each encoded as a shallow Tree.  The leaves
@@ -102,8 +102,8 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(Tree)
         """
         ...
-
-    def chunked_paras(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def chunked_paras(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             paragraphs, each encoded as a list of sentences, which are
@@ -113,12 +113,15 @@ class ChunkedCorpusReader(CorpusReader):
         :rtype: list(list(Tree))
         """
         ...
-
+    
 
 
 class ChunkedCorpusView(StreamBackedCorpusView):
     def __init__(self, fileid, encoding, tagged, group_by_sent, group_by_para, chunked, str2chunktree, sent_tokenizer, para_block_reader, source_tagset=..., target_tagset=...) -> None:
         ...
-
-    def read_block(self, stream): # -> list:
+    
+    def read_block(self, stream): # -> list[Any]:
         ...
+    
+
+

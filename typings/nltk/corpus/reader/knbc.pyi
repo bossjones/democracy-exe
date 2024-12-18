@@ -42,7 +42,7 @@ class KNBCorpusReader(SyntaxCorpusReader):
         for _parse()
         """
         ...
-
+    
 
 
 def demo(): # -> None:

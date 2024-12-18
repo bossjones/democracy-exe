@@ -20,15 +20,15 @@ class Smoothing(metaclass=ABCMeta):
         :type counter: nltk.lm.counter.NgramCounter
         """
         ...
-
+    
     @abstractmethod
     def unigram_score(self, word):
         ...
-
+    
     @abstractmethod
     def alpha_gamma(self, word, context):
         ...
-
+    
 
 
 class LanguageModel(metaclass=ABCMeta):
@@ -52,7 +52,7 @@ class LanguageModel(metaclass=ABCMeta):
         :type pad_fn: function or None
         """
         ...
-
+    
     def fit(self, text, vocabulary_text=...): # -> None:
         """Trains the model on a text.
 
@@ -60,7 +60,7 @@ class LanguageModel(metaclass=ABCMeta):
 
         """
         ...
-
+    
     def score(self, word, context=...):
         """Masks out of vocab (OOV) words and computes their model score.
 
@@ -68,7 +68,7 @@ class LanguageModel(metaclass=ABCMeta):
         method.
         """
         ...
-
+    
     @abstractmethod
     def unmasked_score(self, word, context=...):
         """Score a word given some optional context.
@@ -84,7 +84,7 @@ class LanguageModel(metaclass=ABCMeta):
         :rtype: float
         """
         ...
-
+    
     def logscore(self, word, context=...): # -> float:
         """Evaluate the log score of this word in this context.
 
@@ -92,7 +92,7 @@ class LanguageModel(metaclass=ABCMeta):
 
         """
         ...
-
+    
     def context_counts(self, context): # -> FreqDist:
         """Helper method for retrieving counts for a given context.
 
@@ -101,7 +101,7 @@ class LanguageModel(metaclass=ABCMeta):
 
         """
         ...
-
+    
     def entropy(self, text_ngrams): # -> float:
         """Calculate cross-entropy of model for given evaluation text.
 
@@ -113,7 +113,7 @@ class LanguageModel(metaclass=ABCMeta):
 
         """
         ...
-
+    
     def perplexity(self, text_ngrams): # -> Any:
         """Calculates the perplexity of the given text.
 
@@ -121,8 +121,8 @@ class LanguageModel(metaclass=ABCMeta):
 
         """
         ...
-
-    def generate(self, num_words=..., text_seed=..., random_seed=...): # -> list:
+    
+    def generate(self, num_words=..., text_seed=..., random_seed=...): # -> list[Any]:
         """Generate words from the model.
 
         :param int num_words: How many words to generate. By default 1.
@@ -144,3 +144,6 @@ class LanguageModel(metaclass=ABCMeta):
 
         """
         ...
+    
+
+

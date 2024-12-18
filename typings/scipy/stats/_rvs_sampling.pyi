@@ -48,3 +48,4 @@ def rvs_ratio_uniforms(pdf, umax, vmin, vmax, size=..., c=..., random_state=...)
     Please refer to `scipy.stats.sampling.RatioUniforms` for the documentation.
     """
     ...
+

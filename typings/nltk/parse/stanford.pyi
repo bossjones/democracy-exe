@@ -14,8 +14,8 @@ class GenericStanfordParser(ParserI):
     _DOUBLE_SPACED_OUTPUT = ...
     def __init__(self, path_to_jar=..., path_to_models_jar=..., model_path=..., encoding=..., verbose=..., java_options=..., corenlp_options=...) -> None:
         ...
-
-    def parse_sents(self, sentences, verbose=...): # -> Iterator:
+    
+    def parse_sents(self, sentences, verbose=...): # -> Iterator[Any]:
         """
         Use StanfordParser to parse multiple sentences. Takes multiple sentences as a
         list where each sentence is a list of words.
@@ -29,7 +29,7 @@ class GenericStanfordParser(ParserI):
         :rtype: iter(iter(Tree))
         """
         ...
-
+    
     def raw_parse(self, sentence, verbose=...):
         """
         Use StanfordParser to parse a sentence. Takes a sentence as a string;
@@ -41,8 +41,8 @@ class GenericStanfordParser(ParserI):
         :rtype: iter(Tree)
         """
         ...
-
-    def raw_parse_sents(self, sentences, verbose=...): # -> Iterator:
+    
+    def raw_parse_sents(self, sentences, verbose=...): # -> Iterator[Any]:
         """
         Use StanfordParser to parse multiple sentences. Takes multiple sentences as a
         list of strings.
@@ -53,7 +53,7 @@ class GenericStanfordParser(ParserI):
         :rtype: iter(iter(Tree))
         """
         ...
-
+    
     def tagged_parse(self, sentence, verbose=...):
         """
         Use StanfordParser to parse a sentence. Takes a sentence as a list of
@@ -65,8 +65,8 @@ class GenericStanfordParser(ParserI):
         :rtype: iter(Tree)
         """
         ...
-
-    def tagged_parse_sents(self, sentences, verbose=...): # -> Iterator:
+    
+    def tagged_parse_sents(self, sentences, verbose=...): # -> Iterator[Any]:
         """
         Use StanfordParser to parse multiple sentences. Takes multiple sentences
         where each sentence is a list of (word, tag) tuples.
@@ -77,7 +77,7 @@ class GenericStanfordParser(ParserI):
         :rtype: iter(iter(Tree))
         """
         ...
-
+    
 
 
 class StanfordParser(GenericStanfordParser):
@@ -133,7 +133,7 @@ class StanfordParser(GenericStanfordParser):
     _OUTPUT_FORMAT = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class StanfordDependencyParser(GenericStanfordParser):
@@ -187,7 +187,7 @@ class StanfordDependencyParser(GenericStanfordParser):
     _OUTPUT_FORMAT = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class StanfordNeuralDependencyParser(GenericStanfordParser):
@@ -229,7 +229,7 @@ class StanfordNeuralDependencyParser(GenericStanfordParser):
     _DOUBLE_SPACED_OUTPUT = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def tagged_parse_sents(self, sentences, verbose=...):
         """
         Currently unimplemented because the neural dependency parser (and
@@ -237,3 +237,6 @@ class StanfordNeuralDependencyParser(GenericStanfordParser):
         tagged tokens.
         """
         ...
+    
+
+

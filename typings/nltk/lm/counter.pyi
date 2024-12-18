@@ -87,7 +87,7 @@ class NgramCounter:
 
         """
         ...
-
+    
     def update(self, ngram_text): # -> None:
         """Updates ngram counts from `ngram_text`.
 
@@ -99,7 +99,7 @@ class NgramCounter:
 
         """
         ...
-
+    
     def N(self): # -> int:
         """Returns grand total number of ngrams stored.
 
@@ -113,16 +113,19 @@ class NgramCounter:
 
         """
         ...
-
+    
     def __getitem__(self, item): # -> ConditionalFreqDist | None:
         """User-friendly access to ngram counts."""
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __contains__(self, item): # -> bool:
         ...
+    
+
+

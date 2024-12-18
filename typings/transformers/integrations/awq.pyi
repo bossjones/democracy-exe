@@ -7,7 +7,12 @@ from ..utils import is_torch_available
 "AWQ (Activation aware Weight Quantization) integration file"
 if is_torch_available():
     ...
+logger = ...
 AWQ_FUSED_MAPPINGS = ...
+AWQ_SCALES_MAPPINGS = ...
+def replace_quantization_scales(model, model_type):
+    ...
+
 def replace_with_awq_linear(model, modules_to_not_convert=..., quantization_config=..., current_key_name=..., has_been_replaced=...) -> bool:
     """
     Public method that recursively replaces the Linear layers of the given model with AWQ quantized layers.
@@ -63,3 +68,11 @@ def post_init_awq_exllama_modules(model, exllama_config):
         - Devices scratch space allocation
     """
     ...
+
+def post_init_awq_ipex_modules(model):
+    """
+    Runs post init for IPEX layers which performs:
+        - Weights packing, reordering and repacking
+    """
+    ...
+

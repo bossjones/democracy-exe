@@ -27,18 +27,18 @@ class MaceCommand(Prover9CommandParent, BaseModelBuilderCommand):
         :type max_models: int
         """
         ...
-
+    
     @property
     def valuation(mbc): # -> None:
         ...
-
+    
 
 
 class Mace(Prover9Parent, ModelBuilder):
     _mace4_bin = ...
     def __init__(self, end_size=...) -> None:
         ...
-
+    
 
 
 def spacer(num=...): # -> None:

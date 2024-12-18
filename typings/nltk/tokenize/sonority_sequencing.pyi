@@ -51,8 +51,8 @@ class SyllableTokenizer(TokenizerI):
         :type sonority_hierarchy: list(str)
         """
         ...
-
-    def assign_values(self, token): # -> list:
+    
+    def assign_values(self, token): # -> list[Any]:
         """
         Assigns each phoneme its value from the sonority hierarchy.
         Note: Sentence/text has to be tokenized first.
@@ -64,8 +64,8 @@ class SyllableTokenizer(TokenizerI):
         :rtype: list(tuple(str, int))
         """
         ...
-
-    def validate_syllables(self, syllable_list): # -> list:
+    
+    def validate_syllables(self, syllable_list): # -> list[Any]:
         """
         Ensures each syllable has at least one vowel.
         If the following syllable doesn't have vowel, add it to the current one.
@@ -77,8 +77,8 @@ class SyllableTokenizer(TokenizerI):
         :rtype: list(str)
         """
         ...
-
-    def tokenize(self, token): # -> list:
+    
+    def tokenize(self, token): # -> list[Any]:
         """
         Apply the SSP to return a list of syllables.
         Note: Sentence/text has to be tokenized first.
@@ -89,3 +89,6 @@ class SyllableTokenizer(TokenizerI):
         :rtype: list(str)
         """
         ...
+    
+
+

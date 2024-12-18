@@ -27,7 +27,7 @@ class InputExample:
     def to_json_string(self): # -> str:
         """Serializes this instance to a JSON string."""
         ...
-
+    
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class InputFeatures:
     def to_json_string(self): # -> str:
         """Serializes this instance to a JSON string."""
         ...
-
+    
 
 
 class DataProcessor:
@@ -66,57 +66,57 @@ class DataProcessor:
                 tensorflow_dataset examples.
         """
         ...
-
+    
     def get_train_examples(self, data_dir):
         """Gets a collection of [`InputExample`] for the train set."""
         ...
-
+    
     def get_dev_examples(self, data_dir):
         """Gets a collection of [`InputExample`] for the dev set."""
         ...
-
+    
     def get_test_examples(self, data_dir):
         """Gets a collection of [`InputExample`] for the test set."""
         ...
-
+    
     def get_labels(self):
         """Gets the list of labels for this data set."""
         ...
-
+    
     def tfds_map(self, example):
         """
         Some tensorflow_datasets datasets are not formatted the same way the GLUE datasets are. This method converts
         examples to the correct format.
         """
         ...
-
+    
 
 
 class SingleSentenceClassificationProcessor(DataProcessor):
     """Generic processor for a single sentence classification data set."""
     def __init__(self, labels=..., examples=..., mode=..., verbose=...) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __getitem__(self, idx): # -> SingleSentenceClassificationProcessor:
         ...
-
+    
     @classmethod
     def create_from_csv(cls, file_name, split_name=..., column_label=..., column_text=..., column_id=..., skip_first_row=..., **kwargs): # -> Self:
         ...
-
+    
     @classmethod
     def create_from_examples(cls, texts_or_text_and_labels, labels=..., **kwargs): # -> Self:
         ...
-
+    
     def add_examples_from_csv(self, file_name, split_name=..., column_label=..., column_text=..., column_id=..., skip_first_row=..., overwrite_labels=..., overwrite_examples=...): # -> list[Any]:
         ...
-
+    
     def add_examples(self, texts_or_text_and_labels, labels=..., ids=..., overwrite_labels=..., overwrite_examples=...): # -> list[Any]:
         ...
-
+    
     def get_features(self, tokenizer, max_length=..., pad_on_left=..., pad_token=..., mask_padding_with_zero=..., return_tensors=...): # -> list[Any] | TensorDataset:
         """
         Convert examples in a list of `InputFeatures`
@@ -137,3 +137,6 @@ class SingleSentenceClassificationProcessor(DataProcessor):
 
         """
         ...
+    
+
+

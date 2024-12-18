@@ -38,22 +38,22 @@ class AttrDict(dict):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def __setattr__(self, name, value): # -> None:
         ...
-
-    def __getattr__(self, name): # -> Callable[[], str | Any] | None:
+    
+    def __getattr__(self, name): # -> Callable[[], str | Any] | object | None:
         ...
-
-    def __getitem__(self, name): # -> None:
+    
+    def __getitem__(self, name): # -> object | None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class SpecialList(list):
@@ -63,13 +63,13 @@ class SpecialList(list):
     """
     def __init__(self, typ, *args, **kwargs) -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class Future:
@@ -83,28 +83,28 @@ class Future:
         :type loader: callable
         """
         ...
-
+    
     def __nonzero__(self): # -> bool:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __setitem__(self, key, value):
         ...
-
+    
     def __getitem__(self, key):
         ...
-
+    
     def __getattr__(self, key):
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class PrettyDict(AttrDict):
@@ -115,10 +115,10 @@ class PrettyDict(AttrDict):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
 
 
 class PrettyList(list):
@@ -127,7 +127,7 @@ class PrettyList(list):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation for this corpus view that is
@@ -135,7 +135,7 @@ class PrettyList(list):
         than 60 characters long, it is truncated.
         """
         ...
-
+    
 
 
 class PrettyLazyMap(LazyMap):
@@ -150,7 +150,7 @@ class PrettyLazyMap(LazyMap):
         than 60 characters long, it is truncated.
         """
         ...
-
+    
 
 
 class PrettyLazyIteratorList(LazyIteratorList):
@@ -165,7 +165,7 @@ class PrettyLazyIteratorList(LazyIteratorList):
         than 60 characters long, it is truncated.
         """
         ...
-
+    
 
 
 class PrettyLazyConcatenation(LazyConcatenation):
@@ -180,15 +180,15 @@ class PrettyLazyConcatenation(LazyConcatenation):
         than 60 characters long, it is truncated.
         """
         ...
-
+    
     def __add__(self, other): # -> PrettyLazyIteratorList:
         """Return a list concatenating self with other."""
         ...
-
+    
     def __radd__(self, other): # -> PrettyLazyIteratorList:
         """Return a list concatenating other with self."""
         ...
-
+    
 
 
 class FramenetCorpusReader(XMLCorpusReader):
@@ -212,20 +212,20 @@ class FramenetCorpusReader(XMLCorpusReader):
         enabling warnings is the first action taken, the corpus reader is instantiated first.)
         """
         ...
-
+    
     def __init__(self, root, fileids) -> None:
         ...
-
+    
     def help(self, attrname=...): # -> None:
         """Display help information summarizing the main methods."""
         ...
-
+    
     def buildindexes(self): # -> None:
         """
         Build the internal indexes to make look-ups faster.
         """
         ...
-
+    
     def doc(self, fn_docid): # -> AttrDict:
         """
         Returns the annotated document whose id number is
@@ -273,7 +273,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: dict
         """
         ...
-
+    
     def frame_by_id(self, fn_fid, ignorekeys=...): # -> Any:
         """
         Get the details for the specified Frame using the frame's id
@@ -304,7 +304,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         contained in the dict that is returned.
         """
         ...
-
+    
     def frame_by_name(self, fn_fname, ignorekeys=..., check_cache=...): # -> Any:
         """
         Get the details for the specified Frame using the frame's name.
@@ -334,7 +334,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         contained in the dict that is returned.
         """
         ...
-
+    
     def frame(self, fn_fid_or_fname, ignorekeys=...): # -> Any:
         """
         Get the details for the specified Frame using the frame's name
@@ -405,7 +405,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: dict
         """
         ...
-
+    
     def frames_by_lemma(self, pat): # -> PrettyList:
         """
         Returns a list of all frames that contain LUs in which the
@@ -428,7 +428,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: list(AttrDict)
         """
         ...
-
+    
     def lu_basic(self, fn_luid): # -> AttrDict:
         """
         Returns basic information about the LU whose id is
@@ -461,7 +461,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: dict
         """
         ...
-
+    
     def lu(self, fn_luid, ignorekeys=..., luName=..., frameID=..., frameName=...): # -> AttrDict:
         """
         Access a lexical unit by its ID. luName, frameID, and frameName are used
@@ -596,7 +596,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: dict
         """
         ...
-
+    
     def propagate_semtypes(self): # -> None:
         """
         Apply inference rules to distribute semtypes over relations between FEs.
@@ -613,8 +613,8 @@ class FramenetCorpusReader(XMLCorpusReader):
         True
         """
         ...
-
-    def semtype(self, key): # -> None:
+    
+    def semtype(self, key): # -> object | None:
         """
         >>> from nltk.corpus import framenet as fn
         >>> fn.semtype(233).name
@@ -630,10 +630,10 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: dict
         """
         ...
-
+    
     def semtype_inherits(self, st, superST): # -> bool:
         ...
-
+    
     def frames(self, name=...): # -> PrettyList | PrettyLazyMap:
         """
         Obtain details for a specific frame.
@@ -696,14 +696,14 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: list(AttrDict)
         """
         ...
-
-    def frame_ids_and_names(self, name=...): # -> dict:
+    
+    def frame_ids_and_names(self, name=...): # -> dict[Any, Any]:
         """
         Uses the frame index, which is much faster than looking up each frame definition
         if only the names and IDs are needed.
         """
         ...
-
+    
     def fes(self, name=..., frame=...): # -> PrettyList:
         """
         Lists frame element objects. If 'name' is provided, this is treated as
@@ -739,7 +739,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: list(AttrDict)
         """
         ...
-
+    
     def lus(self, name=..., frame=...): # -> PrettyList | PrettyLazyIteratorList | PrettyLazyMap:
         """
         Obtain details for lexical units.
@@ -846,14 +846,14 @@ class FramenetCorpusReader(XMLCorpusReader):
 
         """
         ...
-
-    def lu_ids_and_names(self, name=...): # -> dict:
+    
+    def lu_ids_and_names(self, name=...): # -> dict[Any, Any]:
         """
         Uses the LU index, which is much faster than looking up each LU definition
         if only the names and IDs are needed.
         """
         ...
-
+    
     def docs_metadata(self, name=...): # -> PrettyList:
         """
         Return an index of the annotated documents in Framenet.
@@ -889,26 +889,26 @@ class FramenetCorpusReader(XMLCorpusReader):
                 - 'filename'
         """
         ...
-
+    
     def docs(self, name=...): # -> PrettyLazyMap:
         """
         Return a list of the annotated full-text documents in FrameNet,
         optionally filtered by a regex to be matched against the document name.
         """
         ...
-
+    
     def sents(self, exemplars=..., full_text=...): # -> PrettyLazyIteratorList | None:
         """
         Annotated sentences matching the specified criteria.
         """
         ...
-
-    def annotations(self, luNamePattern=..., exemplars=..., full_text=...): # -> PrettyLazyIteratorList | list | None:
+    
+    def annotations(self, luNamePattern=..., exemplars=..., full_text=...): # -> PrettyLazyIteratorList | list[Any] | None:
         """
         Frame annotation sets matching the specified criteria.
         """
         ...
-
+    
     def exemplars(self, luNamePattern=..., frame=..., fe=..., fe2=...):
         """
         Lexicographic exemplar sentences, optionally filtered by LU name and/or 1-2 FEs that
@@ -917,14 +917,14 @@ class FramenetCorpusReader(XMLCorpusReader):
         be specified to retrieve sentences with both overt FEs (in either order).
         """
         ...
-
+    
     def ft_sents(self, docNamePattern=...): # -> PrettyLazyIteratorList:
         """
         Full-text annotation sentences, optionally filtered by document name.
         """
         ...
-
-    def frame_relation_types(self): # -> dict_values:
+    
+    def frame_relation_types(self): # -> dict_values[Any, Any]:
         """
         Obtain a list of frame relation types.
 
@@ -946,7 +946,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: list(dict)
         """
         ...
-
+    
     def frame_relations(self, frame=..., frame2=..., type=...): # -> PrettyList:
         """
         :param frame: (optional) frame object, name, or ID; only relations involving
@@ -982,7 +982,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         <MainEntry=Apply_heat -- See_also -> ReferringEntry=Cooking_creation>]
         """
         ...
-
+    
     def fe_relations(self): # -> PrettyList:
         """
         Obtain a list of frame element relations.
@@ -1011,7 +1011,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: list(dict)
         """
         ...
-
+    
     def semtypes(self): # -> PrettyList:
         """
         Obtain a list of semantic types.
@@ -1027,7 +1027,7 @@ class FramenetCorpusReader(XMLCorpusReader):
         :rtype: list(dict)
         """
         ...
-
+    
 
 
 def demo(): # -> None:

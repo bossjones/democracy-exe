@@ -38,7 +38,7 @@ class ReppTokenizer(TokenizerI):
     """
     def __init__(self, repp_dir, encoding=...) -> None:
         ...
-
+    
     def tokenize(self, sentence): # -> Any | list[tuple[Any, int, int]]:
         """
         Use Repp to tokenize a single sentence.
@@ -49,7 +49,7 @@ class ReppTokenizer(TokenizerI):
         :rtype: tuple(str)
         """
         ...
-
+    
     def tokenize_sents(self, sentences, keep_token_positions=...): # -> Generator[Any | list[tuple[Any, int, int]], Any, None]:
         """
         Tokenize multiple sentences using Repp.
@@ -60,8 +60,8 @@ class ReppTokenizer(TokenizerI):
         :rtype: iter(tuple(str))
         """
         ...
-
-    def generate_repp_command(self, inputfilename): # -> list:
+    
+    def generate_repp_command(self, inputfilename): # -> list[Any]:
         """
         This module generates the REPP command to be used at the terminal.
 
@@ -69,7 +69,7 @@ class ReppTokenizer(TokenizerI):
         :type inputfilename: str
         """
         ...
-
+    
     @staticmethod
     def parse_repp_outputs(repp_output): # -> Generator[list[tuple[Any, int, int]], Any, None]:
         """
@@ -83,9 +83,12 @@ class ReppTokenizer(TokenizerI):
         :rtype: iter(tuple)
         """
         ...
-
+    
     def find_repptokenizer(self, repp_dirname):
         """
         A module to find REPP tokenizer binary and its *repp.set* config file.
         """
         ...
+    
+
+

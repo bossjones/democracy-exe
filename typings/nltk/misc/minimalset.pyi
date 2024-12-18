@@ -20,7 +20,7 @@ class MinimalSet:
         :type parameters: list(tuple(str, str, str))
         """
         ...
-
+    
     def add(self, context, target, display): # -> None:
         """
         Add a new item to the minimal set, having the specified
@@ -34,8 +34,8 @@ class MinimalSet:
         :type display: str
         """
         ...
-
-    def contexts(self, minimum=...): # -> list:
+    
+    def contexts(self, minimum=...): # -> list[Any]:
         """
         Determine which contexts occurred with enough distinct targets.
 
@@ -44,12 +44,15 @@ class MinimalSet:
         :rtype: list
         """
         ...
-
+    
     def display(self, context, target, default=...): # -> str:
         ...
-
-    def display_all(self, context): # -> list:
+    
+    def display_all(self, context): # -> list[Any]:
         ...
-
-    def targets(self): # -> set:
+    
+    def targets(self): # -> set[Any]:
         ...
+    
+
+

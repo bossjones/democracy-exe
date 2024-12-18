@@ -9,3 +9,6 @@ logger = ...
 class VideoMAEFeatureExtractor(VideoMAEImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

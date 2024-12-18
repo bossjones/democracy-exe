@@ -10,7 +10,10 @@ class BaseTransformersCLICommand(ABC):
     @abstractmethod
     def register_subcommand(parser: ArgumentParser):
         ...
-
+    
     @abstractmethod
     def run(self):
         ...
+    
+
+

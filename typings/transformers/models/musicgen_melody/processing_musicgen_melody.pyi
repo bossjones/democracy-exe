@@ -25,10 +25,10 @@ class MusicgenMelodyProcessor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, feature_extractor, tokenizer) -> None:
         ...
-
+    
     def get_decoder_prompt_ids(self, task=..., language=..., no_timestamps=...):
         ...
-
+    
     def __call__(self, audio=..., text=..., **kwargs):
         """
         Main method to prepare for the model one or several sequences(s) and audio(s). This method forwards the `audio`
@@ -55,7 +55,7 @@ class MusicgenMelodyProcessor(ProcessorMixin):
             When only `audio` is specified, returns the timestamps attention mask.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs): # -> List[ndarray[Any, Any]]:
         """
         This method is used to decode either batches of audio outputs from the MusicGen model, or batches of token ids
@@ -63,14 +63,14 @@ class MusicgenMelodyProcessor(ProcessorMixin):
         [`~PreTrainedTokenizer.batch_decode`]. Please refer to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to T5Tokenizer's [`~PreTrainedTokenizer.decode`]. Please refer to the
         docstring of this method for more information.
         """
         ...
-
+    
     def get_unconditional_inputs(self, num_samples=..., return_tensors=...):
         """
         Helper function to get null inputs for unconditional generation, enabling the model to be used without the
@@ -93,3 +93,6 @@ class MusicgenMelodyProcessor(ProcessorMixin):
         >>> audio_samples = model.generate(**unconditional_inputs, max_new_tokens=256)
         ```"""
         ...
+    
+
+

@@ -90,8 +90,8 @@ of_the_second_derivative
     the default dtype for storing matrix representations.
 
     >>> lap.tosparse()
-    <6x6 sparse array of type '<class 'numpy.int8'>'
-        with 16 stored elements (3 diagonals) in DIAgonal format>
+    <DIAgonal sparse array of dtype 'int8'
+        with 16 stored elements (3 diagonals) and shape (6, 6)>
     >>> lap.toarray()
     array([[-1,  1,  0,  0,  0,  0],
            [ 1, -2,  1,  0,  0,  0],
@@ -105,7 +105,7 @@ of_the_second_derivative
     True
 
     Any number of extreme eigenvalues and/or eigenvectors can be computed.
-
+    
     >>> lap = LaplacianNd(grid_shape, boundary_conditions='periodic')
     >>> lap.eigenvalues()
     array([-4., -3., -3., -1., -1.,  0.])
@@ -163,8 +163,8 @@ of_the_second_derivative
 
     >>> lap = LaplacianNd(grid_shape, boundary_conditions='dirichlet')
     >>> lap.tosparse()
-    <6x6 sparse array of type '<class 'numpy.int8'>'
-        with 20 stored elements in Compressed Sparse Row format>
+    <Compressed Sparse Row sparse array of dtype 'int8'
+        with 20 stored elements and shape (6, 6)>
     >>> lap.toarray()
     array([[-4,  1,  0,  1,  0,  0],
            [ 1, -4,  1,  0,  1,  0],
@@ -190,8 +190,8 @@ of_the_second_derivative
 
     >>> lap = LaplacianNd(grid_shape, boundary_conditions='periodic')
     >>> lap.tosparse()
-    <6x6 sparse array of type '<class 'numpy.int8'>'
-        with 24 stored elements in Compressed Sparse Row format>
+    <Compressed Sparse Row sparse array of dtype 'int8'
+        with 24 stored elements and shape (6, 6)>
     >>> lap.toarray()
         array([[-4,  1,  1,  2,  0,  0],
                [ 1, -4,  1,  0,  2,  0],
@@ -216,8 +216,8 @@ of_the_second_derivative
 
     >>> lap = LaplacianNd(grid_shape, boundary_conditions='neumann')
     >>> lap.tosparse()
-    <6x6 sparse array of type '<class 'numpy.int8'>'
-        with 20 stored elements in Compressed Sparse Row format>
+    <Compressed Sparse Row sparse array of dtype 'int8'
+        with 20 stored elements and shape (6, 6)>
     >>> lap.toarray()
     array([[-2,  1,  0,  1,  0,  0],
            [ 1, -3,  1,  0,  1,  0],
@@ -241,40 +241,40 @@ of_the_second_derivative
     """
     def __init__(self, grid_shape, *, boundary_conditions=..., dtype=...) -> None:
         ...
-
+    
     def eigenvalues(self, m=...): # -> ndarray[Any, dtype[float64]] | Any:
         """Return the requested number of eigenvalues.
-
+        
         Parameters
         ----------
         m : int, optional
             The positive number of smallest eigenvalues to return.
             If not provided, then all eigenvalues will be returned.
-
+            
         Returns
         -------
         eigenvalues : float array
             The requested `m` smallest or all eigenvalues, in ascending order.
         """
         ...
-
+    
     def eigenvectors(self, m=...): # -> NDArray[Any]:
         """Return the requested number of eigenvectors for ordered eigenvalues.
-
+        
         Parameters
         ----------
         m : int, optional
             The positive number of eigenvectors to return. If not provided,
             then all eigenvectors will be returned.
-
+            
         Returns
         -------
         eigenvectors : float array
             An array with columns made of the requested `m` or all eigenvectors.
-            The columns are ordered according to the `m` ordered eigenvalues.
+            The columns are ordered according to the `m` ordered eigenvalues. 
         """
         ...
-
+    
     def toarray(self): # -> NDArray[Any]:
         """
         Converts the Laplacian data to a dense array.
@@ -286,7 +286,7 @@ of_the_second_derivative
 
         """
         ...
-
+    
     def tosparse(self): # -> dia_array | Any:
         """
         Constructs a sparse array from the Laplacian data. The returned sparse
@@ -299,7 +299,7 @@ of_the_second_derivative
 
         """
         ...
-
+    
 
 
 class Sakurai(LinearOperator):
@@ -343,7 +343,7 @@ class Sakurai(LinearOperator):
     `A` and `B` where `A` is the identity so we turn it into an eigenproblem
     just for the matrix `B` that this function outputs in various formats
     together with its eigenvalues.
-
+    
     .. versionadded:: 1.12.0
 
     References
@@ -376,8 +376,8 @@ class Sakurai(LinearOperator):
            [-4, -4, -4, -4, -4, -4],
            [ 5,  6,  6,  6,  6,  5]], dtype=int8)
     >>> sak.tosparse()
-    <6x6 sparse matrix of type '<class 'numpy.int8'>'
-        with 24 stored elements (5 diagonals) in DIAgonal format>
+    <DIAgonal sparse array of dtype 'int8'
+        with 24 stored elements (5 diagonals) and shape (6, 6)>
     >>> np.array_equal(sak.dot(np.eye(n)), sak.tosparse().toarray())
     True
     >>> sak.eigenvalues()
@@ -395,38 +395,38 @@ class Sakurai(LinearOperator):
     """
     def __init__(self, n, dtype=...) -> None:
         ...
-
+    
     def eigenvalues(self, m=...): # -> Any:
         """Return the requested number of eigenvalues.
-
+        
         Parameters
         ----------
         m : int, optional
             The positive number of smallest eigenvalues to return.
             If not provided, then all eigenvalues will be returned.
-
+            
         Returns
         -------
         eigenvalues : `np.float64` array
             The requested `m` smallest or all eigenvalues, in ascending order.
         """
         ...
-
+    
     def tobanded(self): # -> NDArray[signedinteger[_8Bit]]:
         """
         Construct the Sakurai matrix as a banded array.
         """
         ...
-
+    
     def tosparse(self): # -> dia_matrix | Any:
         """
         Construct the Sakurai matrix is a sparse format.
         """
         ...
-
+    
     def toarray(self): # -> Any:
         ...
-
+    
 
 
 class MikotaM(LinearOperator):
@@ -455,16 +455,16 @@ class MikotaM(LinearOperator):
     """
     def __init__(self, shape, dtype=...) -> None:
         ...
-
+    
     def tobanded(self):
         ...
-
+    
     def tosparse(self): # -> dia_matrix | Any:
         ...
-
+    
     def toarray(self): # -> NDArray[floating[_64Bit]]:
         ...
-
+    
 
 
 class MikotaK(LinearOperator):
@@ -472,7 +472,7 @@ class MikotaK(LinearOperator):
     Construct a stiffness matrix in various formats of Mikota pair.
 
     The stiffness matrix `K` is square real tri-diagonal symmetric
-    positive definite with integer entries.
+    positive definite with integer entries. 
 
     Parameters
     ----------
@@ -494,16 +494,16 @@ class MikotaK(LinearOperator):
     """
     def __init__(self, shape, dtype=...) -> None:
         ...
-
+    
     def tobanded(self): # -> NDArray[signedinteger[_32Bit]]:
         ...
-
+    
     def tosparse(self): # -> dia_matrix | Any:
         ...
-
+    
     def toarray(self): # -> Any:
         ...
-
+    
 
 
 class MikotaPair:
@@ -517,7 +517,7 @@ class MikotaPair:
     the system length such that vibration frequencies are subsequent
     integers 1, 2, ..., `n` where `n` is the number of the masses. Thus,
     eigenvalues of the generalized eigenvalue problem for
-    the matrix pair `K` and `M` where `K` is he system stiffness matrix
+    the matrix pair `K` and `M` where `K` is the system stiffness matrix
     and `M` is the system mass matrix are the squares of the integers,
     i.e., 1, 4, 9, ..., ``n * n``.
 
@@ -544,7 +544,7 @@ class MikotaPair:
         A `LinearOperator` custom object for the stiffness matrix.
     MikotaM()
         A `LinearOperator` custom object for the mass matrix.
-
+    
     .. versionadded:: 1.12.0
 
     References
@@ -580,36 +580,39 @@ class MikotaPair:
     array([1.        , 0.5       , 0.33333333, 0.25      , 0.2       ,
         0.16666667])
     >>> mik_k.tosparse()
-    <6x6 sparse matrix of type '<class 'numpy.float64'>'
-        with 16 stored elements (3 diagonals) in DIAgonal format>
+    <DIAgonal sparse array of dtype 'float64'
+        with 20 stored elements (3 diagonals) and shape (6, 6)>
     >>> mik_m.tosparse()
-    <6x6 sparse matrix of type '<class 'numpy.float64'>'
-        with 6 stored elements (1 diagonals) in DIAgonal format>
+    <DIAgonal sparse array of dtype 'float64'
+        with 6 stored elements (1 diagonals) and shape (6, 6)>
     >>> np.array_equal(mik_k(np.eye(n)), mik_k.toarray())
     True
     >>> np.array_equal(mik_m(np.eye(n)), mik_m.toarray())
     True
     >>> mik.eigenvalues()
-    array([ 1,  4,  9, 16, 25, 36])
+    array([ 1,  4,  9, 16, 25, 36])  
     >>> mik.eigenvalues(2)
     array([ 1,  4])
 
     """
     def __init__(self, n, dtype=...) -> None:
         ...
-
+    
     def eigenvalues(self, m=...): # -> NDArray[unsignedinteger[Any]]:
         """Return the requested number of eigenvalues.
-
+        
         Parameters
         ----------
         m : int, optional
             The positive number of smallest eigenvalues to return.
             If not provided, then all eigenvalues will be returned.
-
+            
         Returns
         -------
         eigenvalues : `np.uint64` array
             The requested `m` smallest or all eigenvalues, in ascending order.
         """
         ...
+    
+
+

@@ -55,3 +55,4 @@ def get_assertion_message(assertion_details):
     Get a detailed message about the failing matcher.
     """
     ...
+

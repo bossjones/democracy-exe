@@ -6,3 +6,4 @@ from typing import Any, Tuple
 
 def get_module_from_name(module, tensor_name: str) -> Tuple[Any, str]:
     ...
+

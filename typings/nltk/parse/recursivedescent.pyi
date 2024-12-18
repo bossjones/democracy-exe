@@ -53,13 +53,13 @@ class RecursiveDescentParser(ParserI):
             output.
         """
         ...
-
+    
     def grammar(self): # -> Any:
         ...
-
+    
     def parse(self, tokens): # -> Generator[Any, Any, None]:
         ...
-
+    
     def trace(self, trace=...): # -> None:
         """
         Set the level of tracing output that should be generated when
@@ -72,7 +72,7 @@ class RecursiveDescentParser(ParserI):
         :rtype: None
         """
         ...
-
+    
 
 
 class SteppingRecursiveDescentParser(RecursiveDescentParser):
@@ -101,10 +101,10 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
     """
     def __init__(self, grammar, trace=...) -> None:
         ...
-
-    def parse(self, tokens): # -> Iterator:
+    
+    def parse(self, tokens): # -> Iterator[Any]:
         ...
-
+    
     def initialize(self, tokens): # -> None:
         """
         Start parsing a given text.  This sets the parser's tree to
@@ -112,7 +112,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         remaining text to ``token['SUBTOKENS']``.
         """
         ...
-
+    
     def remaining_text(self): # -> None:
         """
         :return: The portion of the text that is not yet covered by the
@@ -120,7 +120,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: list(str)
         """
         ...
-
+    
     def frontier(self): # -> list[tuple[()]]:
         """
         :return: A list of the tree locations of all subtrees that
@@ -129,7 +129,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: list(tuple(int))
         """
         ...
-
+    
     def tree(self): # -> Tree | None:
         """
         :return: A partial structure for the text that is
@@ -138,7 +138,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: Tree
         """
         ...
-
+    
     def step(self): # -> Literal[True] | None:
         """
         Perform a single parsing operation.  If an untried match is
@@ -154,7 +154,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: Production or String or bool
         """
         ...
-
+    
     def expand(self, production=...): # -> None:
         """
         Expand the first element of the frontier.  In particular, if
@@ -171,7 +171,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: Production or None
         """
         ...
-
+    
     def match(self): # -> None:
         """
         Match the first element of the frontier.  In particular, if
@@ -183,7 +183,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: str or None
         """
         ...
-
+    
     def backtrack(self): # -> bool:
         """
         Return the parser to its state before the most recent
@@ -196,23 +196,23 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: bool
         """
         ...
-
-    def expandable_productions(self): # -> list:
+    
+    def expandable_productions(self): # -> list[Any]:
         """
         :return: A list of all the productions for which expansions
             are available for the current parser state.
         :rtype: list(Production)
         """
         ...
-
-    def untried_expandable_productions(self): # -> list:
+    
+    def untried_expandable_productions(self): # -> list[Any]:
         """
         :return: A list of all the untried productions for which
             expansions are available for the current parser state.
         :rtype: list(Production)
         """
         ...
-
+    
     def untried_match(self): # -> bool:
         """
         :return: Whether the first element of the frontier is a token
@@ -220,7 +220,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: bool
         """
         ...
-
+    
     def currently_complete(self): # -> bool:
         """
         :return: Whether the parser's current state represents a
@@ -228,15 +228,15 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :rtype: bool
         """
         ...
-
-    def parses(self): # -> Iterator:
+    
+    def parses(self): # -> Iterator[Any]:
         """
         :return: An iterator of the parses that have been found by this
             parser so far.
         :rtype: list of Tree
         """
         ...
-
+    
     def set_grammar(self, grammar): # -> None:
         """
         Change the grammar used to parse texts.
@@ -245,7 +245,7 @@ class SteppingRecursiveDescentParser(RecursiveDescentParser):
         :type grammar: CFG
         """
         ...
-
+    
 
 
 def demo(): # -> None:

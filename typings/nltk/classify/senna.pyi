@@ -39,7 +39,7 @@ class Senna(TaggerI):
     SUPPORTED_OPERATIONS = ...
     def __init__(self, senna_path, operations, encoding=...) -> None:
         ...
-
+    
     def executable(self, base_path): # -> str:
         """
         The function that determines the system specific binary that should be
@@ -47,17 +47,20 @@ class Senna(TaggerI):
         be used.
         """
         ...
-
-    def tag(self, tokens): # -> list:
+    
+    def tag(self, tokens): # -> list[Any]:
         """
         Applies the specified operation(s) on a list of tokens.
         """
         ...
-
-    def tag_sents(self, sentences): # -> list[list]:
+    
+    def tag_sents(self, sentences): # -> list[list[Any]]:
         """
         Applies the tag method over a list of sentences. This method will return a
         list of dictionaries. Every dictionary will contain a word with its
         calculated annotations/tags.
         """
         ...
+    
+
+

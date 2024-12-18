@@ -1,3 +1,5 @@
+# pyright: reportAttributeAccessIssue=false
+
 """Twitter cog for Discord bot.
 
 This cog provides Twitter-related functionality including downloading tweets,
@@ -10,10 +12,13 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+import sys
 import tempfile
+import traceback
 
 from typing import Any, Dict, Final, List, Optional, Tuple, Union, cast
 
+import bpdb
 import discord
 
 from discord.ext import commands
@@ -21,6 +26,7 @@ from discord.ext.commands import Context
 from loguru import logger
 from rich.pretty import pprint
 
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.factories.guild_factory import Guild
 from democracy_exe.utils.twitter_utils.download import download_tweet
 from democracy_exe.utils.twitter_utils.embed import (
@@ -36,12 +42,12 @@ from democracy_exe.utils.twitter_utils.types import DownloadResult, TweetDownloa
 
 
 # Command constants
-HELP_MESSAGE: Final[str] = """
+HELP_MESSAGE: Final[str] = f"""
 Available commands:
-- !tweet download <url>: Download tweet media and metadata
-- !tweet thread <url>: Download full tweet thread
-- !tweet card <url>: Download tweet card preview
-- !tweet info <url>: Show tweet metadata
+- {aiosettings.prefix}tweet download <url>: Download tweet media and metadata
+- {aiosettings.prefix}tweet thread <url>: Download full tweet thread
+- {aiosettings.prefix}tweet card <url>: Download tweet card preview
+- {aiosettings.prefix}tweet info <url>: Show tweet metadata
 """
 
 
@@ -74,7 +80,7 @@ class Twitter(commands.Cog):
     async def on_guild_join(self, guild):
         """Add new guilds to the database"""
         logger.debug(f"Adding new guild to database: {guild.id}")
-        _ = await Guild(id=guild.id)
+        guild_obj = Guild(id=guild.id)
         logger.debug(f"Successfully added guild {guild.id} to database")
 
     async def _handle_download(
@@ -98,6 +104,7 @@ class Twitter(commands.Cog):
         Raises:
             TwitterError: If download fails
         """
+        logger.info(f"{type(self).__name__} -> _handle_download -> ctx = {ctx}, url = {url}, mode = {mode}")
         logger.debug(f"Starting download handler - URL: {url}, Mode: {mode}")
         async with ctx.typing():
             # Create progress message with embed
@@ -109,11 +116,12 @@ class Twitter(commands.Cog):
                 # Download tweet content
                 logger.debug("Initiating tweet download")
                 result = await download_tweet(url, mode=mode)
+                logger.error(f"result: {result}")
                 logger.debug(f"Download result: success={result['success']}")
 
                 if not result["success"]:
                     logger.debug(f"Download failed: {result['error']}")
-                    error_embed = create_error_embed(result["error"])
+                    error_embed = create_error_embed(str(result.get("error", "Unknown error")))
                     await progress.edit(embed=error_embed)
                     return False, result["error"]
 
@@ -135,12 +143,30 @@ class Twitter(commands.Cog):
                 # Upload media files if any
                 files = []
                 logger.debug(f"Processing {len(result['local_files'])} media files")
+                # import bpdb; bpdb.set_trace()
+                # {
+                # 'success': True,
+                # 'metadata': {'id': '', 'url': '', 'author': '', 'content': '', 'media_urls': [], 'created_at': ''},
+                # 'local_files': ['/private/var/folders/q_/d5r_s8wd02zdx6qmc5f_96mw0000gp/T/tmpsu3j8yhy/gallery-dl/twitter/UAPJames/UAPJames-1869141126051217764-(20241217_220226)-img1.mp4'],
+                # 'error': None
+                # }
+
                 for file_path in result["local_files"]:
                     try:
                         files.append(discord.File(file_path))
                         logger.debug(f"Added file to upload: {file_path}")
-                    except Exception as e:
-                        logger.warning(f"Failed to create discord.File for {file_path}: {e}")
+                    except Exception as ex:
+                        logger.warning(f"Failed to create discord.File for {file_path}: {ex}")
+                        print(f"{ex}")
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        print(f"Error Class: {ex.__class__}")
+                        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                        print(output)
+                        print(f"exc_type: {exc_type}")
+                        print(f"exc_value: {exc_value}")
+                        traceback.print_tb(exc_traceback)
+                        if aiosettings.dev_mode:
+                            bpdb.pm()
 
                 await progress.edit(content="Download complete!", embed=embed)
                 if files:
@@ -165,16 +191,30 @@ class Twitter(commands.Cog):
             await ctx.send(HELP_MESSAGE)
 
     @tweet.command(name="download", aliases=["dlt", "t", "twitter"])
-    async def download(self, ctx: commands.Context, url: str) -> None:
+    async def download(self, ctx: commands.Context, url: str, *args: Any, **kwargs: Any) -> None:
         """Download tweet media and metadata.
 
         Args:
             ctx: Command context
             url: Tweet URL to download
         """
-        logger.debug(f"Download command invoked - URL: {url}")
-        await self._handle_download(ctx, url, mode="single")
-        logger.debug("Download command completed")
+        try:
+            logger.info(f"{type(self).__name__} -> ctx = {ctx}, url = {url}")
+            logger.debug(f"Download command invoked - URL: {url}")
+            await self._handle_download(ctx, url, mode="single")
+            logger.debug("Download command completed")
+        except Exception as e:
+            logger.exception("Error in download command")
+            error_embed = create_error_embed(str(e))
+            await ctx.send(embed=error_embed)
+            raise TwitterError(f"Failed to download tweet: {e}") from e
+
+    @download.error
+    async def download_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the download!")
+            )
 
     @tweet.command(name="thread", aliases=["dt"])
     async def thread(self, ctx: commands.Context, url: str) -> None:
@@ -188,6 +228,13 @@ class Twitter(commands.Cog):
         await self._handle_download(ctx, url, mode="thread")
         logger.debug("Thread command completed")
 
+    @thread.error
+    async def thread_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the thread!")
+            )
+
     @tweet.command(name="card")
     async def card(self, ctx: commands.Context, url: str) -> None:
         """Download tweet card preview.
@@ -199,6 +246,13 @@ class Twitter(commands.Cog):
         logger.debug(f"Card command invoked - URL: {url}")
         await self._handle_download(ctx, url, mode="card")
         logger.debug("Card command completed")
+
+    @card.error
+    async def card_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the card!")
+            )
 
     @tweet.command(name="info")
     async def info(self, ctx: commands.Context, url: str) -> None:
@@ -236,6 +290,13 @@ class Twitter(commands.Cog):
                 error_embed = create_error_embed(str(e))
                 await ctx.send(embed=error_embed)
                 raise TwitterError(f"Failed to get tweet info: {e}") from e
+
+    @info.error
+    async def info_error_handler(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(
+                embed=discord.Embed(description="Sorry, you need `MANAGE SERVER` permissions to change the info!")
+            )
 
 
 async def setup(bot: commands.Bot) -> None:

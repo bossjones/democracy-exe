@@ -29,24 +29,27 @@ class StanfordSegmenter(TokenizerI):
     _JAR = ...
     def __init__(self, path_to_jar=..., path_to_slf4j=..., java_class=..., path_to_model=..., path_to_dict=..., path_to_sihan_corpora_dict=..., sihan_post_processing=..., keep_whitespaces=..., encoding=..., options=..., verbose=..., java_options=...) -> None:
         ...
-
+    
     def default_config(self, lang): # -> None:
         """
         Attempt to initialize Stanford Word Segmenter for the specified language
         using the STANFORD_SEGMENTER and STANFORD_MODELS environment variables
         """
         ...
-
+    
     def tokenize(self, s): # -> None:
         ...
-
+    
     def segment_file(self, input_file_path): # -> Any:
         """ """
         ...
-
+    
     def segment(self, tokens): # -> Any:
         ...
-
+    
     def segment_sents(self, sentences): # -> Any:
         """ """
         ...
+    
+
+

@@ -161,7 +161,7 @@ class RBFInterpolator:
     """
     def __init__(self, y, d, neighbors=..., smoothing=..., kernel=..., epsilon=..., degree=...) -> None:
         ...
-
+    
     def __call__(self, x): # -> ndarray[Any, dtype[Any]] | Any:
         """Evaluate the interpolant at `x`.
 
@@ -177,3 +177,6 @@ class RBFInterpolator:
 
         """
         ...
+    
+
+

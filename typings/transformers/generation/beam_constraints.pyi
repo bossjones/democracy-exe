@@ -21,30 +21,33 @@ class Constraint(ABC):
     """
     def __init__(self) -> None:
         ...
-
+    
     def test(self): # -> None:
         """
         Tests whether this constraint has been properly defined.
         """
         ...
-
+    
     @abstractmethod
     def advance(self):
         """
-        When called, returns the token that would take this constraint one step closer to being fulfilled.
+        When called, returns the token(s) that would take this constraint one step closer to being fulfilled.
 
         Return:
-            token_ids(`torch.tensor`): Must be a tensor of a list of indexable tokens, not some integer.
+            token_ids (Union[int, List[int], None]):
+                - A single token ID (int) that advances the constraint, or
+                - A list of token IDs that could advance the constraint
+                - None if the constraint is completed or cannot be advanced
         """
         ...
-
+    
     @abstractmethod
     def does_advance(self, token_id: int):
         """
         Reads in a token and returns whether it creates progress.
         """
         ...
-
+    
     @abstractmethod
     def update(self, token_id: int):
         """
@@ -67,7 +70,7 @@ class Constraint(ABC):
                 Whether this constraint has reset its progress by this token being generated.
         """
         ...
-
+    
     @abstractmethod
     def reset(self):
         """
@@ -75,14 +78,14 @@ class Constraint(ABC):
         a constraint is abrupted by an unwanted token.
         """
         ...
-
+    
     @abstractmethod
     def remaining(self):
         """
         Returns the number of remaining steps of `advance()` in order to complete this constraint.
         """
         ...
-
+    
     @abstractmethod
     def copy(self, stateful=...):
         """
@@ -95,7 +98,7 @@ class Constraint(ABC):
             constraint(`Constraint`): The same constraint as the one being called from.
         """
         ...
-
+    
 
 
 class PhrasalConstraint(Constraint):
@@ -108,25 +111,25 @@ class PhrasalConstraint(Constraint):
     """
     def __init__(self, token_ids: List[int]) -> None:
         ...
-
+    
     def advance(self): # -> int | None:
         ...
-
+    
     def does_advance(self, token_id: int): # -> bool:
         ...
-
+    
     def update(self, token_id: int): # -> tuple[bool, bool, bool]:
         ...
-
+    
     def reset(self): # -> None:
         ...
-
+    
     def remaining(self): # -> int:
         ...
-
+    
     def copy(self, stateful=...): # -> PhrasalConstraint:
         ...
-
+    
 
 
 class DisjunctiveTrie:
@@ -135,25 +138,25 @@ class DisjunctiveTrie:
         A helper class that builds a trie with the words represented in `nested_token_ids`.
         """
         ...
-
+    
     def next_tokens(self, current_seq): # -> list[Any]:
         """
         The next possible tokens that will progress the trie, given the current sequence of tokens in `current_seq`.
         """
         ...
-
+    
     def reached_leaf(self, current_seq): # -> bool:
         ...
-
+    
     def count_leaves(self, root): # -> int:
         ...
-
+    
     def has_subsets(self, trie, nested_token_ids): # -> bool:
         """
         Returns whether # of leaves == # of words. Otherwise some word is a subset of another.
         """
         ...
-
+    
 
 
 class DisjunctiveConstraint(Constraint):
@@ -167,25 +170,25 @@ class DisjunctiveConstraint(Constraint):
     """
     def __init__(self, nested_token_ids: List[List[int]]) -> None:
         ...
-
+    
     def advance(self): # -> list[Any] | None:
         ...
-
+    
     def does_advance(self, token_id: int): # -> bool:
         ...
-
+    
     def update(self, token_id: int): # -> tuple[bool, bool, bool]:
         ...
-
+    
     def reset(self): # -> None:
         ...
-
+    
     def remaining(self): # -> int:
         ...
-
+    
     def copy(self, stateful=...): # -> DisjunctiveConstraint:
         ...
-
+    
 
 
 class ConstraintListState:
@@ -198,13 +201,13 @@ class ConstraintListState:
     """
     def __init__(self, constraints: List[Constraint]) -> None:
         ...
-
+    
     def init_state(self): # -> None:
         ...
-
+    
     def get_bank(self):
         ...
-
+    
     def advance(self): # -> list[Any] | None:
         """The list of tokens to generate such that we can make progress.
         By "list" we don't mean the list of token that will fully fulfill a constraint.
@@ -221,15 +224,18 @@ class ConstraintListState:
         that's the only one we'll return.
         """
         ...
-
+    
     def reset(self, token_ids: Optional[List[int]]): # -> None:
         """
         token_ids: the tokens generated thus far to reset the state of the progress through constraints.
         """
         ...
-
+    
     def add(self, token_id: int): # -> tuple[Literal[True], Literal[False]] | tuple[Any | Literal[False], Any | Literal[False]]:
         ...
-
+    
     def copy(self, stateful=...): # -> ConstraintListState:
         ...
+    
+
+

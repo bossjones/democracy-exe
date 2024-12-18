@@ -44,7 +44,7 @@ class MWETokenizer(TokenizerI):
 
         """
         ...
-
+    
     def add_mwe(self, mwe): # -> None:
         """Add a multi-word expression to the lexicon (stored as a word trie)
 
@@ -66,8 +66,8 @@ class MWETokenizer(TokenizerI):
 
         """
         ...
-
-    def tokenize(self, text): # -> list:
+    
+    def tokenize(self, text): # -> list[Any]:
         """
 
         :param text: A list containing tokenized text
@@ -83,3 +83,6 @@ class MWETokenizer(TokenizerI):
 
         """
         ...
+    
+
+

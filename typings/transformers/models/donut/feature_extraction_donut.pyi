@@ -9,3 +9,6 @@ logger = ...
 class DonutFeatureExtractor(DonutImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

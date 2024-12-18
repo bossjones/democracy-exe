@@ -175,7 +175,7 @@ class CZT:
     """
     def __init__(self, n, m=..., w=..., a=...) -> None:
         ...
-
+    
     def __call__(self, x, *, axis=...):
         """
         Calculate the chirp z-transform of a signal.
@@ -195,13 +195,13 @@ class CZT:
             transformed axis set to `m`.
         """
         ...
-
+    
     def points(self): # -> Any:
         """
         Return the points at which the chirp z-transform is computed.
         """
         ...
-
+    
 
 
 class ZoomFFT(CZT):
@@ -289,7 +289,7 @@ class ZoomFFT(CZT):
     """
     def __init__(self, n, fn, m=..., *, fs=..., endpoint=...) -> None:
         ...
-
+    
 
 
 def czt(x, m=..., w=..., a=..., *, axis=...):
@@ -469,3 +469,4 @@ def zoom_fft(x, fn, m=..., *, fs=..., endpoint=..., axis=...):
     >>> plt.show()
     """
     ...
+

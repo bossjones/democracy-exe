@@ -58,10 +58,10 @@ class CorpusReader:
               ``tagged_...()`` methods.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def ensure_loaded(self): # -> None:
         """
         Load this corpus (if it has not already been loaded).  This is
@@ -70,33 +70,33 @@ class CorpusReader:
         do help(some_corpus).
         """
         ...
-
+    
     def readme(self): # -> bytes | str:
         """
         Return the contents of the corpus README file, if it exists.
         """
         ...
-
+    
     def license(self): # -> bytes | str:
         """
         Return the contents of the corpus LICENSE file, if it exists.
         """
         ...
-
+    
     def citation(self): # -> bytes | str:
         """
         Return the contents of the corpus citation.bib file, if it exists.
         """
         ...
-
-    def fileids(self): # -> list[str | Any] | list | Any:
+    
+    def fileids(self): # -> list[str | Any] | list[Any] | Any:
         """
         Return a list of file identifiers for the fileids that make up
         this corpus.
         """
         ...
-
-    def abspath(self, fileid): # -> str | FileSystemPathPointer | ZipFilePathPointer:
+    
+    def abspath(self, fileid): # -> str | FileSystemPathPointer | ZipFilePathPointer | None:
         """
         Return the absolute path for the given file.
 
@@ -106,8 +106,8 @@ class CorpusReader:
         :rtype: PathPointer
         """
         ...
-
-    def abspaths(self, fileids=..., include_encoding=..., include_fileid=...): # -> list[tuple[str | FileSystemPathPointer | ZipFilePathPointer, Any | str | None, str]] | list[tuple[str | FileSystemPathPointer | ZipFilePathPointer, str]] | list[tuple[str | FileSystemPathPointer | ZipFilePathPointer, Any | str | None]] | list[str | FileSystemPathPointer | ZipFilePathPointer]:
+    
+    def abspaths(self, fileids=..., include_encoding=..., include_fileid=...): # -> list[tuple[str | FileSystemPathPointer | ZipFilePathPointer | None, Any | str | None, str]] | list[tuple[str | FileSystemPathPointer | ZipFilePathPointer | None, str]] | list[tuple[str | FileSystemPathPointer | ZipFilePathPointer | None, Any | str | None]] | list[str | FileSystemPathPointer | ZipFilePathPointer | None]:
         """
         Return a list of the absolute paths for all fileids in this corpus;
         or for the given list of fileids, if specified.
@@ -126,15 +126,15 @@ class CorpusReader:
         :rtype: list(PathPointer)
         """
         ...
-
-    def raw(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def raw(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :param fileids: A list specifying the fileids that should be used.
         :return: the given file(s) as a single string.
         :rtype: str
         """
         ...
-
+    
     def open(self, file): # -> SeekableUnicodeStreamReader | BufferedReader | GzipFile | BytesIO:
         """
         Return an open stream that can be used to read the given file.
@@ -144,7 +144,7 @@ class CorpusReader:
         :param file: The file identifier of the file to read.
         """
         ...
-
+    
     def encoding(self, file): # -> str | None:
         """
         Return the unicode encoding for the given corpus file, if known.
@@ -152,7 +152,7 @@ class CorpusReader:
         processed using byte strings (str), then return None.
         """
         ...
-
+    
     root = ...
 
 
@@ -195,33 +195,33 @@ class CategorizedCorpusReader:
         raised.
         """
         ...
-
-    def categories(self, fileids=...): # -> list:
+    
+    def categories(self, fileids=...): # -> list[Any]:
         """
         Return a list of the categories that are defined for this corpus,
         or for the file(s) if it is given.
         """
         ...
-
-    def fileids(self, categories=...): # -> list:
+    
+    def fileids(self, categories=...): # -> list[Any]:
         """
         Return a list of file identifiers for the files that make up
         this corpus, or that make up the given category(s) if specified.
         """
         ...
-
+    
     def raw(self, fileids=..., categories=...):
         ...
-
+    
     def words(self, fileids=..., categories=...):
         ...
-
+    
     def sents(self, fileids=..., categories=...):
         ...
-
+    
     def paras(self, fileids=..., categories=...):
         ...
-
+    
 
 
 class SyntaxCorpusReader(CorpusReader):
@@ -238,17 +238,20 @@ class SyntaxCorpusReader(CorpusReader):
       - ``_parse``, which takes a block and returns a list of parsed
         sentences.
     """
-    def parsed_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def parsed_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
+    
+    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
+        ...
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
+        ...
+    
+    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
+        ...
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
+        ...
+    
 
-    def tagged_sents(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
-        ...
 
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
-        ...
-
-    def tagged_words(self, fileids=..., tagset=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
-        ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
-        ...

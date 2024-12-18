@@ -43,17 +43,20 @@ class BenchmarkArguments:
     only_pretrain_model: bool = ...
     def __post_init__(self): # -> None:
         ...
-
+    
     def to_json_string(self): # -> str:
         """
         Serializes this instance to a JSON string.
         """
         ...
-
+    
     @property
     def model_names(self) -> List[str]:
         ...
-
+    
     @property
     def do_multi_processing(self): # -> bool:
         ...
+    
+
+

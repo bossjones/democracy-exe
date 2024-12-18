@@ -23,20 +23,23 @@ class CrubadanCorpusReader(CorpusReader):
     _all_lang_freq = ...
     def __init__(self, root, fileids, encoding=..., tagset=...) -> None:
         ...
-
+    
     def lang_freq(self, lang):
         """Return n-gram FreqDist for a specific language
         given ISO 639-3 language code"""
         ...
-
+    
     def langs(self): # -> list[str]:
         """Return a list of supported languages as ISO 639-3 codes"""
         ...
-
+    
     def iso_to_crubadan(self, lang): # -> str | None:
         """Return internal Crubadan code based on ISO 639-3 code"""
         ...
-
+    
     def crubadan_to_iso(self, lang): # -> str | None:
         """Return ISO 639-3 code given internal Crubadan code"""
         ...
+    
+
+

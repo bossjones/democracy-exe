@@ -193,3 +193,4 @@ def zero_ext(x, n, axis=...): # -> NDArray[float64]:
            [ 0,  0,  0,  1,  4,  9, 16,  0,  0]])
     """
     ...
+

@@ -259,3 +259,4 @@ def check_derivative(fun, jac, x0, bounds=..., args=..., kwargs=...): # -> float
     2.4492935982947064e-16
     """
     ...
+

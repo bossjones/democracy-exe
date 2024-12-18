@@ -110,11 +110,11 @@ class OdeSolver:
     TOO_SMALL_STEP = ...
     def __init__(self, fun, t0, y0, t_bound, vectorized, support_complex=...) -> None:
         ...
-
+    
     @property
     def step_size(self): # -> Any | None:
         ...
-
+    
     def step(self): # -> None:
         """Perform one integration step.
 
@@ -126,7 +126,7 @@ class OdeSolver:
             otherwise.
         """
         ...
-
+    
     def dense_output(self): # -> ConstantDenseOutput:
         """Compute a local interpolant over the last successful step.
 
@@ -136,7 +136,7 @@ class OdeSolver:
             Local interpolant over the last successful step.
         """
         ...
-
+    
 
 
 class DenseOutput:
@@ -153,7 +153,7 @@ class DenseOutput:
     """
     def __init__(self, t_old, t) -> None:
         ...
-
+    
     def __call__(self, t):
         """Evaluate the interpolant.
 
@@ -169,7 +169,7 @@ class DenseOutput:
             1-D array.
         """
         ...
-
+    
 
 
 class ConstantDenseOutput(DenseOutput):
@@ -180,3 +180,6 @@ class ConstantDenseOutput(DenseOutput):
     """
     def __init__(self, t_old, t, value) -> None:
         ...
+    
+
+

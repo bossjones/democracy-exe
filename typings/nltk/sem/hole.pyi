@@ -56,28 +56,28 @@ class HoleSemantics:
         a label or a hole, and v is a variable.
         """
         ...
-
+    
     def is_node(self, x): # -> bool:
         """
         Return true if x is a node (label or hole) in this semantic
         representation.
         """
         ...
-
-    def pluggings(self): # -> list:
+    
+    def pluggings(self): # -> list[Any]:
         """
         Calculate and return all the legal pluggings (mappings of labels to
         holes) of this semantics given the constraints.
         """
         ...
-
+    
     def formula_tree(self, plugging):
         """
         Return the first-order logic formula tree for this underspecified
         representation using the plugging given.
         """
         ...
-
+    
 
 
 class Constraint:
@@ -87,22 +87,22 @@ class Constraint:
     """
     def __init__(self, lhs, rhs) -> None:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
 
 
-
-def hole_readings(sentence, grammar_filename=..., verbose=...): # -> list:
+def hole_readings(sentence, grammar_filename=..., verbose=...): # -> list[Any]:
     ...
 
 if __name__ == "__main__":

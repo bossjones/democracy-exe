@@ -36,3 +36,4 @@ def show(mode=...): # -> dict[str, Any] | None:
 
     """
     ...
+

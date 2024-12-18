@@ -468,7 +468,7 @@ def group_delay(system, w=..., whole=..., fs=...): # -> tuple[NDArray[floating[A
     When such a case arises the warning is raised and the group delay
     is set to 0 at those frequencies.
 
-    For the details of numerical computation of the group delay refer to [1]_.
+    For the details of numerical computation of the group delay refer to [1]_ or [2]_.
 
     .. versionadded:: 0.16.0
 
@@ -476,6 +476,10 @@ def group_delay(system, w=..., whole=..., fs=...): # -> tuple[NDArray[floating[A
     ----------
     .. [1] Richard G. Lyons, "Understanding Digital Signal Processing,
            3rd edition", p. 830.
+    .. [2] Julius O. Smith III, "Numerical Computation of Group Delay",
+           in "Introduction to Digital Filters with Audio Applications",
+           online book, 2007,
+           https://ccrma.stanford.edu/~jos/fp/Numerical_Computation_Group_Delay.html
 
     Examples
     --------
@@ -669,17 +673,17 @@ def tf2zpk(b, a): # -> tuple[NDArray[complexfloating[Any, Any]] | NDArray[floati
 
     Examples
     --------
-    Find the zeroes, poles and gain of
+    Find the zeroes, poles and gain of 
     a filter with the transfer function
 
     .. math::
-
+    
         H(s) = \frac{3s^2}{s^2 + 5s + 13}
-
+        
     >>> from scipy.signal import tf2zpk
     >>> tf2zpk([3, 0, 0], [1, 5, 13])
-    (   array([ 0.               ,  0.              ]),
-        array([ -2.5+2.59807621j ,  -2.5-2.59807621j]),
+    (   array([ 0.               ,  0.              ]), 
+        array([ -2.5+2.59807621j ,  -2.5-2.59807621j]), 
         3.0)
     """
     ...
@@ -708,9 +712,9 @@ def zpk2tf(z, p, k): # -> tuple[ndarray[Any, _dtype] | Any, ndarray[Any, _dtype]
     --------
     Find the polynomial representation of a transfer function H(s)
     using its 'zpk' (Zero-Pole-Gain) representation.
-
+    
     .. math::
-
+            
         H(z) = 5 \frac
         { (s - 2)(s - 6) }
         { (s - 1)(s - 8) }
@@ -768,11 +772,11 @@ def tf2sos(b, a, pairing=..., *, analog=...):
     --------
     Find the 'sos' (second-order sections) of the transfer function H(s)
     using its polynomial representation.
-
+    
     .. math::
-
+    
         H(s) = \frac{s^2 - 3.5s - 2}{s^4 + 3s^3 - 15s^2 - 19s + 30}
-
+        
     >>> from scipy.signal import tf2sos
     >>> tf2sos([1, -3.5, -2], [1, 3, -15, -19, 30], analog=True)
     array([[  0. ,   0. ,   1. ,   1. ,   2. , -15. ],
@@ -804,9 +808,9 @@ def sos2tf(sos): # -> tuple[NDArray[floating[_64Bit]] | NDArray[floating[Any]], 
 
     Examples
     --------
-    Find the polynomial representation of an elliptic filter
+    Find the polynomial representation of an elliptic filter 
     using its 'sos' (second-order sections) format.
-
+   
     >>> from scipy.signal import sos2tf
     >>> from scipy import signal
     >>> sos = signal.ellip(1, 0.001, 50, 0.1, output='sos')
@@ -1750,7 +1754,7 @@ def lp2lp_zpk(z, p, k, wo=...): # -> tuple[Any, Any, Any]:
 
     Examples
     --------
-    Use the 'zpk' (Zero-Pole-Gain) representation of a lowpass filter to
+    Use the 'zpk' (Zero-Pole-Gain) representation of a lowpass filter to 
     transform it to a new 'zpk' representation associated with a cutoff frequency wo.
 
     >>> from scipy.signal import lp2lp_zpk
@@ -1807,12 +1811,12 @@ def lp2hp_zpk(z, p, k, wo=...): # -> tuple[NDArray[Any], Any, Any]:
     logarithmic scale.
 
     .. versionadded:: 1.1.0
-
+    
     Examples
     --------
-    Use the 'zpk' (Zero-Pole-Gain) representation of a lowpass filter to
+    Use the 'zpk' (Zero-Pole-Gain) representation of a lowpass filter to 
     transform it to a highpass filter with a cutoff frequency wo.
-
+    
     >>> from scipy.signal import lp2hp_zpk
     >>> z   = [ -2 + 3j ,  -0.5 - 0.8j ]
     >>> p   = [ -1      ,  -4          ]
@@ -1872,13 +1876,13 @@ def lp2bp_zpk(z, p, k, wo=..., bw=...): # -> tuple[NDArray[Any], NDArray[Any], A
     geometric (log frequency) symmetry about `wo`.
 
     .. versionadded:: 1.1.0
-
+    
     Examples
     --------
-    Use the 'zpk' (Zero-Pole-Gain) representation of a lowpass filter to
+    Use the 'zpk' (Zero-Pole-Gain) representation of a lowpass filter to 
     transform it to a bandpass filter with a center frequency wo and
     bandwidth bw.
-
+    
     >>> from scipy.signal import lp2bp_zpk
     >>> z   = [ 5 + 2j ,  5 - 2j ]
     >>> p   = [ 7      ,  -16    ]
@@ -1887,7 +1891,7 @@ def lp2bp_zpk(z, p, k, wo=..., bw=...): # -> tuple[NDArray[Any], NDArray[Any], A
     >>> bw  = 15
     >>> lp2bp_zpk(z, p, k, wo, bw)
     (   array([7.49955815e+01+3.00017676e+01j, 7.49955815e+01-3.00017676e+01j,
-               4.41850748e-03-1.76761126e-03j, 4.41850748e-03+1.76761126e-03j]),
+               4.41850748e-03-1.76761126e-03j, 4.41850748e-03+1.76761126e-03j]), 
         array([1.04996339e+02+0.j, -1.60167736e-03+0.j,  3.66108003e-03+0.j,
                -2.39998398e+02+0.j]), 0.8)
     """
@@ -1943,10 +1947,10 @@ def lp2bs_zpk(z, p, k, wo=..., bw=...): # -> tuple[NDArray[Any], NDArray[Any], A
 
     Examples
     --------
-    Transform a low-pass filter represented in 'zpk' (Zero-Pole-Gain) form
+    Transform a low-pass filter represented in 'zpk' (Zero-Pole-Gain) form 
     into a bandstop filter represented in 'zpk' form, with a center frequency wo and
     bandwidth bw.
-
+    
     >>> from scipy.signal import lp2bs_zpk
     >>> z   = [             ]
     >>> p   = [ 0.7 ,    -1 ]
@@ -1954,8 +1958,8 @@ def lp2bs_zpk(z, p, k, wo=..., bw=...): # -> tuple[NDArray[Any], NDArray[Any], A
     >>> wo  = 0.5
     >>> bw  = 10
     >>> lp2bs_zpk(z, p, k, wo, bw)
-    (   array([0.+0.5j, 0.+0.5j, 0.-0.5j, 0.-0.5j]),
-        array([14.2681928 +0.j, -0.02506281+0.j,  0.01752149+0.j, -9.97493719+0.j]),
+    (   array([0.+0.5j, 0.+0.5j, 0.-0.5j, 0.-0.5j]), 
+        array([14.2681928 +0.j, -0.02506281+0.j,  0.01752149+0.j, -9.97493719+0.j]), 
         -12.857142857142858)
     """
     ...
@@ -3009,7 +3013,7 @@ def ellipap(N, rp, rs): # -> tuple[NDArray[Any], NDArray[Any], Any]:
 
     References
     ----------
-    .. [1] Lutova, Tosic, and Evans, "Filter Design for Signal Processing",
+    .. [1] Lutovac, Tosic, and Evans, "Filter Design for Signal Processing",
            Chapters 5 and 12.
 
     .. [2] Orfanidis, "Lecture Notes on Elliptic Filter Design",

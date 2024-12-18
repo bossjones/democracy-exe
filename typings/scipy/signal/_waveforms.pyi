@@ -477,3 +477,4 @@ def unit_impulse(shape, idx=..., dtype=...): # -> NDArray[Any]:
 
     """
     ...
+

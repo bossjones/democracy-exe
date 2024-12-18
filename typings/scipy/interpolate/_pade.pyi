@@ -43,3 +43,4 @@ def pade(an, m, n=...): # -> tuple[poly1d, poly1d]:
 
     """
     ...
+

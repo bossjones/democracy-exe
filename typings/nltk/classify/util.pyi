@@ -40,7 +40,7 @@ def apply_features(feature_func, toks, labeled=...): # -> LazyMap:
     """
     ...
 
-def attested_labels(tokens): # -> tuple:
+def attested_labels(tokens): # -> tuple[Any, ...]:
     """
     :return: A list of all labels that are attested in the given list
         of tokens.
@@ -67,16 +67,16 @@ class CutoffChecker:
     """
     def __init__(self, cutoffs) -> None:
         ...
-
+    
     def check(self, classifier, train_toks): # -> bool | None:
         ...
+    
 
 
-
-def names_demo_features(name): # -> dict:
+def names_demo_features(name): # -> dict[Any, Any]:
     ...
 
-def binary_names_demo_features(name): # -> dict:
+def binary_names_demo_features(name): # -> dict[Any, Any]:
     ...
 
 def names_demo(trainer, features=...):
@@ -94,3 +94,4 @@ def check_megam_config(): # -> None:
     Checks whether the MEGAM binary is configured.
     """
     ...
+

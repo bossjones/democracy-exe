@@ -85,7 +85,7 @@ class SquadProcessor(DataProcessor):
         >>> evaluation_examples = get_examples_from_dataset(dataset, evaluate=True)
         ```"""
         ...
-
+    
     def get_train_examples(self, data_dir, filename=...): # -> list[Any]:
         """
         Returns the training examples from the data directory.
@@ -97,7 +97,7 @@ class SquadProcessor(DataProcessor):
 
         """
         ...
-
+    
     def get_dev_examples(self, data_dir, filename=...): # -> list[Any]:
         """
         Returns the evaluation example from the data directory.
@@ -108,7 +108,7 @@ class SquadProcessor(DataProcessor):
                 which is `dev-v1.1.json` and `dev-v2.0.json` for squad versions 1.1 and 2.0 respectively.
         """
         ...
-
+    
 
 
 class SquadV1Processor(SquadProcessor):
@@ -137,7 +137,7 @@ class SquadExample:
     """
     def __init__(self, qas_id, question_text, context_text, answer_text, start_position_character, title, answers=..., is_impossible=...) -> None:
         ...
-
+    
 
 
 class SquadFeatures:
@@ -168,7 +168,7 @@ class SquadFeatures:
     """
     def __init__(self, input_ids, attention_mask, token_type_ids, cls_index, p_mask, example_index, unique_id, paragraph_len, token_is_max_context, tokens, token_to_orig_map, start_position, end_position, is_impossible, qas_id: str = ..., encoding: BatchEncoding = ...) -> None:
         ...
-
+    
 
 
 class SquadResult:
@@ -182,3 +182,6 @@ class SquadResult:
     """
     def __init__(self, unique_id, start_logits, end_logits, start_top_index=..., end_top_index=..., cls_logits=...) -> None:
         ...
+    
+
+

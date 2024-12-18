@@ -224,6 +224,8 @@ dev-dependencies = [
     "nbqa[toolchain]>=1.9.1",
     "commitizen>=1.0.0",
     "pytest-aioresponses>=0.2.0",
+    "pytest-loguru>=0.4.0",
+    "pytest-skipuntil>=0.2.0",
 ]
 
 [tool.uv.sources]
@@ -1022,6 +1024,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "test/*" = ["D"]
 "tests/conftest.py" = ["D", "F811"]
 "*.pyi" = ["D", "E501", "E701", "I002"]
+"democracy_exe/chatbot/core/bot.py" = ["B026"]
 
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
@@ -1822,16 +1825,15 @@ exclude = [
     "build",
     "dist",
     "docs",
-    "**/.venv",
     "**/node_modules",
-    "**/__pycache__",
     ".git",
     "**/build",
     "tasks",
-    "typings",
+    "democracy_exe/vendored/*",
+    "**/vendored/*",
 ]
 extraPaths = [
-    ".venv",
+    # ".venv",
 ]
 ############################################################################
 # FIXME: THIS MIGHT BREAK SHIT

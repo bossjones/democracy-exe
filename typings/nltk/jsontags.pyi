@@ -22,17 +22,17 @@ def register_tag(cls):
 class JSONTaggedEncoder(json.JSONEncoder):
     def default(self, obj): # -> Any | dict[Any, Any]:
         ...
-
+    
 
 
 class JSONTaggedDecoder(json.JSONDecoder):
-    def decode(self, s): # -> list | dict:
+    def decode(self, s): # -> list[Any] | dict[Any, Any]:
         ...
-
+    
     @classmethod
-    def decode_obj(cls, obj): # -> list | dict:
+    def decode_obj(cls, obj): # -> list[Any] | dict[Any, Any]:
         ...
-
+    
 
 
 __all__ = ["register_tag", "json_tags", "JSONTaggedEncoder", "JSONTaggedDecoder"]

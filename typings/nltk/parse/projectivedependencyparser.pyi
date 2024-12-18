@@ -18,43 +18,43 @@ class DependencySpan:
     """
     def __init__(self, start_index, end_index, head_index, arcs, tags) -> None:
         ...
-
+    
     def head_index(self): # -> Any:
         """
         :return: An value indexing the head of the entire ``DependencySpan``.
         :rtype: int
         """
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         """
         :return: A concise string representatino of the ``DependencySpan``.
         :rtype: str.
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         :return: A verbose string representation of the ``DependencySpan``.
         :rtype: str
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __hash__(self) -> int:
         """
         :return: The hash value of this ``DependencySpan``.
         """
         ...
-
+    
 
 
 class ChartCell:
@@ -71,7 +71,7 @@ class ChartCell:
         :type y: int.
         """
         ...
-
+    
     def add(self, span): # -> None:
         """
         Appends the given span to the list of spans
@@ -81,21 +81,21 @@ class ChartCell:
         :type span: DependencySpan
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         :return: A verbose string representation of this ``ChartCell``.
         :rtype: str.
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         :return: A concise string representation of this ``ChartCell``.
         :rtype: str.
         """
         ...
-
+    
 
 
 class ProjectiveDependencyParser:
@@ -119,7 +119,7 @@ class ProjectiveDependencyParser:
         :type dependency_grammar: DependencyGrammar
         """
         ...
-
+    
     def parse(self, tokens): # -> Generator[Tree, Any, None]:
         """
         Performs a projective dependency parse on the list of tokens using
@@ -131,8 +131,8 @@ class ProjectiveDependencyParser:
         :rtype: iter(Tree)
         """
         ...
-
-    def concatenate(self, span1, span2): # -> list:
+    
+    def concatenate(self, span1, span2): # -> list[Any]:
         """
         Concatenates the two spans in whichever way possible.  This
         includes rightward concatenation (from the leftmost word of the
@@ -145,7 +145,7 @@ class ProjectiveDependencyParser:
         :rtype: list(DependencySpan)
         """
         ...
-
+    
 
 
 class ProbabilisticProjectiveDependencyParser:
@@ -180,8 +180,8 @@ class ProbabilisticProjectiveDependencyParser:
         operations are necessary.
         """
         ...
-
-    def parse(self, tokens): # -> list | Generator[Any, None, None]:
+    
+    def parse(self, tokens): # -> list[Any] | Generator[Any, None, None]:
         """
         Parses the list of tokens subject to the projectivity constraint
         and the productions in the parser's grammar.  This uses a method
@@ -190,8 +190,8 @@ class ProbabilisticProjectiveDependencyParser:
         probabilistic dependency grammar.
         """
         ...
-
-    def concatenate(self, span1, span2): # -> list:
+    
+    def concatenate(self, span1, span2): # -> list[Any]:
         """
         Concatenates the two spans in whichever way possible.  This
         includes rightward concatenation (from the leftmost word of the
@@ -204,7 +204,7 @@ class ProbabilisticProjectiveDependencyParser:
         :rtype: list(DependencySpan)
         """
         ...
-
+    
     def train(self, graphs): # -> None:
         """
         Trains a ProbabilisticDependencyGrammar based on the list of input
@@ -216,7 +216,7 @@ class ProbabilisticProjectiveDependencyParser:
         :type: list(DependencyGraph)
         """
         ...
-
+    
     def compute_prob(self, dg): # -> float:
         """
         Computes the probability of a dependency graph based
@@ -229,7 +229,7 @@ class ProbabilisticProjectiveDependencyParser:
         :rtype: int
         """
         ...
-
+    
 
 
 def demo(): # -> None:

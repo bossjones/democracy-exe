@@ -9,3 +9,6 @@ logger = ...
 class MobileNetV2FeatureExtractor(MobileNetV2ImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

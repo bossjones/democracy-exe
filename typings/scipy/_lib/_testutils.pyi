@@ -11,6 +11,7 @@ IS_MUSL = ...
 _v = ...
 if 'musl' in _v:
     IS_MUSL = ...
+IS_EDITABLE = ...
 class FPUModeChangeWarning(RuntimeWarning):
     """Warning about FPU mode change"""
     ...
@@ -48,10 +49,10 @@ class PytestTester:
     """
     def __init__(self, module_name) -> None:
         ...
-
+    
     def __call__(self, label=..., verbose=..., extra_argv=..., doctests=..., coverage=..., tests=..., parallel=...): # -> bool:
         ...
-
+    
 
 
 class _TestPythranFunc:
@@ -72,25 +73,25 @@ class _TestPythranFunc:
     ALL_COMPLEX = ...
     def setup_method(self): # -> None:
         ...
-
+    
     def get_optional_args(self, func): # -> dict[Any, Any]:
         ...
-
+    
     def get_max_dtype_list_length(self): # -> int:
         ...
-
+    
     def get_dtype(self, dtype_list, dtype_idx):
         ...
-
+    
     def test_all_dtypes(self): # -> None:
         ...
-
+    
     def test_views(self): # -> None:
         ...
-
+    
     def test_strided(self): # -> None:
         ...
-
+    
 
 
 def check_free_memory(free_mb): # -> None:
@@ -98,3 +99,4 @@ def check_free_memory(free_mb): # -> None:
     Check *free_mb* of memory is available, otherwise do pytest.skip
     """
     ...
+

@@ -20,7 +20,7 @@ class Chat:
         :rtype: None
         """
         ...
-
+    
     def respond(self, str): # -> None:
         """
         Generate a response to the user input.
@@ -30,6 +30,9 @@ class Chat:
         :rtype: str
         """
         ...
-
+    
     def converse(self, quit=...): # -> None:
         ...
+    
+
+

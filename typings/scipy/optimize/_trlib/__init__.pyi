@@ -7,3 +7,4 @@ from ._trlib import TRLIBQuadraticSubproblem
 __all__ = ['TRLIBQuadraticSubproblem', 'get_trlib_quadratic_subproblem']
 def get_trlib_quadratic_subproblem(tol_rel_i=..., tol_rel_b=..., disp=...): # -> Callable[..., Any]:
     ...
+

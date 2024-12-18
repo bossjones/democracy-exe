@@ -6,6 +6,8 @@ from ._mio import loadmat, savemat, whosmat
 from ._mio5 import MatlabFunction
 from ._mio5_params import MatlabObject, MatlabOpaque, mat_struct
 from ._miobase import MatReadError, MatReadWarning, MatWriteError, matfile_version
+from . import byteordercodes, mio, mio4, mio5, mio5_params, mio5_utils, mio_utils, miobase, streams
+from scipy._lib._testutils import PytestTester
 
 """
 MATLAB® file utilities (:mod:`scipy.io.matlab`)

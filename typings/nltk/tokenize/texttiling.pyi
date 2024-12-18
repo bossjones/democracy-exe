@@ -46,12 +46,12 @@ class TextTilingTokenizer(TokenizerI):
     """
     def __init__(self, w=..., k=..., similarity_method=..., stopwords=..., smoothing_method=..., smoothing_width=..., smoothing_rounds=..., cutoff_policy=..., demo_mode=...) -> None:
         ...
-
-    def tokenize(self, text): # -> tuple[list, list[Any], list[int], list[int]] | list:
+    
+    def tokenize(self, text): # -> tuple[list[Any], list[Any], list[int], list[int]] | list[Any]:
         """Return a tokenized copy of *text*, where each "token" represents
         a separate topic."""
         ...
-
+    
 
 
 class TokenTableField:
@@ -59,14 +59,14 @@ class TokenTableField:
     used later in the process"""
     def __init__(self, first_pos, ts_occurences, total_count=..., par_count=..., last_par=..., last_tok_seq=...) -> None:
         ...
-
+    
 
 
 class TokenSequence:
     "A token list with its original length and its index"
     def __init__(self, index, wrdindex_list, original_length=...) -> None:
         ...
-
+    
 
 
 def smooth(x, window_len=..., window=...): # -> ndarray[Any, dtype[Any]]:
@@ -99,3 +99,4 @@ def smooth(x, window_len=..., window=...): # -> ndarray[Any, dtype[Any]]:
 
 def demo(text=...): # -> None:
     ...
+

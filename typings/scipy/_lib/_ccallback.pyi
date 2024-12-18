@@ -85,25 +85,25 @@ class LowLevelCallable(tuple):
     __slots__ = ...
     def __new__(cls, function, user_data=..., signature=...): # -> Self:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     @property
     def function(self):
         ...
-
+    
     @property
     def user_data(self):
         ...
-
+    
     @property
     def signature(self):
         ...
-
+    
     def __getitem__(self, idx):
         ...
-
+    
     @classmethod
     def from_cython(cls, module, name, user_data=..., signature=...): # -> Self:
         """
@@ -122,3 +122,6 @@ class LowLevelCallable(tuple):
 
         """
         ...
+    
+
+

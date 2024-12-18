@@ -101,3 +101,4 @@ def cossin(X, p=..., q=..., separate=..., swap_sign=..., compute_u=..., compute_
 
     """
     ...
+

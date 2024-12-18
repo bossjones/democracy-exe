@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 """Language Model Vocabulary"""
 @_dispatched_lookup.register(Iterable)
-def _(words, vocab): # -> tuple[()]:
+def _(words, vocab):
     """Look up a sequence of words in the vocabulary.
 
     Returns an iterator over looked up words.
@@ -115,7 +115,7 @@ class Vocabulary:
 
         """
         ...
-
+    
     @property
     def cutoff(self): # -> int:
         """Cutoff value.
@@ -124,7 +124,7 @@ class Vocabulary:
 
         """
         ...
-
+    
     def update(self, *counter_args, **counter_kwargs): # -> None:
         """Update vocabulary counts.
 
@@ -132,7 +132,7 @@ class Vocabulary:
 
         """
         ...
-
+    
     def lookup(self, words):
         """Look up one or more words in the vocabulary.
 
@@ -156,26 +156,29 @@ class Vocabulary:
 
         """
         ...
-
+    
     def __getitem__(self, item): # -> int:
         ...
-
+    
     def __contains__(self, item): # -> bool:
         """Only consider items with counts GE to cutoff as being in the
         vocabulary."""
         ...
-
+    
     def __iter__(self): # -> chain[str]:
         """Building on membership check define how to iterate over
         vocabulary."""
         ...
-
+    
     def __len__(self): # -> int:
         """Computing size of vocabulary reflects the cutoff."""
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __str__(self) -> str:
         ...
+    
+
+

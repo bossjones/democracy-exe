@@ -27,7 +27,7 @@ def is_rel(s): # -> Literal[True]:
     """
     ...
 
-def set2rel(s): # -> set:
+def set2rel(s): # -> set[Any]:
     """
     Convert a set containing individuals (strings or numbers) into a set of
     unary tuples. Any tuples of strings already in the set are passed through
@@ -66,27 +66,27 @@ class Valuation(dict):
         :param xs: a list of (symbol, value) pairs.
         """
         ...
-
+    
     def __getitem__(self, key):
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     @property
-    def domain(self): # -> set:
+    def domain(self): # -> set[Any]:
         """Set-theoretic domain of the value-space of a Valuation."""
         ...
-
+    
     @property
-    def symbols(self): # -> list:
+    def symbols(self): # -> list[Any]:
         """The non-logical constants which the Valuation recognizes."""
         ...
-
+    
     @classmethod
     def fromstring(cls, s): # -> Valuation:
         ...
-
+    
 
 
 _VAL_SPLIT_RE = ...
@@ -159,13 +159,13 @@ class Assignment(dict):
     """
     def __init__(self, domain, assign=...) -> None:
         ...
-
+    
     def __getitem__(self, key):
         ...
-
+    
     def copy(self): # -> Assignment:
         ...
-
+    
     def purge(self, var=...): # -> None:
         """
         Remove one or all keys (i.e. logic variables) from an
@@ -174,13 +174,13 @@ class Assignment(dict):
         :param var: a Variable acting as a key for the assignment.
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Pretty printing for assignments. {'x', 'u'} appears as 'g[u/x]'
         """
         ...
-
+    
     def add(self, var, val): # -> Self:
         """
         Add a new variable-value pair to the assignment, and update
@@ -188,7 +188,7 @@ class Assignment(dict):
 
         """
         ...
-
+    
 
 
 class Model:
@@ -210,14 +210,14 @@ class Model:
     """
     def __init__(self, domain, valuation) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
-    def evaluate(self, expr, g, trace=...): # -> bool | dict | Literal['Undefined']:
+    
+    def evaluate(self, expr, g, trace=...): # -> bool | dict[Any, Any] | Literal['Undefined']:
         """
         Read input expressions, and provide a handler for ``satisfy``
         that blocks further propagation of the ``Undefined`` error.
@@ -227,8 +227,8 @@ class Model:
         :rtype: bool or 'Undefined'
         """
         ...
-
-    def satisfy(self, parsed, g, trace=...): # -> bool | dict:
+    
+    def satisfy(self, parsed, g, trace=...): # -> bool | dict[Any, Any]:
         """
         Recursive interpretation function for a formula of first-order logic.
 
@@ -244,7 +244,7 @@ class Model:
         :param g: an assignment to individual variables.
         """
         ...
-
+    
     def i(self, parsed, g, trace=...):
         """
         An interpretation function.
@@ -261,8 +261,8 @@ class Model:
         :return: a semantic value
         """
         ...
-
-    def satisfiers(self, parsed, varex, g, trace=..., nesting=...): # -> set:
+    
+    def satisfiers(self, parsed, varex, g, trace=..., nesting=...): # -> set[Any]:
         """
         Generate the entities from the model's domain that satisfy an open formula.
 
@@ -275,7 +275,7 @@ class Model:
         :return: a set of the entities that satisfy ``parsed``.
         """
         ...
-
+    
 
 
 mult = ...

@@ -36,11 +36,11 @@ def inv(A):
     >>> A = csc_matrix([[1., 0.], [1., 2.]])
     >>> Ainv = inv(A)
     >>> Ainv
-    <2x2 sparse matrix of type '<class 'numpy.float64'>'
-        with 3 stored elements in Compressed Sparse Column format>
+    <Compressed Sparse Column sparse matrix of dtype 'float64'
+        with 3 stored elements and shape (2, 2)>
     >>> A.dot(Ainv)
-    <2x2 sparse matrix of type '<class 'numpy.float64'>'
-        with 2 stored elements in Compressed Sparse Column format>
+    <Compressed Sparse Column sparse matrix of dtype 'float64'
+        with 2 stored elements and shape (2, 2)>
     >>> A.dot(Ainv).toarray()
     array([[ 1.,  0.],
            [ 0.,  1.]])
@@ -53,11 +53,11 @@ def inv(A):
 class MatrixPowerOperator(LinearOperator):
     def __init__(self, A, p, structure=...) -> None:
         ...
-
+    
     @property
     def T(self): # -> MatrixPowerOperator:
         ...
-
+    
 
 
 class ProductOperator(LinearOperator):
@@ -66,11 +66,11 @@ class ProductOperator(LinearOperator):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     @property
     def T(self): # -> ProductOperator:
         ...
-
+    
 
 
 class _ExpmPadeHelper:
@@ -99,74 +99,74 @@ class _ExpmPadeHelper:
             may initially be estimated.
         """
         ...
-
+    
     @property
     def A2(self): # -> Any:
         ...
-
+    
     @property
     def A4(self): # -> Any:
         ...
-
+    
     @property
     def A6(self): # -> Any:
         ...
-
+    
     @property
     def A8(self): # -> Any:
         ...
-
+    
     @property
     def A10(self): # -> Any:
         ...
-
+    
     @property
     def d4_tight(self): # -> floating[Any]:
         ...
-
+    
     @property
     def d6_tight(self): # -> floating[Any]:
         ...
-
+    
     @property
     def d8_tight(self): # -> floating[Any]:
         ...
-
+    
     @property
     def d10_tight(self): # -> floating[Any]:
         ...
-
+    
     @property
-    def d4_loose(self): # -> floating[Any]:
+    def d4_loose(self): # -> floating[Any] | Any:
         ...
-
+    
     @property
-    def d6_loose(self): # -> floating[Any]:
+    def d6_loose(self): # -> floating[Any] | Any:
         ...
-
+    
     @property
-    def d8_loose(self): # -> floating[Any]:
+    def d8_loose(self): # -> floating[Any] | Any:
         ...
-
+    
     @property
-    def d10_loose(self): # -> floating[Any]:
+    def d10_loose(self): # -> floating[Any] | Any:
         ...
-
+    
     def pade3(self): # -> tuple[Any, Any]:
         ...
-
+    
     def pade5(self): # -> tuple[Any, Any]:
         ...
-
+    
     def pade7(self): # -> tuple[Any, Any]:
         ...
-
+    
     def pade9(self): # -> tuple[Any, Any]:
         ...
-
+    
     def pade13_scaled(self, s): # -> tuple[Any, Any]:
         ...
-
+    
 
 
 def expm(A):
@@ -207,8 +207,8 @@ def expm(A):
            [0, 0, 3]], dtype=int64)
     >>> Aexp = expm(A)
     >>> Aexp
-    <3x3 sparse matrix of type '<class 'numpy.float64'>'
-        with 3 stored elements in Compressed Sparse Column format>
+    <Compressed Sparse Column sparse matrix of dtype 'float64'
+        with 3 stored elements and shape (3, 3)>
     >>> Aexp.toarray()
     array([[  2.71828183,   0.        ,   0.        ],
            [  0.        ,   7.3890561 ,   0.        ],
@@ -221,7 +221,7 @@ def matrix_power(A, power): # -> coo_array | coo_matrix | dia_array | Any | dia_
     Raise a square matrix to the integer power, `power`.
 
     For non-negative integers, ``A**power`` is computed using repeated
-    matrix multiplications. Negative integers are not supported.
+    matrix multiplications. Negative integers are not supported. 
 
     Parameters
     ----------
@@ -235,13 +235,13 @@ def matrix_power(A, power): # -> coo_array | coo_matrix | dia_array | Any | dia_
     A**power : (M, M) sparse array or matrix
         The output matrix will be the same shape as A, and will preserve
         the class of A, but the format of the output may be changed.
-
+    
     Notes
     -----
     This uses a recursive implementation of the matrix power. For computing
     the matrix power using a reasonably large `power`, this may be less efficient
     than computing the product directly, using A @ A @ ... @ A.
-    This is contingent upon the number of nonzero entries in the matrix.
+    This is contingent upon the number of nonzero entries in the matrix. 
 
     .. versionadded:: 1.12.0
 
@@ -270,3 +270,4 @@ def matrix_power(A, power): # -> coo_array | coo_matrix | dia_array | Any | dia_
 
     """
     ...
+

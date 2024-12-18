@@ -9,18 +9,18 @@ class Fraction(_Fraction):
     """Fraction with _normalize=False support for 3.12"""
     def __new__(cls, numerator=..., denominator=..., _normalize=...): # -> Self:
         ...
-
+    
     @property
     def numerator(self): # -> int:
         ...
-
+    
     @property
     def denominator(self): # -> int:
         ...
+    
 
 
-
-def sentence_bleu(references, hypothesis, weights=..., smoothing_function=..., auto_reweigh=...): # -> list[int] | list | Literal[0]:
+def sentence_bleu(references, hypothesis, weights=..., smoothing_function=..., auto_reweigh=...): # -> list[int] | list[Any] | Literal[0]:
     """
     Calculate BLEU score (Bilingual Evaluation Understudy) from
     Papineni, Kishore, Salim Roukos, Todd Ward, and Wei-Jing Zhu. 2002.
@@ -103,7 +103,7 @@ def sentence_bleu(references, hypothesis, weights=..., smoothing_function=..., a
     """
     ...
 
-def corpus_bleu(list_of_references, hypotheses, weights=..., smoothing_function=..., auto_reweigh=...): # -> list[int] | list | Literal[0]:
+def corpus_bleu(list_of_references, hypotheses, weights=..., smoothing_function=..., auto_reweigh=...): # -> list[int] | list[Any] | Literal[0]:
     """
     Calculate a single corpus-level BLEU score (aka. system-level BLEU) for all
     the hypotheses and their respective references.
@@ -412,19 +412,19 @@ class SmoothingFunction:
         :type k: int
         """
         ...
-
-    def method0(self, p_n, *args, **kwargs): # -> list:
+    
+    def method0(self, p_n, *args, **kwargs): # -> list[Any]:
         """
         No smoothing.
         """
         ...
-
-    def method1(self, p_n, *args, **kwargs): # -> list:
+    
+    def method1(self, p_n, *args, **kwargs): # -> list[Any]:
         """
         Smoothing method 1: Add *epsilon* counts to precision with 0 counts.
         """
         ...
-
+    
     def method2(self, p_n, *args, **kwargs): # -> list[Fraction | Any]:
         """
         Smoothing method 2: Add 1 to both numerator and denominator from
@@ -433,7 +433,7 @@ class SmoothingFunction:
         In COLING 2004.
         """
         ...
-
+    
     def method3(self, p_n, *args, **kwargs):
         """
         Smoothing method 3: NIST geometric sequence smoothing
@@ -454,7 +454,7 @@ class SmoothingFunction:
         - n=4  =>  prec_count = 1/4   (no fourgram, taking 'smoothed' value of 1 / ( 2^k ), with k=2)
         """
         ...
-
+    
     def method4(self, p_n, references, hypothesis, hyp_len=..., *args, **kwargs):
         """
         Smoothing method 4:
@@ -464,7 +464,7 @@ class SmoothingFunction:
         suggests dividing by 1/ln(len(T)), where T is the length of the translation.
         """
         ...
-
+    
     def method5(self, p_n, references, hypothesis, hyp_len=..., *args, **kwargs):
         """
         Smoothing method 5:
@@ -473,7 +473,7 @@ class SmoothingFunction:
         matched counts.
         """
         ...
-
+    
     def method6(self, p_n, references, hypothesis, hyp_len=..., *args, **kwargs):
         """
         Smoothing method 6:
@@ -484,10 +484,13 @@ class SmoothingFunction:
         Gradient Ascent. In NAACL.
         """
         ...
-
+    
     def method7(self, p_n, references, hypothesis, hyp_len=..., *args, **kwargs):
         """
         Smoothing method 7:
         Interpolates methods 4 and 5.
         """
         ...
+    
+
+

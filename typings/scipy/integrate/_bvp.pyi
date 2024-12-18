@@ -607,3 +607,4 @@ def solve_bvp(fun, bc, x, y, p=..., S=..., fun_jac=..., bc_jac=..., tol=..., max
     >>> plt.show()
     """
     ...
+

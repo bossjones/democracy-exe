@@ -6,7 +6,7 @@ import functools
 import logging
 from typing import Optional
 
-""" Logging utilities."""
+"""Logging utilities."""
 _lock = ...
 _default_handler: Optional[logging.Handler] = ...
 log_levels = ...
@@ -155,36 +155,47 @@ def warning_once(self, *args, **kwargs): # -> None:
     """
     ...
 
+@functools.lru_cache(None)
+def info_once(self, *args, **kwargs): # -> None:
+    """
+    This method is identical to `logger.info()`, but will emit the info with the same message only once
+
+    Note: The cache is for the function arguments, so 2 different callers using the same arguments will hit the cache.
+    The assumption here is that all warning messages are unique across the code. If they aren't then need to switch to
+    another type of cache that includes the caller frame information in the hashing function.
+    """
+    ...
+
 class EmptyTqdm:
     """Dummy tqdm which doesn't do anything."""
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def __iter__(self):
         ...
-
+    
     def __getattr__(self, _): # -> Callable[..., None]:
         """Return empty function."""
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, type_, value, traceback): # -> None:
         ...
-
+    
 
 
 class _tqdm_cls:
     def __call__(self, *args, **kwargs): # -> tqdm | EmptyTqdm:
         ...
-
+    
     def set_lock(self, *args, **kwargs): # -> None:
         ...
-
+    
     def get_lock(self): # -> None:
         ...
-
+    
 
 
 tqdm = ...
@@ -199,3 +210,4 @@ def enable_progress_bar(): # -> None:
 def disable_progress_bar(): # -> None:
     """Disable tqdm progress bar."""
     ...
+

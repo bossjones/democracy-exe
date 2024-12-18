@@ -8,3 +8,4 @@ def deserialize(cassette_string, serializer): # -> tuple[list[Request], list[Any
 
 def serialize(cassette_dict, serializer):
     ...
+

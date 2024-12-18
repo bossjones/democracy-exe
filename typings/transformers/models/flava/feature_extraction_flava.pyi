@@ -9,3 +9,6 @@ logger = ...
 class FlavaFeatureExtractor(FlavaImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

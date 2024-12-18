@@ -227,3 +227,4 @@ def splder(tck, n=...): # -> tuple[Any, Any, Any]:
 
 def splantider(tck, n=...): # -> tuple[Any, Any, Any]:
     ...
+

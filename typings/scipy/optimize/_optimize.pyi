@@ -12,14 +12,14 @@ class MemoizeJac:
         each time it is called. """
     def __init__(self, fun) -> None:
         ...
-
+    
     def __call__(self, x, *args): # -> None:
         """ returns the function value """
         ...
-
+    
     def derivative(self, x, *args): # -> None:
         ...
-
+    
 
 
 class OptimizeResult(_RichResult):
@@ -389,7 +389,7 @@ def approx_fprime(xk, f, epsilon=..., *args): # -> LinearOperator | NDArray[floa
     >>> c0, c1 = (1, 200)
     >>> eps = np.sqrt(np.finfo(float).eps)
     >>> optimize.approx_fprime(x, func, [eps, np.sqrt(200) * eps], c0, c1)
-    array([   2.        ,  400.00004198])
+    array([   2.        ,  400.00004208])
 
     """
     ...
@@ -923,19 +923,19 @@ def fminbound(func, x1, x2, args=..., xtol=..., maxfun=..., full_output=..., dis
 class Brent:
     def __init__(self, func, args=..., tol=..., maxiter=..., full_output=..., disp=...) -> None:
         ...
-
+    
     def set_bracket(self, brack=...): # -> None:
         ...
-
+    
     def get_bracket_info(self): # -> tuple[Any, Any, Any, Any, Any, Any, int]:
         ...
-
+    
     def optimize(self): # -> None:
         ...
-
+    
     def get_result(self, full_output=...): # -> tuple[Any | None, Any | None, int, int] | Any | None:
         ...
-
+    
 
 
 def brent(func, args=..., brack=..., tol=..., full_output=..., maxiter=...): # -> tuple[Any, Any, Any, Any]:
@@ -1459,10 +1459,10 @@ class _Brute_Wrapper:
     """
     def __init__(self, f, args) -> None:
         ...
-
+    
     def __call__(self, x):
         ...
-
+    
 
 
 def show_options(solver=..., method=..., disp=...): # -> str | LiteralString | None:
@@ -1504,6 +1504,7 @@ def show_options(solver=..., method=..., disp=...): # -> str | LiteralString | N
     - :ref:`L-BFGS-B    <optimize.minimize-lbfgsb>`
     - :ref:`TNC         <optimize.minimize-tnc>`
     - :ref:`COBYLA      <optimize.minimize-cobyla>`
+    - :ref:`COBYQA      <optimize.minimize-cobyqa>`
     - :ref:`SLSQP       <optimize.minimize-slsqp>`
     - :ref:`dogleg      <optimize.minimize-dogleg>`
     - :ref:`trust-ncg   <optimize.minimize-trustncg>`
@@ -1572,3 +1573,4 @@ def show_options(solver=..., method=..., disp=...): # -> str | LiteralString | N
 
     """
     ...
+

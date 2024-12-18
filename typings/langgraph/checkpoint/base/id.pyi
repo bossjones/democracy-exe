@@ -16,15 +16,15 @@ class UUID(uuid.UUID):
     def __init__(self, hex: Optional[str] = ..., bytes: Optional[bytes] = ..., bytes_le: Optional[bytes] = ..., fields: Optional[Tuple[int, int, int, int, int, int]] = ..., int: Optional[int] = ..., version: Optional[int] = ..., *, is_safe: uuid.SafeUUID = ...) -> None:
         r"""Create a UUID."""
         ...
-
+    
     @property
     def subsec(self) -> int:
         ...
-
+    
     @property
     def time(self) -> int:
         ...
-
+    
 
 
 def uuid6(node: Optional[int] = ..., clock_seq: Optional[int] = ...) -> UUID:
@@ -38,3 +38,4 @@ def uuid6(node: Optional[int] = ..., clock_seq: Optional[int] = ...) -> UUID:
     If 'clock_seq' is given, it is used as the sequence number;
     otherwise a random 14-bit sequence number is chosen."""
     ...
+

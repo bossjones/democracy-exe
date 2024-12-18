@@ -41,7 +41,7 @@ class MultiListbox(Frame):
                 >>> MultiListbox(root, ["Subject", "Sender", "Date"], label_foreground='red').pack()  # doctest: +SKIP
         """
         ...
-
+    
     @property
     def column_names(self): # -> tuple[int, ...]:
         """
@@ -49,9 +49,9 @@ class MultiListbox(Frame):
         multi-column listbox.
         """
         ...
-
+    
     @property
-    def column_labels(self): # -> tuple:
+    def column_labels(self): # -> tuple[Any, ...]:
         """
         A tuple containing the ``Tkinter.Label`` widgets used to
         display the label of each column.  If this multi-column
@@ -62,9 +62,9 @@ class MultiListbox(Frame):
         e.g., when defining callbacks for bound events.
         """
         ...
-
+    
     @property
-    def listboxes(self): # -> tuple:
+    def listboxes(self): # -> tuple[Any, ...]:
         """
         A tuple containing the ``Tkinter.Listbox`` widgets used to
         display individual columns.  These widgets will all be
@@ -73,7 +73,7 @@ class MultiListbox(Frame):
         convenient, e.g., when defining callbacks for bound events.
         """
         ...
-
+    
     def select(self, index=..., delta=..., see=...): # -> None:
         """
         Set the selected row.  If ``index`` is specified, then select
@@ -86,7 +86,7 @@ class MultiListbox(Frame):
             selected index, to ensure that it is visible.
         """
         ...
-
+    
     def configure(self, cnf=..., **kw): # -> None:
         """
         Configure this widget.  Use ``label_*`` to configure all
@@ -98,14 +98,14 @@ class MultiListbox(Frame):
                 >>> mlb.configure(listbox_foreground='red')  # doctest: +SKIP
         """
         ...
-
+    
     def __setitem__(self, key, val): # -> None:
         """
         Configure this widget.  This is equivalent to
         ``self.configure({key,val``)}.  See ``configure()``.
         """
         ...
-
+    
     def rowconfigure(self, row_index, cnf=..., **kw): # -> None:
         """
         Configure all table cells in the given row.  Valid keyword
@@ -113,7 +113,7 @@ class MultiListbox(Frame):
         ``selectbackground``, ``selectforeground``.
         """
         ...
-
+    
     def columnconfigure(self, col_index, cnf=..., **kw): # -> None:
         """
         Configure all table cells in the given column.  Valid keyword
@@ -121,7 +121,7 @@ class MultiListbox(Frame):
         ``selectbackground``, ``selectforeground``.
         """
         ...
-
+    
     def itemconfigure(self, row_index, col_index, cnf=..., **kw):
         """
         Configure the table cell at the given row and column.  Valid
@@ -129,7 +129,7 @@ class MultiListbox(Frame):
         ``fg``, ``selectbackground``, ``selectforeground``.
         """
         ...
-
+    
     def insert(self, index, *rows): # -> None:
         """
         Insert the given row or rows into the table, at the given
@@ -139,8 +139,8 @@ class MultiListbox(Frame):
         ``Tkinter.Listbox``.
         """
         ...
-
-    def get(self, first, last=...): # -> list[tuple[Any, ...]] | tuple:
+    
+    def get(self, first, last=...): # -> list[tuple[Any, ...]] | tuple[Any, ...]:
         """
         Return the value(s) of the specified row(s).  If ``last`` is
         not specified, then return a single row value; otherwise,
@@ -148,7 +148,7 @@ class MultiListbox(Frame):
         cell values, one for each column in the row.
         """
         ...
-
+    
     def bbox(self, row, col): # -> tuple[int, int, int, int]:
         """
         Return the bounding box for the given table cell, relative to
@@ -156,7 +156,7 @@ class MultiListbox(Frame):
         of integers ``(left, top, width, height)``.
         """
         ...
-
+    
     def hide_column(self, col_index): # -> None:
         """
         Hide the given column.  The column's state is still
@@ -167,15 +167,15 @@ class MultiListbox(Frame):
         :see: ``show_column()``
         """
         ...
-
+    
     def show_column(self, col_index): # -> None:
         """
         Display a column that has been hidden using ``hide_column()``.
         It is safe to call this on a column that is not hidden.
         """
         ...
-
-    def bind_to_labels(self, sequence=..., func=..., add=...): # -> list:
+    
+    def bind_to_labels(self, sequence=..., func=..., add=...): # -> list[Any]:
         """
         Add a binding to each ``Tkinter.Label`` widget in this
         mult-column listbox that will call ``func`` in response to the
@@ -186,7 +186,7 @@ class MultiListbox(Frame):
             prevent a memory leak).
         """
         ...
-
+    
     def bind_to_listboxes(self, sequence=..., func=..., add=...): # -> None:
         """
         Add a binding to each ``Tkinter.Listbox`` widget in this
@@ -198,7 +198,7 @@ class MultiListbox(Frame):
             prevent a memory leak).
         """
         ...
-
+    
     def bind_to_columns(self, sequence=..., func=..., add=...):
         """
         Add a binding to each ``Tkinter.Label`` and ``Tkinter.Listbox``
@@ -210,58 +210,58 @@ class MultiListbox(Frame):
             prevent a memory leak).
         """
         ...
-
+    
     def curselection(self, *args, **kwargs):
         ...
-
+    
     def selection_includes(self, *args, **kwargs):
         ...
-
+    
     def itemcget(self, *args, **kwargs):
         ...
-
+    
     def size(self, *args, **kwargs):
         ...
-
+    
     def index(self, *args, **kwargs):
         ...
-
+    
     def nearest(self, *args, **kwargs):
         ...
-
+    
     def activate(self, *args, **kwargs): # -> None:
         ...
-
+    
     def delete(self, *args, **kwargs): # -> None:
         ...
-
+    
     def scan_mark(self, *args, **kwargs): # -> None:
         ...
-
+    
     def scan_dragto(self, *args, **kwargs): # -> None:
         ...
-
+    
     def see(self, *args, **kwargs): # -> None:
         ...
-
+    
     def selection_anchor(self, *args, **kwargs): # -> None:
         ...
-
+    
     def selection_clear(self, *args, **kwargs): # -> None:
         ...
-
+    
     def selection_set(self, *args, **kwargs): # -> None:
         ...
-
+    
     def yview(self, *args, **kwargs):
         ...
-
+    
     def yview_moveto(self, *args, **kwargs): # -> None:
         ...
-
+    
     def yview_scroll(self, *args, **kwargs): # -> None:
         ...
-
+    
     itemconfig = ...
     rowconfig = ...
     columnconfig = ...
@@ -342,50 +342,50 @@ class Table:
             for details.
         """
         ...
-
+    
     def pack(self, *args, **kwargs): # -> None:
         """Position this table's main frame widget in its parent
         widget.  See ``Tkinter.Frame.pack()`` for more info."""
         ...
-
+    
     def grid(self, *args, **kwargs): # -> None:
         """Position this table's main frame widget in its parent
         widget.  See ``Tkinter.Frame.grid()`` for more info."""
         ...
-
+    
     def focus(self): # -> None:
         """Direct (keyboard) input foxus to this widget."""
         ...
-
+    
     def bind(self, sequence=..., func=..., add=...): # -> None:
         """Add a binding to this table's main frame that will call
         ``func`` in response to the event sequence."""
         ...
-
+    
     def rowconfigure(self, row_index, cnf=..., **kw): # -> None:
         """:see: ``MultiListbox.rowconfigure()``"""
         ...
-
+    
     def columnconfigure(self, col_index, cnf=..., **kw): # -> None:
         """:see: ``MultiListbox.columnconfigure()``"""
         ...
-
+    
     def itemconfigure(self, row_index, col_index, cnf=..., **kw):
         """:see: ``MultiListbox.itemconfigure()``"""
         ...
-
-    def bind_to_labels(self, sequence=..., func=..., add=...): # -> list:
+    
+    def bind_to_labels(self, sequence=..., func=..., add=...): # -> list[Any]:
         """:see: ``MultiListbox.bind_to_labels()``"""
         ...
-
+    
     def bind_to_listboxes(self, sequence=..., func=..., add=...): # -> None:
         """:see: ``MultiListbox.bind_to_listboxes()``"""
         ...
-
+    
     def bind_to_columns(self, sequence=..., func=..., add=...):
         """:see: ``MultiListbox.bind_to_columns()``"""
         ...
-
+    
     rowconfig = ...
     columnconfig = ...
     itemconfig = ...
@@ -400,7 +400,7 @@ class Table:
             in the new row.
         """
         ...
-
+    
     def extend(self, rowvalues): # -> None:
         """
         Add new rows at the end of the table.
@@ -410,7 +410,7 @@ class Table:
             one for each column in the row.
         """
         ...
-
+    
     def append(self, rowvalue): # -> None:
         """
         Add a new row to the end of the table.
@@ -419,14 +419,14 @@ class Table:
             in the new row.
         """
         ...
-
+    
     def clear(self): # -> None:
         """
         Delete all rows in this table.
         """
         ...
-
-    def __getitem__(self, index): # -> tuple:
+    
+    def __getitem__(self, index): # -> tuple[Any, ...]:
         """
         Return the value of a row or a cell in this table.  If
         ``index`` is an integer, then the row value for the ``index``th
@@ -436,7 +436,7 @@ class Table:
         ``i``th row and the ``j``th column.
         """
         ...
-
+    
     def __setitem__(self, index, val): # -> None:
         """
         Replace the value of a row or a cell in this table with
@@ -452,24 +452,24 @@ class Table:
         ``val``.
         """
         ...
-
+    
     def __delitem__(self, row_index): # -> None:
         """
         Delete the ``row_index``th row from this table.
         """
         ...
-
+    
     def __len__(self): # -> int:
         """
         :return: the number of rows in this table.
         """
         ...
-
+    
     @property
     def column_names(self): # -> tuple[int, ...]:
         """A list of the names of the columns in this table."""
         ...
-
+    
     def column_index(self, i): # -> int:
         """
         If ``i`` is a valid column index integer, then return it as is.
@@ -478,15 +478,15 @@ class Table:
         ``KeyError`` exception.
         """
         ...
-
+    
     def hide_column(self, column_index): # -> None:
         """:see: ``MultiListbox.hide_column()``"""
         ...
-
+    
     def show_column(self, column_index): # -> None:
         """:see: ``MultiListbox.show_column()``"""
         ...
-
+    
     def selected_row(self): # -> int | None:
         """
         Return the index of the currently selected row, or None if
@@ -494,11 +494,11 @@ class Table:
         ``table[table.selected_row()]``.
         """
         ...
-
+    
     def select(self, index=..., delta=..., see=...): # -> None:
         """:see: ``MultiListbox.select()``"""
         ...
-
+    
     def sort_by(self, column_index, order=...): # -> None:
         """
         Sort the rows in this table, using the specified column's
@@ -519,7 +519,7 @@ class Table:
                 order.
         """
         ...
-
+    
     _DEBUG = ...
 
 

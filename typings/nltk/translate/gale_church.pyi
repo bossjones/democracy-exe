@@ -17,7 +17,7 @@ class LanguageIndependent:
     VARIANCE_CHARACTERS = ...
 
 
-def trace(backlinks, source_sents_lens, target_sents_lens): # -> list:
+def trace(backlinks, source_sents_lens, target_sents_lens): # -> list[Any]:
     """
     Traverse the alignment cost from the tracebacks and retrieves
     appropriate sentence pairs.
@@ -46,7 +46,7 @@ def align_log_prob(i, j, source_sents, target_sents, alignment, params): # -> fl
     """
     ...
 
-def align_blocks(source_sents_lens, target_sents_lens, params=...): # -> list:
+def align_blocks(source_sents_lens, target_sents_lens, params=...): # -> list[Any]:
     """Return the sentence alignment of two text blocks (usually paragraphs).
 
         >>> align_blocks([5,5,5], [7,7,7])
@@ -65,7 +65,7 @@ def align_blocks(source_sents_lens, target_sents_lens, params=...): # -> list:
     """
     ...
 
-def align_texts(source_blocks, target_blocks, params=...): # -> list[list]:
+def align_texts(source_blocks, target_blocks, params=...): # -> list[list[Any]]:
     """Creates the sentence alignment of two texts.
 
     Texts can consist of several blocks. Block boundaries cannot be crossed by sentence
@@ -96,3 +96,4 @@ def parse_token_stream(stream, soft_delimiter, hard_delimiter): # -> list[list[i
     and blocks (using C{hard_delimiter} tokens) for use with the L{align_texts} function.
     """
     ...
+

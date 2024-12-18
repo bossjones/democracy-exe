@@ -63,11 +63,11 @@ class CRFTagger(TaggerI):
             :'max_linesearch':  The maximum number of trials for the line search algorithm.
         """
         ...
-
+    
     def set_model_file(self, model_file): # -> None:
         ...
-
-    def tag_sents(self, sents): # -> list:
+    
+    def tag_sents(self, sents): # -> list[Any]:
         """
         Tag a list of sentences. NB before using this function, user should specify the mode_file either by
 
@@ -80,7 +80,7 @@ class CRFTagger(TaggerI):
         :rtype: list(list(tuple(str,str)))
         """
         ...
-
+    
     def train(self, train_data, model_file): # -> None:
         """
         Train the CRF tagger using CRFSuite
@@ -90,7 +90,7 @@ class CRFTagger(TaggerI):
 
         """
         ...
-
+    
     def tag(self, tokens):
         """
         Tag a sentence using Python CRFSuite Tagger. NB before using this function, user should specify the mode_file either by
@@ -104,3 +104,6 @@ class CRFTagger(TaggerI):
         :rtype: list(tuple(str,str))
         """
         ...
+    
+
+

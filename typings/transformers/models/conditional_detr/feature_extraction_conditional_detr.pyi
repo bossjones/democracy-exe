@@ -12,3 +12,6 @@ def rgb_to_id(x): # -> NDArray[signedinteger[Any]] | int:
 class ConditionalDetrFeatureExtractor(ConditionalDetrImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

@@ -107,7 +107,7 @@ class FortranFile:
     """
     def __init__(self, filename, mode=..., header_dtype=...) -> None:
         ...
-
+    
     def write_record(self, *items): # -> None:
         """
         Write a record (including sizes) to the file.
@@ -132,7 +132,7 @@ class FortranFile:
 
         """
         ...
-
+    
     def read_record(self, *dtypes, **kwargs): # -> tuple[Any, ...]:
         """
         Reads a record of a given type from the file.
@@ -208,7 +208,7 @@ class FortranFile:
 
         """
         ...
-
+    
     def read_ints(self, dtype=...): # -> tuple[Any, ...]:
         """
         Reads a record of a given type from the file, defaulting to an integer
@@ -231,7 +231,7 @@ class FortranFile:
 
         """
         ...
-
+    
     def read_reals(self, dtype=...): # -> tuple[Any, ...]:
         """
         Reads a record of a given type from the file, defaulting to a floating
@@ -254,7 +254,7 @@ class FortranFile:
 
         """
         ...
-
+    
     def close(self): # -> None:
         """
         Closes the file. It is unsupported to call any other methods off this
@@ -263,9 +263,12 @@ class FortranFile:
 
         """
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, type, value, tb): # -> None:
         ...
+    
+
+

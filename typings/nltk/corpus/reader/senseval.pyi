@@ -24,21 +24,24 @@ is tagged with a sense identifier, and supplied with context.
 class SensevalInstance:
     def __init__(self, word, position, context, senses) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class SensevalCorpusReader(CorpusReader):
-    def instances(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def instances(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class SensevalCorpusView(StreamBackedCorpusView):
     def __init__(self, fileid, encoding) -> None:
         ...
-
-    def read_block(self, stream): # -> list | list[SensevalInstance]:
+    
+    def read_block(self, stream): # -> list[Any] | list[SensevalInstance]:
         ...
+    
+
+

@@ -20,11 +20,11 @@ class XMLCorpusReader(CorpusReader):
     """
     def __init__(self, root, fileids, wrap_etree=...) -> None:
         ...
-
+    
     def xml(self, fileid=...): # -> ElementWrapper | Element | Any:
         ...
-
-    def words(self, fileid=...): # -> list:
+    
+    def words(self, fileid=...): # -> list[Any]:
         """
         Returns all of the words and punctuation symbols in the specified file
         that were in text nodes -- ie, tags are ignored. Like the xml() method,
@@ -34,7 +34,7 @@ class XMLCorpusReader(CorpusReader):
         :rtype: list(str)
         """
         ...
-
+    
 
 
 class XMLCorpusView(StreamBackedCorpusView):
@@ -89,7 +89,7 @@ class XMLCorpusView(StreamBackedCorpusView):
                 elt_handler(elt, tagspec) -> value
         """
         ...
-
+    
     def handle_elt(self, elt, context):
         """
         Convert an element into an appropriate value for inclusion in
@@ -111,7 +111,7 @@ class XMLCorpusView(StreamBackedCorpusView):
             top-level ``foo`` element.
         """
         ...
-
+    
     _VALID_XML_RE = ...
     _XML_TAG_NAME = ...
     _XML_PIECE = ...
@@ -122,3 +122,6 @@ class XMLCorpusView(StreamBackedCorpusView):
         ``elt_handler`` to each element found.
         """
         ...
+    
+
+

@@ -28,7 +28,7 @@ class BarkProcessor(ProcessorMixin):
     preset_shape = ...
     def __init__(self, tokenizer, speaker_embeddings=...) -> None:
         ...
-
+    
     @classmethod
     def from_pretrained(cls, pretrained_processor_name_or_path, speaker_embeddings_dict_path=..., **kwargs): # -> Self:
         r"""
@@ -50,7 +50,7 @@ class BarkProcessor(ProcessorMixin):
                 [`~tokenization_utils_base.PreTrainedTokenizer.from_pretrained`].
         """
         ...
-
+    
     def save_pretrained(self, save_directory, speaker_embeddings_dict_path=..., speaker_embeddings_directory=..., push_to_hub: bool = ..., **kwargs): # -> None:
         """
         Saves the attributes of this processor (tokenizer...) in the specified directory so that it can be reloaded
@@ -73,7 +73,7 @@ class BarkProcessor(ProcessorMixin):
                 Additional key word arguments passed along to the [`~utils.PushToHubMixin.push_to_hub`] method.
         """
         ...
-
+    
     def __call__(self, text=..., voice_preset=..., return_tensors=..., max_length=..., add_special_tokens=..., return_attention_mask=..., return_token_type_ids=..., **kwargs):
         """
         Main method to prepare for the model one or several sequences(s). This method forwards the `text` and `kwargs`
@@ -101,3 +101,6 @@ class BarkProcessor(ProcessorMixin):
             `tokenizer` and a [`BatchFeature`], i.e the voice preset with the right tensors type.
         """
         ...
+    
+
+

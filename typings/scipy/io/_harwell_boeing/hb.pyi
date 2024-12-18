@@ -13,7 +13,7 @@ features are:
     - exponential format for float values, and int format
 
 """
-__all__ = ["MalformedHeader", "hb_read", "hb_write", "HBInfo", "HBFile", "HBMatrixType"]
+__all__ = ["hb_read", "hb_write"]
 class MalformedHeader(Exception):
     ...
 
@@ -45,7 +45,7 @@ class HBInfo:
         hb_info : HBInfo instance
         """
         ...
-
+    
     @classmethod
     def from_file(cls, fid): # -> Self:
         """Create a HBInfo instance from a file object containing a matrix in the
@@ -61,15 +61,15 @@ class HBInfo:
         hb_info : HBInfo instance
         """
         ...
-
+    
     def __init__(self, title, key, total_nlines, pointer_nlines, indices_nlines, values_nlines, mxtype, nrows, ncols, nnon_zeros, pointer_format_str, indices_format_str, values_format_str, right_hand_sides_nlines=..., nelementals=...) -> None:
         """Do not use this directly, but the class ctrs (from_* functions)."""
         ...
-
+    
     def dump(self): # -> LiteralString:
         """Gives the header corresponding to this instance as a string."""
         ...
-
+    
 
 
 class HBMatrixType:
@@ -83,17 +83,17 @@ class HBMatrixType:
     @classmethod
     def from_fortran(cls, fmt): # -> Self:
         ...
-
+    
     def __init__(self, value_type, structure, storage=...) -> None:
         ...
-
+    
     @property
     def fortran_format(self): # -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class HBFile:
@@ -109,33 +109,33 @@ class HBFile:
             should be writable.
         """
         ...
-
+    
     @property
     def title(self):
         ...
-
+    
     @property
     def key(self):
         ...
-
+    
     @property
     def type(self):
         ...
-
+    
     @property
     def structure(self):
         ...
-
+    
     @property
     def storage(self):
         ...
-
+    
     def read_matrix(self): # -> csc_matrix:
         ...
-
+    
     def write_matrix(self, m): # -> None:
         ...
-
+    
 
 
 def hb_read(path_or_open_file): # -> csc_matrix:
@@ -166,14 +166,16 @@ def hb_read(path_or_open_file): # -> csc_matrix:
     We can read and write a harwell-boeing format file:
 
     >>> from scipy.io import hb_read, hb_write
-    >>> from scipy.sparse import csr_matrix, eye
-    >>> data = csr_matrix(eye(3))  # create a sparse matrix
+    >>> from scipy.sparse import csr_array, eye
+    >>> data = csr_array(eye(3))  # create a sparse array
     >>> hb_write("data.hb", data)  # write a hb file
     >>> print(hb_read("data.hb"))  # read a hb file
-      (0, 0)	1.0
-      (1, 1)	1.0
-      (2, 2)	1.0
-
+    <Compressed Sparse Column sparse matrix of dtype 'float64'
+        with 3 stored elements and shape (3, 3)>
+        Coords	Values
+        (0, 0)	1.0
+        (1, 1)	1.0
+        (2, 2)	1.0
     """
     ...
 
@@ -208,13 +210,16 @@ def hb_write(path_or_open_file, m, hb_info=...): # -> None:
     We can read and write a harwell-boeing format file:
 
     >>> from scipy.io import hb_read, hb_write
-    >>> from scipy.sparse import csr_matrix, eye
-    >>> data = csr_matrix(eye(3))  # create a sparse matrix
+    >>> from scipy.sparse import csr_array, eye
+    >>> data = csr_array(eye(3))  # create a sparse array
     >>> hb_write("data.hb", data)  # write a hb file
     >>> print(hb_read("data.hb"))  # read a hb file
-      (0, 0)	1.0
-      (1, 1)	1.0
-      (2, 2)	1.0
-
+    <Compressed Sparse Column sparse matrix of dtype 'float64'
+        with 3 stored elements and shape (3, 3)>
+        Coords	Values
+        (0, 0)	1.0
+        (1, 1)	1.0
+        (2, 2)	1.0
     """
     ...
+

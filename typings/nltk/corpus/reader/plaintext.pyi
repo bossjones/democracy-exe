@@ -39,16 +39,16 @@ class PlaintextCorpusReader(CorpusReader):
             corpus into paragraph blocks.
         """
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of words
             and punctuation symbols.
         :rtype: list(str)
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             sentences or utterances, each encoded as a list of word
@@ -56,8 +56,8 @@ class PlaintextCorpusReader(CorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             paragraphs, each encoded as a list of sentences, which are
@@ -65,7 +65,7 @@ class PlaintextCorpusReader(CorpusReader):
         :rtype: list(list(list(str)))
         """
         ...
-
+    
 
 
 class CategorizedPlaintextCorpusReader(CategorizedCorpusReader, PlaintextCorpusReader):
@@ -81,13 +81,13 @@ class CategorizedPlaintextCorpusReader(CategorizedCorpusReader, PlaintextCorpusR
         are passed to the ``PlaintextCorpusReader`` constructor.
         """
         ...
-
+    
 
 
 class PortugueseCategorizedPlaintextCorpusReader(CategorizedPlaintextCorpusReader):
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class EuroparlCorpusReader(PlaintextCorpusReader):
@@ -108,7 +108,7 @@ class EuroparlCorpusReader(PlaintextCorpusReader):
       made non-functional to remove any confusion between chapters
       and paragraphs for Europarl.
     """
-    def chapters(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def chapters(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of
             chapters, each encoded as a list of sentences, which are
@@ -116,6 +116,9 @@ class EuroparlCorpusReader(PlaintextCorpusReader):
         :rtype: list(list(list(str)))
         """
         ...
-
+    
     def paras(self, fileids=...):
         ...
+    
+
+

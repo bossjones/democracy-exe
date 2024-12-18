@@ -80,7 +80,7 @@ class ChunkScore:
     """
     def __init__(self, **kwargs) -> None:
         ...
-
+    
     def score(self, correct, guessed): # -> None:
         """
         Given a correctly chunked sentence, score another chunked
@@ -93,7 +93,7 @@ class ChunkScore:
         :param guessed: The chunked sentence to be scored.
         """
         ...
-
+    
     def accuracy(self): # -> float | Literal[1]:
         """
         Return the overall tag-based accuracy for all text that have
@@ -103,7 +103,7 @@ class ChunkScore:
         :rtype: float
         """
         ...
-
+    
     def precision(self): # -> float | Literal[0]:
         """
         Return the overall precision for all texts that have been
@@ -112,7 +112,7 @@ class ChunkScore:
         :rtype: float
         """
         ...
-
+    
     def recall(self): # -> float | Literal[0]:
         """
         Return the overall recall for all texts that have been
@@ -121,7 +121,7 @@ class ChunkScore:
         :rtype: float
         """
         ...
-
+    
     def f_measure(self, alpha=...): # -> float | Literal[0]:
         """
         Return the overall F measure for all texts that have been
@@ -135,8 +135,8 @@ class ChunkScore:
         :rtype: float
         """
         ...
-
-    def missed(self): # -> list:
+    
+    def missed(self): # -> list[Any]:
         """
         Return the chunks which were included in the
         correct chunk structures, but not in the guessed chunk
@@ -145,8 +145,8 @@ class ChunkScore:
         :rtype: list of chunks
         """
         ...
-
-    def incorrect(self): # -> list:
+    
+    def incorrect(self): # -> list[Any]:
         """
         Return the chunks which were included in the guessed chunk structures,
         but not in the correct chunk structures, listed in input order.
@@ -154,8 +154,8 @@ class ChunkScore:
         :rtype: list of chunks
         """
         ...
-
-    def correct(self): # -> list:
+    
+    def correct(self): # -> list[Any]:
         """
         Return the chunks which were included in the correct
         chunk structures, listed in input order.
@@ -163,8 +163,8 @@ class ChunkScore:
         :rtype: list of chunks
         """
         ...
-
-    def guessed(self): # -> list:
+    
+    def guessed(self): # -> list[Any]:
         """
         Return the chunks which were included in the guessed
         chunk structures, listed in input order.
@@ -172,10 +172,10 @@ class ChunkScore:
         :rtype: list of chunks
         """
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a concise representation of this ``ChunkScoring``.
@@ -183,7 +183,7 @@ class ChunkScore:
         :rtype: str
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Return a verbose representation of this ``ChunkScoring``.
@@ -194,7 +194,7 @@ class ChunkScore:
         :rtype: str
         """
         ...
-
+    
 
 
 def tagstr2tree(s, chunk_label=..., root_label=..., sep=..., source_tagset=..., target_tagset=...): # -> Tree:
@@ -236,7 +236,7 @@ def conllstr2tree(s, chunk_types=..., root_label=...): # -> Tree:
     """
     ...
 
-def tree2conlltags(t): # -> list:
+def tree2conlltags(t): # -> list[Any]:
     """
     Return a list of 3-tuples containing ``(word, tag, IOB-tag)``.
     Convert a tree to the CoNLL IOB tag format.
@@ -266,7 +266,7 @@ def tree2conllstr(t): # -> str:
 
 _IEER_DOC_RE = ...
 _IEER_TYPE_RE = ...
-def ieerstr2tree(s, chunk_types=..., root_label=...): # -> dict[str, Any] | list | Tree:
+def ieerstr2tree(s, chunk_types=..., root_label=...): # -> dict[str, Any] | list[Any] | Tree:
     """
     Return a chunk structure containing the chunked tagged text that is
     encoded in the given IEER style string.

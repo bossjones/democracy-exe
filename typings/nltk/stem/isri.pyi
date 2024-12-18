@@ -41,13 +41,13 @@ class ISRIStemmer(StemmerI):
     """
     def __init__(self) -> None:
         ...
-
+    
     def stem(self, token): # -> str:
         """
         Stemming a word token using the ISRI stemmer.
         """
         ...
-
+    
     def norm(self, word, num=...): # -> str:
         """
         normalization:
@@ -56,51 +56,54 @@ class ISRIStemmer(StemmerI):
         num=3  both 1&2
         """
         ...
-
+    
     def pre32(self, word):
         """remove length three and length two prefixes in this order"""
         ...
-
+    
     def suf32(self, word):
         """remove length three and length two suffixes in this order"""
         ...
-
+    
     def waw(self, word):
         """remove connective 'و' if it precedes a word beginning with 'و'"""
         ...
-
+    
     def pro_w4(self, word):
         """process length four patterns and extract length three roots"""
         ...
-
+    
     def pro_w53(self, word):
         """process length five patterns and extract length three roots"""
         ...
-
+    
     def pro_w54(self, word):
         """process length five patterns and extract length four roots"""
         ...
-
+    
     def end_w5(self, word):
         """ending step (word of length five)"""
         ...
-
+    
     def pro_w6(self, word):
         """process length six patterns and extract length three roots"""
         ...
-
+    
     def pro_w64(self, word):
         """process length six patterns and extract length four roots"""
         ...
-
+    
     def end_w6(self, word):
         """ending step (word of length six)"""
         ...
-
+    
     def suf1(self, word):
         """normalize short sufix"""
         ...
-
+    
     def pre1(self, word):
         """normalize short prefix"""
         ...
+    
+
+

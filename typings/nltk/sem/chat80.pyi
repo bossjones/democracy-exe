@@ -153,13 +153,13 @@ class Concept:
         :type extension: set
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         ...
-
+    
     def augment(self, data):
         """
         Add more data to the ``Concept``'s extension set.
@@ -170,7 +170,7 @@ class Concept:
 
         """
         ...
-
+    
     def close(self): # -> None:
         """
         Close a binary relation in the ``Concept``'s extension set.
@@ -179,10 +179,10 @@ class Concept:
                  relation is closed under a given property
         """
         ...
+    
 
 
-
-def clause2concepts(filename, rel_name, schema, closures=...): # -> list:
+def clause2concepts(filename, rel_name, schema, closures=...): # -> list[Any]:
     """
     Convert a file of Prolog clauses into a list of ``Concept`` objects.
 
@@ -278,7 +278,7 @@ def binary_concept(label, closures, subj, obj, records): # -> Concept:
     """
     ...
 
-def process_bundle(rels): # -> dict:
+def process_bundle(rels): # -> dict[Any, Any]:
     """
     Given a list of relation metadata bundles, make a corresponding
     dictionary of concepts, indexed by the relation name.
@@ -290,7 +290,7 @@ def process_bundle(rels): # -> dict:
     """
     ...
 
-def make_valuation(concepts, read=..., lexicon=...): # -> Valuation | list:
+def make_valuation(concepts, read=..., lexicon=...): # -> Valuation | list[Any]:
     """
     Convert a list of ``Concept`` objects into a list of (label, extension) pairs;
     optionally create a ``Valuation`` object.
@@ -338,7 +338,7 @@ def label_indivs(valuation, lexicon=...):
     """
     ...
 
-def make_lex(symbols): # -> list:
+def make_lex(symbols): # -> list[Any]:
     """
     Create lexical CFG rules for each individual symbol.
 
@@ -351,7 +351,7 @@ def make_lex(symbols): # -> list:
     """
     ...
 
-def concepts(items=...): # -> dict_values:
+def concepts(items=...): # -> dict_values[Any, Any]:
     """
     Build a list of concepts corresponding to the relation names in ``items``.
 

@@ -7,7 +7,7 @@ from ._miobase import docfiller
 """
 Module for reading and writing matlab (TM) .mat files
 """
-__all__ = ['mat_reader_factory', 'loadmat', 'savemat', 'whosmat']
+__all__ = ['loadmat', 'savemat', 'whosmat']
 @docfiller
 def mat_reader_factory(file_name, appendmat=..., **kwargs): # -> tuple[MatFile4Reader, bool] | tuple[MatFile5Reader, bool]:
     """
@@ -271,3 +271,4 @@ def whosmat(file_name, appendmat=..., **kwargs): # -> list[Any]:
 
     """
     ...
+

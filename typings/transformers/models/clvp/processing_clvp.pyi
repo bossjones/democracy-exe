@@ -25,7 +25,7 @@ class ClvpProcessor(ProcessorMixin):
     model_input_names = ...
     def __init__(self, feature_extractor, tokenizer) -> None:
         ...
-
+    
     def __call__(self, *args, **kwargs):
         """
         Forwards the `audio` and `sampling_rate` arguments to [`~ClvpFeatureExtractor.__call__`] and the `text`
@@ -33,17 +33,20 @@ class ClvpProcessor(ProcessorMixin):
         information.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to ClvpTokenizer's [`~PreTrainedTokenizer.batch_decode`]. Please
         refer to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to ClvpTokenizer's [`~PreTrainedTokenizer.decode`]. Please refer to
         the docstring of this method for more information.
         """
         ...
+    
+
+

@@ -34,3 +34,4 @@ def describe_collection(*args, **kwargs):
 
 def configure_index(*args, **kwargs):
     ...
+

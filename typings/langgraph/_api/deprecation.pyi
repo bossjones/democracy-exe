@@ -15,3 +15,4 @@ def deprecated(since: str, alternative: str, *, removal: str = ..., example: str
 
 def deprecated_parameter(arg_name: str, since: str, alternative: str, *, removal: str) -> Callable[[F], F]:
     ...
+

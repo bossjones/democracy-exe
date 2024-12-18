@@ -40,34 +40,37 @@ class SentiWordNetCorpusReader(CorpusReader):
         the specified file.
         """
         ...
-
+    
     def senti_synset(self, *vals): # -> SentiSynset | None:
         ...
-
-    def senti_synsets(self, string, pos=...): # -> filter:
+    
+    def senti_synsets(self, string, pos=...): # -> filter[Any]:
         ...
-
+    
     def all_senti_synsets(self): # -> Generator[SentiSynset, Any, None]:
         ...
-
+    
 
 
 class SentiSynset:
     def __init__(self, pos_score, neg_score, synset) -> None:
         ...
-
+    
     def pos_score(self): # -> Any:
         ...
-
+    
     def neg_score(self): # -> Any:
         ...
-
+    
     def obj_score(self):
         ...
-
+    
     def __str__(self) -> str:
         """Prints just the Pos/Neg scores for now."""
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
+
+

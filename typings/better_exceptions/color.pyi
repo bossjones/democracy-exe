@@ -18,13 +18,13 @@ def get_terminfo_file(): # -> BufferedReader | None:
 class ProxyBufferStreamWrapper:
     def __init__(self, wrapped) -> None:
         ...
-
+    
     def __getattr__(self, name): # -> Any:
         ...
-
+    
     def write(self, text): # -> None:
         ...
-
+    
 
 
 if os.name == 'nt':

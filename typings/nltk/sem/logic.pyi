@@ -71,7 +71,7 @@ class LogicParser:
         :type type_check: bool
         """
         ...
-
+    
     def parse(self, data, signature=...): # -> AndExpression | IffExpression | ImpExpression | OrExpression:
         """
         Parse the expression.
@@ -82,128 +82,128 @@ class LogicParser:
         :returns: a parsed Expression
         """
         ...
-
-    def process(self, data): # -> tuple[list, dict]:
+    
+    def process(self, data): # -> tuple[list[Any], dict[Any, Any]]:
         """Split the data into tokens"""
         ...
-
+    
     def process_quoted_token(self, data_idx, data): # -> tuple[Any | Literal[''], Any]:
         ...
-
+    
     def get_all_symbols(self): # -> list[str]:
         """This method exists to be overridden"""
         ...
-
+    
     def inRange(self, location):
         """Return TRUE if the given location is within the buffer"""
         ...
-
+    
     def token(self, location=...):
         """Get the next waiting token.  If a location is given, then
         return the token at currentIndex+location without advancing
         currentIndex; setting it gives lookahead/lookback capability."""
         ...
-
+    
     def isvariable(self, tok): # -> bool:
         ...
-
+    
     def process_next_expression(self, context): # -> AndExpression | IffExpression | ImpExpression | OrExpression:
         """Parse the next complete expression from the stream and return it."""
         ...
-
+    
     def handle(self, tok, context): # -> ApplicationExpression | IndividualVariableExpression | FunctionVariableExpression | EventVariableExpression | ConstantExpression | NegatedExpression | LambdaExpression | AllExpression | ExistsExpression | IotaExpression | None:
         """This method is intended to be overridden for logics that
         use different operators or expressions"""
         ...
-
+    
     def attempt_adjuncts(self, expression, context): # -> AndExpression | IffExpression | ImpExpression | OrExpression:
         ...
-
+    
     def handle_negation(self, tok, context): # -> NegatedExpression:
         ...
-
+    
     def make_NegatedExpression(self, expression): # -> NegatedExpression:
         ...
-
+    
     def handle_variable(self, tok, context): # -> ApplicationExpression | IndividualVariableExpression | FunctionVariableExpression | EventVariableExpression | ConstantExpression:
         ...
-
+    
     def get_next_token_variable(self, description): # -> Variable:
         ...
-
+    
     def handle_lambda(self, tok, context): # -> LambdaExpression:
         ...
-
+    
     def handle_quant(self, tok, context): # -> AllExpression | ExistsExpression | IotaExpression:
         ...
-
+    
     def get_QuantifiedExpression_factory(self, tok): # -> type[ExistsExpression] | type[AllExpression] | type[IotaExpression] | None:
         """This method serves as a hook for other logic parsers that
         have different quantifiers"""
         ...
-
+    
     def make_QuanifiedExpression(self, factory, variable, term):
         ...
-
+    
     def handle_open(self, tok, context):
         ...
-
+    
     def attempt_EqualityExpression(self, expression, context): # -> NegatedExpression | EqualityExpression:
         """Attempt to make an equality expression.  If the next token is an
         equality operator, then an EqualityExpression will be returned.
         Otherwise, the parameter will be returned."""
         ...
-
+    
     def make_EqualityExpression(self, first, second): # -> EqualityExpression:
         """This method serves as a hook for other logic parsers that
         have different equality expression classes"""
         ...
-
+    
     def attempt_BooleanExpression(self, expression, context): # -> AndExpression | IffExpression | ImpExpression | OrExpression:
         """Attempt to make a boolean expression.  If the next token is a boolean
         operator, then a BooleanExpression will be returned.  Otherwise, the
         parameter will be returned."""
         ...
-
+    
     def get_BooleanExpression_factory(self, tok): # -> type[AndExpression] | type[OrExpression] | type[ImpExpression] | type[IffExpression] | None:
         """This method serves as a hook for other logic parsers that
         have different boolean operators"""
         ...
-
+    
     def make_BooleanExpression(self, factory, first, second):
         ...
-
+    
     def attempt_ApplicationExpression(self, expression, context): # -> ApplicationExpression:
         """Attempt to make an application expression.  The next tokens are
         a list of arguments in parens, then the argument expression is a
         function being applied to the arguments.  Otherwise, return the
         argument expression."""
         ...
-
+    
     def make_ApplicationExpression(self, function, argument): # -> ApplicationExpression:
         ...
-
+    
     def make_VariableExpression(self, name): # -> IndividualVariableExpression | FunctionVariableExpression | EventVariableExpression | ConstantExpression:
         ...
-
+    
     def make_LambdaExpression(self, variable, term): # -> LambdaExpression:
         ...
-
+    
     def has_priority(self, operation, context): # -> bool:
         ...
-
+    
     def assertNextToken(self, expected): # -> None:
         ...
-
+    
     def assertToken(self, tok, expected): # -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
 
 
-
-def read_logic(s, logic_parser=..., encoding=...): # -> list:
+def read_logic(s, logic_parser=..., encoding=...): # -> list[Any]:
     """
     Convert a file of First Order Formulas into a list of {Expression}s.
 
@@ -225,28 +225,28 @@ class Variable:
         :param name: the name of the variable
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def substitute_bindings(self, bindings):
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def unique_variable(pattern=..., ignore=...): # -> Variable:
@@ -271,115 +271,115 @@ def skolem_function(univ_scope=...): # -> IndividualVariableExpression | Functio
 class Type:
     def __repr__(self): # -> str:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     @classmethod
     def fromstring(cls, s): # -> ComplexType | EntityType | TruthValueType | AnyType:
         ...
-
+    
 
 
 class ComplexType(Type):
     def __init__(self, first, second) -> None:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def matches(self, other): # -> bool:
         ...
-
+    
     def resolve(self, other): # -> Self | ComplexType | None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def str(self): # -> str:
         ...
-
+    
 
 
 class BasicType(Type):
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def matches(self, other):
         ...
-
+    
     def resolve(self, other): # -> Self | None:
         ...
-
+    
 
 
 class EntityType(BasicType):
     def __str__(self) -> str:
         ...
-
+    
     def str(self): # -> Literal['IND']:
         ...
-
+    
 
 
 class TruthValueType(BasicType):
     def __str__(self) -> str:
         ...
-
+    
     def str(self): # -> Literal['BOOL']:
         ...
-
+    
 
 
 class EventType(BasicType):
     def __str__(self) -> str:
         ...
-
+    
     def str(self): # -> Literal['EVENT']:
         ...
-
+    
 
 
 class AnyType(BasicType, ComplexType):
     def __init__(self) -> None:
         ...
-
+    
     @property
     def first(self): # -> Self:
         ...
-
+    
     @property
     def second(self): # -> Self:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def matches(self, other): # -> Literal[True]:
         ...
-
+    
     def resolve(self, other):
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def str(self): # -> Literal['ANY']:
         ...
-
+    
 
 
 TRUTH_TYPE = ...
@@ -392,25 +392,25 @@ def read_type(type_string): # -> ComplexType | EntityType | TruthValueType | Any
 class TypeException(Exception):
     def __init__(self, msg) -> None:
         ...
-
+    
 
 
 class InconsistentTypeHierarchyException(TypeException):
     def __init__(self, variable, expression=...) -> None:
         ...
-
+    
 
 
 class TypeResolutionException(TypeException):
     def __init__(self, expression, other_type) -> None:
         ...
-
+    
 
 
 class IllegalTypeException(TypeException):
     def __init__(self, expression, other_type, allowed_type) -> None:
         ...
-
+    
 
 
 def typecheck(expressions, signature=...): # -> None:
@@ -435,13 +435,13 @@ class SubstituteBindingsI:
         :rtype: (any)
         """
         ...
-
+    
     def variables(self):
         """
         :return: A list of all variables in this object.
         """
         ...
-
+    
 
 
 class Expression(SubstituteBindingsI):
@@ -451,39 +451,39 @@ class Expression(SubstituteBindingsI):
     @classmethod
     def fromstring(cls, s, type_check=..., signature=...): # -> AndExpression | IffExpression | ImpExpression | OrExpression:
         ...
-
+    
     def __call__(self, other, *additional): # -> ApplicationExpression:
         ...
-
+    
     def applyto(self, other): # -> ApplicationExpression:
         ...
-
+    
     def __neg__(self): # -> NegatedExpression:
         ...
-
+    
     def negate(self): # -> NegatedExpression:
         """If this is a negated expression, remove the negation.
         Otherwise add a negation."""
         ...
-
+    
     def __and__(self, other): # -> AndExpression:
         ...
-
+    
     def __or__(self, other): # -> OrExpression:
         ...
-
+    
     def __gt__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def equiv(self, other, prover=...):
         """
         Check for logical equivalence.
@@ -494,14 +494,14 @@ class Expression(SubstituteBindingsI):
         :param prover: a ``nltk.inference.api.Prover``
         """
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
     def substitute_bindings(self, bindings):
         ...
-
-    def typecheck(self, signature=...): # -> dict:
+    
+    def typecheck(self, signature=...): # -> dict[Any, Any]:
         """
         Infer and check types.  Raise exceptions if necessary.
 
@@ -510,7 +510,7 @@ class Expression(SubstituteBindingsI):
         :return: the signature, plus any additional type mappings
         """
         ...
-
+    
     def findtype(self, variable):
         """
         Find the type of the given variable as it is used in this expression.
@@ -519,7 +519,7 @@ class Expression(SubstituteBindingsI):
         :param variable: Variable
         """
         ...
-
+    
     def replace(self, variable, expression, replace_bound=..., alpha_convert=...):
         """
         Replace every instance of 'variable' with 'expression'
@@ -529,11 +529,11 @@ class Expression(SubstituteBindingsI):
         :param alpha_convert: bool Alpha convert automatically to avoid name clashes?
         """
         ...
-
+    
     def normalize(self, newvars=...): # -> Self:
         """Rename auto-generated unique variables"""
         ...
-
+    
     def visit(self, function, combinator):
         """
         Recursively visit subexpressions.  Apply 'function' to each
@@ -550,7 +550,7 @@ class Expression(SubstituteBindingsI):
         :return: result of combination ``R``
         """
         ...
-
+    
     def visit_structured(self, function, combinator):
         """
         Recursively visit subexpressions.  Apply 'function' to each
@@ -565,13 +565,13 @@ class Expression(SubstituteBindingsI):
         :return: result of combination
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def variables(self):
         """
         Return a set of all the variables for binding substitution.
@@ -580,7 +580,7 @@ class Expression(SubstituteBindingsI):
         :return: set of ``Variable`` objects
         """
         ...
-
+    
     def free(self):
         """
         Return a set of all the free (non-bound) variables.  This includes
@@ -588,30 +588,30 @@ class Expression(SubstituteBindingsI):
         :return: set of ``Variable`` objects
         """
         ...
-
+    
     def constants(self):
         """
         Return a set of individual constants (non-predicates).
         :return: set of ``Variable`` objects
         """
         ...
-
+    
     def predicates(self):
         """
         Return a set of predicates (constants, not variables).
         :return: set of ``Variable`` objects
         """
         ...
-
+    
     def simplify(self):
         """
         :return: beta-converted version of this expression
         """
         ...
-
+    
     def make_VariableExpression(self, variable): # -> IndividualVariableExpression | FunctionVariableExpression | EventVariableExpression | ConstantExpression:
         ...
-
+    
 
 
 class ApplicationExpression(Expression):
@@ -648,40 +648,40 @@ class ApplicationExpression(Expression):
         :param argument: ``Expression``, for the argument
         """
         ...
-
+    
     def simplify(self): # -> Self:
         ...
-
+    
     @property
     def type(self): # -> Type | AnyType:
         ...
-
+    
     def findtype(self, variable): # -> AnyType:
         """:see Expression.findtype()"""
         ...
-
+    
     def constants(self):
         """:see: Expression.constants()"""
         ...
-
+    
     def predicates(self):
         """:see: Expression.predicates()"""
         ...
-
+    
     def visit(self, function, combinator):
         """:see: Expression.visit()"""
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def __str__(self) -> str:
         ...
-
+    
     def uncurry(self): # -> tuple[Expression, list[Expression]]:
         """
         Uncurry this application expression
@@ -689,7 +689,7 @@ class ApplicationExpression(Expression):
         return: A tuple (base-function, arg-list)
         """
         ...
-
+    
     @property
     def pred(self): # -> Expression:
         """
@@ -698,21 +698,21 @@ class ApplicationExpression(Expression):
         Otherwise, it will be a lambda expression.
         """
         ...
-
+    
     @property
     def args(self): # -> list[Expression]:
         """
         Return uncurried arg-list
         """
         ...
-
+    
     def is_atom(self): # -> bool:
         """
         Is this expression an atom (as opposed to a lambda expression applied
         to a term)?
         """
         ...
-
+    
 
 
 @total_ordering
@@ -723,37 +723,37 @@ class AbstractVariableExpression(Expression):
         :param variable: ``Variable``, for the variable
         """
         ...
-
+    
     def simplify(self): # -> Self:
         ...
-
+    
     def replace(self, variable, expression, replace_bound=..., alpha_convert=...): # -> Expression | Self:
         """:see: Expression.replace()"""
         ...
-
+    
     def findtype(self, variable): # -> AnyType:
         """:see Expression.findtype()"""
         ...
-
-    def predicates(self): # -> set:
+    
+    def predicates(self): # -> set[Any]:
         """:see: Expression.predicates()"""
         ...
-
+    
     def __eq__(self, other) -> bool:
         """Allow equality between instances of ``AbstractVariableExpression``
         subtypes."""
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def __str__(self) -> str:
         ...
-
+    
 
 
 class IndividualVariableExpression(AbstractVariableExpression):
@@ -763,11 +763,11 @@ class IndividualVariableExpression(AbstractVariableExpression):
     def free(self): # -> set[Variable]:
         """:see: Expression.free()"""
         ...
-
-    def constants(self): # -> set:
+    
+    def constants(self): # -> set[Any]:
         """:see: Expression.constants()"""
         ...
-
+    
 
 
 class FunctionVariableExpression(AbstractVariableExpression):
@@ -777,11 +777,11 @@ class FunctionVariableExpression(AbstractVariableExpression):
     def free(self): # -> set[Variable]:
         """:see: Expression.free()"""
         ...
-
-    def constants(self): # -> set:
+    
+    def constants(self): # -> set[Any]:
         """:see: Expression.constants()"""
         ...
-
+    
 
 
 class EventVariableExpression(IndividualVariableExpression):
@@ -794,14 +794,14 @@ class ConstantExpression(AbstractVariableExpression):
     """This class represents variables that do not take the form of a single
     character followed by zero or more digits."""
     type = ...
-    def free(self): # -> set:
+    def free(self): # -> set[Any]:
         """:see: Expression.free()"""
         ...
-
+    
     def constants(self): # -> set[Variable]:
         """:see: Expression.constants()"""
         ...
-
+    
 
 
 def VariableExpression(variable): # -> IndividualVariableExpression | FunctionVariableExpression | EventVariableExpression | ConstantExpression:
@@ -820,42 +820,42 @@ class VariableBinderExpression(Expression):
         :param term: ``Expression``, for the term
         """
         ...
-
+    
     def replace(self, variable, expression, replace_bound=..., alpha_convert=...): # -> Self:
         """:see: Expression.replace()"""
         ...
-
+    
     def alpha_convert(self, newvar): # -> Self:
         """Rename all occurrences of the variable introduced by this variable
         binder in the expression to ``newvar``.
         :param newvar: ``Variable``, for the new variable
         """
         ...
-
+    
     def free(self):
         """:see: Expression.free()"""
         ...
-
+    
     def findtype(self, variable): # -> AnyType:
         """:see Expression.findtype()"""
         ...
-
+    
     def visit(self, function, combinator):
         """:see: Expression.visit()"""
         ...
-
+    
     def visit_structured(self, function, combinator):
         """:see: Expression.visit_structured()"""
         ...
-
+    
     def __eq__(self, other) -> bool:
         r"""Defines equality modulo alphabetic variance.  If we are comparing
         \x.M  and \y.N, then check equality of M and N[x/y]."""
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
 
 
@@ -863,97 +863,97 @@ class LambdaExpression(VariableBinderExpression):
     @property
     def type(self): # -> ComplexType:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class QuantifiedExpression(VariableBinderExpression):
     @property
     def type(self): # -> TruthValueType:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 class ExistsExpression(QuantifiedExpression):
     def getQuantifier(self): # -> Literal['exists']:
         ...
-
+    
 
 
 class AllExpression(QuantifiedExpression):
     def getQuantifier(self): # -> Literal['all']:
         ...
-
+    
 
 
 class IotaExpression(QuantifiedExpression):
     def getQuantifier(self): # -> Literal['iota']:
         ...
-
+    
 
 
 class NegatedExpression(Expression):
     def __init__(self, term) -> None:
         ...
-
+    
     @property
     def type(self): # -> TruthValueType:
         ...
-
+    
     def findtype(self, variable):
         ...
-
+    
     def visit(self, function, combinator):
         """:see: Expression.visit()"""
         ...
-
+    
     def negate(self): # -> Expression:
         """:see: Expression.negate()"""
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def __str__(self) -> str:
         ...
-
+    
 
 
 class BinaryExpression(Expression):
     def __init__(self, first, second) -> None:
         ...
-
+    
     @property
     def type(self): # -> TruthValueType:
         ...
-
+    
     def findtype(self, variable): # -> AnyType:
         """:see Expression.findtype()"""
         ...
-
+    
     def visit(self, function, combinator):
         """:see: Expression.visit()"""
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     __hash__ = ...
     def __str__(self) -> str:
         ...
-
+    
 
 
 class BooleanExpression(BinaryExpression):
@@ -964,53 +964,53 @@ class AndExpression(BooleanExpression):
     """This class represents conjunctions"""
     def getOp(self): # -> Literal['&']:
         ...
-
+    
 
 
 class OrExpression(BooleanExpression):
     """This class represents disjunctions"""
     def getOp(self): # -> Literal['|']:
         ...
-
+    
 
 
 class ImpExpression(BooleanExpression):
     """This class represents implications"""
     def getOp(self): # -> Literal['->']:
         ...
-
+    
 
 
 class IffExpression(BooleanExpression):
     """This class represents biconditionals"""
     def getOp(self): # -> Literal['<->']:
         ...
-
+    
 
 
 class EqualityExpression(BinaryExpression):
     """This class represents equality expressions like "(x = y)"."""
     def getOp(self): # -> Literal['=']:
         ...
-
+    
 
 
 class LogicalExpressionException(Exception):
     def __init__(self, index, message) -> None:
         ...
-
+    
 
 
 class UnexpectedTokenException(LogicalExpressionException):
     def __init__(self, index, unexpected=..., expected=..., message=...) -> None:
         ...
-
+    
 
 
 class ExpectedMoreTokensException(LogicalExpressionException):
     def __init__(self, index, message=...) -> None:
         ...
-
+    
 
 
 def is_indvar(expr): # -> bool:

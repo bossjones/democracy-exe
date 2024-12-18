@@ -63,7 +63,7 @@ class ChromiumCookieDecryptor:
 
 
 class LinuxChromiumCookieDecryptor(ChromiumCookieDecryptor):
-    def __init__(self, browser_keyring_name, keyring=...) -> None:
+    def __init__(self, browser_keyring_name, keyring=..., meta_version=...) -> None:
         ...
     
     @staticmethod
@@ -80,7 +80,7 @@ class LinuxChromiumCookieDecryptor(ChromiumCookieDecryptor):
 
 
 class MacChromiumCookieDecryptor(ChromiumCookieDecryptor):
-    def __init__(self, browser_keyring_name) -> None:
+    def __init__(self, browser_keyring_name, meta_version=...) -> None:
         ...
     
     @staticmethod
@@ -97,7 +97,7 @@ class MacChromiumCookieDecryptor(ChromiumCookieDecryptor):
 
 
 class WindowsChromiumCookieDecryptor(ChromiumCookieDecryptor):
-    def __init__(self, browser_root) -> None:
+    def __init__(self, browser_root, meta_version=...) -> None:
         ...
     
     @property

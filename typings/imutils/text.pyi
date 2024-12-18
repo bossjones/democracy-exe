@@ -38,3 +38,4 @@ def put_centered_text(img, text, font_face, font_scale, color, thickness=..., li
     :return: None; image is modified in place
     """
     ...
+

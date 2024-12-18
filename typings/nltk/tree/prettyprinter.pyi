@@ -42,15 +42,15 @@ class TreePrettyPrinter:
     """
     def __init__(self, tree, sentence=..., highlight=...) -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     @staticmethod
-    def nodecoords(tree, sentence, highlight): # -> tuple[dict, dict, OrderedDict, set[int]]:
+    def nodecoords(tree, sentence, highlight): # -> tuple[dict[Any, Any], dict[Any, Any], OrderedDict, set[int]]:
         """
         Produce coordinates of nodes on a grid.
 
@@ -85,7 +85,7 @@ class TreePrettyPrinter:
         - highlighted: set of ids that should be highlighted
         """
         ...
-
+    
     def text(self, nodedist=..., unicodelines=..., html=..., ansi=..., nodecolor=..., leafcolor=..., funccolor=..., abbreviate=..., maxwidth=...):
         """
         :return: ASCII art for a discontinuous tree.
@@ -103,13 +103,13 @@ class TreePrettyPrinter:
             wrap; pass None to disable.
         """
         ...
-
+    
     def svg(self, nodecolor=..., leafcolor=..., funccolor=...): # -> str:
         """
         :return: SVG representation of a tree.
         """
         ...
-
+    
 
 
 def test(): # -> None:

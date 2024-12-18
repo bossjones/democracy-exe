@@ -9,3 +9,6 @@ logger = ...
 class ConvNextFeatureExtractor(ConvNextImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

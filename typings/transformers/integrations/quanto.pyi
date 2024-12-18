@@ -6,6 +6,7 @@ from ..utils import is_torch_available
 
 if is_torch_available():
     ...
+logger = ...
 def replace_with_quanto_layers(model, quantization_config=..., modules_to_not_convert=..., current_key_name=..., has_been_replaced=...): # -> tuple[Any, bool | Any]:
     """
     Public method that recursively replaces the Linear layers of the given model with Quanto quantized layers.
@@ -26,3 +27,4 @@ def replace_with_quanto_layers(model, quantization_config=..., modules_to_not_co
             should not be passed by the user.
     """
     ...
+

@@ -18,49 +18,49 @@ class _Qhull:
     @property
     def ndim(self) -> int:
         ...
-
+    
     mode_option: bytes
     options: bytes
     furthest_site: bool
     def __init__(self, mode_option: bytes, points: NDArray[np.float64], options: None | bytes = ..., required_options: None | bytes = ..., furthest_site: bool = ..., incremental: bool = ..., interior_point: None | NDArray[np.float64] = ...) -> None:
         ...
-
+    
     def check_active(self) -> None:
         ...
-
+    
     def close(self) -> None:
         ...
-
+    
     def get_points(self) -> NDArray[np.float64]:
         ...
-
+    
     def add_points(self, points: ArrayLike, interior_point: ArrayLike = ...) -> None:
         ...
-
+    
     def get_paraboloid_shift_scale(self) -> tuple[float, float]:
         ...
-
+    
     def volume_area(self) -> tuple[float, float]:
         ...
-
+    
     def triangulate(self) -> None:
         ...
-
+    
     def get_simplex_facet_array(self) -> tuple[NDArray[np.intc], NDArray[np.intc], NDArray[np.float64], NDArray[np.intc], NDArray[np.intc],]:
         ...
-
+    
     def get_hull_points(self) -> NDArray[np.float64]:
         ...
-
+    
     def get_hull_facets(self) -> tuple[list[list[int]], NDArray[np.float64],]:
         ...
-
+    
     def get_voronoi_diagram(self) -> tuple[NDArray[np.float64], NDArray[np.intc], list[list[int]], list[list[int]], NDArray[np.intp],]:
         ...
-
+    
     def get_extremes_2d(self) -> NDArray[np.intc]:
         ...
-
+    
 
 
 class _QhullUser:
@@ -70,10 +70,10 @@ class _QhullUser:
     max_bound: NDArray[np.float64]
     def __init__(self, qhull: _Qhull, incremental: bool = ...) -> None:
         ...
-
+    
     def close(self) -> None:
         ...
-
+    
 
 
 class Delaunay(_QhullUser):
@@ -89,39 +89,39 @@ class Delaunay(_QhullUser):
     vertices: NDArray[np.intc]
     def __init__(self, points: ArrayLike, furthest_site: bool = ..., incremental: bool = ..., qhull_options: None | str = ...) -> None:
         ...
-
+    
     def add_points(self, points: ArrayLike, restart: bool = ...) -> None:
         ...
-
+    
     @property
     def points(self) -> NDArray[np.float64]:
         ...
-
+    
     @property
     def transform(self) -> NDArray[np.float64]:
         ...
-
+    
     @property
     def vertex_to_simplex(self) -> NDArray[np.intc]:
         ...
-
+    
     @property
     def vertex_neighbor_vertices(self) -> tuple[NDArray[np.intc], NDArray[np.intc],]:
         ...
-
+    
     @property
     def convex_hull(self) -> NDArray[np.intc]:
         ...
-
+    
     def find_simplex(self, xi: ArrayLike, bruteforce: bool = ..., tol: float = ...) -> NDArray[np.intc]:
         ...
-
+    
     def plane_distance(self, xi: ArrayLike) -> NDArray[np.float64]:
         ...
-
+    
     def lift_points(self, x: ArrayLike) -> NDArray[np.float64]:
         ...
-
+    
 
 
 def tsearch(tri: Delaunay, xi: ArrayLike) -> NDArray[np.intc]:
@@ -138,18 +138,18 @@ class ConvexHull(_QhullUser):
     nsimplex: int
     def __init__(self, points: ArrayLike, incremental: bool = ..., qhull_options: None | str = ...) -> None:
         ...
-
+    
     def add_points(self, points: ArrayLike, restart: bool = ...) -> None:
         ...
-
+    
     @property
     def points(self) -> NDArray[np.float64]:
         ...
-
+    
     @property
     def vertices(self) -> NDArray[np.intc]:
         ...
-
+    
 
 
 class Voronoi(_QhullUser):
@@ -161,18 +161,18 @@ class Voronoi(_QhullUser):
     furthest_site: bool
     def __init__(self, points: ArrayLike, furthest_site: bool = ..., incremental: bool = ..., qhull_options: None | str = ...) -> None:
         ...
-
+    
     def add_points(self, points: ArrayLike, restart: bool = ...) -> None:
         ...
-
+    
     @property
     def points(self) -> NDArray[np.float64]:
         ...
-
+    
     @property
     def ridge_dict(self) -> dict[tuple[int, int], list[int]]:
         ...
-
+    
 
 
 class HalfspaceIntersection(_QhullUser):
@@ -187,14 +187,17 @@ class HalfspaceIntersection(_QhullUser):
     nineq: int
     def __init__(self, halfspaces: ArrayLike, interior_point: ArrayLike, incremental: bool = ..., qhull_options: None | str = ...) -> None:
         ...
-
+    
     def add_halfspaces(self, halfspaces: ArrayLike, restart: bool = ...) -> None:
         ...
-
+    
     @property
     def halfspaces(self) -> NDArray[np.float64]:
         ...
-
+    
     @property
     def dual_vertices(self) -> NDArray[np.integer]:
         ...
+    
+
+

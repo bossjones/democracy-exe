@@ -63,10 +63,10 @@ class RTEPair:
         :param length: attribute for the length of the text of the pair
         """
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class RTECorpusReader(XMLCorpusReader):
@@ -76,7 +76,7 @@ class RTECorpusReader(XMLCorpusReader):
     This is just a wrapper around the XMLCorpusReader. See module docstring above for the expected
     structure of input documents.
     """
-    def pairs(self, fileids): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def pairs(self, fileids): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         Build a list of RTEPairs from a RTE corpus.
 
@@ -85,3 +85,6 @@ class RTECorpusReader(XMLCorpusReader):
         :rtype: list(RTEPair)
         """
         ...
+    
+
+

@@ -66,10 +66,10 @@ class SnowballStemmer(StemmerI):
     languages = ...
     def __init__(self, language, ignore_stopwords=...) -> None:
         ...
-
+    
     def stem(self, token): # -> Any:
         ...
-
+    
 
 
 class _LanguageSpecificStemmer(StemmerI):
@@ -87,14 +87,14 @@ class _LanguageSpecificStemmer(StemmerI):
     """
     def __init__(self, ignore_stopwords=...) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Print out the string representation of the respective class.
 
         """
         ...
-
+    
 
 
 class PorterStemmer(_LanguageSpecificStemmer, porter.PorterStemmer):
@@ -111,7 +111,7 @@ class PorterStemmer(_LanguageSpecificStemmer, porter.PorterStemmer):
     """
     def __init__(self, ignore_stopwords=...) -> None:
         ...
-
+    
 
 
 class _ScandinavianStemmer(_LanguageSpecificStemmer):
@@ -211,7 +211,7 @@ class ArabicStemmer(_StandardStemmer):
         :return: string
         """
         ...
-
+    
 
 
 class DanishStemmer(_ScandinavianStemmer):
@@ -255,7 +255,7 @@ class DanishStemmer(_ScandinavianStemmer):
 
         """
         ...
-
+    
 
 
 class DutchStemmer(_StandardStemmer):
@@ -287,7 +287,7 @@ class DutchStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class EnglishStemmer(_StandardStemmer):
@@ -343,7 +343,7 @@ class EnglishStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class FinnishStemmer(_StandardStemmer):
@@ -392,7 +392,7 @@ class FinnishStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class FrenchStemmer(_StandardStemmer):
@@ -429,7 +429,7 @@ class FrenchStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class GermanStemmer(_StandardStemmer):
@@ -470,7 +470,7 @@ class GermanStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class HungarianStemmer(_LanguageSpecificStemmer):
@@ -529,7 +529,7 @@ class HungarianStemmer(_LanguageSpecificStemmer):
 
         """
         ...
-
+    
 
 
 class ItalianStemmer(_StandardStemmer):
@@ -564,7 +564,7 @@ class ItalianStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class NorwegianStemmer(_ScandinavianStemmer):
@@ -602,7 +602,7 @@ class NorwegianStemmer(_ScandinavianStemmer):
 
         """
         ...
-
+    
 
 
 class PortugueseStemmer(_StandardStemmer):
@@ -637,7 +637,7 @@ class PortugueseStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class RomanianStemmer(_StandardStemmer):
@@ -675,7 +675,7 @@ class RomanianStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class RussianStemmer(_LanguageSpecificStemmer):
@@ -719,7 +719,7 @@ class RussianStemmer(_LanguageSpecificStemmer):
 
         """
         ...
-
+    
 
 
 class SpanishStemmer(_StandardStemmer):
@@ -760,7 +760,7 @@ class SpanishStemmer(_StandardStemmer):
 
         """
         ...
-
+    
 
 
 class SwedishStemmer(_ScandinavianStemmer):
@@ -798,7 +798,7 @@ class SwedishStemmer(_ScandinavianStemmer):
 
         """
         ...
-
+    
 
 
 def demo(): # -> None:
@@ -812,3 +812,4 @@ def demo(): # -> None:
 
     """
     ...
+

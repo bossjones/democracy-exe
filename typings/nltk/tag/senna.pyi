@@ -40,27 +40,27 @@ Note: Unit tests for this module can be found in test/unit/test_senna.py
 class SennaTagger(Senna):
     def __init__(self, path, encoding=...) -> None:
         ...
-
-    def tag_sents(self, sentences): # -> list[list]:
+    
+    def tag_sents(self, sentences): # -> list[list[Any]]:
         """
         Applies the tag method over a list of sentences. This method will return
         for each sentence a list of tuples of (word, tag).
         """
         ...
-
+    
 
 
 class SennaChunkTagger(Senna):
     def __init__(self, path, encoding=...) -> None:
         ...
-
-    def tag_sents(self, sentences): # -> list[list]:
+    
+    def tag_sents(self, sentences): # -> list[list[Any]]:
         """
         Applies the tag method over a list of sentences. This method will return
         for each sentence a list of tuples of (word, tag).
         """
         ...
-
+    
     def bio_to_chunks(self, tagged_sent, chunk_type): # -> Generator[tuple[LiteralString, str], Any, None]:
         """
         Extracts the chunks in a BIO chunk-tagged sentence.
@@ -86,16 +86,19 @@ class SennaChunkTagger(Senna):
         :rtype: iter(tuple(str))
         """
         ...
-
+    
 
 
 class SennaNERTagger(Senna):
     def __init__(self, path, encoding=...) -> None:
         ...
-
-    def tag_sents(self, sentences): # -> list[list]:
+    
+    def tag_sents(self, sentences): # -> list[list[Any]]:
         """
         Applies the tag method over a list of sentences. This method will return
         for each sentence a list of tuples of (word, tag).
         """
         ...
+    
+
+

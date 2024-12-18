@@ -10,3 +10,6 @@ def patch(): # -> None:
 class BetExcLogger(Logger):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

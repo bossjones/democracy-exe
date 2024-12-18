@@ -11,3 +11,5 @@ class CollectionDescription(NamedTuple):
     name: str
     source: str
     ...
+
+

@@ -23,11 +23,11 @@ class Configuration:
         :type dep_graph: DependencyGraph where the dependencies are not specified.
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
-    def extract_features(self): # -> list:
+    
+    def extract_features(self): # -> list[Any]:
         """
         Extract the set of features for the current configuration. Implement standard features as describe in
         Table 3.2 (page 31) in Dependency Parsing book by Sandra Kubler, Ryan McDonal, Joakim Nivre.
@@ -35,7 +35,7 @@ class Configuration:
         :return: list(str)
         """
         ...
-
+    
 
 
 class Transition:
@@ -53,7 +53,7 @@ class Transition:
         :type alg_option: str
         """
         ...
-
+    
     def left_arc(self, conf, relation): # -> Literal[-1] | None:
         """
         Note that the algorithm for left-arc is quite similar except for precondition for both arc-standard and arc-eager
@@ -62,7 +62,7 @@ class Transition:
         :return: A new configuration or -1 if the pre-condition is not satisfied
         """
         ...
-
+    
     def right_arc(self, conf, relation): # -> Literal[-1] | None:
         """
         Note that the algorithm for right-arc is DIFFERENT for arc-standard and arc-eager
@@ -71,7 +71,7 @@ class Transition:
         :return: A new configuration or -1 if the pre-condition is not satisfied
         """
         ...
-
+    
     def reduce(self, conf): # -> Literal[-1] | None:
         """
         Note that the algorithm for reduce is only available for arc-eager
@@ -80,7 +80,7 @@ class Transition:
         :return: A new configuration or -1 if the pre-condition is not satisfied
         """
         ...
-
+    
     def shift(self, conf): # -> Literal[-1] | None:
         """
         Note that the algorithm for shift is the SAME for arc-standard and arc-eager
@@ -89,7 +89,7 @@ class Transition:
         :return: A new configuration or -1 if the pre-condition is not satisfied
         """
         ...
-
+    
 
 
 class TransitionParser(ParserI):
@@ -104,7 +104,7 @@ class TransitionParser(ParserI):
         :type algorithm: str
         """
         ...
-
+    
     def train(self, depgraphs, modelfile, verbose=...): # -> None:
         """
         :param depgraphs : list of DependencyGraph as the training data
@@ -113,8 +113,8 @@ class TransitionParser(ParserI):
         :type modelfile : str
         """
         ...
-
-    def parse(self, depgraphs, modelFile): # -> list:
+    
+    def parse(self, depgraphs, modelFile): # -> list[Any]:
         """
         :param depgraphs: the list of test sentence, each sentence is represented as a dependency graph where the 'head' information is dummy
         :type depgraphs: list(DependencyGraph)
@@ -123,7 +123,7 @@ class TransitionParser(ParserI):
         :return: list (DependencyGraph) with the 'head' and 'rel' information
         """
         ...
-
+    
 
 
 def demo(): # -> None:
@@ -269,3 +269,4 @@ def demo(): # -> None:
     Note that result is very poor because of only one training example.
     """
     ...
+

@@ -7,6 +7,8 @@ from ._fourier import *
 from ._interpolation import *
 from ._measurements import *
 from ._morphology import *
+from . import filters, fourier, interpolation, measurements, morphology
+from scipy._lib._testutils import PytestTester
 
 """
 =========================================================

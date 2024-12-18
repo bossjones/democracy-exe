@@ -25,7 +25,7 @@ class XCLIPProcessor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, image_processor=..., tokenizer=..., **kwargs) -> None:
         ...
-
+    
     def __call__(self, text=..., videos=..., return_tensors=..., **kwargs): # -> BatchEncoding:
         """
         Main method to prepare for the model one or several sequences(s) and image(s). This method forwards the `text`
@@ -63,29 +63,32 @@ class XCLIPProcessor(ProcessorMixin):
             - **pixel_values** -- Pixel values to be fed to a model. Returned when `videos` is not `None`.
         """
         ...
-
+    
     def batch_decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to CLIPTokenizerFast's [`~PreTrainedTokenizer.batch_decode`]. Please
         refer to the docstring of this method for more information.
         """
         ...
-
+    
     def decode(self, *args, **kwargs):
         """
         This method forwards all its arguments to CLIPTokenizerFast's [`~PreTrainedTokenizer.decode`]. Please refer to
         the docstring of this method for more information.
         """
         ...
-
+    
     @property
     def model_input_names(self): # -> list[str]:
         ...
-
+    
     @property
     def feature_extractor_class(self): # -> str:
         ...
-
+    
     @property
     def feature_extractor(self):
         ...
+    
+
+

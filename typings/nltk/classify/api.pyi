@@ -34,14 +34,14 @@ class ClassifierI:
         :rtype: list of (immutable)
         """
         ...
-
+    
     def classify(self, featureset):
         """
         :return: the most appropriate label for the given featureset.
         :rtype: label
         """
         ...
-
+    
     def prob_classify(self, featureset):
         """
         :return: a probability distribution over labels for the given
@@ -49,8 +49,8 @@ class ClassifierI:
         :rtype: ProbDistI
         """
         ...
-
-    def classify_many(self, featuresets): # -> list:
+    
+    def classify_many(self, featuresets): # -> list[Any]:
         """
         Apply ``self.classify()`` to each element of ``featuresets``.  I.e.:
 
@@ -59,8 +59,8 @@ class ClassifierI:
         :rtype: list(label)
         """
         ...
-
-    def prob_classify_many(self, featuresets): # -> list:
+    
+    def prob_classify_many(self, featuresets): # -> list[Any]:
         """
         Apply ``self.prob_classify()`` to each element of ``featuresets``.  I.e.:
 
@@ -69,7 +69,7 @@ class ClassifierI:
         :rtype: list(ProbDistI)
         """
         ...
-
+    
 
 
 class MultiClassifierI:
@@ -92,14 +92,14 @@ class MultiClassifierI:
         :rtype: list of (immutable)
         """
         ...
-
+    
     def classify(self, featureset):
         """
         :return: the most appropriate set of labels for the given featureset.
         :rtype: set(label)
         """
         ...
-
+    
     def prob_classify(self, featureset):
         """
         :return: a probability distribution over sets of labels for the
@@ -107,8 +107,8 @@ class MultiClassifierI:
         :rtype: ProbDistI
         """
         ...
-
-    def classify_many(self, featuresets): # -> list:
+    
+    def classify_many(self, featuresets): # -> list[Any]:
         """
         Apply ``self.classify()`` to each element of ``featuresets``.  I.e.:
 
@@ -117,8 +117,8 @@ class MultiClassifierI:
         :rtype: list(set(label))
         """
         ...
-
-    def prob_classify_many(self, featuresets): # -> list:
+    
+    def prob_classify_many(self, featuresets): # -> list[Any]:
         """
         Apply ``self.prob_classify()`` to each element of ``featuresets``.  I.e.:
 
@@ -127,3 +127,6 @@ class MultiClassifierI:
         :rtype: list(ProbDistI)
         """
         ...
+    
+
+

@@ -9,3 +9,6 @@ logger = ...
 class ViTFeatureExtractor(ViTImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

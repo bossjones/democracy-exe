@@ -19,3 +19,6 @@ class StemmerI(metaclass=ABCMeta):
         :type token: str
         """
         ...
+    
+
+

@@ -9,7 +9,7 @@ Utility functions for the `twitterclient` module which do not require
 the `twython` library to have been installed.
 """
 HIER_SEPARATOR = ...
-def extract_fields(tweet, fields): # -> list:
+def extract_fields(tweet, fields): # -> list[Any]:
     """
     Extract field values from a full tweet and return them as a list
 
@@ -102,3 +102,4 @@ def json2csv_entities(tweets_file, outfile, main_fields, entity_type, entity_fie
 
 def get_header_field_list(main_fields, entity_type, entity_fields): # -> list[str]:
     ...
+

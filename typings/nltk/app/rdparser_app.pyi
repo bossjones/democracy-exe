@@ -72,40 +72,40 @@ class RecursiveDescentApp:
     """
     def __init__(self, grammar, sent, trace=...) -> None:
         ...
-
+    
     def destroy(self, *e): # -> None:
         ...
-
+    
     def reset(self, *e): # -> None:
         ...
-
+    
     def autostep(self, *e): # -> None:
         ...
-
+    
     def cancel_autostep(self, *e): # -> None:
         ...
-
+    
     def step(self, *e): # -> None:
         ...
-
+    
     def match(self, *e): # -> None:
         ...
-
+    
     def expand(self, *e): # -> None:
         ...
-
+    
     def backtrack(self, *e): # -> None:
         ...
-
+    
     def about(self, *e): # -> None:
         ...
-
+    
     def help(self, *e): # -> None:
         ...
-
+    
     def postscript(self, *e): # -> None:
         ...
-
+    
     def mainloop(self, *args, **kwargs): # -> None:
         """
         Enter the Tkinter mainloop.  This function must be called if
@@ -114,22 +114,22 @@ class RecursiveDescentApp:
         the script completes.
         """
         ...
-
+    
     def resize(self, size=...): # -> None:
         ...
-
+    
     def edit_grammar(self, *e): # -> None:
         ...
-
+    
     def set_grammar(self, grammar): # -> None:
         ...
-
+    
     def edit_sentence(self, *e): # -> None:
         ...
-
+    
     def set_sentence(self, sentence): # -> None:
         ...
-
+    
 
 
 def app(): # -> None:

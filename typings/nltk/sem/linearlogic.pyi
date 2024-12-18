@@ -17,29 +17,29 @@ class LinearLogicParser(LogicParser):
     """A linear logic expression parser."""
     def __init__(self) -> None:
         ...
-
+    
     def get_all_symbols(self): # -> list[str]:
         ...
-
+    
     def handle(self, tok, context): # -> ApplicationExpression | IndividualVariableExpression | FunctionVariableExpression | EventVariableExpression | ConstantExpression | None:
         ...
-
+    
     def get_BooleanExpression_factory(self, tok): # -> type[ImpExpression] | None:
         ...
-
+    
     def make_BooleanExpression(self, factory, first, second):
         ...
-
+    
     def attempt_ApplicationExpression(self, expression, context): # -> ApplicationExpression:
         """Attempt to make an application expression.  If the next tokens
         are an argument in parens, then the argument expression is a
         function being applied to the arguments.  Otherwise, return the
         argument expression."""
         ...
-
+    
     def make_VariableExpression(self, name): # -> VariableExpression | ConstantExpression:
         ...
-
+    
 
 
 class Expression:
@@ -47,16 +47,16 @@ class Expression:
     @classmethod
     def fromstring(cls, s): # -> AndExpression | IffExpression | ImpExpression | OrExpression:
         ...
-
+    
     def applyto(self, other, other_indices=...): # -> ApplicationExpression:
         ...
-
+    
     def __call__(self, other): # -> ApplicationExpression:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class AtomicExpression(Expression):
@@ -66,7 +66,7 @@ class AtomicExpression(Expression):
         :param dependencies: list of int for the indices on which this atom is dependent
         """
         ...
-
+    
     def simplify(self, bindings=...): # -> Self:
         """
         If 'self' is bound by 'bindings', return the atomic to which it is bound.
@@ -76,8 +76,8 @@ class AtomicExpression(Expression):
         :return: ``AtomicExpression``
         """
         ...
-
-    def compile_pos(self, index_counter, glueFormulaFactory): # -> tuple[Self, list]:
+    
+    def compile_pos(self, index_counter, glueFormulaFactory): # -> tuple[Self, list[Any]]:
         """
         From Iddo Lev's PhD Dissertation p108-109
 
@@ -86,8 +86,8 @@ class AtomicExpression(Expression):
         :return: (``Expression``,set) for the compiled linear logic and any newly created glue formulas
         """
         ...
-
-    def compile_neg(self, index_counter, glueFormulaFactory): # -> tuple[Self, list]:
+    
+    def compile_neg(self, index_counter, glueFormulaFactory): # -> tuple[Self, list[Any]]:
         """
         From Iddo Lev's PhD Dissertation p108-109
 
@@ -96,22 +96,22 @@ class AtomicExpression(Expression):
         :return: (``Expression``,set) for the compiled linear logic and any newly created glue formulas
         """
         ...
-
+    
     def initialize_labels(self, fstruct): # -> None:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
 
 
 class ConstantExpression(AtomicExpression):
@@ -126,7 +126,7 @@ class ConstantExpression(AtomicExpression):
         :raise UnificationException: If 'self' and 'other' cannot be unified in the context of 'bindings'
         """
         ...
-
+    
 
 
 class VariableExpression(AtomicExpression):
@@ -140,7 +140,7 @@ class VariableExpression(AtomicExpression):
         :raise UnificationException: If 'self' and 'other' cannot be unified in the context of 'bindings'
         """
         ...
-
+    
 
 
 class ImpExpression(Expression):
@@ -150,10 +150,10 @@ class ImpExpression(Expression):
         :param consequent: ``Expression`` for the consequent
         """
         ...
-
+    
     def simplify(self, bindings=...): # -> Self:
         ...
-
+    
     def unify(self, other, bindings):
         """
         Both the antecedent and consequent of 'self' and 'other' must unify.
@@ -164,7 +164,7 @@ class ImpExpression(Expression):
         :raise UnificationException: If 'self' and 'other' cannot be unified in the context of 'bindings'
         """
         ...
-
+    
     def compile_pos(self, index_counter, glueFormulaFactory): # -> tuple[ImpExpression, Any]:
         """
         From Iddo Lev's PhD Dissertation p108-109
@@ -174,8 +174,8 @@ class ImpExpression(Expression):
         :return: (``Expression``,set) for the compiled linear logic and any newly created glue formulas
         """
         ...
-
-    def compile_neg(self, index_counter, glueFormulaFactory): # -> tuple:
+    
+    def compile_neg(self, index_counter, glueFormulaFactory): # -> tuple[Any, Any]:
         """
         From Iddo Lev's PhD Dissertation p108-109
 
@@ -184,22 +184,22 @@ class ImpExpression(Expression):
         :return: (``Expression``,list of ``GlueFormula``) for the compiled linear logic and any newly created glue formulas
         """
         ...
-
+    
     def initialize_labels(self, fstruct): # -> None:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
 
 
 class ApplicationExpression(Expression):
@@ -211,7 +211,7 @@ class ApplicationExpression(Expression):
         :raise LinearLogicApplicationException: If 'function' cannot be applied to 'argument' given 'argument_indices'.
         """
         ...
-
+    
     def simplify(self, bindings=...):
         """
         Since function is an implication, return its consequent.  There should be
@@ -222,19 +222,19 @@ class ApplicationExpression(Expression):
         :return: ``Expression``
         """
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __hash__(self) -> int:
         ...
-
+    
 
 
 class BindingDict:
@@ -245,7 +245,7 @@ class BindingDict:
             dict {``VariableExpression``: ``AtomicExpression``} to initialize the dictionary
         """
         ...
-
+    
     def __setitem__(self, variable, binding): # -> None:
         """
         A binding is consistent with the dict if its variable is not already bound, OR if its
@@ -256,16 +256,16 @@ class BindingDict:
         :raise VariableBindingException: If the variable cannot be bound in this dictionary
         """
         ...
-
+    
     def __getitem__(self, variable): # -> None:
         """
         Return the expression to which 'variable' is bound
         """
         ...
-
+    
     def __contains__(self, item): # -> bool:
         ...
-
+    
     def __add__(self, other): # -> BindingDict:
         """
         :param other: ``BindingDict`` The dict with which to combine self
@@ -273,19 +273,19 @@ class BindingDict:
         :raise VariableBindingException: If the parameter dictionaries are not consistent with each other
         """
         ...
-
+    
     def __ne__(self, other) -> bool:
         ...
-
+    
     def __eq__(self, other) -> bool:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class VariableBindingException(Exception):
@@ -295,7 +295,7 @@ class VariableBindingException(Exception):
 class UnificationException(Exception):
     def __init__(self, a, b, bindings) -> None:
         ...
-
+    
 
 
 class LinearLogicApplicationException(Exception):

@@ -11,3 +11,6 @@ logger = ...
 class LayoutLMv3FeatureExtractor(LayoutLMv3ImageProcessor):
     def __init__(self, *args, **kwargs) -> None:
         ...
+    
+
+

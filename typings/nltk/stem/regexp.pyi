@@ -33,9 +33,12 @@ class RegexpStemmer(StemmerI):
     """
     def __init__(self, regexp, min=...) -> None:
         ...
-
-    def stem(self, word): # -> Any:
+    
+    def stem(self, word): # -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
+
+

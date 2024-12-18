@@ -61,12 +61,12 @@ class CharTokenizer(StringTokenizer):
     is ever required directly, use ``for char in string``.
     """
     _string = ...
-    def tokenize(self, s): # -> list:
+    def tokenize(self, s): # -> list[Any]:
         ...
-
+    
     def span_tokenize(self, s): # -> Generator[tuple[int, int], Any, None]:
         ...
-
+    
 
 
 class LineTokenizer(TokenizerI):
@@ -93,14 +93,15 @@ class LineTokenizer(TokenizerI):
     """
     def __init__(self, blanklines=...) -> None:
         ...
-
+    
     def tokenize(self, s): # -> list[str]:
         ...
-
+    
     def span_tokenize(self, s): # -> Generator[tuple[int, int] | tuple[Any | Literal[0], Any] | tuple[Any | Literal[0], int], Any, None]:
         ...
-
+    
 
 
 def line_tokenize(text, blanklines=...): # -> list[str]:
     ...
+

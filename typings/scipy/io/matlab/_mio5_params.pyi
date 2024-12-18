@@ -68,10 +68,10 @@ class MatlabObject(np.ndarray):
     """
     def __new__(cls, input_array, classname=...): # -> Self:
         ...
-
+    
     def __array_finalize__(self, obj): # -> None:
         ...
-
+    
 
 
 class MatlabFunction(np.ndarray):
@@ -82,7 +82,7 @@ class MatlabFunction(np.ndarray):
     """
     def __new__(cls, input_array): # -> Self:
         ...
-
+    
 
 
 class MatlabOpaque(np.ndarray):
@@ -93,7 +93,7 @@ class MatlabOpaque(np.ndarray):
     """
     def __new__(cls, input_array): # -> Self:
         ...
-
+    
 
 
 OPAQUE_DTYPE = ...

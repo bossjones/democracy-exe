@@ -18,7 +18,7 @@ class MLE(LanguageModel):
         - context is expected to be something reasonably convertible to a tuple
         """
         ...
-
+    
 
 
 class Lidstone(LanguageModel):
@@ -29,7 +29,7 @@ class Lidstone(LanguageModel):
     """
     def __init__(self, gamma, *args, **kwargs) -> None:
         ...
-
+    
     def unmasked_score(self, word, context=...): # -> float:
         """Add-one smoothing: Lidstone or Laplace.
 
@@ -37,7 +37,7 @@ class Lidstone(LanguageModel):
 
         """
         ...
-
+    
 
 
 class Laplace(Lidstone):
@@ -47,7 +47,7 @@ class Laplace(Lidstone):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
 
 
 class StupidBackoff(LanguageModel):
@@ -60,10 +60,10 @@ class StupidBackoff(LanguageModel):
     """
     def __init__(self, alpha=..., *args, **kwargs) -> None:
         ...
-
+    
     def unmasked_score(self, word, context=...): # -> float | Literal[0]:
         ...
-
+    
 
 
 class InterpolatedLanguageModel(LanguageModel):
@@ -74,27 +74,30 @@ class InterpolatedLanguageModel(LanguageModel):
     """
     def __init__(self, smoothing_cls, order, **kwargs) -> None:
         ...
-
+    
     def unmasked_score(self, word, context=...):
         ...
-
+    
 
 
 class WittenBellInterpolated(InterpolatedLanguageModel):
     """Interpolated version of Witten-Bell smoothing."""
     def __init__(self, order, **kwargs) -> None:
         ...
-
+    
 
 
 class AbsoluteDiscountingInterpolated(InterpolatedLanguageModel):
     """Interpolated version of smoothing with absolute discount."""
     def __init__(self, order, discount=..., **kwargs) -> None:
         ...
-
+    
 
 
 class KneserNeyInterpolated(InterpolatedLanguageModel):
     """Interpolated version of Kneser-Ney smoothing."""
     def __init__(self, order, discount=..., **kwargs) -> None:
         ...
+    
+
+

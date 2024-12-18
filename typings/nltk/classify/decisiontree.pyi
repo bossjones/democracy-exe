@@ -27,16 +27,16 @@ class DecisionTreeClassifier(ClassifierI):
             decision trees.
         """
         ...
-
+    
     def labels(self): # -> list[Any]:
         ...
-
+    
     def classify(self, featureset): # -> Any:
         ...
-
+    
     def error(self, labeled_featuresets): # -> float:
         ...
-
+    
     def pretty_format(self, width=..., prefix=..., depth=...): # -> str:
         """
         Return a string containing a pretty-printed version of this
@@ -45,7 +45,7 @@ class DecisionTreeClassifier(ClassifierI):
         display the structure of the decision tree.
         """
         ...
-
+    
     def pseudocode(self, prefix=..., depth=...): # -> str:
         """
         Return a string representation of this decision tree that
@@ -53,10 +53,10 @@ class DecisionTreeClassifier(ClassifierI):
         if statements.
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     @staticmethod
     def train(labeled_featuresets, entropy_cutoff=..., depth_cutoff=..., support_cutoff=..., binary=..., feature_values=..., verbose=...): # -> DecisionTreeClassifier:
         """
@@ -65,30 +65,30 @@ class DecisionTreeClassifier(ClassifierI):
             branch for each feature.
         """
         ...
-
+    
     @staticmethod
     def leaf(labeled_featuresets): # -> DecisionTreeClassifier:
         ...
-
+    
     @staticmethod
     def stump(feature_name, labeled_featuresets): # -> DecisionTreeClassifier:
         ...
-
+    
     def refine(self, labeled_featuresets, entropy_cutoff, depth_cutoff, support_cutoff, binary=..., feature_values=..., verbose=...): # -> None:
         ...
-
+    
     @staticmethod
     def best_stump(feature_names, labeled_featuresets, verbose=...): # -> DecisionTreeClassifier:
         ...
-
+    
     @staticmethod
     def binary_stump(feature_name, feature_value, labeled_featuresets): # -> DecisionTreeClassifier:
         ...
-
+    
     @staticmethod
     def best_binary_stump(feature_names, labeled_featuresets, feature_values, verbose=...): # -> DecisionTreeClassifier:
         ...
-
+    
 
 
 def f(x): # -> DecisionTreeClassifier:

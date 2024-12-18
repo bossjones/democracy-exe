@@ -76,10 +76,10 @@ PINV_CONFIG = ...
 class CustomDistPINV:
     def __init__(self, pdf, args) -> None:
         ...
-
+    
     def pdf(self, x):
         ...
-
+    
 
 
 class FastGeneratorInversion:
@@ -276,31 +276,31 @@ class FastGeneratorInversion:
     """
     def __init__(self, dist, *, domain=..., ignore_shape_range=..., random_state=...) -> None:
         ...
-
+    
     @property
     def random_state(self): # -> Generator:
         ...
-
+    
     @random_state.setter
     def random_state(self, random_state): # -> None:
         ...
-
+    
     @property
     def loc(self): # -> Any:
         ...
-
+    
     @loc.setter
     def loc(self, loc): # -> None:
         ...
-
+    
     @property
     def scale(self): # -> Any:
         ...
-
+    
     @scale.setter
     def scale(self, scale): # -> None:
         ...
-
+    
     def rvs(self, size=...): # -> Any:
         """
         Sample from the distribution by inversion.
@@ -326,7 +326,7 @@ class FastGeneratorInversion:
         even if the same seed is used.
         """
         ...
-
+    
     def ppf(self, q): # -> Any:
         """
         Very fast PPF (inverse CDF) of the distribution which
@@ -353,7 +353,7 @@ class FastGeneratorInversion:
         Note that this PPF is designed to generate random samples.
         """
         ...
-
+    
     def qrvs(self, size=..., d=..., qmc_engine=...): # -> Any:
         """
         Quasi-random variates of the given distribution.
@@ -410,7 +410,7 @@ class FastGeneratorInversion:
 
         """
         ...
-
+    
     def evaluate_error(self, size=..., random_state=..., x_error=...): # -> tuple[Any, float] | tuple[Any, Any]:
         """
         Evaluate the numerical accuracy of the inversion (u- and x-error).
@@ -516,7 +516,7 @@ class FastGeneratorInversion:
 
         """
         ...
-
+    
     def support(self): # -> tuple[Any, Any]:
         """Support of the distribution.
 
@@ -551,7 +551,7 @@ class FastGeneratorInversion:
 
         """
         ...
-
+    
 
 
 class RatioUniforms:
@@ -680,7 +680,7 @@ class RatioUniforms:
     """
     def __init__(self, pdf, *, umax, vmin, vmax, c=..., random_state=...) -> None:
         ...
-
+    
     def rvs(self, size=...): # -> NDArray[float64]:
         """Sampling of random variates
 
@@ -697,3 +697,6 @@ class RatioUniforms:
 
         """
         ...
+    
+
+

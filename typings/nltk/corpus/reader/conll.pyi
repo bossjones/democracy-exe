@@ -43,34 +43,34 @@ class ConllCorpusReader(CorpusReader):
     COLUMN_TYPES = ...
     def __init__(self, root, fileids, columntypes, chunk_types=..., root_label=..., pos_in_tree=..., srl_includes_roleset=..., encoding=..., tree_class=..., tagset=..., separator=...) -> None:
         ...
-
+    
     def words(self, fileids=...): # -> LazyConcatenation:
         ...
-
+    
     def sents(self, fileids=...): # -> LazyMap:
         ...
-
+    
     def tagged_words(self, fileids=..., tagset=...): # -> LazyConcatenation:
         ...
-
+    
     def tagged_sents(self, fileids=..., tagset=...): # -> LazyMap:
         ...
-
+    
     def chunked_words(self, fileids=..., chunk_types=..., tagset=...): # -> LazyConcatenation:
         ...
-
+    
     def chunked_sents(self, fileids=..., chunk_types=..., tagset=...): # -> LazyMap:
         ...
-
+    
     def parsed_sents(self, fileids=..., pos_in_tree=..., tagset=...): # -> LazyMap:
         ...
-
+    
     def srl_spans(self, fileids=...): # -> LazyMap:
         ...
-
+    
     def srl_instances(self, fileids=..., pos_in_tree=..., flatten=...): # -> LazyConcatenation | LazyMap:
         ...
-
+    
     def iob_words(self, fileids=..., tagset=...): # -> LazyConcatenation:
         """
         :return: a list of word/tag/IOB tuples
@@ -79,7 +79,7 @@ class ConllCorpusReader(CorpusReader):
         :type fileids: None or str or list
         """
         ...
-
+    
     def iob_sents(self, fileids=..., tagset=...): # -> LazyMap:
         """
         :return: a list of lists of word/tag/IOB tuples
@@ -88,7 +88,7 @@ class ConllCorpusReader(CorpusReader):
         :type fileids: None or str or list
         """
         ...
-
+    
 
 
 class ConllSRLInstance:
@@ -98,13 +98,13 @@ class ConllSRLInstance:
     """
     def __init__(self, tree, verb_head, verb_stem, roleset, tagged_spans) -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
     def pprint(self): # -> str:
         ...
-
+    
 
 
 class ConllSRLInstanceList(list):
@@ -113,13 +113,13 @@ class ConllSRLInstanceList(list):
     """
     def __init__(self, tree, instances=...) -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def pprint(self, include_tree=...): # -> LiteralString | str:
         ...
-
+    
 
 
 class ConllChunkCorpusReader(ConllCorpusReader):
@@ -129,3 +129,6 @@ class ConllChunkCorpusReader(ConllCorpusReader):
     """
     def __init__(self, root, fileids, chunk_types, encoding=..., tagset=..., separator=...) -> None:
         ...
+    
+
+

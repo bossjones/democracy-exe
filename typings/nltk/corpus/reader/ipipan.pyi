@@ -42,43 +42,43 @@ class IPIPANCorpusReader(CorpusReader):
     """
     def __init__(self, root, fileids) -> None:
         ...
-
-    def channels(self, fileids=...): # -> list:
+    
+    def channels(self, fileids=...): # -> list[Any]:
         ...
-
-    def domains(self, fileids=...): # -> list:
+    
+    def domains(self, fileids=...): # -> list[Any]:
         ...
-
-    def categories(self, fileids=...): # -> list:
+    
+    def categories(self, fileids=...): # -> list[Any]:
         ...
-
-    def fileids(self, channels=..., domains=..., categories=...): # -> list[str | Any] | list:
+    
+    def fileids(self, channels=..., domains=..., categories=...): # -> list[str | Any] | list[Any]:
         ...
-
+    
     @_parse_args
-    def sents(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def sents(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     @_parse_args
-    def paras(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def paras(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     @_parse_args
-    def words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     @_parse_args
-    def tagged_sents(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def tagged_sents(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     @_parse_args
-    def tagged_paras(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def tagged_paras(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     @_parse_args
-    def tagged_words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def tagged_words(self, fileids=..., **kwargs): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
 
 
 class IPIPANCorpusView(StreamBackedCorpusView):
@@ -87,6 +87,9 @@ class IPIPANCorpusView(StreamBackedCorpusView):
     PARAS_MODE = ...
     def __init__(self, filename, startpos=..., **kwargs) -> None:
         ...
-
+    
     def read_block(self, stream):
         ...
+    
+
+

@@ -79,10 +79,10 @@ class ReadError(ValueError):
     """
     def __init__(self, expected, position) -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
 
 
 _STRING_START_RE = ...
@@ -236,7 +236,7 @@ class Deprecated:
     """
     def __new__(cls, *args, **kwargs): # -> Self:
         ...
-
+    
 
 
 class Counter:
@@ -245,10 +245,10 @@ class Counter:
     """
     def __init__(self, initial_value=...) -> None:
         ...
-
+    
     def get(self): # -> int:
         ...
-
+    
 
 
 def find_file_iter(filename, env_vars=..., searchpath=..., file_names=..., url=..., verbose=..., finding_dir=...):
@@ -337,7 +337,7 @@ class ElementWrapper:
         returned as-is.
         """
         ...
-
+    
     def __init__(self, etree) -> None:
         r"""
         Initialize a new Element wrapper for ``etree``.
@@ -350,68 +350,68 @@ class ElementWrapper:
 
         """
         ...
-
+    
     def unwrap(self): # -> Any:
         """
         Return the Element object wrapped by this wrapper.
         """
         ...
-
+    
     def __repr__(self): # -> str | Any:
         ...
-
+    
     def __str__(self) -> str:
         """
         :return: the result of applying ``ElementTree.tostring()`` to
         the wrapped Element object.
         """
         ...
-
+    
     def __getattr__(self, attrib): # -> Any:
         ...
-
+    
     def __setattr__(self, attr, value): # -> None:
         ...
-
+    
     def __delattr__(self, attr): # -> None:
         ...
-
+    
     def __setitem__(self, index, element): # -> None:
         ...
-
+    
     def __delitem__(self, index): # -> None:
         ...
-
+    
     def __setslice__(self, start, stop, elements): # -> None:
         ...
-
+    
     def __delslice__(self, start, stop): # -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __getitem__(self, index): # -> ElementWrapper:
         ...
-
+    
     def __getslice__(self, start, stop): # -> list[ElementWrapper]:
         ...
-
+    
     def getchildren(self): # -> list[ElementWrapper]:
         ...
-
+    
     def getiterator(self, tag=...): # -> Generator[ElementWrapper, None, None]:
         ...
-
+    
     def makeelement(self, tag, attrib): # -> ElementWrapper:
         ...
-
+    
     def find(self, path): # -> Any | ElementWrapper:
         ...
-
+    
     def findall(self, path): # -> list[ElementWrapper]:
         ...
-
+    
 
 
 def slice_bounds(sequence, slice_obj, allow_step=...): # -> tuple[Any, Any, Any | Literal[1]] | tuple[Any | int, int | Any]:
@@ -436,3 +436,4 @@ def is_writable(path): # -> bool:
 
 def raise_unorderable_types(ordering, a, b):
     ...
+

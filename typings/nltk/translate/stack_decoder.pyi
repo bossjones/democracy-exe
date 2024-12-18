@@ -81,7 +81,7 @@ class StackDecoder:
         :type language_model: object
         """
         ...
-
+    
     @property
     def distortion_factor(self): # -> float:
         """
@@ -91,12 +91,12 @@ class StackDecoder:
             Value between 0.0 and 1.0. Default 0.5.
         """
         ...
-
+    
     @distortion_factor.setter
     def distortion_factor(self, d): # -> None:
         ...
-
-    def translate(self, src_sentence): # -> list:
+    
+    def translate(self, src_sentence): # -> list[Any]:
         """
         :param src_sentence: Sentence to be translated
         :type src_sentence: list(str)
@@ -105,8 +105,8 @@ class StackDecoder:
         :rtype: list(str)
         """
         ...
-
-    def find_all_src_phrases(self, src_sentence): # -> list[list]:
+    
+    def find_all_src_phrases(self, src_sentence): # -> list[list[Any]]:
         """
         Finds all subsequences in src_sentence that have a phrase
         translation in the translation table
@@ -122,7 +122,7 @@ class StackDecoder:
         :rtype: list(list(int))
         """
         ...
-
+    
     def compute_future_scores(self, src_sentence): # -> defaultdict[Any, defaultdict[Any, float]]:
         """
         Determines the approximate scores for translating every
@@ -139,14 +139,14 @@ class StackDecoder:
         :rtype: dict(int: (dict(int): float))
         """
         ...
-
+    
     def future_score(self, hypothesis, future_score_table, sentence_length): # -> float:
         """
         Determines the approximate score for translating the
         untranslated words in ``hypothesis``
         """
         ...
-
+    
     def expansion_score(self, hypothesis, translation_option, src_phrase_span):
         """
         Calculate the score of expanding ``hypothesis`` with
@@ -162,12 +162,12 @@ class StackDecoder:
         :type src_phrase_span: tuple(int, int)
         """
         ...
-
+    
     def distortion_score(self, hypothesis, next_src_phrase_span): # -> float:
         ...
-
+    
     @staticmethod
-    def valid_phrases(all_phrases_from, hypothesis): # -> list:
+    def valid_phrases(all_phrases_from, hypothesis): # -> list[Any]:
         """
         Extract phrases from ``all_phrases_from`` that contains words
         that have not been translated by ``hypothesis``
@@ -184,7 +184,7 @@ class StackDecoder:
         :rtype: list(tuple(int, int))
         """
         ...
-
+    
 
 
 class _Hypothesis:
@@ -226,15 +226,15 @@ class _Hypothesis:
         :type future_score: float
         """
         ...
-
+    
     def score(self): # -> float:
         """
         Overall score of hypothesis after accounting for local and
         global features
         """
         ...
-
-    def untranslated_spans(self, sentence_length): # -> list:
+    
+    def untranslated_spans(self, sentence_length): # -> list[Any]:
         """
         Starting from each untranslated word, find the longest
         continuous span of untranslated positions
@@ -246,8 +246,8 @@ class _Hypothesis:
         :rtype: list(tuple(int, int))
         """
         ...
-
-    def translated_positions(self): # -> list:
+    
+    def translated_positions(self): # -> list[Any]:
         """
         List of positions in the source sentence of words already
         translated. The list is not sorted.
@@ -255,13 +255,13 @@ class _Hypothesis:
         :rtype: list(int)
         """
         ...
-
+    
     def total_translated_words(self): # -> int:
         ...
-
-    def translation_so_far(self): # -> list:
+    
+    def translation_so_far(self): # -> list[Any]:
         ...
-
+    
 
 
 class _Stack:
@@ -276,7 +276,7 @@ class _Stack:
         :type beam_threshold: float
         """
         ...
-
+    
     def push(self, hypothesis): # -> None:
         """
         Add ``hypothesis`` to the stack.
@@ -286,24 +286,26 @@ class _Stack:
         are removed.
         """
         ...
-
+    
     def threshold_prune(self): # -> None:
         ...
-
+    
     def best(self): # -> None:
         """
         :return: Hypothesis with the highest score in the stack
         :rtype: _Hypothesis
         """
         ...
-
-    def __iter__(self): # -> Iterator:
+    
+    def __iter__(self): # -> Iterator[Any]:
         ...
-
+    
     def __contains__(self, hypothesis): # -> bool:
         ...
-
+    
     def __bool__(self): # -> bool:
         ...
-
+    
     __nonzero__ = ...
+
+

@@ -8,11 +8,11 @@ class _UpFIRDn:
     """Helper for resampling."""
     def __init__(self, h, x_dtype, up, down) -> None:
         ...
-
+    
     def apply_filter(self, x, axis=..., mode=..., cval=...): # -> NDArray[Any]:
         """Apply the prepared filter to the specified axis of N-D signal x."""
         ...
-
+    
 
 
 def upfirdn(h, x, up=..., down=..., axis=..., mode=..., cval=...): # -> NDArray[Any]:
@@ -122,3 +122,4 @@ def upfirdn(h, x, up=..., down=..., axis=..., mode=..., cval=...): # -> NDArray[
            [ 6.,  7.]])
     """
     ...
+

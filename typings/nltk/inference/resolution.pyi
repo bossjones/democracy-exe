@@ -26,24 +26,24 @@ class ResolutionProverCommand(BaseProverCommand):
         :type assumptions: list(sem.Expression)
         """
         ...
-
+    
     def prove(self, verbose=...):
         """
         Perform the actual proof.  Store the result to prevent unnecessary
         re-proving.
         """
         ...
-
-    def find_answers(self, verbose=...): # -> set:
+    
+    def find_answers(self, verbose=...): # -> set[Any]:
         ...
-
+    
 
 
 class Clause(list):
     def __init__(self, data) -> None:
         ...
-
-    def unify(self, other, bindings=..., used=..., skipped=..., debug=...): # -> list:
+    
+    def unify(self, other, bindings=..., used=..., skipped=..., debug=...): # -> list[Any]:
         """
         Attempt to unify this Clause with the other, returning a list of
         resulting, unified, Clauses.
@@ -63,7 +63,7 @@ class Clause(list):
             obtained by unification
         """
         ...
-
+    
     def isSubsetOf(self, other): # -> bool:
         """
         Return True iff every term in 'self' is a term in 'other'.
@@ -72,7 +72,7 @@ class Clause(list):
         :return: bool
         """
         ...
-
+    
     def subsumes(self, other): # -> bool:
         """
         Return True iff 'self' subsumes 'other', this is, if there is a
@@ -83,26 +83,26 @@ class Clause(list):
         :return: bool
         """
         ...
-
+    
     def __getslice__(self, start, end): # -> Clause:
         ...
-
+    
     def __sub__(self, other): # -> Clause:
         ...
-
+    
     def __add__(self, other): # -> Clause:
         ...
-
+    
     def is_tautology(self): # -> bool:
         """
         Self is a tautology if it contains ground terms P and -P.  The ground
         term, P, must be an exact match, ie, not using unification.
         """
         ...
-
+    
     def free(self): # -> Any:
         ...
-
+    
     def replace(self, variable, expression): # -> Clause:
         """
         Replace every instance of variable with expression across every atom
@@ -112,7 +112,7 @@ class Clause(list):
         :param expression: ``Expression``
         """
         ...
-
+    
     def substitute_bindings(self, bindings): # -> Clause:
         """
         Replace every binding
@@ -122,16 +122,16 @@ class Clause(list):
         :return: ``Clause``
         """
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
+    
 
 
-
-def clausify(expression): # -> list:
+def clausify(expression): # -> list[Any]:
     """
     Skolemize, clausify, and standardize the variables apart.
     """
@@ -143,7 +143,7 @@ class BindingDict:
         :param binding_list: list of (``AbstractVariableExpression``, ``AtomicExpression``) to initialize the dictionary
         """
         ...
-
+    
     def __setitem__(self, variable, binding): # -> None:
         """
         A binding is consistent with the dict if its variable is not already bound, OR if its
@@ -154,16 +154,16 @@ class BindingDict:
         :raise BindingException: If the variable cannot be bound in this dictionary
         """
         ...
-
+    
     def __getitem__(self, variable): # -> None:
         """
         Return the expression to which 'variable' is bound
         """
         ...
-
+    
     def __contains__(self, item): # -> bool:
         ...
-
+    
     def __add__(self, other): # -> BindingDict:
         """
         :param other: ``BindingDict`` The dict with which to combine self
@@ -171,16 +171,16 @@ class BindingDict:
         :raise BindingException: If the parameter dictionaries are not consistent with each other
         """
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def most_general_unification(a, b, bindings=...): # -> BindingDict:
@@ -199,25 +199,25 @@ def most_general_unification(a, b, bindings=...): # -> BindingDict:
 class BindingException(Exception):
     def __init__(self, arg) -> None:
         ...
-
+    
 
 
 class UnificationException(Exception):
     def __init__(self, a, b) -> None:
         ...
-
+    
 
 
 class DebugObject:
     def __init__(self, enabled=..., indent=...) -> None:
         ...
-
+    
     def __add__(self, i): # -> DebugObject:
         ...
-
+    
     def line(self, line): # -> None:
         ...
-
+    
 
 
 def testResolutionProver(): # -> None:

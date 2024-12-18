@@ -23,10 +23,10 @@ class ClosedDomainProver(ProverCommandDecorator):
     """
     def assumptions(self): # -> list[Any | BooleanExpression]:
         ...
-
+    
     def goal(self): # -> BooleanExpression:
         ...
-
+    
     def replace_quants(self, ex, domain): # -> BooleanExpression:
         """
         Apply the closed domain assumption to the expression
@@ -41,7 +41,7 @@ class ClosedDomainProver(ProverCommandDecorator):
         :return: ``Expression``
         """
         ...
-
+    
 
 
 class UniqueNamesProver(ProverCommandDecorator):
@@ -55,7 +55,7 @@ class UniqueNamesProver(ProverCommandDecorator):
         - if "d1 = d2" cannot be proven from the premises, then add "d1 != d2"
         """
         ...
-
+    
 
 
 class SetHolder(list):
@@ -68,7 +68,7 @@ class SetHolder(list):
         :return: the set containing 'item'
         """
         ...
-
+    
 
 
 class ClosedWorldProver(ProverCommandDecorator):
@@ -104,7 +104,7 @@ class ClosedWorldProver(ProverCommandDecorator):
     """
     def assumptions(self):
         ...
-
+    
 
 
 class PredHolder:
@@ -124,22 +124,22 @@ class PredHolder:
     """
     def __init__(self) -> None:
         ...
-
+    
     def append_sig(self, new_sig): # -> None:
         ...
-
+    
     def append_prop(self, new_prop): # -> None:
         ...
-
+    
     def validate_sig_len(self, new_sig): # -> None:
         ...
-
+    
     def __str__(self) -> str:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 def closed_domain_demo(): # -> None:

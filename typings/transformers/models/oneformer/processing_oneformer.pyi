@@ -31,7 +31,7 @@ class OneFormerProcessor(ProcessorMixin):
     tokenizer_class = ...
     def __init__(self, image_processor=..., tokenizer=..., max_seq_length: int = ..., task_seq_length: int = ..., **kwargs) -> None:
         ...
-
+    
     def __call__(self, images=..., task_inputs=..., segmentation_maps=..., **kwargs):
         """
         Main method to prepare for the model one or several task input(s) and image(s). This method forwards the
@@ -64,31 +64,34 @@ class OneFormerProcessor(ProcessorMixin):
             - **pixel_values** -- Pixel values to be fed to a model. Returned when `images` is not `None`.
         """
         ...
-
+    
     def encode_inputs(self, images=..., task_inputs=..., segmentation_maps=..., **kwargs):
         """
         This method forwards all its arguments to [`OneFormerImageProcessor.encode_inputs`] and then tokenizes the
         task_inputs. Please refer to the docstring of this method for more information.
         """
         ...
-
+    
     def post_process_semantic_segmentation(self, *args, **kwargs):
         """
         This method forwards all its arguments to [`OneFormerImageProcessor.post_process_semantic_segmentation`].
         Please refer to the docstring of this method for more information.
         """
         ...
-
+    
     def post_process_instance_segmentation(self, *args, **kwargs):
         """
         This method forwards all its arguments to [`OneFormerImageProcessor.post_process_instance_segmentation`].
         Please refer to the docstring of this method for more information.
         """
         ...
-
+    
     def post_process_panoptic_segmentation(self, *args, **kwargs):
         """
         This method forwards all its arguments to [`OneFormerImageProcessor.post_process_panoptic_segmentation`].
         Please refer to the docstring of this method for more information.
         """
         ...
+    
+
+

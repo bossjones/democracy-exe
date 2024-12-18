@@ -80,26 +80,26 @@ def wrap_dataset_for_transforms_v2(dataset, target_keys=...): # -> _:
 class WrapperFactories(dict):
     def register(self, dataset_cls): # -> Callable[..., Any]:
         ...
-
+    
 
 
 WRAPPER_FACTORIES = ...
 class VisionDatasetTVTensorWrapper:
     def __init__(self, dataset, target_keys) -> None:
         ...
-
+    
     def __getattr__(self, item): # -> Any:
         ...
-
+    
     def __getitem__(self, idx): # -> Tuple[Any, Any]:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __reduce__(self): # -> tuple[Callable[..., _], tuple[VisionDataset, Any]]:
         ...
-
+    
 
 
 def raise_not_supported(description):
@@ -171,3 +171,4 @@ def cityscapes_wrapper_factory(dataset, target_keys): # -> Callable[..., tuple[A
 @WRAPPER_FACTORIES.register(datasets.WIDERFace)
 def widerface_wrapper(dataset, target_keys): # -> Callable[..., tuple[Any, Any] | tuple[Any, dict[str | Any, Any]]]:
     ...
+

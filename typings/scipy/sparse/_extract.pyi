@@ -83,8 +83,8 @@ def tril(A, k=..., format=...): # -> coo_array | Any | coo_matrix:
            [4, 0, 0, 0, 0],
            [0, 0, 0, 0, 0]])
     >>> tril(A, format='csc')
-    <3x5 sparse array of type '<class 'numpy.int32'>'
-            with 4 stored elements in Compressed Sparse Column format>
+    <Compressed Sparse Column sparse array of dtype 'int32'
+        with 4 stored elements and shape (3, 5)>
 
     """
     ...
@@ -108,7 +108,7 @@ def triu(A, k=..., format=...): # -> coo_array | Any | coo_matrix:
 
     Returns
     -------
-    L : sparse array or matrix
+    L : sparse array or matrix 
         Upper triangular portion of A in sparse format.
         Sparse array if A is a sparse array, otherwise matrix.
 
@@ -140,8 +140,9 @@ def triu(A, k=..., format=...): # -> coo_array | Any | coo_matrix:
            [4, 5, 0, 6, 7],
            [0, 0, 8, 9, 0]])
     >>> triu(A, format='csc')
-    <3x5 sparse array of type '<class 'numpy.int32'>'
-            with 8 stored elements in Compressed Sparse Column format>
+    <Compressed Sparse Column sparse array of dtype 'int32'
+        with 8 stored elements and shape (3, 5)>
 
     """
     ...
+

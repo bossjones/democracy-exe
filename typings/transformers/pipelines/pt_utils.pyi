@@ -7,13 +7,13 @@ from torch.utils.data import Dataset, IterableDataset
 class PipelineDataset(Dataset):
     def __init__(self, dataset, process, params) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __getitem__(self, i):
         ...
-
+    
 
 
 class PipelineIterator(IterableDataset):
@@ -27,7 +27,7 @@ class PipelineIterator(IterableDataset):
         ```
 
                 Arguments:
-                    loader (`torch.utils.data.DataLoader` or any iterator):
+                    loader (`torch.utils.data.DataLoader` or `Iterable`):
                         The iterator that will be used to apply `infer` on.
                     infer (any function):
                         The function to apply of each element of `loader`.
@@ -45,22 +45,22 @@ class PipelineIterator(IterableDataset):
                 yield infer(item, **params)
         ```"""
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __iter__(self): # -> Self:
         ...
-
+    
     def loader_batch_item(self): # -> Tensor | None:
         """
         Return item located at `loader_batch_index` within the current `loader_batch_data`.
         """
         ...
-
+    
     def __next__(self): # -> Tensor | None:
         ...
-
+    
 
 
 class PipelineChunkIterator(PipelineIterator):
@@ -75,7 +75,7 @@ class PipelineChunkIterator(PipelineIterator):
         ```
 
                 Arguments:
-                    loader (`torch.utils.data.DataLoader` or any iterator):
+                    loader (`torch.utils.data.DataLoader` or `Iterable`):
                         The iterator that will be used to apply `infer` on.
                     infer (any function):
                         The function to apply of each element of `loader`.
@@ -83,13 +83,13 @@ class PipelineChunkIterator(PipelineIterator):
                         The parameters passed to `infer` along with every item
         """
         ...
-
+    
     def __iter__(self): # -> Self:
         ...
-
+    
     def __next__(self):
         ...
-
+    
 
 
 class PipelinePackIterator(PipelineIterator):
@@ -120,7 +120,7 @@ class PipelinePackIterator(PipelineIterator):
     ```
 
         Arguments:
-            loader (`torch.utils.data.DataLoader` or any iterator):
+            loader (`torch.utils.data.DataLoader` or `Iterable`):
                 The iterator that will be used to apply `infer` on.
             infer (any function):
                 The function to apply of each element of `loader`.
@@ -139,30 +139,33 @@ class PipelinePackIterator(PipelineIterator):
     ```"""
     def __iter__(self): # -> Self:
         ...
-
+    
     def __next__(self): # -> list[Any]:
         ...
-
+    
 
 
 class KeyDataset(Dataset):
     def __init__(self, dataset: Dataset, key: str) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __getitem__(self, i):
         ...
-
+    
 
 
 class KeyPairDataset(Dataset):
     def __init__(self, dataset: Dataset, key1: str, key2: str) -> None:
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __getitem__(self, i): # -> dict[str, Any]:
         ...
+    
+
+

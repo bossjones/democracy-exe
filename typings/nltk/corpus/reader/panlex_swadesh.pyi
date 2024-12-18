@@ -20,33 +20,36 @@ class PanlexSwadeshCorpusReader(WordListCorpusReader):
     """
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def license(self): # -> Literal['CC0 1.0 Universal']:
         ...
-
+    
     def language_codes(self): # -> dict_keys[Any, PanlexLanguage]:
         ...
-
+    
     def get_languages(self): # -> Generator[PanlexLanguage, Any, None]:
         ...
-
-    def get_macrolanguages(self): # -> defaultdict[Any, list]:
+    
+    def get_macrolanguages(self): # -> defaultdict[Any, list[Any]]:
         ...
-
+    
     def words_by_lang(self, lang_code): # -> list[list[str]]:
         """
         :return: a list of list(str)
         """
         ...
-
+    
     def words_by_iso639(self, iso63_code): # -> list[list[str]]:
         """
         :return: a list of list(str)
         """
         ...
-
+    
     def entries(self, fileids=...): # -> list[Any]:
         """
         :return: a tuple of words for the specified fileids.
         """
         ...
+    
+
+

@@ -15,22 +15,22 @@ TEXTID = ...
 class TEICorpusView(StreamBackedCorpusView):
     def __init__(self, corpus_file, tagged, group_by_sent, group_by_para, tagset=..., head_len=..., textids=...) -> None:
         ...
-
+    
     _pagesize = ...
-    def read_block(self, stream): # -> list:
+    def read_block(self, stream): # -> list[Any]:
         ...
-
+    
 
 
 class Pl196xCorpusReader(CategorizedCorpusReader, XMLCorpusReader):
     head_len = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
-
+    
     def decode_tag(self, tag):
         ...
-
-    def textids(self, fileids=..., categories=...): # -> list:
+    
+    def textids(self, fileids=..., categories=...): # -> list[Any]:
         """
         In the pl196x corpus each category is stored in single
         file and thus both methods provide identical functionality. In order
@@ -39,24 +39,27 @@ class Pl196xCorpusReader(CategorizedCorpusReader, XMLCorpusReader):
         of required chunks---giving much more control to the user.
         """
         ...
-
-    def words(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def sents(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def paras(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def paras(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_words(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_words(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_sents(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
-    def tagged_paras(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_paras(self, fileids=..., categories=..., textids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         ...
-
+    
     def xml(self, fileids=..., categories=...): # -> ElementWrapper | Element | Any:
         ...
+    
+
+

@@ -92,20 +92,20 @@ class DisjointSet:
     """
     def __init__(self, elements=...) -> None:
         ...
-
+    
     def __iter__(self): # -> Iterator[Any]:
         """Returns an iterator of the elements in the disjoint set.
 
         Elements are ordered by insertion order.
         """
         ...
-
+    
     def __len__(self): # -> int:
         ...
-
+    
     def __contains__(self, x): # -> bool:
         ...
-
+    
     def __getitem__(self, x):
         """Find the root element of `x`.
 
@@ -120,12 +120,12 @@ class DisjointSet:
             Root element of `x`.
         """
         ...
-
+    
     def add(self, x): # -> None:
         """Add element `x` to disjoint set
         """
         ...
-
+    
     def merge(self, x, y): # -> bool:
         """Merge the subsets of `x` and `y`.
 
@@ -144,7 +144,7 @@ class DisjointSet:
             True if `x` and `y` were in disjoint sets, False otherwise.
         """
         ...
-
+    
     def connected(self, x, y):
         """Test whether `x` and `y` are in the same subset.
 
@@ -159,7 +159,7 @@ class DisjointSet:
             True if `x` and `y` are in the same set, False otherwise.
         """
         ...
-
+    
     def subset(self, x): # -> set[Any]:
         """Get the subset containing `x`.
 
@@ -174,7 +174,7 @@ class DisjointSet:
             Subset containing `x`.
         """
         ...
-
+    
     def subset_size(self, x):
         """Get the size of the subset containing `x`.
 
@@ -193,7 +193,7 @@ class DisjointSet:
             Size of the subset containing `x`.
         """
         ...
-
+    
     def subsets(self): # -> list[Any]:
         """Get all the subsets in the disjoint set.
 
@@ -203,3 +203,6 @@ class DisjointSet:
             Subsets in the disjoint set.
         """
         ...
+    
+
+

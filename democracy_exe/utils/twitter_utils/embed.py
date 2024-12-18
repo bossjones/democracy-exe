@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Discord embed utilities for Twitter content."""
 from __future__ import annotations
 

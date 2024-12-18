@@ -14,7 +14,10 @@ class FilesystemPersister:
     @classmethod
     def load_cassette(cls, cassette_path, serializer): # -> tuple[list[Request], list[Any]]:
         ...
-
+    
     @staticmethod
     def save_cassette(cassette_path, cassette_dict, serializer): # -> None:
         ...
+    
+
+

@@ -37,11 +37,11 @@ class PathFormat:
         """Fix filenames without a given filename extension"""
         ...
     
-    def build_filename(self, kwdict): # -> str | Any | LiteralString | Literal[False]:
+    def build_filename(self, kwdict): # -> str | Any | CustomNone | LiteralString:
         """Apply 'kwdict' to filename format string"""
         ...
     
-    def build_filename_conditional(self, kwdict): # -> str | Any | LiteralString | Literal[False]:
+    def build_filename_conditional(self, kwdict): # -> str | Any | CustomNone | LiteralString:
         ...
     
     def build_directory(self, kwdict): # -> list[Any]:

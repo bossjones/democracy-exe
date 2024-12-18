@@ -6,13 +6,10 @@ import contextlib
 import doctest
 import os
 import unittest
-from collections.abc import Iterable, Iterator
-from typing import List, Optional, Union
-
+from typing import Iterable, Iterator, List, Optional, Union
+from .utils import is_accelerate_available, is_flax_available, is_pytest_available, is_tf_available, is_torch_available
 from _pytest.doctest import Module
 from pytest import DoctestItem
-
-from .utils import is_accelerate_available, is_flax_available, is_pytest_available, is_tf_available, is_torch_available
 
 if is_accelerate_available():
     ...
@@ -27,6 +24,12 @@ DUMMY_DIFF_TOKENIZER_IDENTIFIER = ...
 USER = ...
 ENDPOINT_STAGING = ...
 TOKEN = ...
+if is_torch_available():
+    IS_ROCM_SYSTEM = ...
+    IS_CUDA_SYSTEM = ...
+else:
+    IS_ROCM_SYSTEM = ...
+    IS_CUDA_SYSTEM = ...
 def parse_flag_from_env(key, default=...): # -> bool | Literal[1, 0]:
     ...
 
@@ -40,8 +43,11 @@ _run_custom_tokenizers = ...
 _run_staging = ...
 _tf_gpu_memory_limit = ...
 _run_pipeline_tests = ...
-_run_tool_tests = ...
+_run_agent_tests = ...
 _run_third_party_device_tests = ...
+def get_device_count(): # -> int:
+    ...
+
 def is_pt_tf_cross_test(test_case):
     """
     Decorator marking a test as a test that control interactions between PyTorch and TensorFlow.
@@ -77,9 +83,9 @@ def is_pipeline_test(test_case):
     """
     ...
 
-def is_tool_test(test_case):
+def is_agent_test(test_case):
     """
-    Decorator marking a test as a tool test. If RUN_TOOL_TESTS is set to a falsy value, those tests will be skipped.
+    Decorator marking a test as an agent test. If RUN_TOOL_TESTS is set to a falsy value, those tests will be skipped.
     """
     ...
 
@@ -102,6 +108,15 @@ def tooslow(test_case):
     """
     ...
 
+def skip_if_not_implemented(test_func): # -> _Wrapped[Callable[..., Any], Any, Callable[..., Any], Any]:
+    ...
+
+def apply_skip_if_not_implemented(cls):
+    """
+    Class decorator to apply @skip_if_not_implemented to all test methods.
+    """
+    ...
+
 def custom_tokenizers(test_case):
     """
     Decorator marking a test for a custom tokenizer.
@@ -121,6 +136,26 @@ def require_galore_torch(test_case):
     """
     Decorator marking a test that requires GaLore. These tests are skipped when GaLore isn't installed.
     https://github.com/jiaweizzhao/GaLore
+    """
+    ...
+
+def require_lomo(test_case):
+    """
+    Decorator marking a test that requires LOMO. These tests are skipped when LOMO-optim isn't installed.
+    https://github.com/OpenLMLab/LOMO
+    """
+    ...
+
+def require_grokadamw(test_case):
+    """
+    Decorator marking a test that requires GrokAdamW. These tests are skipped when GrokAdamW isn't installed.
+    """
+    ...
+
+def require_schedulefree(test_case):
+    """
+    Decorator marking a test that requires schedulefree. These tests are skipped when schedulefree isn't installed.
+    https://github.com/facebookresearch/schedule_free
     """
     ...
 
@@ -154,6 +189,12 @@ def require_nltk(test_case):
 def require_accelerate(test_case, min_version: str = ...):
     """
     Decorator marking a test that requires accelerate. These tests are skipped when accelerate isn't installed.
+    """
+    ...
+
+def require_gguf(test_case, min_version: str = ...):
+    """
+    Decorator marking a test that requires ggguf. These tests are skipped when gguf isn't installed.
     """
     ...
 
@@ -394,12 +435,6 @@ def require_spacy(test_case):
     """
     ...
 
-def require_decord(test_case):
-    """
-    Decorator marking a test that requires decord. These tests are skipped when decord isn't installed.
-    """
-    ...
-
 def require_torch_multi_gpu(test_case):
     """
     Decorator marking a test that requires a multi-GPU setup (in PyTorch). These tests are skipped on a machine without
@@ -435,7 +470,7 @@ def require_torch_up_to_2_gpus(test_case):
     """
     ...
 
-def require_torch_up_to_2_accelerators(test_case): # -> Callable[[_FT], _FT]:
+def require_torch_up_to_2_accelerators(test_case):
     """
     Decorator marking a test that requires 0 or 1 or 2 accelerator setup (in PyTorch).
     """
@@ -470,17 +505,24 @@ def require_torch_multi_npu(test_case):
 
 def require_torch_xpu(test_case):
     """
-    Decorator marking a test that requires XPU and IPEX.
+    Decorator marking a test that requires XPU (in PyTorch).
 
-    These tests are skipped when Intel Extension for PyTorch isn't installed or it does not match current PyTorch
-    version.
+    These tests are skipped when XPU backend is not available. XPU backend might be available either via stock
+    PyTorch (>=2.4) or via Intel Extension for PyTorch. In the latter case, if IPEX is installed, its version
+    must match match current PyTorch version.
+    """
+    ...
+
+def require_non_xpu(test_case):
+    """
+    Decorator marking a test that should be skipped for XPU.
     """
     ...
 
 def require_torch_multi_xpu(test_case):
     """
-    Decorator marking a test that requires a multi-XPU setup with IPEX and at least one XPU device. These tests are
-    skipped on a machine without IPEX or multiple XPUs.
+    Decorator marking a test that requires a multi-XPU setup (in PyTorch). These tests are skipped on a machine without
+    multiple XPUs.
 
     To run *only* the multi_xpu tests, assuming all test names contain multi_xpu: $ pytest -sv ./tests -k "multi_xpu"
     """
@@ -500,12 +542,22 @@ def require_torchdynamo(test_case):
     """Decorator marking a test that requires TorchDynamo"""
     ...
 
+def require_torchao(test_case):
+    """Decorator marking a test that requires torchao"""
+    ...
+
 def require_torch_tensorrt_fx(test_case):
     """Decorator marking a test that requires Torch-TensorRT FX"""
     ...
 
 def require_torch_gpu(test_case):
     """Decorator marking a test that requires CUDA and PyTorch."""
+    ...
+
+def require_torch_gpu_if_bnb_not_multi_backend_enabled(test_case):
+    """
+    Decorator marking a test that requires a GPU if bitsandbytes multi-backend feature is not enabled.
+    """
     ...
 
 def require_torch_accelerator(test_case):
@@ -526,6 +578,9 @@ def require_torch_bf16_gpu(test_case):
 
 def require_torch_bf16_cpu(test_case):
     """Decorator marking a test that requires torch>=1.10, using CPU."""
+    ...
+
+def require_deterministic_for_xpu(test_case):
     ...
 
 def require_torch_tf32(test_case):
@@ -612,6 +667,12 @@ def require_aqlm(test_case):
     """
     ...
 
+def require_eetq(test_case):
+    """
+    Decorator marking a test that requires eetq
+    """
+    ...
+
 def require_av(test_case):
     """
     Decorator marking a test that requires av
@@ -648,9 +709,21 @@ def require_auto_awq(test_case):
     """
     ...
 
-def require_quanto(test_case):
+def require_optimum_quanto(test_case):
     """
     Decorator for quanto dependency
+    """
+    ...
+
+def require_compressed_tensors(test_case):
+    """
+    Decorator for compressed_tensors dependency
+    """
+    ...
+
+def require_fbgemm_gpu(test_case):
+    """
+    Decorator for fbgemm_gpu dependency
     """
     ...
 
@@ -669,6 +742,12 @@ def require_pyctcdecode(test_case):
 def require_librosa(test_case):
     """
     Decorator marking a test that requires librosa
+    """
+    ...
+
+def require_liger_kernel(test_case):
+    """
+    Decorator marking a test that requires liger_kernel
     """
     ...
 
@@ -714,6 +793,12 @@ def require_jumanpp(test_case):
 def require_cython(test_case):
     """
     Decorator marking a test that requires jumanpp
+    """
+    ...
+
+def require_tiktoken(test_case):
+    """
+    Decorator marking a test that requires TikToken. These tests are skipped when TikToken isn't installed.
     """
     ...
 
@@ -791,30 +876,30 @@ class CaptureStd:
     ```"""
     def __init__(self, out=..., err=..., replay=...) -> None:
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, *exc): # -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class CaptureStdout(CaptureStd):
     """Same as CaptureStd but captures only stdout"""
     def __init__(self, replay=...) -> None:
         ...
-
+    
 
 
 class CaptureStderr(CaptureStd):
     """Same as CaptureStd but captures only stderr"""
     def __init__(self, replay=...) -> None:
         ...
-
+    
 
 
 class CaptureLogger:
@@ -843,16 +928,16 @@ class CaptureLogger:
     """
     def __init__(self, logger) -> None:
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, *exc): # -> None:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 @contextlib.contextmanager
@@ -964,55 +1049,55 @@ class TestCasePlus(unittest.TestCase):
     ```"""
     def setUp(self): # -> None:
         ...
-
+    
     @property
     def test_file_path(self): # -> str:
         ...
-
+    
     @property
     def test_file_path_str(self): # -> str:
         ...
-
+    
     @property
     def test_file_dir(self): # -> Path:
         ...
-
+    
     @property
     def test_file_dir_str(self): # -> str:
         ...
-
+    
     @property
     def tests_dir(self): # -> Path:
         ...
-
+    
     @property
     def tests_dir_str(self): # -> str:
         ...
-
+    
     @property
     def examples_dir(self): # -> Path:
         ...
-
+    
     @property
     def examples_dir_str(self): # -> str:
         ...
-
+    
     @property
     def repo_root_dir(self): # -> Path:
         ...
-
+    
     @property
     def repo_root_dir_str(self): # -> str:
         ...
-
+    
     @property
     def src_dir(self): # -> Path:
         ...
-
+    
     @property
     def src_dir_str(self): # -> str:
         ...
-
+    
     def get_env(self): # -> dict[str, str]:
         """
         Return a copy of the `os.environ` object that sets up `PYTHONPATH` correctly, depending on the test suite it's
@@ -1023,7 +1108,7 @@ class TestCasePlus(unittest.TestCase):
 
         """
         ...
-
+    
     def get_auto_remove_tmp_dir(self, tmp_dir=..., before=..., after=...): # -> str:
         """
         Args:
@@ -1049,7 +1134,7 @@ class TestCasePlus(unittest.TestCase):
             tmp_dir(`string`): either the same value as passed via *tmp_dir* or the path to the auto-selected tmp dir
         """
         ...
-
+    
     def python_one_liner_max_rss(self, one_liner_str): # -> int:
         """
         Runs the passed python one liner (just the code) and returns how much max cpu memory was used to run the
@@ -1073,10 +1158,10 @@ class TestCasePlus(unittest.TestCase):
         ```
         """
         ...
-
+    
     def tearDown(self): # -> None:
         ...
-
+    
 
 
 def mockenv(**kwargs): # -> _patch_dict:
@@ -1138,7 +1223,7 @@ def pytest_terminal_summary_main(tr, id): # -> None:
 class _RunOutput:
     def __init__(self, returncode, stdout, stderr) -> None:
         ...
-
+    
 
 
 def execute_subprocess_async(cmd, env=..., stdin=..., timeout=..., quiet=..., echo=...) -> _RunOutput:
@@ -1201,17 +1286,17 @@ class RequestCounter:
     """
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, *args, **kwargs) -> None:
         ...
-
+    
     def __getitem__(self, key: str) -> int:
         ...
-
+    
     @property
     def total_calls(self) -> int:
         ...
-
+    
 
 
 def is_flaky(max_attempts: int = ..., wait_before_retry: Optional[float] = ..., description: Optional[str] = ...): # -> Callable[..., _Wrapped[Callable[..., Any], Any, Callable[..., Any], Any]]:
@@ -1272,7 +1357,7 @@ class HfDocTestParser(doctest.DocTestParser):
         calling `super().parse`
         """
         ...
-
+    
 
 
 class HfDoctestModule(Module):
@@ -1287,12 +1372,16 @@ class HfDoctestModule(Module):
             https://github.com/pytest-dev/pytest/issues/3456 https://bugs.python.org/issue25532
             """
             ...
-
-
-
+        
+        
+    
 
 
 if is_torch_available():
+    BACKEND_MANUAL_SEED = ...
+    BACKEND_EMPTY_CACHE = ...
+    BACKEND_DEVICE_COUNT = ...
+else:
     BACKEND_MANUAL_SEED = ...
     BACKEND_EMPTY_CACHE = ...
     BACKEND_DEVICE_COUNT = ...
@@ -1307,3 +1396,6 @@ def backend_device_count(device: str): # -> None:
 
 if is_torch_available():
     ...
+def compare_pipeline_output_to_hub_spec(output, hub_spec): # -> None:
+    ...
+

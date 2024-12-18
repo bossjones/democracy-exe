@@ -29,14 +29,17 @@ class _AProd:
     """
     def __init__(self, A) -> None:
         ...
-
+    
     def __call__(self, transa, m, n, x, y, sparm, iparm): # -> None:
         ...
-
+    
     @property
     def shape(self): # -> tuple[Any, ...]:
         ...
-
+    
     @property
     def dtype(self): # -> dtype[Any]:
         ...
+    
+
+

@@ -60,3 +60,4 @@ in :mod:`scipy.stats`, the following functionality can be used:
    FastGeneratorInversion
 
 """
+__all__ = ["NumericalInverseHermite", "NumericalInversePolynomial", "TransformedDensityRejection", "SimpleRatioUniforms", "RatioUniforms", "DiscreteAliasUrn", "DiscreteGuideTable", "UNURANError", "FastGeneratorInversion"]

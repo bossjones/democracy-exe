@@ -45,27 +45,28 @@ Y       yield   Y IY L D       Z       zee     Z IY
 ZH      seizure S IY ZH ER
 """
 class CMUDictCorpusReader(CorpusReader):
-    def entries(self): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    def entries(self): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the cmudict lexicon as a list of entries
             containing (word, transcriptions) tuples.
         """
         ...
-
+    
     def words(self): # -> list[str | Any]:
         """
         :return: a list of all words defined in the cmudict lexicon.
         """
         ...
-
-    def dict(self): # -> dict:
+    
+    def dict(self): # -> dict[Any, Any]:
         """
         :return: the cmudict lexicon as a dictionary, whose keys are
             lowercase words and whose values are lists of pronunciations.
         """
         ...
+    
 
 
-
-def read_cmudict_block(stream): # -> list:
+def read_cmudict_block(stream): # -> list[Any]:
     ...
+

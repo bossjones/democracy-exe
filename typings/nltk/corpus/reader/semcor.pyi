@@ -18,15 +18,15 @@ class SemcorCorpusReader(XMLCorpusReader):
     """
     def __init__(self, root, fileids, wordnet, lazy=...) -> None:
         ...
-
-    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def words(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of words and punctuation symbols.
         :rtype: list(str)
         """
         ...
-
-    def chunks(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def chunks(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of chunks,
             each of which is a list of words and punctuation symbols
@@ -34,8 +34,8 @@ class SemcorCorpusReader(XMLCorpusReader):
         :rtype: list(list(str))
         """
         ...
-
-    def tagged_chunks(self, fileids=..., tag=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_chunks(self, fileids=..., tag=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of tagged chunks, represented
             in tree form.
@@ -49,24 +49,24 @@ class SemcorCorpusReader(XMLCorpusReader):
             Punctuation tokens have `None` for their part of speech tag.)
         """
         ...
-
-    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of sentences, each encoded
             as a list of word strings.
         :rtype: list(list(str))
         """
         ...
-
-    def chunk_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def chunk_sents(self, fileids=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of sentences, each encoded
             as a list of chunks.
         :rtype: list(list(list(str)))
         """
         ...
-
-    def tagged_sents(self, fileids=..., tag=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list | tuple[()] | Element:
+    
+    def tagged_sents(self, fileids=..., tag=...): # -> str | ConcatenatedCorpusView | LazyConcatenation | list[Any] | tuple[()] | Element:
         """
         :return: the given file(s) as a list of sentences. Each sentence
             is represented as a list of tagged chunks (in tree form).
@@ -80,7 +80,7 @@ class SemcorCorpusReader(XMLCorpusReader):
             Punctuation tokens have `None` for their part of speech tag.)
         """
         ...
-
+    
 
 
 class SemcorSentence(list):
@@ -90,7 +90,7 @@ class SemcorSentence(list):
     """
     def __init__(self, num, items) -> None:
         ...
-
+    
 
 
 class SemcorWordView(XMLCorpusView):
@@ -107,12 +107,15 @@ class SemcorWordView(XMLCorpusView):
             and OOV named entity status.
         """
         ...
-
+    
     def handle_elt(self, elt, context): # -> SemcorSentence | tuple[Any | Literal[''], ...] | list[LiteralString] | Tree | LiteralString | list[Tree] | Literal['']:
         ...
-
+    
     def handle_word(self, elt): # -> tuple[Any | Literal[''], ...] | list[LiteralString] | Tree | LiteralString | list[Tree] | Literal['']:
         ...
-
+    
     def handle_sent(self, elt): # -> SemcorSentence:
         ...
+    
+
+

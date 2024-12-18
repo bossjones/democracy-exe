@@ -10,8 +10,8 @@ def ascent(): # -> NDArray[Any]:
     Get an 8-bit grayscale bit-depth, 512 x 512 derived image for easy
     use in demos.
 
-    The image is derived from accent-to-the-top.jpg at
-    http://www.public-domain-image.com/people-public-domain-images-pictures/
+    The image is derived from
+    https://pixnio.com/people/accent-to-the-top
 
     Parameters
     ----------
@@ -136,7 +136,8 @@ def face(gray=...): # -> NDArray[Any]:
     """
     Get a 1024 x 768, color image of a raccoon face.
 
-    raccoon-procyon-lotor.jpg at http://www.public-domain-image.com
+    The image is derived from
+    https://pixnio.com/fauna-animals/raccoons/raccoon-procyon-lotor
 
     Parameters
     ----------
@@ -166,3 +167,4 @@ def face(gray=...): # -> NDArray[Any]:
 
     """
     ...
+

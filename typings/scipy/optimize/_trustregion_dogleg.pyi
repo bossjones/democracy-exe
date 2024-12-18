@@ -13,14 +13,14 @@ class DoglegSubproblem(BaseQuadraticSubproblem):
         The Cauchy point is minimal along the direction of steepest descent.
         """
         ...
-
-    def newton_point(self):
+    
+    def newton_point(self): # -> NDArray[Any]:
         """
         The Newton point is a global minimum of the approximate function.
         """
         ...
-
-    def solve(self, trust_radius): # -> tuple[Any, Literal[False]] | tuple[Any, Literal[True]]:
+    
+    def solve(self, trust_radius): # -> tuple[NDArray[Any] | Any, Literal[False]] | tuple[Any, Literal[True]]:
         """
         Minimize a function using the dog-leg trust-region algorithm.
 
@@ -51,3 +51,6 @@ class DoglegSubproblem(BaseQuadraticSubproblem):
                Springer-Verlag, 2006, page 73.
         """
         ...
+    
+
+

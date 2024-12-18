@@ -48,7 +48,7 @@ class ReadingCommand(metaclass=ABCMeta):
         :type sentence: str
         """
         ...
-
+    
     def process_thread(self, sentence_readings):
         """
         This method should be used to handle dependencies between readings such
@@ -60,7 +60,7 @@ class ReadingCommand(metaclass=ABCMeta):
         :rtype: list(Expression)
         """
         ...
-
+    
     @abstractmethod
     def combine_readings(self, readings): # -> None:
         """
@@ -70,7 +70,7 @@ class ReadingCommand(metaclass=ABCMeta):
         :rtype: Expression
         """
         ...
-
+    
     @abstractmethod
     def to_fol(self, expression): # -> None:
         """
@@ -82,7 +82,7 @@ class ReadingCommand(metaclass=ABCMeta):
         :rtype: Expression
         """
         ...
-
+    
 
 
 class CfgReadingCommand(ReadingCommand):
@@ -92,19 +92,19 @@ class CfgReadingCommand(ReadingCommand):
         :type gramfile: str
         """
         ...
-
+    
     def parse_to_readings(self, sentence): # -> list[Any | FeatStructNonterminal]:
         """:see: ReadingCommand.parse_to_readings()"""
         ...
-
+    
     def combine_readings(self, readings): # -> Any:
         """:see: ReadingCommand.combine_readings()"""
         ...
-
+    
     def to_fol(self, expression):
         """:see: ReadingCommand.to_fol()"""
         ...
-
+    
 
 
 class DrtGlueReadingCommand(ReadingCommand):
@@ -115,23 +115,23 @@ class DrtGlueReadingCommand(ReadingCommand):
         :param depparser: the dependency parser
         """
         ...
-
-    def parse_to_readings(self, sentence): # -> list:
+    
+    def parse_to_readings(self, sentence): # -> list[Any]:
         """:see: ReadingCommand.parse_to_readings()"""
         ...
-
-    def process_thread(self, sentence_readings): # -> list[Any | ApplicationExpression | DRS | AbstractVariableExpression | NegatedExpression | DrtConcatenation | BinaryExpression | LambdaExpression | None] | list:
+    
+    def process_thread(self, sentence_readings): # -> list[Any | ApplicationExpression | DRS | AbstractVariableExpression | NegatedExpression | DrtConcatenation | BinaryExpression | LambdaExpression | None] | list[Any]:
         """:see: ReadingCommand.process_thread()"""
         ...
-
+    
     def combine_readings(self, readings): # -> ApplicationExpression | DRS | AbstractVariableExpression | NegatedExpression | DrtConcatenation | BinaryExpression | LambdaExpression | None:
         """:see: ReadingCommand.combine_readings()"""
         ...
-
+    
     def to_fol(self, expression):
         """:see: ReadingCommand.to_fol()"""
         ...
-
+    
 
 
 class DiscourseTester:
@@ -148,13 +148,13 @@ class DiscourseTester:
         :type background: list(Expression)
         """
         ...
-
+    
     def sentences(self): # -> None:
         """
         Display the list of sentences in the current discourse.
         """
         ...
-
+    
     def add_sentence(self, sentence, informchk=..., consistchk=...): # -> None:
         """
         Add a sentence to the current discourse.
@@ -167,7 +167,7 @@ class DiscourseTester:
 
         """
         ...
-
+    
     def retract_sentence(self, sentence, verbose=...): # -> None:
         """
         Remove a sentence from the current discourse.
@@ -178,13 +178,13 @@ class DiscourseTester:
         :param verbose: If ``True``,  report on the updated list of sentences.
         """
         ...
-
+    
     def grammar(self): # -> None:
         """
         Print out the grammar in use for parsing input sentences
         """
         ...
-
+    
     def readings(self, sentence=..., threaded=..., verbose=..., filter=..., show_thread_readings=...): # -> None:
         """
         Construct and show the readings of the discourse (or of a single sentence).
@@ -195,8 +195,8 @@ class DiscourseTester:
         :param filter: if ``True``, only print out consistent thread IDs and threads.
         """
         ...
-
-    def expand_threads(self, thread_id, threads=...): # -> list[tuple]:
+    
+    def expand_threads(self, thread_id, threads=...): # -> list[tuple[Any, Any]]:
         """
         Given a thread ID, find the list of ``logic.Expression`` objects corresponding to the reading IDs in that thread.
 
@@ -208,7 +208,7 @@ class DiscourseTester:
         :rtype: list of tuple
         """
         ...
-
+    
     def models(self, thread_id=..., show=..., verbose=...): # -> None:
         """
         Call Mace4 to build a model for each current discourse thread.
@@ -218,7 +218,7 @@ class DiscourseTester:
         :param show: If ``True``, display the model that has been found.
         """
         ...
-
+    
     def add_background(self, background, verbose=...): # -> None:
         """
         Add a list of background assumptions for reasoning about the discourse.
@@ -228,15 +228,15 @@ class DiscourseTester:
         :type background: list(Expression)
         """
         ...
-
+    
     def background(self): # -> None:
         """
         Show the current background assumptions.
         """
         ...
-
+    
     @staticmethod
-    def multiply(discourse, readings): # -> list:
+    def multiply(discourse, readings): # -> list[Any]:
         """
         Multiply every thread in ``discourse`` by every reading in ``readings``.
 
@@ -250,10 +250,10 @@ class DiscourseTester:
         :rtype: A list of lists
         """
         ...
+    
 
 
-
-def load_fol(s): # -> list:
+def load_fol(s): # -> list[Any]:
     """
     Temporarily duplicated from ``nltk.sem.util``.
     Convert a  file of first order formulas into a list of ``Expression`` objects.

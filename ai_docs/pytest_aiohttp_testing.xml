@@ -1,0 +1,1017 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/Documents/ai_docs/rtdocs/docs.aiohttp.org/en/stable/testing.html</source>
+<document_content>
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Testing &#8212; aiohttp 3.11.10 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=c55eb6a5" />
+    <link rel="stylesheet" type="text/css" href="_static/aiohttp.css?v=9042f6b9" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="_static/css/logo-adjustments.css?v=f2060474" />
+    <script src="_static/documentation_options.js?v=d2af9b5e"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Server Deployment" href="deployment.html" />
+    <link rel="prev" title="Logging" href="logging.html" />
+
+<link rel="stylesheet" href="_static/custom.css" type="text/css" />
+
+
+<link rel="canonical" href="http://docs.aiohttp.org/en/stable/testing.html"/>
+
+<meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+<link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet">
+
+  <script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="aiohttp" /><meta name="readthedocs-version-slug" content="stable" /><meta name="readthedocs-resolver-filename" content="/testing.html" /><meta name="readthedocs-http-status" content="200" /></head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+
+  <section id="testing">
+<span id="aiohttp-testing"></span><span id="module-aiohttp.test_utils"></span><h1>Testing<a class="headerlink" href="#testing" title="Link to this heading">¶</a></h1>
+<section id="testing-aiohttp-web-servers">
+<h2>Testing aiohttp web servers<a class="headerlink" href="#testing-aiohttp-web-servers" title="Link to this heading">¶</a></h2>
+<p>aiohttp provides plugin for <em>pytest</em> making writing web server tests
+extremely easy, it also provides <a class="reference internal" href="#aiohttp-testing-framework-agnostic-utilities"><span class="std std-ref">test framework agnostic
+utilities</span></a> for testing
+with other frameworks such as <a class="reference internal" href="#aiohttp-testing-unittest-example"><span class="std std-ref">unittest</span></a>.</p>
+<p>Before starting to write your tests, you may also be interested on
+reading <a class="reference internal" href="#aiohttp-testing-writing-testable-services"><span class="std std-ref">how to write testable
+services</span></a> that interact
+with the loop.</p>
+<p>For using pytest plugin please install <a class="reference external" href="https://pypi.python.org/pypi/pytest-aiohttp">pytest-aiohttp</a> library:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pytest-aiohttp
+</pre></div>
+</div>
+<p>If you don't want to install <em>pytest-aiohttp</em> for some reason you may
+insert <code class="docutils literal notranslate"><span class="pre">pytest_plugins</span> <span class="pre">=</span> <span class="pre">'aiohttp.pytest_plugin'</span></code> line into
+<code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> instead for the same functionality.</p>
+<section id="the-test-client-and-servers">
+<h3>The Test Client and Servers<a class="headerlink" href="#the-test-client-and-servers" title="Link to this heading">¶</a></h3>
+<p><em>aiohttp</em> test utils provides a scaffolding for testing aiohttp-based
+web servers.</p>
+<p>They are consist of two parts: running test server and making HTTP
+requests to this server.</p>
+<p><a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a> runs <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a>
+based server, <a class="reference internal" href="#aiohttp.test_utils.RawTestServer" title="aiohttp.test_utils.RawTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">RawTestServer</span></code></a> starts
+<a class="reference internal" href="web_reference.html#aiohttp.web.Server" title="aiohttp.web.Server"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Server</span></code></a> low level server.</p>
+<p>For performing HTTP requests to these servers you have to create a
+test client: <a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestClient</span></code></a> instance.</p>
+<p>The client incapsulates <a class="reference internal" href="client_reference.html#aiohttp.ClientSession" title="aiohttp.ClientSession"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.ClientSession</span></code></a> by providing
+proxy methods to the client for common operations such as
+<em>ws_connect</em>, <em>get</em>, <em>post</em>, etc.</p>
+</section>
+<section id="pytest">
+<h3>Pytest<a class="headerlink" href="#pytest" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference internal" href="#pytest_aiohttp.aiohttp_client" title="pytest_aiohttp.aiohttp_client"><code class="xref py py-data docutils literal notranslate"><span class="pre">aiohttp_client</span></code></a> fixture available from <a class="reference external" href="https://pypi.python.org/pypi/pytest-aiohttp">pytest-aiohttp</a> plugin
+allows you to create a client to make requests to test your app.</p>
+<p>To run these examples, you need to use <cite>-asyncio-mode=auto</cite> or add to your
+pytest config file:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">asyncio_mode</span> <span class="o">=</span> <span class="n">auto</span>
+</pre></div>
+</div>
+<p>A simple test would be:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aiohttp</span> <span class="kn">import</span> <span class="n">web</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s1">&#39;Hello, world&#39;</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">test_hello</span><span class="p">(</span><span class="n">aiohttp_client</span><span class="p">):</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">hello</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiohttp_client</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="s1">&#39;Hello, world&#39;</span> <span class="ow">in</span> <span class="n">text</span>
+</pre></div>
+</div>
+<p>It also provides access to the app instance allowing tests to check the state
+of the app. Tests can be made even more succinct with a fixture to create an
+app test client:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">from</span> <span class="nn">aiohttp</span> <span class="kn">import</span> <span class="n">web</span>
+
+<span class="n">value</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">AppKey</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">previous</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">request</span><span class="o">.</span><span class="n">post</span><span class="p">())[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;thanks for the data&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span>
+        <span class="n">body</span><span class="o">=</span><span class="s1">&#39;value: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="p">[</span><span class="n">value</span><span class="p">])</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">cli</span><span class="p">(</span><span class="n">aiohttp_client</span><span class="p">):</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">previous</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_post</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">previous</span><span class="p">)</span>
+    <span class="k">return</span> <span class="k">await</span> <span class="n">aiohttp_client</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">test_set_value</span><span class="p">(</span><span class="n">cli</span><span class="p">):</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cli</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">})</span>
+    <span class="k">assert</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span>
+    <span class="k">assert</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;thanks for the data&#39;</span>
+    <span class="k">assert</span> <span class="n">cli</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">app</span><span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;foo&#39;</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">test_get_value</span><span class="p">(</span><span class="n">cli</span><span class="p">):</span>
+    <span class="n">cli</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">app</span><span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cli</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span>
+    <span class="k">assert</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;value: bar&#39;</span>
+</pre></div>
+</div>
+<p>Pytest tooling has the following fixtures:</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="pytest_aiohttp.aiohttp_server">
+<span class="sig-prename descclassname"><span class="pre">pytest_aiohttp.</span></span><span class="sig-name descname"><span class="pre">aiohttp_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytest_aiohttp.aiohttp_server" title="Link to this definition">¶</a></dt>
+<dd><p>A fixture factory that creates
+<a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">test_f</span><span class="p">(</span><span class="n">aiohttp_server</span><span class="p">):</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">()</span>
+    <span class="c1"># fill route table</span>
+
+    <span class="n">server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiohttp_server</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The server will be destroyed on exit from test function.</p>
+<dl class="simple">
+<dt><em>app</em> is the <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> used</dt><dd><p>to start server.</p>
+</dd>
+</dl>
+<p><em>port</em> optional, port the server is run at, if
+not provided a random unused port is used.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+<dl class="simple">
+<dt><em>kwargs</em> are parameters passed to</dt><dd><p><a class="reference internal" href="web_reference.html#aiohttp.web.Application.make_handler" title="aiohttp.web.Application.make_handler"><code class="xref py py-meth docutils literal notranslate"><span class="pre">aiohttp.web.Application.make_handler()</span></code></a></p>
+</dd>
+</dl>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.0.</span></p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.2: </span>The fixture was renamed from <code class="docutils literal notranslate"><span class="pre">test_server</span></code> to <code class="docutils literal notranslate"><span class="pre">aiohttp_server</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytest_aiohttp.aiohttp_client">
+<span class="sig-prename descclassname"><span class="pre">pytest_aiohttp.</span></span><span class="sig-name descname"><span class="pre">aiohttp_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytest_aiohttp.aiohttp_client" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">pytest_aiohttp.</span></span><span class="sig-name descname"><span class="pre">aiohttp_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">pytest_aiohttp.</span></span><span class="sig-name descname"><span class="pre">aiohttp_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_server</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>A fixture factory that creates
+<a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestClient</span></code></a> for access to tested server:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">test_f</span><span class="p">(</span><span class="n">aiohttp_client</span><span class="p">):</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">()</span>
+    <span class="c1"># fill route table</span>
+
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiohttp_client</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><em>client</em> and responses are cleaned up after test function finishing.</p>
+<p>The fixture accepts <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a>,
+<a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.test_utils.TestServer</span></code></a> or
+<a class="reference internal" href="#aiohttp.test_utils.RawTestServer" title="aiohttp.test_utils.RawTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.test_utils.RawTestServer</span></code></a> instance.</p>
+<p><em>server_kwargs</em> are parameters passed to the test server if an app
+is passed, else ignored.</p>
+<p><em>kwargs</em> are parameters passed to
+<a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.test_utils.TestClient</span></code></a> constructor.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.0: </span>The fixture was renamed from <code class="docutils literal notranslate"><span class="pre">test_client</span></code> to <code class="docutils literal notranslate"><span class="pre">aiohttp_client</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytest_aiohttp.aiohttp_raw_server">
+<span class="sig-prename descclassname"><span class="pre">pytest_aiohttp.</span></span><span class="sig-name descname"><span class="pre">aiohttp_raw_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytest_aiohttp.aiohttp_raw_server" title="Link to this definition">¶</a></dt>
+<dd><p>A fixture factory that creates
+<a class="reference internal" href="#aiohttp.test_utils.RawTestServer" title="aiohttp.test_utils.RawTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">RawTestServer</span></code></a> instance from given web
+handler.:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">test_f</span><span class="p">(</span><span class="n">aiohttp_raw_server</span><span class="p">,</span> <span class="n">aiohttp_client</span><span class="p">):</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;OK&quot;</span><span class="p">)</span>
+
+    <span class="n">raw_server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiohttp_raw_server</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiohttp_client</span><span class="p">(</span><span class="n">raw_server</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><em>handler</em> should be a coroutine which accepts a request and returns
+response, e.g.</p>
+<p><em>port</em> optional, port the server is run at, if
+not provided a random unused port is used.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytest_aiohttp.aiohttp_unused_port">
+<span class="sig-prename descclassname"><span class="pre">pytest_aiohttp.</span></span><span class="sig-name descname"><span class="pre">aiohttp_unused_port</span></span><a class="headerlink" href="#pytest_aiohttp.aiohttp_unused_port" title="Link to this definition">¶</a></dt>
+<dd><p>Function to return an unused port number for IPv4 TCP protocol:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">test_f</span><span class="p">(</span><span class="n">aiohttp_client</span><span class="p">,</span> <span class="n">aiohttp_unused_port</span><span class="p">):</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="n">aiohttp_unused_port</span><span class="p">()</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">()</span>
+    <span class="c1"># fill route table</span>
+
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiohttp_client</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">server_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="n">port</span><span class="p">})</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.0: </span>The fixture was renamed from <code class="docutils literal notranslate"><span class="pre">unused_port</span></code> to <code class="docutils literal notranslate"><span class="pre">aiohttp_unused_port</span></code>.</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="unittest">
+<span id="aiohttp-testing-unittest-style"></span><span id="aiohttp-testing-unittest-example"></span><h3>Unittest<a class="headerlink" href="#unittest" title="Link to this heading">¶</a></h3>
+<p>To test applications with the standard library's unittest or unittest-based
+functionality, the AioHTTPTestCase is provided:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aiohttp.test_utils</span> <span class="kn">import</span> <span class="n">AioHTTPTestCase</span>
+<span class="kn">from</span> <span class="nn">aiohttp</span> <span class="kn">import</span> <span class="n">web</span>
+
+<span class="k">class</span> <span class="nc">MyAppTestCase</span><span class="p">(</span><span class="n">AioHTTPTestCase</span><span class="p">):</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_application</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Override the get_app method to return your application.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s1">&#39;Hello, world&#39;</span><span class="p">)</span>
+
+        <span class="n">app</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">()</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">hello</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">app</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">test_example</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s2">&quot;Hello, world&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">AioHTTPTestCase</span></span><a class="reference internal" href="_modules/aiohttp/test_utils.html#AioHTTPTestCase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase" title="Link to this definition">¶</a></dt>
+<dd><p>A base class to allow for unittest web applications using aiohttp.</p>
+<p>Derived from <a class="reference external" href="https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">unittest.IsolatedAsyncioTestCase</span></code></a></p>
+<p>See <a class="reference external" href="https://docs.python.org/3/library/unittest.html#unittest.TestCase" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">unittest.TestCase</span></code></a> and <a class="reference external" href="https://docs.python.org/3/library/unittest.html#unittest.IsolatedAsyncioTestCase" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">unittest.IsolatedAsyncioTestCase</span></code></a>
+for inherited methods and behavior.</p>
+<p>This class additionally provides the following:</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.client">
+<span class="sig-name descname"><span class="pre">client</span></span><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.client" title="Link to this definition">¶</a></dt>
+<dd><p>an aiohttp test client, <a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestClient</span></code></a> instance.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.server">
+<span class="sig-name descname"><span class="pre">server</span></span><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.server" title="Link to this definition">¶</a></dt>
+<dd><p>an aiohttp test server, <a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a> instance.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.app">
+<span class="sig-name descname"><span class="pre">app</span></span><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.app" title="Link to this definition">¶</a></dt>
+<dd><p>The application returned by <a class="reference internal" href="#aiohttp.test_utils.AioHTTPTestCase.get_application" title="aiohttp.test_utils.AioHTTPTestCase.get_application"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_application()</span></code></a>
+(<a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.get_client">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_client</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#AioHTTPTestCase.get_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.get_client" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>This async method can be overridden to return the <a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestClient</span></code></a>
+object used in the test.</p>
+<dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestClient</span></code></a> instance.</p>
+</dd>
+</dl>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3.</span></p>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.get_server">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_server</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#AioHTTPTestCase.get_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.get_server" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>This async method can be overridden to return the <a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a>
+object used in the test.</p>
+<dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a> instance.</p>
+</dd>
+</dl>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3.</span></p>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.get_application">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_application</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#AioHTTPTestCase.get_application"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.get_application" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>This async method should be overridden
+to return the <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a>
+object to test.</p>
+<dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.asyncSetUp">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">asyncSetUp</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#AioHTTPTestCase.asyncSetUp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.asyncSetUp" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>This async method can be overridden to execute asynchronous code during
+the <code class="docutils literal notranslate"><span class="pre">setUp</span></code> stage of the <code class="docutils literal notranslate"><span class="pre">TestCase</span></code>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">asyncSetUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">asyncSetUp</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">foo</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span><code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">super().asyncSetUp()</span></code> call is required.</p>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.AioHTTPTestCase.asyncTearDown">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">asyncTearDown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#AioHTTPTestCase.asyncTearDown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.AioHTTPTestCase.asyncTearDown" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>This async method can be overridden to execute asynchronous code during
+the <code class="docutils literal notranslate"><span class="pre">tearDown</span></code> stage of the <code class="docutils literal notranslate"><span class="pre">TestCase</span></code>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">asyncTearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">asyncTearDown</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">foo</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span><code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">super().asyncTearDown()</span></code> call is required.</p>
+</div>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<section id="faking-request-object">
+<h4>Faking request object<a class="headerlink" href="#faking-request-object" title="Link to this heading">¶</a></h4>
+<p>aiohttp provides test utility for creating fake
+<a class="reference internal" href="web_reference.html#aiohttp.web.Request" title="aiohttp.web.Request"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Request</span></code></a> objects:
+<a class="reference internal" href="#aiohttp.test_utils.make_mocked_request" title="aiohttp.test_utils.make_mocked_request"><code class="xref py py-func docutils literal notranslate"><span class="pre">aiohttp.test_utils.make_mocked_request()</span></code></a>, it could be useful in
+case of simple unit tests, like handler tests, or simulate error
+conditions that hard to reproduce on real server:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aiohttp</span> <span class="kn">import</span> <span class="n">web</span>
+<span class="kn">from</span> <span class="nn">aiohttp.test_utils</span> <span class="kn">import</span> <span class="n">make_mocked_request</span>
+
+<span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;token&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span>
+    <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">test_handler</span><span class="p">():</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="n">make_mocked_request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;token&#39;</span><span class="p">:</span> <span class="s1">&#39;x&#39;</span><span class="p">})</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">resp</span><span class="o">.</span><span class="n">body</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;data&#39;</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>We don't recommend to apply
+<a class="reference internal" href="#aiohttp.test_utils.make_mocked_request" title="aiohttp.test_utils.make_mocked_request"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_mocked_request()</span></code></a> everywhere for
+testing web-handler's business object - please use test client and
+real networking via 'localhost' as shown in examples before.</p>
+<p><a class="reference internal" href="#aiohttp.test_utils.make_mocked_request" title="aiohttp.test_utils.make_mocked_request"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_mocked_request()</span></code></a> exists only for
+testing complex cases (e.g. emulating network errors) which
+are extremely hard or even impossible to test by conventional
+way.</p>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="aiohttp.test_utils.make_mocked_request">
+<span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">make_mocked_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">HttpVersion(1,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">app</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">sentinel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reader</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">sentinel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">sentinel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">sentinel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">sentinel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sslcontext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#make_mocked_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.make_mocked_request" title="Link to this definition">¶</a></dt>
+<dd><p>Creates mocked web.Request testing purposes.</p>
+<p>Useful in unit tests, when spinning full web server is overkill or
+specific conditions and errors are hard to trigger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - str, that represents HTTP method, like; GET, POST.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - str, The URL including <em>PATH INFO</em> without the host or scheme</p></li>
+<li><p><strong>headers</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><a class="reference external" href="https://multidict.aio-libs.org/en/stable/multidict/#multidict.CIMultiDict" title="(in multidict v6.1)"><em>multidict.CIMultiDict</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>)</em>) - mapping containing the headers. Can be anything accepted
+by the multidict.CIMultiDict constructor.</p></li>
+<li><p><strong>match_info</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) - mapping containing the info to match with url parameters.</p></li>
+<li><p><strong>version</strong> (<em>aiohttp.protocol.HttpVersion</em>) - namedtuple with encoded HTTP version</p></li>
+<li><p><strong>closing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) - flag indicates that connection should be closed after
+response.</p></li>
+<li><p><strong>app</strong> (<a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><em>aiohttp.web.Application</em></a>) - the aiohttp.web application attached for fake request</p></li>
+<li><p><strong>writer</strong> (<em>aiohttp.StreamWriter</em>) - object for managing outcoming data</p></li>
+<li><p><strong>transport</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-protocol.html#asyncio.Transport" title="(in Python v3.13)"><em>asyncio.Transport</em></a>) - asyncio transport instance</p></li>
+<li><p><strong>payload</strong> (<a class="reference internal" href="streams.html#aiohttp.StreamReader" title="aiohttp.StreamReader"><em>aiohttp.StreamReader</em></a>) - raw payload reader object</p></li>
+<li><p><strong>sslcontext</strong> (<a class="reference external" href="https://docs.python.org/3/library/ssl.html#ssl.SSLContext" title="(in Python v3.13)"><em>ssl.SSLContext</em></a>) - ssl.SSLContext object, for HTTPS connection</p></li>
+<li><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.AbstractEventLoop</span></code></a>) - An event loop instance, mocked loop by default.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="web_reference.html#aiohttp.web.Request" title="aiohttp.web.Request"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Request</span></code></a> object.</p>
+</dd>
+</dl>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3: </span><em>match_info</em> parameter.</p>
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+<section id="framework-agnostic-utilities">
+<span id="aiohttp-testing-framework-agnostic-utilities"></span><span id="aiohttp-testing-writing-testable-services"></span><h2>Framework Agnostic Utilities<a class="headerlink" href="#framework-agnostic-utilities" title="Link to this heading">¶</a></h2>
+<p>High level test creation:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aiohttp.test_utils</span> <span class="kn">import</span> <span class="n">TestClient</span><span class="p">,</span> <span class="n">TestServer</span>
+<span class="kn">from</span> <span class="nn">aiohttp</span> <span class="kn">import</span> <span class="n">request</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">_create_example_app</span><span class="p">()</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">TestClient</span><span class="p">(</span><span class="n">TestServer</span><span class="p">(</span><span class="n">app</span><span class="p">))</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+
+        <span class="k">async</span> <span class="k">def</span> <span class="nf">test_get_route</span><span class="p">():</span>
+            <span class="k">nonlocal</span> <span class="n">client</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="s2">&quot;Hello, world&quot;</span> <span class="ow">in</span> <span class="n">text</span>
+
+        <span class="k">await</span> <span class="n">test_get_route</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If it's preferred to handle the creation / teardown on a more granular
+basis, the TestClient object can be used directly:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aiohttp.test_utils</span> <span class="kn">import</span> <span class="n">TestClient</span><span class="p">,</span> <span class="n">TestServer</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">_create_example_app</span><span class="p">()</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">TestClient</span><span class="p">(</span><span class="n">TestServer</span><span class="p">(</span><span class="n">app</span><span class="p">))</span>
+    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">start_server</span><span class="p">()</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">test_get_route</span><span class="p">():</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="s2">&quot;Hello, world&quot;</span> <span class="ow">in</span> <span class="n">text</span>
+
+    <span class="k">await</span> <span class="n">test_get_route</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>A full list of the utilities provided can be found at the
+<a class="reference internal" href="#module-aiohttp.test_utils" title="aiohttp.test_utils"><code class="xref py py-mod docutils literal notranslate"><span class="pre">api</span> <span class="pre">reference</span></code></a></p>
+</section>
+<section id="testing-api-reference">
+<h2>Testing API Reference<a class="headerlink" href="#testing-api-reference" title="Link to this heading">¶</a></h2>
+<section id="test-server">
+<h3>Test server<a class="headerlink" href="#test-server" title="Link to this heading">¶</a></h3>
+<p>Runs given <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance on random TCP port.</p>
+<p>After creation the server is not started yet, use
+<a class="reference internal" href="#aiohttp.test_utils.BaseTestServer.start_server" title="aiohttp.test_utils.BaseTestServer.start_server"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start_server()</span></code></a> for actual server
+starting and <a class="reference internal" href="#aiohttp.test_utils.BaseTestServer.close" title="aiohttp.test_utils.BaseTestServer.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> for
+stopping/cleanup.</p>
+<p>Test server usually works in conjunction with
+<a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.test_utils.TestClient</span></code></a> which provides handy client methods
+for accessing to the server.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">BaseTestServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'http'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">socket_factory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">get_port_socket</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#BaseTestServer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for test servers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
+(<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
+<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) - <p>optional port for TCP socket, if not provided a
+random unused port is used.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+</p></li>
+<li><p><strong>socket_factory</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.13)"><em>collections.abc.Callable</em></a><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>,</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>,</em><em>socket.AddressFamily</em><em>]</em><em>,</em><a class="reference external" href="https://docs.python.org/3/library/socket.html#socket.socket" title="(in Python v3.13)"><em>socket.socket</em></a><em>]</em>) - <dl class="simple">
+<dt>optional</dt><dd><p>Factory to create a socket for the server.
+By default creates a TCP socket and binds it
+to <code class="docutils literal notranslate"><span class="pre">host</span></code> and <code class="docutils literal notranslate"><span class="pre">port</span></code>.</p>
+</dd>
+</dl>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.8.</span></p>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.scheme">
+<span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.scheme" title="Link to this definition">¶</a></dt>
+<dd><p>A <em>scheme</em> for tested application, <code class="docutils literal notranslate"><span class="pre">'http'</span></code> for non-protected
+run and <code class="docutils literal notranslate"><span class="pre">'https'</span></code> for TLS encrypted server.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.host">
+<span class="sig-name descname"><span class="pre">host</span></span><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.host" title="Link to this definition">¶</a></dt>
+<dd><p><em>host</em> used to start a test server.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.port">
+<span class="sig-name descname"><span class="pre">port</span></span><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.port" title="Link to this definition">¶</a></dt>
+<dd><p><em>port</em> used to start the test server.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.handler">
+<span class="sig-name descname"><span class="pre">handler</span></span><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.handler" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="web_reference.html#aiohttp.web.Server" title="aiohttp.web.Server"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Server</span></code></a> used for HTTP requests serving.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.server">
+<span class="sig-name descname"><span class="pre">server</span></span><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.server" title="Link to this definition">¶</a></dt>
+<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.AbstractServer</span></code> used for managing accepted connections.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.socket_factory">
+<span class="sig-name descname"><span class="pre">socket_factory</span></span><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.socket_factory" title="Link to this definition">¶</a></dt>
+<dd><p><em>socket_factory</em> used to create and bind a server socket.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.8.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.start_server">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#BaseTestServer.start_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.start_server" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) - the event_loop to use</p>
+</dd>
+</dl>
+<p>Start a test server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.close">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#BaseTestServer.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.close" title="Link to this definition">¶</a></dt>
+<dd><p>Stop and finish executed test server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.BaseTestServer.make_url">
+<span class="sig-name descname"><span class="pre">make_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#BaseTestServer.make_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.BaseTestServer.make_url" title="Link to this definition">¶</a></dt>
+<dd><p>Return an <em>absolute</em> <a class="reference external" href="https://yarl.aio-libs.org/en/stable/api/#yarl.URL" title="(in yarl v1.18)"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a> for given <em>path</em>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aiohttp.test_utils.RawTestServer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">RawTestServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'http'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#RawTestServer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.RawTestServer" title="Link to this definition">¶</a></dt>
+<dd><p>Low-level test server (derived from <a class="reference internal" href="#aiohttp.test_utils.BaseTestServer" title="aiohttp.test_utils.BaseTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTestServer</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handler</strong> - <p>a coroutine for handling web requests. The
+handler should accept
+<a class="reference internal" href="web_reference.html#aiohttp.web.BaseRequest" title="aiohttp.web.BaseRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.BaseRequest</span></code></a> and return a
+response instance,
+e.g. <a class="reference internal" href="web_reference.html#aiohttp.web.StreamResponse" title="aiohttp.web.StreamResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamResponse</span></code></a> or
+<a class="reference internal" href="web_reference.html#aiohttp.web.Response" title="aiohttp.web.Response"><code class="xref py py-class docutils literal notranslate"><span class="pre">Response</span></code></a>.</p>
+<p>The handler could raise
+<a class="reference internal" href="web_reference.html#aiohttp.web.HTTPException" title="aiohttp.web.HTTPException"><code class="xref py py-class docutils literal notranslate"><span class="pre">HTTPException</span></code></a> as a signal for
+non-200 HTTP response.</p>
+</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
+(<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
+<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) - <p>optional port for TCP socket, if not provided a
+random unused port is used.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestServer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">TestServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'http'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestServer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestServer" title="Link to this definition">¶</a></dt>
+<dd><p>Test server (derived from <a class="reference internal" href="#aiohttp.test_utils.BaseTestServer" title="aiohttp.test_utils.BaseTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTestServer</span></code></a>) for starting
+<a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">Application</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>app</strong> - <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance to run.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
+(<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
+<li><p><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) - <p>optional port for TCP socket, if not provided a
+random unused port is used.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestServer.app">
+<span class="sig-name descname"><span class="pre">app</span></span><a class="headerlink" href="#aiohttp.test_utils.TestServer.app" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a> instance to run.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="test-client">
+<h3>Test Client<a class="headerlink" href="#test-client" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">TestClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">app_or_server</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'http'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cookie_jar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient" title="Link to this definition">¶</a></dt>
+<dd><p>A test client used for making calls to tested server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>app_or_server</strong> - <p><a class="reference internal" href="#aiohttp.test_utils.BaseTestServer" title="aiohttp.test_utils.BaseTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTestServer</span></code></a> instance for making
+client requests to it.</p>
+<p>In order to pass a <a class="reference internal" href="web_reference.html#aiohttp.web.Application" title="aiohttp.web.Application"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.web.Application</span></code></a>
+you need to convert it first to <a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a>
+first with <code class="docutils literal notranslate"><span class="pre">TestServer(app)</span></code>.</p>
+</p></li>
+<li><p><strong>cookie_jar</strong> - an optional <a class="reference internal" href="client_reference.html#aiohttp.CookieJar" title="aiohttp.CookieJar"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.CookieJar</span></code></a> instance,
+may be useful with
+<code class="docutils literal notranslate"><span class="pre">CookieJar(unsafe=True,</span> <span class="pre">treat_as_secure_origin=&quot;http://127.0.0.1&quot;)</span></code>
+option.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - HTTP scheme, non-protected <code class="docutils literal notranslate"><span class="pre">&quot;http&quot;</span></code> by default.</p></li>
+<li><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) - the event_loop to use</p></li>
+<li><p><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) - a host for TCP socket, IPv4 <em>local host</em>
+(<code class="docutils literal notranslate"><span class="pre">'127.0.0.1'</span></code>) by default.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.scheme">
+<span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#aiohttp.test_utils.TestClient.scheme" title="Link to this definition">¶</a></dt>
+<dd><p>A <em>scheme</em> for tested application, <code class="docutils literal notranslate"><span class="pre">'http'</span></code> for non-protected
+run and <code class="docutils literal notranslate"><span class="pre">'https'</span></code> for TLS encrypted server.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.host">
+<span class="sig-name descname"><span class="pre">host</span></span><a class="headerlink" href="#aiohttp.test_utils.TestClient.host" title="Link to this definition">¶</a></dt>
+<dd><p><em>host</em> used to start a test server.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.port">
+<span class="sig-name descname"><span class="pre">port</span></span><a class="headerlink" href="#aiohttp.test_utils.TestClient.port" title="Link to this definition">¶</a></dt>
+<dd><p><em>port</em> used to start the server</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.server">
+<span class="sig-name descname"><span class="pre">server</span></span><a class="headerlink" href="#aiohttp.test_utils.TestClient.server" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#aiohttp.test_utils.BaseTestServer" title="aiohttp.test_utils.BaseTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTestServer</span></code></a> test server instance used in conjunction
+with client.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.app">
+<span class="sig-name descname"><span class="pre">app</span></span><a class="headerlink" href="#aiohttp.test_utils.TestClient.app" title="Link to this definition">¶</a></dt>
+<dd><p>An alias for <code class="docutils literal notranslate"><span class="pre">self.server.app</span></code>. return <code class="docutils literal notranslate"><span class="pre">None</span></code> if
+<code class="docutils literal notranslate"><span class="pre">self.server</span></code> is not <a class="reference internal" href="#aiohttp.test_utils.TestServer" title="aiohttp.test_utils.TestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestServer</span></code></a>
+instance(e.g. <a class="reference internal" href="#aiohttp.test_utils.RawTestServer" title="aiohttp.test_utils.RawTestServer"><code class="xref py py-class docutils literal notranslate"><span class="pre">RawTestServer</span></code></a> instance for test low-level server).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.session">
+<span class="sig-name descname"><span class="pre">session</span></span><a class="headerlink" href="#aiohttp.test_utils.TestClient.session" title="Link to this definition">¶</a></dt>
+<dd><p>An internal <a class="reference internal" href="client_reference.html#aiohttp.ClientSession" title="aiohttp.ClientSession"><code class="xref py py-class docutils literal notranslate"><span class="pre">aiohttp.ClientSession</span></code></a>.</p>
+<p>Unlike the methods on the <a class="reference internal" href="#aiohttp.test_utils.TestClient" title="aiohttp.test_utils.TestClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">TestClient</span></code></a>, client session
+requests do not automatically include the host in the url
+queried, and will require an absolute path to the resource.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.start_server">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.start_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.start_server" title="Link to this definition">¶</a></dt>
+<dd><p>Start a test server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.close">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.close" title="Link to this definition">¶</a></dt>
+<dd><p>Stop and finish executed test server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.make_url">
+<span class="sig-name descname"><span class="pre">make_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.make_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.make_url" title="Link to this definition">¶</a></dt>
+<dd><p>Return an <em>absolute</em> <a class="reference external" href="https://yarl.aio-libs.org/en/stable/api/#yarl.URL" title="(in yarl v1.18)"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a> for given <em>path</em>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.request">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.request" title="Link to this definition">¶</a></dt>
+<dd><p>Routes a request to tested http server.</p>
+<p>The interface is identical to
+<a class="reference internal" href="client_reference.html#aiohttp.ClientSession.request" title="aiohttp.ClientSession.request"><code class="xref py py-meth docutils literal notranslate"><span class="pre">aiohttp.ClientSession.request()</span></code></a>, except the loop kwarg is
+overridden by the instance used by the test server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.get">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.get" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP GET request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.post">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.post" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP POST request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.options">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.options" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP OPTIONS request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.head">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">head</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.head"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.head" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP HEAD request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.put">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.put"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.put" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP PUT request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.patch">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.patch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.patch" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP PATCH request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.delete">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.delete" title="Link to this definition">¶</a></dt>
+<dd><p>Perform an HTTP DELETE request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aiohttp.test_utils.TestClient.ws_connect">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ws_connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#TestClient.ws_connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.TestClient.ws_connect" title="Link to this definition">¶</a></dt>
+<dd><p>Initiate websocket connection.</p>
+<p>The api corresponds to <a class="reference internal" href="client_reference.html#aiohttp.ClientSession.ws_connect" title="aiohttp.ClientSession.ws_connect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">aiohttp.ClientSession.ws_connect()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="utilities">
+<h3>Utilities<a class="headerlink" href="#utilities" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="aiohttp.test_utils.make_mocked_coro">
+<span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">make_mocked_coro</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">return_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#make_mocked_coro"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.make_mocked_coro" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a coroutine mock.</p>
+<p>Behaves like a coroutine which returns <em>return_value</em>.  But it is
+also a mock object, you might test it as usual
+<a class="reference external" href="https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mock</span></code></a>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">mocked</span> <span class="o">=</span> <span class="n">make_mocked_coro</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="mi">1</span> <span class="o">==</span> <span class="k">await</span> <span class="n">mocked</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">mocked</span><span class="o">.</span><span class="n">assert_called_with</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>return_value</strong> - A value that the mock object will return when
+called.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A mock object that behaves as a coroutine which returns
+<em>return_value</em> when called.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aiohttp.test_utils.unused_port">
+<span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">unused_port</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#unused_port"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.unused_port" title="Link to this definition">¶</a></dt>
+<dd><p>Return an unused port number for IPv4 TCP protocol.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return int<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ephemeral port number which could be reused by test server.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aiohttp.test_utils.loop_context">
+<span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">loop_context</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop_factory=&lt;function</span> <span class="pre">asyncio.new_event_loop&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#loop_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.loop_context" title="Link to this definition">¶</a></dt>
+<dd><p>A contextmanager that creates an event_loop, for test purposes.</p>
+<p>Handles the creation and cleanup of a test loop.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aiohttp.test_utils.setup_test_loop">
+<span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">setup_test_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop_factory=&lt;function</span> <span class="pre">asyncio.new_event_loop&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#setup_test_loop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.setup_test_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Create and return an <a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.AbstractEventLoop</span></code></a> instance.</p>
+<p>The caller should also call teardown_test_loop, once they are done
+with the loop.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As side effect the function changes asyncio <em>default loop</em> by
+<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.set_event_loop" title="(in Python v3.13)"><code class="xref py py-func docutils literal notranslate"><span class="pre">asyncio.set_event_loop()</span></code></a> call.</p>
+<p>Previous default loop is not restored.</p>
+<p>It should not be a problem for test suite: every test expects a
+new test loop instance anyway.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.1: </span>The function installs a created event loop as <em>default</em>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aiohttp.test_utils.teardown_test_loop">
+<span class="sig-prename descclassname"><span class="pre">aiohttp.test_utils.</span></span><span class="sig-name descname"><span class="pre">teardown_test_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/aiohttp/test_utils.html#teardown_test_loop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#aiohttp.test_utils.teardown_test_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Teardown and cleanup an event_loop created by setup_test_loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>loop</strong> (<a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop" title="(in Python v3.13)"><em>asyncio.AbstractEventLoop</em></a>) - the loop to teardown</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/aiohttp-plain.svg" alt="Logo of aiohttp"/>
+            </a></p>
+<h1 class="logo"><a href="index.html">aiohttp</a></h1>
+
+
+
+<p class="blurb">Async HTTP client/server for asyncio and Python</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aio-libs&repo=aiohttp&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+
+
+<ul class="badges">
+
+  <li><a href="https://github.com/aio-libs/aiohttp/actions?query=workflow%3ACI">
+    <img src="https://github.com/aio-libs/aiohttp/workflows/CI/badge.svg"
+	 alt="Azure Pipelines CI status"
+	 height="20"
+    />
+  </a>
+
+  <li><a href="https://codecov.io/github/aio-libs/aiohttp">
+    <img src="https://codecov.io/github/aio-libs/aiohttp/coverage.svg?branch=master"
+	 alt="Code coverage status"
+	 height="20"
+    />
+  </a>
+
+  <li><a href="https://badge.fury.io/py/aiohttp">
+    <img src="https://badge.fury.io/py/aiohttp.svg"
+	 alt="Latest PyPI package version"
+	 height="20"
+    />
+  </a>
+
+  <li><a href="https://gitter.im/aio-libs/Lobby">
+    <img src="https://badges.gitter.im/Join%20Chat.svg"
+	 alt="Chat on Gitter"
+	 height="20"
+    />
+  </a>
+
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="client.html">Client</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="web.html">Server</a><ul class="current">
+<li class="toctree-l2"><a class="reference external" href="https://demos.aiohttp.org">Tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_quickstart.html">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_advanced.html">Advanced Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_lowlevel.html">Low Level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_reference.html">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html">Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="external.html">Who uses aiohttp?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;aiohttp contributors.
+
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 8.1.3</a>
+
+      |
+      <a href="_sources/testing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+    <a href="https://github.com/aio-libs/aiohttp" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+
+
+
+  </body>
+</html>
+</document_content>
+</document>
+</documents>

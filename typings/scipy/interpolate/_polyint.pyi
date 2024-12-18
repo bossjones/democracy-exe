@@ -37,7 +37,7 @@ class _Interpolator1D:
     __slots__ = ...
     def __init__(self, xi=..., yi=..., axis=...) -> None:
         ...
-
+    
     def __call__(self, x):
         """
         Evaluate the interpolant
@@ -60,7 +60,7 @@ class _Interpolator1D:
 
         """
         ...
-
+    
 
 
 class _Interpolator1DWithDerivatives(_Interpolator1D):
@@ -99,7 +99,7 @@ class _Interpolator1DWithDerivatives(_Interpolator1D):
 
         """
         ...
-
+    
     def derivative(self, x, der=...):
         """
         Evaluate a single derivative of the polynomial at the point `x`.
@@ -127,7 +127,7 @@ class _Interpolator1DWithDerivatives(_Interpolator1D):
 
         """
         ...
-
+    
 
 
 class KroghInterpolator(_Interpolator1DWithDerivatives):
@@ -207,7 +207,7 @@ class KroghInterpolator(_Interpolator1DWithDerivatives):
     """
     def __init__(self, xi, yi, axis=...) -> None:
         ...
-
+    
 
 
 def krogh_interpolate(xi, yi, x, der=..., axis=...):
@@ -419,7 +419,7 @@ class BarycentricInterpolator(_Interpolator1DWithDerivatives):
     """
     def __init__(self, xi, yi=..., axis=..., *, wi=..., random_state=...) -> None:
         ...
-
+    
     def set_yi(self, yi, axis=...): # -> None:
         """
         Update the y values to be interpolated
@@ -438,7 +438,7 @@ class BarycentricInterpolator(_Interpolator1DWithDerivatives):
 
         """
         ...
-
+    
     def add_xi(self, xi, yi=...): # -> None:
         """
         Add more x values to the set to be interpolated
@@ -467,7 +467,7 @@ class BarycentricInterpolator(_Interpolator1DWithDerivatives):
         happens, please reconstruct interpolation from scratch instead.
         """
         ...
-
+    
     def __call__(self, x):
         """Evaluate the interpolating polynomial at the points x
 
@@ -489,8 +489,8 @@ class BarycentricInterpolator(_Interpolator1DWithDerivatives):
         ``(N, len(x))``, where N is the degree of the polynomial.
         """
         ...
-
-    def derivative(self, x, der=...): # -> Any:
+    
+    def derivative(self, x, der=...): # -> ndarray[Any, dtype[Any]] | Any:
         """
         Evaluate a single derivative of the polynomial at the point x.
 
@@ -510,10 +510,10 @@ class BarycentricInterpolator(_Interpolator1DWithDerivatives):
             original array with the shape of `x`.
         """
         ...
+    
 
 
-
-def barycentric_interpolate(xi, yi, x, axis=..., *, der=...): # -> Any:
+def barycentric_interpolate(xi, yi, x, axis=..., *, der=...): # -> ndarray[Any, dtype[Any]] | Any:
     """
     Convenience function for polynomial interpolation.
 
@@ -581,3 +581,4 @@ def barycentric_interpolate(xi, yi, x, axis=..., *, der=...): # -> Any:
 
     """
     ...
+

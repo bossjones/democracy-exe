@@ -367,3 +367,4 @@ def cwt(data, wavelet, widths, dtype=..., **kwargs): # -> NDArray[complexfloatin
     >>> plt.show()
     """
     ...
+

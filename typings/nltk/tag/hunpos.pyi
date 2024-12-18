@@ -53,22 +53,25 @@ class HunposTagger(TaggerI):
             The caller must ensure that tokens are encoded in the right charset.
         """
         ...
-
+    
     def __del__(self): # -> None:
         ...
-
+    
     def close(self): # -> None:
         """Closes the pipe to the hunpos executable."""
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, exc_type, exc_value, traceback): # -> None:
         ...
-
-    def tag(self, tokens): # -> list:
+    
+    def tag(self, tokens): # -> list[Any]:
         """Tags a single sentence: a list of words.
         The tokens should not contain any newline characters.
         """
         ...
+    
+
+

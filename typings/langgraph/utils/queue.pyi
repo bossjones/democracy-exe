@@ -18,7 +18,7 @@ class AsyncQueue(asyncio.Queue):
         ie. this doesn't consume the item, just waits for it.
         """
         ...
-
+    
 
 
 class Semaphore(threading.Semaphore):
@@ -26,7 +26,7 @@ class Semaphore(threading.Semaphore):
     def wait(self, blocking: bool = ..., timeout: Optional[float] = ...): # -> bool:
         """Block until the semaphore can be acquired, but don't acquire it."""
         ...
-
+    
 
 
 class SyncQueue:
@@ -35,7 +35,7 @@ class SyncQueue:
     """
     def __init__(self) -> None:
         ...
-
+    
     def put(self, item, block=..., timeout=...): # -> None:
         """Put the item on the queue.
 
@@ -43,7 +43,7 @@ class SyncQueue:
         never blocks.  They are provided for compatibility with the Queue class.
         """
         ...
-
+    
     def get(self, block=..., timeout=...):
         """Remove and return an item from the queue.
 
@@ -56,21 +56,21 @@ class SyncQueue:
         in that case).
         """
         ...
-
+    
     def wait(self, block=..., timeout=...): # -> None:
         """If queue is empty, wait until an item maybe is available,
         but don't consume it.
         """
         ...
-
+    
     def empty(self): # -> bool:
         """Return True if the queue is empty, False otherwise (not reliable!)."""
         ...
-
+    
     def qsize(self): # -> int:
         """Return the approximate size of the queue (not reliable!)."""
         ...
-
+    
     __class_getitem__ = ...
 
 

@@ -102,7 +102,7 @@ class TestGrammar:
     """
     def __init__(self, grammar, suite, accept=..., reject=...) -> None:
         ...
-
+    
     def run(self, show_trees=...): # -> None:
         """
         Sentences in the test suite are divided into two classes:
@@ -115,10 +115,10 @@ class TestGrammar:
         according to the grammar, then the value of ``trees`` will be None.
         """
         ...
+    
 
 
-
-def extract_test_sentences(string, comment_chars=..., encoding=...): # -> list:
+def extract_test_sentences(string, comment_chars=..., encoding=...): # -> list[Any]:
     """
     Parses a string with one test sentence per line.
     Lines can optionally begin with:
@@ -137,3 +137,4 @@ def extract_test_sentences(string, comment_chars=..., encoding=...): # -> list:
     :param encoding: the encoding of the string, if it is binary
     """
     ...
+

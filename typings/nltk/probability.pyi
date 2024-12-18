@@ -75,7 +75,7 @@ class FreqDist(Counter):
         :type samples: Sequence
         """
         ...
-
+    
     def N(self): # -> int:
         """
         Return the total number of sample outcomes that have been
@@ -86,31 +86,31 @@ class FreqDist(Counter):
         :rtype: int
         """
         ...
-
+    
     def __setitem__(self, key, val): # -> None:
         """
         Override ``Counter.__setitem__()`` to invalidate the cached N
         """
         ...
-
+    
     def __delitem__(self, key): # -> None:
         """
         Override ``Counter.__delitem__()`` to invalidate the cached N
         """
         ...
-
+    
     def update(self, *args, **kwargs): # -> None:
         """
         Override ``Counter.update()`` to invalidate the cached N
         """
         ...
-
+    
     def setdefault(self, key, val): # -> None:
         """
         Override ``Counter.setdefault()`` to invalidate the cached N
         """
         ...
-
+    
     def B(self): # -> int:
         """
         Return the total number of sample values (or "bins") that
@@ -121,18 +121,18 @@ class FreqDist(Counter):
         :rtype: int
         """
         ...
-
-    def hapaxes(self): # -> list:
+    
+    def hapaxes(self): # -> list[Any]:
         """
         Return a list of all samples that occur once (hapax legomena)
 
         :rtype: list
         """
         ...
-
+    
     def Nr(self, r, bins=...): # -> int:
         ...
-
+    
     def r_Nr(self, bins=...): # -> defaultdict[Any, int]:
         """
         Return the dictionary mapping r to Nr, the number of samples with frequency r, where Nr > 0.
@@ -145,7 +145,7 @@ class FreqDist(Counter):
         :rtype: int
         """
         ...
-
+    
     def freq(self, sample): # -> float | Literal[0]:
         """
         Return the frequency of a given sample.  The frequency of a
@@ -162,7 +162,7 @@ class FreqDist(Counter):
         :rtype: float
         """
         ...
-
+    
     def max(self):
         """
         Return the sample with the greatest number of outcomes in this
@@ -176,7 +176,7 @@ class FreqDist(Counter):
         :rtype: any or None
         """
         ...
-
+    
     def plot(self, *args, title=..., cumulative=..., percents=..., show=..., **kwargs): # -> Axes:
         """
         Plot samples from the frequency distribution
@@ -196,7 +196,7 @@ class FreqDist(Counter):
         :type show: bool
         """
         ...
-
+    
     def tabulate(self, *args, **kwargs): # -> None:
         """
         Tabulate the given samples from the frequency distribution (cumulative),
@@ -210,7 +210,7 @@ class FreqDist(Counter):
         :type title: bool
         """
         ...
-
+    
     def copy(self): # -> Self:
         """
         Create a copy of this frequency distribution.
@@ -218,7 +218,7 @@ class FreqDist(Counter):
         :rtype: FreqDist
         """
         ...
-
+    
     def __add__(self, other): # -> Self:
         """
         Add counts from two counters.
@@ -228,7 +228,7 @@ class FreqDist(Counter):
 
         """
         ...
-
+    
     def __sub__(self, other): # -> Self:
         """
         Subtract count, but keep only results with positive counts.
@@ -238,7 +238,7 @@ class FreqDist(Counter):
 
         """
         ...
-
+    
     def __or__(self, other): # -> Self:
         """
         Union is the maximum of value in either of the input counters.
@@ -248,7 +248,7 @@ class FreqDist(Counter):
 
         """
         ...
-
+    
     def __and__(self, other): # -> Self:
         """
         Intersection is the minimum of corresponding counts.
@@ -258,7 +258,7 @@ class FreqDist(Counter):
 
         """
         ...
-
+    
     def __le__(self, other) -> bool:
         """
         Returns True if this frequency distribution is a subset of the other
@@ -287,10 +287,10 @@ class FreqDist(Counter):
         True
         """
         ...
-
+    
     def __ge__(self, other) -> bool:
         ...
-
+    
     __lt__ = ...
     __gt__ = ...
     def __repr__(self): # -> str:
@@ -300,7 +300,7 @@ class FreqDist(Counter):
         :rtype: string
         """
         ...
-
+    
     def pprint(self, maxlen=..., stream=...): # -> None:
         """
         Print a string representation of this FreqDist to 'stream'
@@ -310,7 +310,7 @@ class FreqDist(Counter):
         :param stream: The stream to print to. stdout by default
         """
         ...
-
+    
     def pformat(self, maxlen=...): # -> str:
         """
         Return a string representation of this FreqDist.
@@ -320,7 +320,7 @@ class FreqDist(Counter):
         :rtype: string
         """
         ...
-
+    
     def __str__(self) -> str:
         """
         Return a string representation of this FreqDist.
@@ -328,7 +328,7 @@ class FreqDist(Counter):
         :rtype: string
         """
         ...
-
+    
     def __iter__(self): # -> Generator[Any, Any, None]:
         """
         Return an iterator which yields tokens ordered by frequency.
@@ -336,7 +336,7 @@ class FreqDist(Counter):
         :rtype: iterator
         """
         ...
-
+    
 
 
 class ProbDistI(metaclass=ABCMeta):
@@ -359,7 +359,7 @@ class ProbDistI(metaclass=ABCMeta):
         Classes inheriting from ProbDistI should implement __init__.
         """
         ...
-
+    
     @abstractmethod
     def prob(self, sample): # -> None:
         """
@@ -372,7 +372,7 @@ class ProbDistI(metaclass=ABCMeta):
         :rtype: float
         """
         ...
-
+    
     def logprob(self, sample): # -> float:
         """
         Return the base 2 logarithm of the probability for a given sample.
@@ -383,7 +383,7 @@ class ProbDistI(metaclass=ABCMeta):
         :rtype: float
         """
         ...
-
+    
     @abstractmethod
     def max(self): # -> None:
         """
@@ -394,7 +394,7 @@ class ProbDistI(metaclass=ABCMeta):
         :rtype: any
         """
         ...
-
+    
     @abstractmethod
     def samples(self): # -> None:
         """
@@ -404,7 +404,7 @@ class ProbDistI(metaclass=ABCMeta):
         :rtype: list
         """
         ...
-
+    
     def discount(self): # -> float:
         """
         Return the ratio by which counts are discounted on average: c*/c
@@ -412,7 +412,7 @@ class ProbDistI(metaclass=ABCMeta):
         :rtype: float
         """
         ...
-
+    
     def generate(self):
         """
         Return a randomly selected sample from this probability distribution.
@@ -420,7 +420,7 @@ class ProbDistI(metaclass=ABCMeta):
         ``self.prob(samp)``.
         """
         ...
-
+    
 
 
 class UniformProbDist(ProbDistI):
@@ -440,19 +440,19 @@ class UniformProbDist(ProbDistI):
         :raise ValueError: If ``samples`` is empty.
         """
         ...
-
+    
     def prob(self, sample): # -> float | Literal[0]:
         ...
-
+    
     def max(self):
         ...
-
-    def samples(self): # -> list:
+    
+    def samples(self): # -> list[Any]:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class RandomProbDist(ProbDistI):
@@ -463,7 +463,7 @@ class RandomProbDist(ProbDistI):
     """
     def __init__(self, samples) -> None:
         ...
-
+    
     @classmethod
     def unirand(cls, samples): # -> dict[Any, float]:
         """
@@ -473,19 +473,19 @@ class RandomProbDist(ProbDistI):
         syntax to UniformProbDist
         """
         ...
-
+    
     def max(self):
         ...
-
+    
     def prob(self, sample): # -> float:
         ...
-
-    def samples(self): # -> list:
+    
+    def samples(self): # -> list[Any]:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class DictionaryProbDist(ProbDistI):
@@ -506,22 +506,22 @@ class DictionaryProbDist(ProbDistI):
         distribution assigns zero probability to all values.
         """
         ...
-
+    
     def prob(self, sample): # -> Literal[0]:
         ...
-
+    
     def logprob(self, sample): # -> float:
         ...
-
+    
     def max(self):
         ...
-
-    def samples(self): # -> dict_keys:
+    
+    def samples(self): # -> dict_keys[Any, Any]:
         ...
-
+    
     def __repr__(self): # -> str:
         ...
-
+    
 
 
 class MLEProbDist(ProbDistI):
@@ -542,7 +542,7 @@ class MLEProbDist(ProbDistI):
             probability estimates should be based on.
         """
         ...
-
+    
     def freqdist(self): # -> Any:
         """
         Return the frequency distribution that this probability
@@ -551,23 +551,23 @@ class MLEProbDist(ProbDistI):
         :rtype: FreqDist
         """
         ...
-
+    
     def prob(self, sample):
         ...
-
+    
     def max(self):
         ...
-
+    
     def samples(self):
         ...
-
+    
     def __repr__(self):
         """
         :rtype: str
         :return: A string representation of this ``ProbDist``.
         """
         ...
-
+    
 
 
 class LidstoneProbDist(ProbDistI):
@@ -605,7 +605,7 @@ class LidstoneProbDist(ProbDistI):
             ``bins`` is not specified, it defaults to ``freqdist.B()``.
         """
         ...
-
+    
     def freqdist(self): # -> Any:
         """
         Return the frequency distribution that this probability
@@ -614,19 +614,19 @@ class LidstoneProbDist(ProbDistI):
         :rtype: FreqDist
         """
         ...
-
+    
     def prob(self, sample):
         ...
-
+    
     def max(self):
         ...
-
+    
     def samples(self):
         ...
-
+    
     def discount(self):
         ...
-
+    
     def __repr__(self):
         """
         Return a string representation of this ``ProbDist``.
@@ -634,7 +634,7 @@ class LidstoneProbDist(ProbDistI):
         :rtype: str
         """
         ...
-
+    
 
 
 class LaplaceProbDist(LidstoneProbDist):
@@ -663,14 +663,14 @@ class LaplaceProbDist(LidstoneProbDist):
             ``bins`` is not specified, it defaults to ``freqdist.B()``.
         """
         ...
-
+    
     def __repr__(self):
         """
         :rtype: str
         :return: A string representation of this ``ProbDist``.
         """
         ...
-
+    
 
 
 class ELEProbDist(LidstoneProbDist):
@@ -699,7 +699,7 @@ class ELEProbDist(LidstoneProbDist):
             ``bins`` is not specified, it defaults to ``freqdist.B()``.
         """
         ...
-
+    
     def __repr__(self):
         """
         Return a string representation of this ``ProbDist``.
@@ -707,7 +707,7 @@ class ELEProbDist(LidstoneProbDist):
         :rtype: str
         """
         ...
-
+    
 
 
 class HeldoutProbDist(ProbDistI):
@@ -770,7 +770,7 @@ class HeldoutProbDist(ProbDistI):
             ``bins`` is not specified, it defaults to ``freqdist.B()``.
         """
         ...
-
+    
     def base_fdist(self): # -> Any:
         """
         Return the base frequency distribution that this probability
@@ -779,7 +779,7 @@ class HeldoutProbDist(ProbDistI):
         :rtype: FreqDist
         """
         ...
-
+    
     def heldout_fdist(self): # -> Any:
         """
         Return the heldout frequency distribution that this
@@ -788,26 +788,26 @@ class HeldoutProbDist(ProbDistI):
         :rtype: FreqDist
         """
         ...
-
+    
     def samples(self):
         ...
-
+    
     def prob(self, sample):
         ...
-
+    
     def max(self):
         ...
-
+    
     def discount(self):
         ...
-
+    
     def __repr__(self): # -> LiteralString:
         """
         :rtype: str
         :return: A string representation of this ``ProbDist``.
         """
         ...
-
+    
 
 
 class CrossValidationProbDist(ProbDistI):
@@ -836,7 +836,7 @@ class CrossValidationProbDist(ProbDistI):
             ``bins`` is not specified, it defaults to ``freqdist.B()``.
         """
         ...
-
+    
     def freqdists(self): # -> Any:
         """
         Return the list of frequency distributions that this ``ProbDist`` is based on.
@@ -844,16 +844,16 @@ class CrossValidationProbDist(ProbDistI):
         :rtype: list(FreqDist)
         """
         ...
-
-    def samples(self): # -> set:
+    
+    def samples(self): # -> set[Any]:
         ...
-
+    
     def prob(self, sample): # -> float:
         ...
-
+    
     def discount(self):
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this ``ProbDist``.
@@ -861,7 +861,7 @@ class CrossValidationProbDist(ProbDistI):
         :rtype: str
         """
         ...
-
+    
 
 
 class WittenBellProbDist(ProbDistI):
@@ -906,22 +906,22 @@ class WittenBellProbDist(ProbDistI):
         :type bins: int
         """
         ...
-
+    
     def prob(self, sample):
         ...
-
+    
     def max(self):
         ...
-
+    
     def samples(self):
         ...
-
+    
     def freqdist(self): # -> Any:
         ...
-
+    
     def discount(self):
         ...
-
+    
     def __repr__(self):
         """
         Return a string representation of this ``ProbDist``.
@@ -929,7 +929,7 @@ class WittenBellProbDist(ProbDistI):
         :rtype: str
         """
         ...
-
+    
 
 
 class SimpleGoodTuringProbDist(ProbDistI):
@@ -963,7 +963,7 @@ class SimpleGoodTuringProbDist(ProbDistI):
         :type bins: int
         """
         ...
-
+    
     def find_best_fit(self, r, nr): # -> None:
         """
         Use simple linear regression to tune parameters self._slope and
@@ -971,7 +971,7 @@ class SimpleGoodTuringProbDist(ProbDistI):
         (Work in log space to avoid floating point underflow.)
         """
         ...
-
+    
     def smoothedNr(self, r): # -> float:
         """
         Return the number of samples with count r.
@@ -981,7 +981,7 @@ class SimpleGoodTuringProbDist(ProbDistI):
         :rtype: float
         """
         ...
-
+    
     def prob(self, sample): # -> float:
         """
         Return the sample's probability.
@@ -991,26 +991,26 @@ class SimpleGoodTuringProbDist(ProbDistI):
         :rtype: float
         """
         ...
-
+    
     def check(self): # -> None:
         ...
-
+    
     def discount(self):
         """
         This function returns the total mass of probability transfers from the
         seen samples to the unseen samples.
         """
         ...
-
+    
     def max(self):
         ...
-
+    
     def samples(self):
         ...
-
+    
     def freqdist(self): # -> Any:
         ...
-
+    
     def __repr__(self):
         """
         Return a string representation of this ``ProbDist``.
@@ -1018,7 +1018,7 @@ class SimpleGoodTuringProbDist(ProbDistI):
         :rtype: str
         """
         ...
-
+    
 
 
 class MutableProbDist(ProbDistI):
@@ -1042,19 +1042,19 @@ class MutableProbDist(ProbDistI):
         :type store_logs: bool
         """
         ...
-
+    
     def max(self):
         ...
-
+    
     def samples(self): # -> Any:
         ...
-
+    
     def prob(self, sample): # -> float:
         ...
-
+    
     def logprob(self, sample): # -> float:
         ...
-
+    
     def update(self, sample, prob, log=...): # -> None:
         """
         Update the probability for the given sample. This may cause the object
@@ -1071,7 +1071,7 @@ class MutableProbDist(ProbDistI):
         :type log: bool
         """
         ...
-
+    
 
 
 class KneserNeyProbDist(ProbDistI):
@@ -1095,10 +1095,10 @@ class KneserNeyProbDist(ProbDistI):
         :type discount: float (preferred, but can be set to int)
         """
         ...
-
+    
     def prob(self, trigram): # -> float:
         ...
-
+    
     def discount(self): # -> float:
         """
         Return the value by which counts are discounted. By default set to 0.75.
@@ -1106,7 +1106,7 @@ class KneserNeyProbDist(ProbDistI):
         :rtype: float
         """
         ...
-
+    
     def set_discount(self, discount): # -> None:
         """
         Set the value by which counts are discounted to the value of discount.
@@ -1116,13 +1116,13 @@ class KneserNeyProbDist(ProbDistI):
         :rtype: None
         """
         ...
-
+    
     def samples(self):
         ...
-
+    
     def max(self):
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this ProbDist
@@ -1130,7 +1130,7 @@ class KneserNeyProbDist(ProbDistI):
         :rtype: str
         """
         ...
-
+    
 
 
 def log_likelihood(test_pdist, actual_pdist):
@@ -1197,11 +1197,11 @@ class ConditionalFreqDist(defaultdict):
         :type cond_samples: Sequence of (condition, sample) tuples
         """
         ...
-
-    def __reduce__(self): # -> tuple[type[Self], tuple[()], None, None, Generator[tuple, None, None]]:
+    
+    def __reduce__(self): # -> tuple[type[Self], tuple[()], None, None, Generator[tuple[Any, Any], None, None]]:
         ...
-
-    def conditions(self): # -> list:
+    
+    def conditions(self): # -> list[Any]:
         """
         Return a list of the conditions that have been accessed for
         this ``ConditionalFreqDist``.  Use the indexing operator to
@@ -1212,7 +1212,7 @@ class ConditionalFreqDist(defaultdict):
         :rtype: list
         """
         ...
-
+    
     def N(self): # -> int:
         """
         Return the total number of sample outcomes that have been
@@ -1221,7 +1221,7 @@ class ConditionalFreqDist(defaultdict):
         :rtype: int
         """
         ...
-
+    
     def plot(self, *args, samples=..., title=..., cumulative=..., percents=..., conditions=..., show=..., **kwargs): # -> Axes:
         """
         Plot the given samples from the conditional frequency distribution.
@@ -1243,7 +1243,7 @@ class ConditionalFreqDist(defaultdict):
         :type show: bool
         """
         ...
-
+    
     def tabulate(self, *args, **kwargs): # -> None:
         """
         Tabulate the given samples from the conditional frequency distribution.
@@ -1256,46 +1256,46 @@ class ConditionalFreqDist(defaultdict):
         :type title: bool
         """
         ...
-
+    
     def __add__(self, other): # -> _NotImplementedType | Self:
         """
         Add counts from two ConditionalFreqDists.
         """
         ...
-
+    
     def __sub__(self, other): # -> _NotImplementedType | Self:
         """
         Subtract count, but keep only results with positive counts.
         """
         ...
-
+    
     def __or__(self, other): # -> _NotImplementedType | Self:
         """
         Union is the maximum of value in either of the input counters.
         """
         ...
-
+    
     def __and__(self, other): # -> _NotImplementedType | ConditionalFreqDist:
         """
         Intersection is the minimum of corresponding counts.
         """
         ...
-
+    
     def __le__(self, other) -> bool:
         ...
-
+    
     def __lt__(self, other) -> bool:
         ...
-
+    
     def __ge__(self, other) -> bool:
         ...
-
+    
     def __gt__(self, other) -> bool:
         ...
-
+    
     def deepcopy(self): # -> Self:
         ...
-
+    
     copy = ...
     def __repr__(self): # -> str:
         """
@@ -1304,7 +1304,7 @@ class ConditionalFreqDist(defaultdict):
         :rtype: str
         """
         ...
-
+    
 
 
 class ConditionalProbDistI(dict, metaclass=ABCMeta):
@@ -1326,8 +1326,8 @@ class ConditionalProbDistI(dict, metaclass=ABCMeta):
         Classes inheriting from ConditionalProbDistI should implement __init__.
         """
         ...
-
-    def conditions(self): # -> list:
+    
+    def conditions(self): # -> list[Any]:
         """
         Return a list of the conditions that are represented by
         this ``ConditionalProbDist``.  Use the indexing operator to
@@ -1336,7 +1336,7 @@ class ConditionalProbDistI(dict, metaclass=ABCMeta):
         :rtype: list
         """
         ...
-
+    
     def __repr__(self): # -> str:
         """
         Return a string representation of this ``ConditionalProbDist``.
@@ -1344,7 +1344,7 @@ class ConditionalProbDistI(dict, metaclass=ABCMeta):
         :rtype: str
         """
         ...
-
+    
 
 
 class ConditionalProbDist(ConditionalProbDistI):
@@ -1405,10 +1405,10 @@ class ConditionalProbDist(ConditionalProbDistI):
         :param factory_kw_args: Extra keyword arguments for ``probdist_factory``.
         """
         ...
-
+    
     def __missing__(self, key):
         ...
-
+    
 
 
 class DictionaryConditionalProbDist(ConditionalProbDistI):
@@ -1423,10 +1423,10 @@ class DictionaryConditionalProbDist(ConditionalProbDistI):
         :type probdist_dict: dict any -> probdist
         """
         ...
-
+    
     def __missing__(self, key):
         ...
-
+    
 
 
 _ADD_LOGS_MAX_DIFF = ...
@@ -1480,7 +1480,7 @@ class ProbabilisticMixIn:
         :type logprob: float
         """
         ...
-
+    
     def set_prob(self, prob): # -> None:
         """
         Set the probability associated with this object to ``prob``.
@@ -1489,7 +1489,7 @@ class ProbabilisticMixIn:
         :type prob: float
         """
         ...
-
+    
     def set_logprob(self, logprob): # -> None:
         """
         Set the log probability associated with this object to
@@ -1500,7 +1500,7 @@ class ProbabilisticMixIn:
         :type logprob: float
         """
         ...
-
+    
     def prob(self): # -> float | None:
         """
         Return the probability associated with this object.
@@ -1508,7 +1508,7 @@ class ProbabilisticMixIn:
         :rtype: float
         """
         ...
-
+    
     def logprob(self): # -> float | None:
         """
         Return ``log(p)``, where ``p`` is the probability associated
@@ -1517,16 +1517,16 @@ class ProbabilisticMixIn:
         :rtype: float
         """
         ...
-
+    
 
 
 class ImmutableProbabilisticMixIn(ProbabilisticMixIn):
     def set_prob(self, prob):
         ...
-
+    
     def set_logprob(self, prob):
         ...
-
+    
 
 
 def demo(numsamples=..., numoutcomes=...): # -> None:

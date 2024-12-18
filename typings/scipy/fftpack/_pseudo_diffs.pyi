@@ -290,3 +290,4 @@ def shift(x, a, period=..., _cache=...):
         The period of the sequences x and y. Default period is ``2*pi``.
     """
     ...
+

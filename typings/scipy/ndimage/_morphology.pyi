@@ -915,7 +915,8 @@ def grey_erosion(input, size=..., footprint=..., structure=..., output=..., mode
         neighbors of the center over which the minimum is chosen.
     structure : array of ints, optional
         Structuring element used for the grayscale erosion. `structure`
-        may be a non-flat structuring element.
+        may be a non-flat structuring element. The `structure` array applies a
+        subtractive offset for each pixel in the neighborhood.
     output : array, optional
         An array used for storing the output of the erosion may be provided.
     mode : {'reflect','constant','nearest','mirror', 'wrap'}, optional
@@ -1020,7 +1021,8 @@ def grey_dilation(input, size=..., footprint=..., structure=..., output=..., mod
         neighbors of the center over which the maximum is chosen.
     structure : array of ints, optional
         Structuring element used for the grayscale dilation. `structure`
-        may be a non-flat structuring element.
+        may be a non-flat structuring element. The `structure` array applies an
+        additive offset for each pixel in the neighborhood.
     output : array, optional
         An array used for storing the output of the dilation may be provided.
     mode : {'reflect','constant','nearest','mirror', 'wrap'}, optional
@@ -1137,7 +1139,9 @@ def grey_opening(input, size=..., footprint=..., structure=..., output=..., mode
         used for the grayscale opening.
     structure : array of ints, optional
         Structuring element used for the grayscale opening. `structure`
-        may be a non-flat structuring element.
+        may be a non-flat structuring element. The `structure` array applies
+        offsets to the pixels in a neighborhood (the offset is additive during
+        dilation and subtractive during erosion).
     output : array, optional
         An array used for storing the output of the opening may be provided.
     mode : {'reflect', 'constant', 'nearest', 'mirror', 'wrap'}, optional
@@ -1214,7 +1218,9 @@ def grey_closing(input, size=..., footprint=..., structure=..., output=..., mode
         used for the grayscale closing.
     structure : array of ints, optional
         Structuring element used for the grayscale closing. `structure`
-        may be a non-flat structuring element.
+        may be a non-flat structuring element. The `structure` array applies
+        offsets to the pixels in a neighborhood (the offset is additive during
+        dilation and subtractive during erosion)
     output : array, optional
         An array used for storing the output of the closing may be provided.
     mode : {'reflect', 'constant', 'nearest', 'mirror', 'wrap'}, optional
@@ -1292,8 +1298,10 @@ def morphological_gradient(input, size=..., footprint=..., structure=..., output
         used for the morphology operations. Larger footprints
         give a more blurred morphological gradient.
     structure : array of ints, optional
-        Structuring element used for the morphology operations.
-        `structure` may be a non-flat structuring element.
+        Structuring element used for the morphology operations. `structure` may
+        be a non-flat structuring element. The `structure` array applies
+        offsets to the pixels in a neighborhood (the offset is additive during
+        dilation and subtractive during erosion)
     output : array, optional
         An array used for storing the output of the morphological gradient
         may be provided.
@@ -1384,12 +1392,18 @@ def morphological_laplace(input, size=..., footprint=..., structure=..., output=
     ----------
     input : array_like
         Input.
-    size : int or sequence of ints, optional
-        See `structure`.
-    footprint : bool or ndarray, optional
-        See `structure`.
-    structure : structure, optional
-        Either `size`, `footprint`, or the `structure` must be provided.
+    size : tuple of ints
+        Shape of a flat and full structuring element used for the mathematical
+        morphology operations. Optional if `footprint` or `structure` is
+        provided.
+    footprint : array of ints, optional
+        Positions of non-infinite elements of a flat structuring element
+        used for the morphology operations.
+    structure : array of ints, optional
+        Structuring element used for the morphology operations. `structure` may
+        be a non-flat structuring element. The `structure` array applies
+        offsets to the pixels in a neighborhood (the offset is additive during
+        dilation and subtractive during erosion)
     output : ndarray, optional
         An output array can optionally be provided.
     mode : {'reflect','constant','nearest','mirror', 'wrap'}, optional
@@ -1425,8 +1439,10 @@ def white_tophat(input, size=..., footprint=..., structure=..., output=..., mode
         Positions of elements of a flat structuring element
         used for the white tophat filter.
     structure : array of ints, optional
-        Structuring element used for the filter. `structure`
-        may be a non-flat structuring element.
+        Structuring element used for the filter. `structure` may be a non-flat
+        structuring element. The `structure` array applies offsets to the
+        pixels in a neighborhood (the offset is additive during dilation and
+        subtractive during erosion)
     output : array, optional
         An array used for storing the output of the filter may be provided.
     mode : {'reflect', 'constant', 'nearest', 'mirror', 'wrap'}, optional
@@ -1486,8 +1502,10 @@ def black_tophat(input, size=..., footprint=..., structure=..., output=..., mode
         Positions of non-infinite elements of a flat structuring element
         used for the black tophat filter.
     structure : array of ints, optional
-        Structuring element used for the filter. `structure`
-        may be a non-flat structuring element.
+        Structuring element used for the filter. `structure` may be a non-flat
+        structuring element. The `structure` array applies offsets to the
+        pixels in a neighborhood (the offset is additive during dilation and
+        subtractive during erosion)
     output : array, optional
         An array used for storing the output of the filter may be provided.
     mode : {'reflect', 'constant', 'nearest', 'mirror', 'wrap'}, optional
@@ -1947,3 +1965,4 @@ def distance_transform_edt(input, sampling=..., return_distances=..., return_ind
 
     """
     ...
+

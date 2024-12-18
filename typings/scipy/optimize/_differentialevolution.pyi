@@ -370,7 +370,7 @@ def differential_evolution(func, bounds, args=..., strategy=..., maxiter=..., po
            2002.
     .. [6] https://mpi4py.readthedocs.io/en/stable/
     .. [7] https://schwimmbad.readthedocs.io/en/latest/
-
+ 
 
     Examples
     --------
@@ -689,7 +689,7 @@ class DifferentialEvolutionSolver:
     __init_error_msg = ...
     def __init__(self, func, bounds, args=..., strategy=..., maxiter=..., popsize=..., tol=..., mutation=..., recombination=..., seed=..., maxfun=..., callback=..., disp=..., polish=..., init=..., atol=..., updating=..., workers=..., constraints=..., x0=..., *, integrality=..., vectorized=...) -> None:
         ...
-
+    
     def init_population_lhs(self): # -> None:
         """
         Initializes the population with Latin Hypercube Sampling.
@@ -697,7 +697,7 @@ class DifferentialEvolutionSolver:
         sampled over its range.
         """
         ...
-
+    
     def init_population_qmc(self, qmc_engine): # -> None:
         """Initializes the population with a QMC method.
 
@@ -712,14 +712,14 @@ class DifferentialEvolutionSolver:
 
         """
         ...
-
+    
     def init_population_random(self): # -> None:
         """
         Initializes the population at random. This type of initialization
         can possess clustering, Latin Hypercube sampling is generally better.
         """
         ...
-
+    
     def init_population_array(self, init): # -> None:
         """
         Initializes the population with a user specified population.
@@ -732,14 +732,14 @@ class DifferentialEvolutionSolver:
             The population is clipped to the lower and upper bounds.
         """
         ...
-
+    
     @property
     def x(self): # -> Any:
         """
         The best solution from the solver
         """
         ...
-
+    
     @property
     def convergence(self): # -> float | Any:
         """
@@ -747,13 +747,13 @@ class DifferentialEvolutionSolver:
         mean.
         """
         ...
-
+    
     def converged(self): # -> Any | Literal[False]:
         """
         Return True if the solver has converged.
         """
         ...
-
+    
     def solve(self): # -> OptimizeResult:
         """
         Runs the DifferentialEvolutionSolver.
@@ -775,16 +775,16 @@ class DifferentialEvolutionSolver:
             ``success`` will be `False`.
         """
         ...
-
+    
     def __iter__(self): # -> Self:
         ...
-
+    
     def __enter__(self): # -> Self:
         ...
-
+    
     def __exit__(self, *args): # -> None:
         ...
-
+    
     def __next__(self): # -> tuple[Any, Any]:
         """
         Evolve the population by a single generation
@@ -797,7 +797,7 @@ class DifferentialEvolutionSolver:
             Value of objective function obtained from the best solution.
         """
         ...
-
+    
 
 
 class _ConstraintWrapper:
@@ -833,10 +833,10 @@ class _ConstraintWrapper:
     """
     def __init__(self, constraint, x0) -> None:
         ...
-
+    
     def __call__(self, x): # -> NDArray[Any]:
         ...
-
+    
     def violation(self, x): # -> NDArray[bool_]:
         """How much the constraint is exceeded by.
 
@@ -854,3 +854,6 @@ class _ConstraintWrapper:
             Has shape (M, S) where M is the number of constraint components.
         """
         ...
+    
+
+

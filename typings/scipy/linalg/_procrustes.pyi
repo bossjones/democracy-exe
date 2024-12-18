@@ -72,3 +72,4 @@ def orthogonal_procrustes(A, B, check_finite=...): # -> tuple[Any, Any]:
 
     """
     ...
+

@@ -737,3 +737,4 @@ def find_peaks_cwt(vector, widths, wavelet=..., max_distances=..., gap_thresh=..
 
     """
     ...
+

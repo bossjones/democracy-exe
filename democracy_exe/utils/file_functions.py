@@ -19,7 +19,7 @@ import aiofiles
 import pandas as pd
 import rich
 
-from loguru import logger as LOGGER
+from loguru import logger
 from rich.console import Console
 from rich.table import Table
 
@@ -165,7 +165,7 @@ def get_all_media_files_to_upload(tmpdirname: str) -> list[str]:
     rich.print(tree_list)
 
     file_to_upload_list = [f"{p}" for p in tree_list]
-    LOGGER.debug(f"get_all_media_files_to_upload -> file_to_upload_list = {file_to_upload_list}")
+    logger.debug(f"get_all_media_files_to_upload -> file_to_upload_list = {file_to_upload_list}")
     rich.print(file_to_upload_list)
 
     return filter_media(file_to_upload_list)
@@ -685,10 +685,6 @@ def rich_display_popstars_analytics(df: DataFrame) -> None:
     console.print(table)
 
 
-# # >>> import glob
-# # >>> json_files = glob.glob(f"{metadata_path}/*.json")
-# # >>> json_files
-
 
 def glob_file_by_extension(working_dir: str, extension: str = "*.mp4", recursive: bool = False) -> list[str]:
     """
@@ -745,12 +741,12 @@ def tree(directory: str | pathlib.Path, silent: bool = False) -> list[pathlib.Pa
         list[pathlib.Path]: List of file paths in the directory.
 
     """
-    LOGGER.debug(f"directory -> {directory}")
+    logger.debug(f"directory -> {directory}")
     if isinstance(directory, str):
         directory = fix_path(directory)
-        LOGGER.debug(f"directory -> {directory}")
+        logger.debug(f"directory -> {directory}")
         directory = pathlib.Path(directory)
-        LOGGER.debug(f"directory -> {directory}")
+        logger.debug(f"directory -> {directory}")
     try:
         assert directory.is_dir()
     except:
@@ -812,10 +808,10 @@ async def aiowrite_file(data: str, dl_dir: str = "./", fname: str = "", ext: str
     p_dl_dir = pathlib.Path(dl_dir)
     full_path_dl_dir = f"{p_dl_dir.absolute()}"
     p_new = pathlib.Path(f"{full_path_dl_dir}/{fname}.{ext}")
-    LOGGER.debug(f"Writing to {p_new.absolute()}")
+    logger.debug(f"Writing to {p_new.absolute()}")
     async with aiofiles.open(p_new.absolute(), mode="w") as f:
         await f.write(data)
-    await LOGGER.complete()
+    await logger.complete()
 
 
 async def aioread_file(dl_dir: str = "./", fname: str = "", ext: str = "") -> str:
@@ -836,10 +832,10 @@ async def aioread_file(dl_dir: str = "./", fname: str = "", ext: str = "") -> st
     p_dl_dir = pathlib.Path(dl_dir)
     full_path_dl_dir = f"{p_dl_dir.absolute()}"
     p_new = pathlib.Path(f"{full_path_dl_dir}/{fname}.{ext}")
-    LOGGER.debug(f"Reading from {p_new.absolute()}")
+    logger.debug(f"Reading from {p_new.absolute()}")
     async with aiofiles.open(p_new.absolute()) as f:
         content = await f.read()
-    await LOGGER.complete()
+    await logger.complete()
     return content
 
 
@@ -858,10 +854,10 @@ def check_file_size(a_file: str) -> tuple[bool, str]:
     """
     p = pathlib.Path(a_file)
     file_size = p.stat().st_size
-    LOGGER.debug(f"File: {p} | Size(bytes): {file_size} | Size(type): {type(file_size)}")
+    logger.debug(f"File: {p} | Size(bytes): {file_size} | Size(type): {type(file_size)}")
     check = file_size > MAX_BYTES_UPLOAD_DISCORD
     msg = f"Is file size greater than {MAX_BYTES_UPLOAD_DISCORD}: {check}"
-    LOGGER.debug(msg)
+    logger.debug(msg)
     return check, msg
 
 
@@ -1043,7 +1039,7 @@ def unlink_orig_file(a_filepath: str) -> str:
         _type_: _description_
 
     """
-    LOGGER.debug(f"deleting ... {a_filepath}")
+    logger.debug(f"deleting ... {a_filepath}")
     rich.print(f"deleting ... {a_filepath}")
     os.unlink(f"{a_filepath}")
     return a_filepath
@@ -1066,12 +1062,12 @@ def get_files_to_upload(tmpdirname: str) -> list[str]:
     rich.print(tree_list)
 
     file_to_upload_list = [f"{p}" for p in tree_list]
-    LOGGER.debug(f"get_files_to_upload -> file_to_upload_list = {file_to_upload_list}")
+    logger.debug(f"get_files_to_upload -> file_to_upload_list = {file_to_upload_list}")
     rich.print(file_to_upload_list)
 
     file_to_upload = filter_media(file_to_upload_list)
 
-    LOGGER.debug(f"get_files_to_upload -> file_to_upload = {file_to_upload}")
+    logger.debug(f"get_files_to_upload -> file_to_upload = {file_to_upload}")
 
     rich.print(file_to_upload)
     return file_to_upload
@@ -1097,7 +1093,7 @@ def run_tree(tmpdirname: str) -> list[str]:
     rich.print(tree_list)
 
     file_to_upload_list = [f"{p}" for p in tree_list]
-    LOGGER.debug(f"compress_video-> file_to_upload_list = {file_to_upload_list}")
+    logger.debug(f"compress_video-> file_to_upload_list = {file_to_upload_list}")
     rich.print(file_to_upload_list)
 
     file_to_upload = filter_media(file_to_upload_list)

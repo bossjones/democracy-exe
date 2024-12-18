@@ -67,3 +67,4 @@ def replace_return_docstrings(output_type=..., config_class=...): # -> Callable[
 def copy_func(f): # -> _Wrapped[Callable[..., Any], Any, Callable[..., Any], Any]:
     """Returns a copy of a function f."""
     ...
+

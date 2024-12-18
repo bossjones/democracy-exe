@@ -30,30 +30,30 @@ class TextCat:
     last_distances = ...
     def __init__(self) -> None:
         ...
-
+    
     def remove_punctuation(self, text): # -> str:
         """Get rid of punctuation except apostrophes"""
         ...
-
+    
     def profile(self, text): # -> FreqDist:
         """Create FreqDist of trigrams within text"""
         ...
-
+    
     def calc_dist(self, lang, trigram, text_profile): # -> int:
         """Calculate the "out-of-place" measure between the
         text and language profile for a single trigram"""
         ...
-
-    def lang_dists(self, text): # -> dict:
+    
+    def lang_dists(self, text): # -> dict[Any, Any]:
         """Calculate the "out-of-place" measure between
         the text and all languages"""
         ...
-
+    
     def guess_language(self, text):
         """Find the language with the min distance
         to the text and return its ISO 639-3 code"""
         ...
-
+    
 
 
 def demo(): # -> None:

@@ -30,9 +30,12 @@ class StochasticDepth(nn.Module):
     """
     def __init__(self, p: float, mode: str) -> None:
         ...
-
+    
     def forward(self, input: Tensor) -> Tensor:
         ...
-
+    
     def __repr__(self) -> str:
         ...
+    
+
+
