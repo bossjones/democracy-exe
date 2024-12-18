@@ -12,10 +12,13 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+import sys
 import tempfile
+import traceback
 
 from typing import Any, Dict, Final, List, Optional, Tuple, Union, cast
 
+import bpdb
 import discord
 
 from discord.ext import commands
@@ -140,12 +143,30 @@ class Twitter(commands.Cog):
                 # Upload media files if any
                 files = []
                 logger.debug(f"Processing {len(result['local_files'])} media files")
+                # import bpdb; bpdb.set_trace()
+                # {
+                # 'success': True,
+                # 'metadata': {'id': '', 'url': '', 'author': '', 'content': '', 'media_urls': [], 'created_at': ''},
+                # 'local_files': ['/private/var/folders/q_/d5r_s8wd02zdx6qmc5f_96mw0000gp/T/tmpsu3j8yhy/gallery-dl/twitter/UAPJames/UAPJames-1869141126051217764-(20241217_220226)-img1.mp4'],
+                # 'error': None
+                # }
+
                 for file_path in result["local_files"]:
                     try:
                         files.append(discord.File(file_path))
                         logger.debug(f"Added file to upload: {file_path}")
-                    except Exception as e:
-                        logger.warning(f"Failed to create discord.File for {file_path}: {e}")
+                    except Exception as ex:
+                        logger.warning(f"Failed to create discord.File for {file_path}: {ex}")
+                        print(f"{ex}")
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        print(f"Error Class: {ex.__class__}")
+                        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                        print(output)
+                        print(f"exc_type: {exc_type}")
+                        print(f"exc_value: {exc_value}")
+                        traceback.print_tb(exc_traceback)
+                        if aiosettings.dev_mode:
+                            bpdb.pm()
 
                 await progress.edit(content="Download complete!", embed=embed)
                 if files:

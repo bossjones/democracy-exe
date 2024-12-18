@@ -21,7 +21,7 @@ TWENTY_THOUSAND = 20000
 TEN_THOUSAND = 10000
 FIVE_THOUSAND = 5000
 
-PREFIX = "%"
+PREFIX = "?"
 
 # Discord upload limits
 MAX_BYTES_UPLOAD_DISCORD = 50000000
@@ -29,17 +29,25 @@ MAX_FILE_UPLOAD_IMAGES_IMGUR = 20000000
 MAX_FILE_UPLOAD_VIDEO_IMGUR = 200000000
 MAX_RUNTIME_VIDEO_IMGUR = 20  # seconds
 
+# *********************************************************
 # Twitter download commands
+# *********************************************************
+# NOTE: original commands are:
+# gallery-dl --no-mtime --user-agent Wget/1.21.1 -v --cookies ~/.config/gallery-dl/cookies-twitter.txt --write-info-json {dl_uri}
+# gallery-dl --no-mtime -o cards=true --user-agent Wget/1.21.1 -v --netrc --write-info-json {dl_uri}
+# gallery-dl --no-mtime --user-agent Wget/1.21.1 --netrc --cookies ~/.config/gallery-dl/cookies-twitter.txt -v -c ~/dev/bossjones/democracy-exe/thread.conf {dl_uri}
+# *********************************************************
+
 DL_SAFE_TWITTER_COMMAND = """
-gallery-dl --no-mtime --user-agent Wget/1.21.1 -v --netrc --cookies ~/.config/gallery-dl/cookies-twitter.txt --write-info-json {dl_uri}
+gallery-dl --no-mtime -v --write-info-json --write-metadata {dl_uri}
 """
 
 DL_TWITTER_CARD_COMMAND = """
-gallery-dl --no-mtime -o cards=true --user-agent Wget/1.21.1 -v --netrc --write-info-json {dl_uri}
+gallery-dl --no-mtime -o cards=true -v --netrc --write-info-json {dl_uri}
 """
 
 DL_TWITTER_THREAD_COMMAND = """
-gallery-dl --no-mtime --user-agent Wget/1.21.1 --netrc --cookies ~/.config/gallery-dl/cookies-twitter.txt -v -c ~/dev/universityofprofessorex/cerebro-bot/thread.conf {dl_uri}
+gallery-dl --no-mtime -v -c ~/dev/bossjones/democracy-exe/thread.conf {dl_uri}
 """
 
 CURRENT_USER = "n/a"

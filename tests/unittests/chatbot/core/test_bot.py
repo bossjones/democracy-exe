@@ -69,6 +69,7 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
 class TestDemocracyBot:
     """Test suite for DemocracyBot class."""
 
+    @pytest.mark.asyncio
     async def test_init_default_parameters(self, mocker: MockerFixture) -> None:
         """Test initialization with default parameters.
 
@@ -108,6 +109,7 @@ class TestDemocracyBot:
 
         await bot.close()
 
+    @pytest.mark.asyncio
     async def test_init_custom_parameters(self, mocker: MockerFixture) -> None:
         """Test initialization with custom parameters.
 
@@ -132,6 +134,7 @@ class TestDemocracyBot:
 
         await bot.close()
 
+    @pytest.mark.asyncio
     async def test_get_context(self, bot: DemocracyBot) -> None:
         """Test get_context method.
 
@@ -146,6 +149,7 @@ class TestDemocracyBot:
         assert context.message == message
         assert context.prefix == "?"  # Should match bot's command prefix
 
+    @pytest.mark.asyncio
     async def test_setup_hook(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
         """Test setup_hook method.
 
@@ -171,6 +175,7 @@ class TestDemocracyBot:
         mock_app_info.assert_called_once()
         mock_load_extensions.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_on_ready(self, bot: DemocracyBot, mocker: MockerFixture, caplog: LogCaptureFixture) -> None:
         """Test on_ready event handler.
 
@@ -200,6 +205,7 @@ class TestDemocracyBot:
         assert isinstance(bot.uptime, datetime.datetime)
         assert "Ready:" in caplog.text
 
+    @pytest.mark.asyncio
     async def test_on_message(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
         """Test on_message event handler.
 
@@ -230,6 +236,7 @@ class TestDemocracyBot:
         mock_get_thread.assert_called_once_with(message)
         mock_stream_response.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_on_command_error(self, bot: DemocracyBot, mocker: MockerFixture, caplog: LogCaptureFixture) -> None:
         """Test on_command_error event handler.
 
@@ -260,6 +267,7 @@ class TestDemocracyBot:
         await bot.on_command_error(ctx, error)
         assert "In test_command:" in caplog.text
 
+    @pytest.mark.asyncio
     async def test_close(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
         """Test close method.
 
@@ -276,6 +284,7 @@ class TestDemocracyBot:
         # Verify session was closed
         mock_session_close.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_start(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
         """Test start method.
 
@@ -292,6 +301,7 @@ class TestDemocracyBot:
         # Verify parent start was called with correct token
         mock_super_start.assert_called_once_with(str(aiosettings.discord_token), reconnect=True)
 
+    @pytest.mark.asyncio
     async def test_my_background_task(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
         """Test my_background_task method.
 
@@ -311,6 +321,7 @@ class TestDemocracyBot:
         # Verify message was sent
         mock_channel.send.assert_called_once_with("1")
 
+    @pytest.mark.asyncio
     async def test_on_worker_monitor(self, bot: DemocracyBot, mocker: MockerFixture, caplog: LogCaptureFixture) -> None:
         """Test on_worker_monitor method.
 
