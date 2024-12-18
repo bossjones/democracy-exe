@@ -1,0 +1,2159 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/MovieNightBot/tests/conftest.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from movienightbot.application import bot as BotClient
+from movienightbot.config import Config
+from movienightbot.db import initialize_db
+
+
+@pytest.fixture
+def client(event_loop):
+    bconfig = Config("unused_token", "sqlite:///:memory:")
+    bconfig.message_identifier = "m!"
+    bconfig.port = 8000
+    bconfig.base_url = f"http://localhost:{bconfig.port}"
+
+    bclient = BotClient
+    bclient.loop = event_loop
+    bclient.config = bconfig
+    initialize_db(bconfig.db_url)
+    test.configure(bclient, guilds=1, members=3, text_channels=3, voice_channels=0)
+
+    guild = bclient.guilds[0]
+    guild_data = {"id": guild.id, "channel": guild.text_channels[0].id}
+    bclient._server_controller.create(guild_data)
+
+    yield bclient
+
+
+@pytest.fixture(autouse=True)
+async def cleanup():
+    yield
+    await test.empty_queue()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Code to execute after all tests."""
+
+    # This would have cleaned up the testing db but it is left open forever,
+    # meaning we should just use bash and delete post pytest...
+    #
+    # try:
+    #     os.remove(_TEST_SQLITE_FILE)
+    # except Exception as e:
+    #     print("\nError removing SQLite file:  ", _TEST_SQLITE_FILE)
+    #     print(e)
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/MovieNightBot/tests/utils.py</source>
+<document_content>
+from typing import Any, Dict, List, Optional
+
+import discord
+import discord.ext.test as test
+
+from movienightbot.db.models import IMDBInfo, Movie
+
+
+async def _set_test_role(client, perms=discord.Permissions.all(), midx=0, gidx=0):  # noqa: B008
+    guild = client.guilds[gidx]
+    test_role = await guild.create_role(name="TestingRole", permissions=perms)
+    await guild.members[midx].add_roles(test_role)
+    return test_role
+
+
+async def _clear_test_role(client, role, midx=0, gidx=0):
+    guild = client.guilds[gidx]
+    await guild.members[midx].remove_roles(role)
+    await role.delete()
+
+
+async def _add_movies(
+    client,
+    movie_names: List[str],
+    genres: Optional[List[List[str]]] = None,
+    imdb_info: Optional[List[Dict[str, Any]]] = None,
+    gidx: int = 0,
+):
+    guild_id = client.guilds[gidx].id
+
+    if imdb_info is not None:
+        if len(movie_names) != len(imdb_info):
+            raise ValueError("Mismatched lengths for movie_names and imdb_info")
+        imdb_ids = [IMDBInfo.create(**c).id for c in imdb_info]
+    else:
+        imdb_ids = [None for x in range(len(movie_names))]
+
+    # TODO: Hookup genre addition
+    if genres is not None and len(movie_names) != len(genres):
+        raise ValueError("Mismatched lengths for movie_names and genres")
+
+    movies = []
+    for movie_name, imdb_id in zip(movie_names, imdb_ids):
+        movie_info = {
+            "imdb_id": imdb_id,
+            "movie_name": movie_name,
+            "server": guild_id,
+            "suggested_by": "test_user",
+        }
+        movies.append(Movie.create(**movie_info))
+
+
+async def _do_admin_test(test_msg, peek=False):
+    m = await test.message(test_msg)
+    t = test.verify().message().content("Hey now, you're not an admin on this server!")
+    if peek:
+        t.peek()
+    assert t
+    return m
+
+
+async def _verify_deleted_message(client, msg_id, channel=0, guild=0):
+    ch = client.guilds[guild].channels[channel]
+    try:
+        await ch.fetch_message(msg_id)
+    except discord.NotFound:
+        return True
+    return False
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_block_suggestions.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_block_suggestions(client):
+    # test admin command blocked first
+    await _do_admin_test("m!block_suggestions on")
+
+    test_role = await _set_test_role(client)
+
+    await test.message("m!block_suggestions")
+    assert test.verify().message().content("Unknown option for block_suggestions: ``")
+
+    await test.message("m!block_suggestions on")
+    assert test.verify().message().content("Server suggestions are now disallowed")
+
+    await test.message("m!block_suggestions off")
+    assert test.verify().message().content("Server suggestions are now allowed")
+
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_cancel_vote.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _add_movies,
+    _clear_test_role,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_cancel_vote(client):
+    await test.message("m!cancel_vote")
+    assert test.verify().message().content("No vote started!")
+
+    await _add_movies(client, ["Movie1", "Movie2"])
+    test_role = await _set_test_role(client)
+
+    await test.message("m!start_vote")
+    test.get_message()
+    await _clear_test_role(client, test_role)
+    await test.message("m!cancel_vote")
+
+    # TODO: figure out why I cannot verify the edited embed...
+    #  It simply doesn't edit.
+    #  Using peek=True to leave it on the stack doesn't help, unlike end_vote_tie.
+
+    assert test.get_message().content == "Vote cancelled"
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_check_movie_names.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_check_movie_names(client):
+    await test.empty_queue()
+
+    await _do_admin_test("m!check_movie_names on")
+
+    test_role = await _set_test_role(client)
+    await test.message("m!check_movie_names x")
+    assert test.verify().message().content("Unknown option for check_movie_names: `x`")
+
+    await test.message("m!check_movie_names on")
+    assert test.verify().message().content("IMDB movie name checks are now on")
+
+    # TODO: add tests for when this option is enabled, since it changes returned data.
+
+    await test.message("m!check_movie_names off")
+    assert test.verify().message().content("IMDB movie name checks are now off")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_cleanup.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+    _verify_deleted_message,
+)
+
+
+@pytest.mark.asyncio
+async def test_cleanup(client):
+    m0 = await _do_admin_test("m!cleanup", peek=True)
+    r0 = test.get_message()
+
+    test_role = await _set_test_role(client)
+    m1 = await test.message("m!suggested")
+    r1 = test.get_message()
+    m2 = await test.message("m!watched")
+    r2 = test.get_message()
+    m3 = await test.message("m!cleanup")
+    assert test.verify().message().nothing()
+
+    msgs = [m0, r0, m1, r1, m2, r2, m3]
+    for msg in msgs:
+        status = await _verify_deleted_message(client, msg.id)
+        assert status is True, "Expected message to be deleted, but message still exists."
+
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_end_vote.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from movienightbot.util import build_vote_embed, emojis_text
+from tests.utils import (
+    _clear_test_role,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_end_vote_tiebreaker(client):
+    await test.empty_queue()
+    cfg = test.get_config()
+    tester1 = cfg.members[0]
+    tester2 = cfg.members[1]
+
+    await test.message("m!end_vote")
+    assert test.verify().message().content("No vote started!")
+
+    # So you CAN start a vote without any or enough suggested titles.
+    # TODO: Fix that...
+
+    await test.message("m!suggest The Shining")
+    test.get_message()
+    await test.message("m!suggest Pulp Fiction")
+    test.get_message()
+    await test.message("m!suggest Bad Santa")
+    test.get_message()
+    await test.message("m!suggest Hook")
+    test.get_message()
+    await test.message("m!suggest The Little Mermaid")
+    test.get_message()
+    await test.message("m!suggest A Nightmare on Elm Street")
+    test.get_message()
+    await test.message("m!suggest Final Fantasy: The Spirits Within")
+    test.get_message()
+
+    test_role = await _set_test_role(client)
+    m = await test.message("m!start_vote")
+    test_embed = build_vote_embed(m.channel.guild.id)
+    vote_msg = test.get_message(peek=True)
+    assert test.verify().message().embed(test_embed).peek()
+    await _clear_test_role(client, test_role)
+
+    await test.add_reaction(message=vote_msg, user=tester1, emoji=emojis_text[":regional_indicator_a:"])
+    await test.add_reaction(message=vote_msg, user=tester2, emoji=emojis_text[":regional_indicator_b:"])
+
+    await test.message("m!end_vote")
+    tie_vote_embed = build_vote_embed(m.channel.guild.id)
+    assert tie_vote_embed is not vote_msg.embeds[0], "Vote embed was not updated with tie breaker embed."
+
+    await test.add_reaction(message=vote_msg, user=tester1, emoji=emojis_text[":regional_indicator_a:"])
+    await test.add_reaction(message=vote_msg, user=tester2, emoji=emojis_text[":regional_indicator_a:"])
+
+    test.get_message()
+    assert test.verify().message().content("There was a tie! Check the vote message for new vote options")
+
+    await test.message("m!end_vote")
+    assert test.verify().message().contains().content("The winning vote was `")
+
+
+@pytest.mark.asyncio
+async def test_end_vote_winner(client):
+    cfg = test.get_config()
+    tester1 = cfg.members[0]
+    tester2 = cfg.members[1]
+
+    await test.message("m!end_vote")
+    assert test.verify().message().content("No vote started!")
+
+    # So you CAN start a vote without any or enough suggested titles.
+    # TODO: Fix that...
+
+    await test.message("m!suggest The Shining")
+    test.get_message()
+    await test.message("m!suggest Pulp Fiction")
+    test.get_message()
+    await test.message("m!suggest Bad Santa")
+    test.get_message()
+    await test.message("m!suggest Hook")
+    test.get_message()
+    await test.message("m!suggest The Little Mermaid")
+    test.get_message()
+    await test.message("m!suggest A Nightmare on Elm Street")
+    test.get_message()
+    await test.message("m!suggest Final Fantasy: The Spirits Within")
+    test.get_message()
+
+    test_role = await _set_test_role(client)
+    m = await test.message("m!start_vote")
+    test_embed = build_vote_embed(m.channel.guild.id)
+
+    assert test.verify().message().embed(test_embed).peek()
+    vote_msg = test.get_message(peek=True)
+    await _clear_test_role(client, test_role)
+
+    await test.add_reaction(user=tester1, message=vote_msg, emoji=emojis_text[":regional_indicator_a:"])
+    await test.add_reaction(user=tester2, message=vote_msg, emoji=emojis_text[":regional_indicator_a:"])
+    test.get_message()
+
+    await test.message("m!end_vote")
+    assert test.verify().message().contains().content("The winning vote was `")
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_movie_option_count.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_movie_option_count(client):
+    await test.empty_queue()
+    test_number = 7
+
+    await _do_admin_test(f"m!movie_option_count {test_number}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!movie_option_count {test_number}")
+    assert test.verify().message().content(f"Number of movies per vote updated to {test_number}")
+
+    tests = [0, 1, 26, 27]
+    for test_number in tests:
+        await test.message(f"m!movie_option_count {test_number}")
+        assert (
+            test.verify()
+            .message()
+            .content("Failed to update: Number of movies per vote must be between 2 and 25, inclusive")
+        )
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_remove.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_remove(client):
+    await test.empty_queue()
+    test_title = "The Land Before Time"
+
+    await _do_admin_test(f"m!remove {test_title}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!remove {test_title}")
+    assert test.verify().message().content(f"Movie {test_title} has not been suggested")
+
+    await test.message(f"m!suggest {test_title}")
+    test.get_message()
+    await test.message(f"m!remove {test_title}")
+    assert test.verify().message().content(f"The movie {test_title} has been removed from the list.")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_server_settings.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from movienightbot.commands.server_setup_commands import ServerAdmin
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_server_settings(client):
+    await test.empty_queue()
+    ssa = ServerAdmin()
+    test_embed = ssa._format_server_embed(client.guilds[0].id)
+
+    await _do_admin_test("m!server_settings")
+
+    test_role = await _set_test_role(client)
+    await test.message("m!server_settings")
+    assert test.verify().message().embed(test_embed)
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_set_admin_role.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_set_admin_role(client):
+    await test.empty_queue()
+    role_name = "AdminRole"
+
+    await _do_admin_test(f"m!set_admin_role {role_name}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!set_admin_role {role_name}")
+    assert test.verify().message().content(f"Role not found: {role_name}.")
+
+    await test.message(f"m!set_admin_role {test_role.name}")
+    assert test.verify().message().content(f"Admin role updated to {test_role.name}")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_set_imdb_id.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_set_imdb_id(client):
+    await test.empty_queue()
+
+    # The Land Before Time (1988)
+    # https://www.imdb.com/title/tt0095489/
+    test_title = "The Land Before Time"
+    test_id = "0095489"
+    await test.message(f"m!set_imdb_id {test_id} {test_title}")
+    assert test.verify().message().content(f"Unable to update IMDB id for {test_title}")
+
+    await test.message(f"m!suggest {test_title}")
+    test.get_message()
+    await test.message(f"m!set_imdb_id {test_id} {test_title}")
+    assert test.verify().message().content(f"Movie {test_title} has been updated to imdb ID {test_id}")
+
+    # not sure how to reach this output...
+    # test_title2 = test_title[:-4]
+    # await test.message(f"m!suggest {test_title2}")
+    # test.get_message()
+    # await test.message(f"m!set_imdb_id {test_id} {test_title2}")
+    # assert test.verify().message().content(f"Movie {test_title2} updated multiple entries to IMDB id {test_id}")
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_set_message_timeout.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_set_message_timeout(client):
+    await test.empty_queue()
+    timeout = 10
+
+    await _do_admin_test(f"m!set_message_timeout {timeout}")
+
+    timeout = "TT"
+    test_role = await _set_test_role(client)
+    await test.message(f"m!set_message_timeout {timeout}")
+    assert test.verify().message().content(f"Must send an number, got {timeout}")
+
+    timeout = -2
+    await test.message(f"m!set_message_timeout {timeout}")
+    assert test.verify().message().content(f"Timeout value must be >= 0, got {timeout}")
+
+    timeout = 10
+    await test.message(f"m!set_message_timeout {timeout}")
+    assert test.verify().message().content(f"Message timeout updated to {timeout} seconds")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_set_movie_channel.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_set_movie_channel(client):
+    await test.empty_queue()
+    channel = "DummyTestChannel"
+
+    await _do_admin_test(f"m!set_channel {channel}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!set_channel {channel}")
+    assert test.verify().message().content(f"Failed update: unknown channel {channel} given.")
+
+    channel = client.guilds[0].channels[0].name
+    await test.message(f"m!set_channel {channel}")
+    assert test.verify().message().content(f"Bot channel updated to {channel}")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_set_movie_time.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_set_movie_time(client):
+    await test.empty_queue()
+    time_str = "12:00"
+
+    await _do_admin_test(f"m!set_movie_time {time_str}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!set_movie_time {time_str}PM")
+    assert test.verify().message().content("Movie time given in invalid format. Must be `HH:MM`")
+
+    await test.message(f"m!set_movie_time {time_str}")
+    assert test.verify().message().content(f"Movie time updated to {time_str} UTC")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_set_watched.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_set_watched(client):
+    await test.empty_queue()
+    watched = "Some Movie Title"
+
+    await _do_admin_test(f"m!set_watched {watched}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!set_watched {watched}")
+    assert test.verify().message().content(f"No movie titled {watched} has been suggested")
+
+    await test.message(f"m!suggest {watched}")
+    test.get_message()
+    await test.message(f"m!set_watched {watched}")
+    assert (
+        test.verify()
+        .message()
+        .content(f"{watched} has been set as watched and will no longer show up in future votes.")
+    )
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_start_vote.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from movienightbot.util import build_vote_embed
+from tests.utils import (
+    _add_movies,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_start_vote(client):
+    await test.empty_queue()
+
+    await _add_movies(client, ["TestMovie1", "TestMovie2", "TestMovie3"])
+
+    await _set_test_role(client)
+    await test.message("m!start_vote")
+    test_embed = build_vote_embed(client.guilds[0].id)
+    assert test.verify().message().embed(test_embed)
+
+
+@pytest.mark.asyncio
+async def test_start_vote_not_admin(client):
+    await test.empty_queue()
+
+    await test.message("m!start_vote")
+    assert test.get_message().content == "Hey now, you're not an admin on this server!"
+
+
+@pytest.mark.asyncio
+async def test_start_vote_no_movies(client):
+    await test.empty_queue()
+
+    await _do_admin_test("m!start_vote")
+
+    await _set_test_role(client)
+    await test.message("m!start_vote")
+    assert test.verify().message().content("No movies found")
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_suggest.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_suggest(client):
+    """
+    - "Could not find the movie title you suggested in IMDb."
+    """
+    await test.empty_queue()
+
+    test_title = "The Land Before Time"
+    await test.message(f"m!suggest {test_title}")
+    assert test.verify().message().content(f"Your suggestion of {test_title} () has been added to the list.")
+
+    await test.message(f"m!suggest {test_title}")
+    assert test.verify().message().content(f"{test_title} has already been suggested in this server.")
+
+
+@pytest.mark.asyncio
+async def test_suggest_blocked(client):
+    await test.empty_queue()
+
+    test_title = "The Land Before Time"
+    test_role = await _set_test_role(client)
+    await test.message("m!block_suggestions on")
+    test.get_message()
+
+    await _clear_test_role(client, test_role)
+    await test.message(f"m!suggest {test_title}")
+    assert test.verify().message().content("Suggestions are currently disabled on the server")
+
+    test_role = await _set_test_role(client)
+    await test.message("m!block_suggestions off")
+    test.get_message()
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_suggested.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_suggested(client):
+    await test.empty_queue()
+
+    base_url = client.config.base_url
+    guild_id = client.guilds[0].id
+    await test.message("m!suggested")
+    assert (
+        test.verify()
+        .message()
+        .content(f"Suggestions can be found at {base_url}/movies.html?server={guild_id}&view=suggested")
+    )
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_tie_option.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_tie_option(client):
+    await test.empty_queue()
+
+    await _do_admin_test("m!tie_option random")
+
+    test_role = await _set_test_role(client)
+    await test.message("m!tie_option silly-non-option")
+    assert test.verify().message().content("Unknown tiebreaker option given: silly-non-option")
+
+    await test.message("m!tie_option random")
+    assert test.verify().message().content("Tiebreaker updated to random")
+
+    await test.message("m!tie_option breaker")
+    assert test.verify().message().content("Tiebreaker updated to breaker")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_unknown.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_unknown(client):
+    await test.message("m!cmd_unknown")
+    assert (
+        test.verify()
+        .message()
+        .content(
+            "Unknown command cmd_unknown given, try reading the tutorial at `m!help` "
+            "to see what commands are available!"
+        )
+    )
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_unwatch.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_unwatch(client):
+    await test.empty_queue()
+
+    test_title = "The Land Before Time"
+    await _do_admin_test(f"m!unwatch {test_title}")
+
+    test_role = await _set_test_role(client)
+    await test.message(f"m!unwatch {test_title}")
+    assert test.verify().message().content(f"No movie titled {test_title} has been watched")
+
+    await test.message(f"m!suggest {test_title}")
+    test.get_message()
+
+    await test.message(f"m!unwatch {test_title}")
+    assert test.verify().message().content(f"{test_title} has been set as unwatched and will show up in future votes.")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_user_vote_count.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+from tests.utils import (
+    _clear_test_role,
+    _do_admin_test,
+    _set_test_role,
+)
+
+
+@pytest.mark.asyncio
+async def test_user_vote_count(client):
+    # Writing this test I realized that the setting is a one-way setting.
+    # Once you go higher, you cannot go lower again. Should this be?
+    await test.empty_queue()
+
+    await _do_admin_test("m!user_vote_count 0")
+
+    test_role = await _set_test_role(client)
+    await test.message("m!user_vote_count 0")
+    assert test.verify().message().content("Failed to update: Number of votes per user must be > 0")
+
+    await test.message("m!user_vote_count 1")
+    assert test.verify().message().content("Failed to update: Number of votes per user must be >= 4")
+
+    await test.message("m!user_vote_count 6")
+    assert test.verify().message().content("Number of votes per user updated to 6")
+    await _clear_test_role(client, test_role)
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/MovieNightBot/tests/actions/test_watched.py</source>
+<document_content>
+import discord.ext.test as test
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_watched(client):
+    await test.empty_queue()
+
+    base_url = client.config.base_url
+    guild_id = client.guilds[0].id
+    await test.message("m!watched")
+    assert (
+        test.verify()
+        .message()
+        .content(f"Watched movies can be found at {base_url}/movies.html?server={guild_id}&view=watched")
+    )
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/application.py</source>
+<document_content>
+import logging
+from pathlib import Path
+
+import discord
+import peewee as pw
+from discord.ext import commands
+
+from .db.controllers import (
+    MovieVoteController,
+    ServerController,
+    UserVoteController,
+    VoteController,
+)
+from .util import build_vote_embed, emojis_text, emojis_unicode, generate_invite_link, is_admin
+
+
+class MovieNightBot(commands.Bot):
+    _server_controller = ServerController()
+    _vote_controller = VoteController()
+    _movie_vote_controller = MovieVoteController()
+    _user_vote_controller = UserVoteController()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger("movienightbot")
+
+    def _is_vote_message(self, server_id: int, channel_id: int, message_id: int) -> bool:
+        try:
+            vote_row = self._vote_controller.get_by_id(server_id)
+            self.logger.debug(f"vote_row: {vote_row}")
+        except pw.DoesNotExist:
+            self.logger.debug(f"No vote found for server {server_id}")
+            return False
+        if not vote_row:
+            # no vote going on so can never be the vote row
+            self.logger.debug(f"Empty vote found for server {server_id}")
+            return False
+        is_message = (vote_row.message_id == message_id) and (vote_row.channel_id == channel_id)
+        self.logger.debug(
+            f"Vote DB channel and message: {vote_row.channel_id} {vote_row.message_id} >> "
+            f"Sent channel and message: {channel_id} {message_id} >> {is_message}",
+        )
+        return is_message
+
+    async def _parse_reaction(self, payload):
+        channel = await bot.fetch_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        user = await bot.fetch_user(payload.user_id)
+        emoji = emojis_unicode.get(payload.emoji.name, None)
+        self.logger.debug(f"raw emoji sent: {type(payload.emoji.name)} {type(payload.emoji)}  >> {emoji}")
+        # Ignore if emojis coming from this bot
+        if user.id == bot.user.id:
+            self.logger.debug("emoji coming from self")
+            emoji = None
+        return message, user, channel.guild.id, emoji
+
+    async def setup_hook(self):
+        commands_dir = Path(__file__).parent.joinpath("commands")
+        commands = []
+        for file in commands_dir.iterdir():
+            if file.is_dir() or file.name.startswith("__") or not file.name.endswith(".py"):
+                continue
+            command = f"movienightbot.commands.{file.stem}"
+            await self.load_extension(command)
+            commands.append(command)
+        self.logger.debug("loaded commands: %s", ", ".join(sorted(commands)))
+
+    async def on_ready(self):
+        self.logger.info(f"Logged in as user {bot.user}")
+
+        auth_url = await generate_invite_link()
+        self.logger.info(f"Bot Invite URL:  {auth_url}")
+
+        synced = await bot.tree.sync()
+        self.logger.info(f"Synced {len(synced)} commands")
+
+        await bot.change_presence(
+            status=discord.Status.idle,
+            activity=discord.Game(name="Tracking your shitty movie taste"),
+        )
+
+    async def on_guild_join(self, guild: discord.Guild):
+        guild_data = {"id": guild.id}
+        self._server_controller.create(guild_data)
+        self.logger.info(f"Registered on new server {guild.name}")
+
+    async def on_guild_remove(self, guild: discord.Guild):
+        with self._server_controller.transaction():
+            server_row = self._server_controller.get_by_id(guild.id)
+            self._server_controller.delete(server_row, recursive=True)
+        self.logger.info(f"Removed from server {guild.name}")
+
+    async def on_raw_reaction_add(self, payload):
+        message, user, server_id, emoji = await self._parse_reaction(payload)
+        self.logger.debug("Reaction {} added to server {}", emoji, server_id)
+        if emoji is None or not self._is_vote_message(server_id, message.channel.id, message.id):
+            self.logger.debug("emoji from self or not vote message")
+            return
+        # Check if user reset votes, and do that if so
+        if emoji == ":arrows_counterclockwise:":
+            movie_votes = self._user_vote_controller.reset_user_votes(server_id, user.id)
+            # Reset the user's emojis for the movies they voted for
+            for movie in movie_votes:
+                await message.remove_reaction(emojis_text[movie.emoji], user)
+            await message.remove_reaction(emojis_text[":arrows_counterclockwise:"], user)
+            return
+
+        with self._movie_vote_controller.transaction():
+            try:
+                movie_vote = self._movie_vote_controller.convert_emoji(server_id, emoji)
+            except pw.DoesNotExist:
+                # Unknown emoji, so nothing to do
+                self.logger.debug("Add vote: Unknkown emoji {} sent", emoji)
+                return
+            self.logger.debug("Got movie vote {}", movie_vote.id)
+            self.logger.info(f"Registering emoji vote {emoji} for {user.id} on {message.guild.name}")
+            self._user_vote_controller.register_vote(user.id, user.display_name, movie_vote)
+
+        # Update the vote message
+        embed = build_vote_embed(server_id)
+        await message.edit(content=None, embed=embed, suppress=False)
+
+    async def on_raw_reaction_remove(self, payload):
+        message, user, server_id, emoji = await self._parse_reaction(payload)
+        if emoji is None or not self._is_vote_message(server_id, message.channel.id, message.id):
+            self.logger.debug("emoji not vote message")
+            return
+
+        with self._movie_vote_controller.transaction():
+            try:
+                movie_vote = self._movie_vote_controller.convert_emoji(server_id, emoji)
+            except pw.DoesNotExist:
+                # Unknown emoji, so nothing to do
+                self.logger.debug(f"Remove Vote: Unknkown emoji {emoji} sent")
+                return
+            self._user_vote_controller.remove_vote(user.id, movie_vote)
+
+        # Update the vote message
+        self.logger.info(f"Removing emoji vote {emoji} for {user.id} on {message.guild.name}")
+        embed = build_vote_embed(server_id)
+        await message.edit(content=None, embed=embed)
+
+
+bot = MovieNightBot(command_prefix="m!", intents=discord.Intents.default())
+
+
+# One built-in command to force commands sync, others must be extensions
+@bot.command(description="[ADMIN COMMAND] force resync of commands.")
+@discord.app_commands.check(is_admin)
+async def sync(interaction: discord.Interaction):
+    synced = await bot.tree.sync(guild=interaction.guild)
+    await interaction.response.send_message(f"Synced {len(synced)} commands", ephemeral=True)
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/util.py</source>
+<document_content>
+import asyncio
+import datetime
+import logging
+import re
+from typing import Optional, Union
+
+import discord
+import imdb
+import peewee as pw
+
+from .db.controllers import MovieVote, MovieVoteController, ServerController
+from .exc import VoteError
+
+logger = logging.getLogger("movienightbot")
+
+
+def is_admin(interaction: discord.Interaction) -> bool:
+    if interaction.user.id == interaction.guild.owner_id:
+        logging.debug("User {} is guild owner", interaction.user.name)
+        return True
+    server_settings = ServerController().get_by_id(interaction.guild.id)
+    for role in interaction.user.roles:
+        if server_settings.admin_role == role.name:
+            logging.debug("User {} is in role {}.", interaction.user.name, server_settings.admin_role)
+            return True
+
+    logging.debug(
+        "User {} is not part of role {}. User has roles {}",
+        interaction.user.name,
+        server_settings.admin_role,
+        str([r.name for r in interaction.user.roles]),
+    )
+    return False
+
+
+async def get_message(channel: discord.TextChannel, msg_id: int) -> Union[None, discord.Message]:
+    """Retrives a message, or returns None if cannot retrieve the message"""
+    try:
+        return await channel.fetch_message(msg_id)
+    except (
+        discord.errors.NotFound,
+        discord.errors.HTTPException,
+        discord.errors.Forbidden,
+    ):
+        return None
+
+
+async def delete_thread(thread: discord.Thread, sec_delay: int = 10) -> None:
+    """Deletes a list of messages off a server
+
+    Parameters
+    ----------
+    thread : List of doscord.Message objects
+        The messages to delete
+    sec_delay : int
+        The number of seconds to wait before deleting the message. Default 10
+
+    """
+    if sec_delay <= 0:
+        # want messages to stay indefinitely so do nothing
+        return
+    await asyncio.sleep(sec_delay)
+    await thread.delete()
+
+
+def build_vote_embed(server_id: int):
+    from movienightbot.application import bot
+
+    server_row = ServerController().get_by_id(server_id)
+    try:
+        movie_rows = MovieVoteController().get_movies_for_server_vote(server_id)
+    except pw.DoesNotExist:
+        raise VoteError(f"No vote started for server {server_id}")  # noqa: B904
+    embed = discord.Embed(
+        title="Movie Vote!",
+        description=f"""Use the emojis to vote on your preferred movies, in the order you would prefer them.
+You may vote for up to {server_row.num_votes_per_user} movies.
+Reset your votes with the :arrows_counterclockwise: emoji.""",
+    )
+    for movie_vote in movie_rows:
+        movie = movie_vote.movie
+        imdb_info = movie.imdb_id
+        movie_info = f"{movie_vote.emoji} {movie.movie_name}"
+        score = f"Score: {movie_vote.score:.2f}"
+        if imdb_info:
+            movie_info += f" ({imdb_info.year})"
+            score += f" - [IMDb Page](https://www.imdb.com/title/tt{imdb_info.imdb_id}/)"
+
+        embed.add_field(
+            name=movie_info,
+            value=score,
+            inline=False,
+        )
+
+    embed.add_field(
+        name="View more details here:",
+        value=f"{bot.config.base_url}/vote.html?server={server_id}",
+        inline=False,
+    )
+    embed.set_footer(text="Movie time is")
+    today = datetime.datetime.utcnow().date()
+    movie_hour, movie_minute = server_row.movie_time.split(":")
+    movie_time = datetime.datetime(
+        year=today.year,
+        month=today.month,
+        day=today.day,
+        hour=int(movie_hour),
+        minute=int(movie_minute),
+        tzinfo=datetime.timezone.utc,
+    )
+    embed.timestamp = movie_time
+    return embed
+
+
+emojis_text = {
+    ":regional_indicator_a:": "🇦",
+    ":regional_indicator_b:": "🇧",
+    ":regional_indicator_c:": "🇨",
+    ":regional_indicator_d:": "🇩",
+    ":regional_indicator_e:": "🇪",
+    ":regional_indicator_f:": "🇫",
+    ":regional_indicator_g:": "🇬",
+    ":regional_indicator_h:": "🇭",
+    ":regional_indicator_i:": "🇮",
+    ":regional_indicator_j:": "🇯",
+    ":regional_indicator_k:": "🇰",
+    ":regional_indicator_l:": "🇱",
+    ":regional_indicator_m:": "🇲",
+    ":regional_indicator_n:": "🇳",
+    ":regional_indicator_o:": "🇴",
+    ":regional_indicator_p:": "🇵",
+    ":regional_indicator_q:": "🇶",
+    ":regional_indicator_r:": "🇷",
+    ":regional_indicator_s:": "🇸",
+    ":regional_indicator_t:": "🇹",
+    ":regional_indicator_u:": "🇺",
+    ":regional_indicator_v:": "🇻",
+    ":regional_indicator_w:": "🇼",
+    ":regional_indicator_x:": "🇽",
+    ":regional_indicator_y:": "🇾",
+    ":regional_indicator_z:": "🇿",
+    ":octagonal_sign:": "🛑",
+    ":arrows_counterclockwise:": "🔄",
+}
+
+
+emojis_unicode = {v: k for k, v in emojis_text.items()}
+
+
+imdb_url_regex = re.compile(r"title/tt([0-9]+)")
+
+
+async def add_vote_emojis(vote_msg: discord.Message, movie_votes: MovieVote):
+    for movie_vote in movie_votes:
+        await vote_msg.add_reaction(emojis_text[movie_vote.emoji])
+    await vote_msg.add_reaction(emojis_text[":arrows_counterclockwise:"])
+
+
+def get_imdb_info(movie_name: str, kind: Optional[str] = None) -> Union[None, imdb.Movie.Movie]:
+    if not movie_name:
+        return None
+
+    im_db = imdb.IMDb()
+    if movie_name.lower().startswith("http"):
+        movie_id = imdb_url_regex.findall(movie_name)
+        logger.debug(f"movie regex: `{movie_name}` >> {movie_id}")
+        if len(movie_id) == 1:
+            imdb_id = movie_id[0]
+        else:
+            return None
+    else:
+        logger.debug(f"searching for `{movie_name}`")
+        results = im_db.search_movie(movie_name)
+        logger.debug("IMDB RESULTS: " + str(results))
+        for r in results:
+            if kind and kind not in r.get("kind", ""):
+                continue
+            if r["title"].lower() == movie_name.lower():
+                logger.debug(f"{movie_name}  Matched {r}")
+                imdb_id = r.movieID
+                break
+        # for/else hell yeah!
+        else:
+            logger.debug(movie_name + "  Unmatched")
+            return None
+
+    return im_db.get_movie(imdb_id)
+
+
+def capitalize_movie_name(movie_name: str) -> str:
+    clean_name = []
+    for word in movie_name.strip().split(" "):
+        if not word:
+            continue
+        clean_name.append(word.capitalize())
+    return " ".join(clean_name)
+
+
+DEFAULT_PERMISSIONS = discord.Permissions(403727019072)
+
+
+async def generate_invite_link(permissions=DEFAULT_PERMISSIONS, guild=None):
+    from movienightbot.application import bot
+
+    app_info = await bot.application_info()
+    args = dict(client_id=app_info.id, permissions=permissions)
+    # Need to do it this way so we don't send guild property at all if it's None. Yay discord.py limitations.
+    if guild is not None:
+        args["guild"] = guild
+    return discord.utils.oauth_url(**args)
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="28">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/cancel_vote.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+from peewee import DoesNotExist
+
+from ..db.controllers import VoteController
+from ..util import get_message, is_admin
+
+vote_controller = VoteController()
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="[ADMIN COMMAND] Cancels the currently running vote.")
+@app_commands.check(is_admin)
+async def cancel_vote(interaction: discord.Interaction):
+    server_id = interaction.guild.id
+    with vote_controller.transaction():
+        try:
+            vote_msg_id = vote_controller.get_by_id(server_id).message_id
+        except DoesNotExist:
+            await interaction.response.send_message("No vote started!", ephemeral=True)
+            return
+
+    vote_controller.cancel_vote(server_id)
+    vote_msg = await get_message(interaction.channel, vote_msg_id)
+    if vote_msg:
+        embed = discord.Embed(
+            title="Vote Cancelled",
+            description="Vote was cancelled. Get better movies.",
+        )
+        await vote_msg.clear_reactions()
+        await vote_msg.edit(content=None, embed=embed)
+        await vote_msg.unpin()
+    await interaction.response.send_message("Vote cancelled")
+
+
+@cancel_vote.error
+async def cancel_vote_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(cancel_vote)
+    logger.info("Loaded cancel_vote command")
+
+</document_content>
+</document>
+<document index="29">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/end_vote.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+from peewee import DoesNotExist
+
+from movienightbot.db.controllers import ServerController, VoteController
+from movienightbot.util import (
+    add_vote_emojis,
+    build_vote_embed,
+    get_message,
+)
+
+vote_controller = VoteController()
+server_controller = ServerController()
+
+logger = logging.getLogger("movienightbot")
+
+
+async def end_vote_task(interaction: discord.Interaction):
+    server_id = interaction.guild.id
+    with vote_controller.transaction():
+        try:
+            vote_msg_id = vote_controller.get_by_id(server_id).message_id
+        except DoesNotExist:
+            await interaction.response.send_message("No vote started!")
+            return
+        winning_movies = vote_controller.end_vote(server_id)
+    # TODO: Make more robust so we don't assume the end message and vote message are in same channel
+    # probably safe for now, only happens if admin changes bot channel in the middle of a vote
+    vote_msg = await get_message(interaction.channel, vote_msg_id)
+    if vote_msg:
+        await vote_msg.clear_reactions()
+    else:
+        # Vote message was deleted or is unavailable, so make a new one
+        vote_msg = await interaction.channel.send("replacement vote message")
+    if len(winning_movies) == 1:
+        winning_movie = winning_movies[0].movie_name
+        imdb_info = winning_movies[0].imdb_id
+        if imdb_info:
+            imdb_url = f"https://www.imdb.com/title/tt{imdb_info.imdb_id}/"
+            imdb_markup_link = f"[IMDb Page]({imdb_url})"
+            imdb_year = f"({imdb_info.year})"
+        else:
+            imdb_url, imdb_markup_link, imdb_year = "", "", ""
+
+        embed = discord.Embed(
+            title=f"Wining movie: {winning_movie} {imdb_year}",
+            description=f"{imdb_markup_link} Use `/set_watched {winning_movie}` to set the movie as watched",
+        )
+        await interaction.response.send_message(
+            f"The winning vote was `{winning_movie}`! "
+            f"To set the movie as watched use the command `/set_watched {winning_movie}`",
+        )
+        await vote_msg.unpin()
+    else:
+        await interaction.response.send_message("There was a tie! Check the vote message for new vote options")
+        with vote_controller.transaction():
+            server_row = server_controller.get_by_id(server_id)
+            if server_row.tie_option == "breaker":
+                vote_row = vote_controller.start_runoff_vote(server_id, vote_msg, winning_movies)
+            elif server_row.tie_option == "random":
+                vote_row = vote_controller.start_vote(server_id)
+                vote_row.message_id = vote_msg.id
+                vote_row.channel_id = vote_msg.channel.id
+                vote_controller.update(vote_row)
+        embed = build_vote_embed(server_id)
+        await add_vote_emojis(vote_msg, vote_row.movie_votes)
+    await vote_msg.edit(content=None, embed=embed)
+
+
+@app_commands.command(description="Ends the currently running vote and displays the winning vote.")
+async def end_vote(interaction: discord.Interaction):
+    await end_vote_task(interaction)
+
+
+@end_vote.error
+async def end_vote_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(end_vote)
+    logger.info("Loaded end_vote command")
+
+</document_content>
+</document>
+<document index="30">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/server_setup_commands.py</source>
+<document_content>
+import logging
+import re
+
+import discord
+from discord import app_commands
+from peewee import DoesNotExist
+
+from movienightbot.db.controllers import MoviesController, ServerController
+from movienightbot.util import capitalize_movie_name
+
+logger = logging.getLogger("movienightbot")
+
+
+class ServerAdmin(app_commands.Group):
+    server_controller = ServerController()
+    movies_controller = MoviesController()
+    time_regex = re.compile(r"^\d{1,2}:\d{2}$")
+
+    @app_commands.command(
+        description="Toggles whether to allow tv shows in the IMDB search results (True) or not (False).",
+    )
+    @app_commands.default_permissions(administrator=True)
+    async def imdb_tv_shows(self, interaction: discord.Interaction, allow_tv_shows: bool):
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            server_row.allow_tv_shows = allow_tv_shows
+            self.server_controller.update(server_row)
+        await interaction.response.send_message(f"Allow IMDB tv show search {allow_tv_shows}")
+
+    @app_commands.command(description="Toggles allowing suggestions.")
+    @app_commands.default_permissions(administrator=True)
+    async def block_suggestions(self, interaction: discord.Interaction, block: bool):
+        server_row = self.server_controller.get_by_id(interaction.guild.id)
+        server_row.block_suggestions = block
+        self.server_controller.update(server_row)
+        suggestions_text = "blocked" if block else "unblocked"
+        await interaction.response.send_message(f"Server suggestions are now {suggestions_text}")
+
+    @app_commands.command(description="Toggles checking suggestions against IMDB database before adding.")
+    @app_commands.default_permissions(administrator=True)
+    async def check_movie_names(self, interaction: discord.Interaction, check_names: bool):
+        server_row = self.server_controller.get_by_id(interaction.guild.id)
+        server_row.check_movie_names = check_names
+        self.server_controller.update(server_row)
+        option = "on" if check_names else "off"
+        await interaction.response.send_message(f"IMDB movie name checks are now {option}")
+
+    @app_commands.command(description="Sets the number of movies that will show up on a vote.")
+    @app_commands.default_permissions(administrator=True)
+    async def movie_option_count(
+        self,
+        interaction: discord.Interaction,
+        num_movies: app_commands.Range[int, 2, 25],
+    ):
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            server_row.num_movies_per_vote = int(num_movies)
+            self.server_controller.update(server_row)
+        await interaction.response.send_message(f"Number of movies per vote updated to {num_movies}")
+
+    @app_commands.command(description="Removes the specified movie from the suggestions list.")
+    @app_commands.default_permissions(administrator=True)
+    async def remove(self, interaction: discord.Interaction, movie: str):
+        movie = capitalize_movie_name(movie)
+        with self.movies_controller.transaction():
+            try:
+                movie_row = self.movies_controller.get_by_server_and_id(server_id=interaction.guild.id, movie=movie)
+            except DoesNotExist:
+                await interaction.response.send_message(f"Movie {movie} has not been suggested", ephemeral=True)
+                return
+            self.movies_controller.delete(movie_row)
+
+        await interaction.response.send_message(f"The movie {movie} has been removed from the list.")
+
+    def _format_server_embed(self, client: discord.Client, server_id: int) -> discord.Embed:
+        ignore_attrs = {"id"}
+        server_row = self.server_controller.get_by_id(server_id)
+        guild_name = client.get_guild(server_row.id)
+        embed = discord.Embed(
+            title=f"{guild_name} Settings",
+            description=f"Current settings for server `{guild_name}`",
+        )
+        for attr, value in server_row.__data__.items():
+            if attr in ignore_attrs:
+                continue
+            if "time" in attr and "timeout" not in attr:
+                value = str(value) + " UTC"
+            embed.add_field(name=attr, value=value, inline=False)
+        return embed
+
+    @app_commands.command(description="View the current server settings")
+    @app_commands.default_permissions(administrator=True)
+    async def server_settings(self, interaction: discord.Interaction):
+        embed_data = self._format_server_embed(interaction.client, interaction.guild.id)
+        await interaction.response.send_message(content=None, embed=embed_data)
+
+    @app_commands.command(
+        description="Sets the role allowed to run admin commands. Server administrators have admin by default",
+    )
+    @app_commands.default_permissions(administrator=True)
+    async def set_admin_role(self, interaction: discord.Interaction, role: str):
+        server_roles = [r.name for r in interaction.guild.roles]
+        if role not in server_roles:
+            await interaction.response.send_message(f"Role not found: {role}.", ephemeral=True)
+            return
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            server_row.admin_role = role
+            self.server_controller.update(server_row)
+        await interaction.response.send_message(f"Admin role updated to {role}")
+
+    @app_commands.command(
+        description="How long before suggestion messages are deleted, in seconds. Set to 0 to disable.",
+    )
+    @app_commands.default_permissions(administrator=True)
+    async def set_message_timeout(
+        self,
+        interaction: discord.Interaction,
+        timeout: app_commands.Range[int, 0, None],
+    ):
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            server_row.message_timeout = timeout
+            self.server_controller.update(server_row)
+        await interaction.response.send_message(f"Message timeout updated to {timeout} seconds")
+
+    @app_commands.command(description="Sets the time when the movie will be watched in 24 hour UTC time.")
+    @app_commands.default_permissions(administrator=True)
+    async def set_movie_time(self, interaction: discord.Interaction, movie_time: str):
+        if not self.time_regex.search(movie_time):
+            await interaction.response.send_message(
+                "Movie time given in invalid format. Must be `HH:MM`", ephemeral=True,
+            )
+            return
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            server_row.movie_time = movie_time
+            self.server_controller.update(server_row)
+        await interaction.response.send_message(f"Movie time updated to {movie_time} UTC")
+
+    @app_commands.command(
+        description="Sets how the bot handles tied votes. `breaker`: revote with ties (default). `random`: new vote",
+    )
+    @app_commands.default_permissions(administrator=True)
+    async def tie_option(self, interaction: discord.Interaction, tie_option: str):
+        tie_options = {"breaker", "random"}
+        if tie_option not in tie_options:
+            await interaction.response.send_message(
+                f"Unknown tiebreaker option given: {tie_option}. Must be one of {''.join(tie_options)}",
+                ephemeral=True,
+            )
+            return
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            server_row.tie_option = tie_option
+            self.server_controller.update(server_row)
+        await interaction.response.send_message(f"Tiebreaker updated to {tie_option}")
+
+    @app_commands.command(description="Number of movies a user can vote for.")
+    @app_commands.default_permissions(administrator=True)
+    async def user_vote_count(
+        self,
+        interaction: discord.Interaction,
+        num_votes_per_user: app_commands.Range[int, 1, 25],
+    ):
+        with self.server_controller.transaction():
+            server_row = self.server_controller.get_by_id(interaction.guild.id)
+            if num_votes_per_user > server_row.num_movies_per_vote:
+                await interaction.response.send_message(
+                    f"Failed to update: Number of votes per user must be <= {server_row.num_movies_per_vote}",
+                    ephemeral=True,
+                )
+                return
+            server_row.num_votes_per_user = int(num_votes_per_user)
+            self.server_controller.update(server_row)
+            await interaction.response.send_message(f"Number of votes per user updated to {num_votes_per_user}")
+
+
+async def setup(bot):
+    bot.tree.add_command(ServerAdmin(name="server", description="Admin commands for MovieNightBot server setup"))
+    logger.info("Loaded server commands")
+
+</document_content>
+</document>
+<document index="31">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/set_genre.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+from peewee import IntegrityError
+
+from movienightbot.db.controllers import GenreController, ServerController
+from movienightbot.util import capitalize_movie_name
+
+genre_controller = GenreController()
+server_controller = ServerController()
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="Adds a genre to a movie manually.")
+async def set_genre(interaction: discord.Interaction, genre: str, movie_name: str):
+    server_id = interaction.guild.id
+    server_row = server_controller.get_by_id(server_id)
+    message_timeout = None if server_row.message_timeout == 0 else server_row.message_timeout
+    genre = genre.lower()
+    movie_name = capitalize_movie_name(movie_name)
+    try:
+        genre_controller.add_genre_to_movie(server_id, movie_name, genre)
+    except IntegrityError as e:
+        logger.debug(f"Genre add error: {server_id} {movie_name} {genre}\n{e}")
+        await interaction.channel.send_message(f"{movie_name} already has genre {genre}", ephemeral=True)
+        return
+    message_timeout = None if message_timeout == 0 else message_timeout
+    await interaction.response.send_message(
+        f"Movie {movie_name} has been updated with genre {genre}",
+        delete_after=message_timeout,
+    )
+
+
+@set_genre.error
+async def set_genre_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(set_genre)
+    logger.info("Loaded set_genre command")
+
+</document_content>
+</document>
+<document index="32">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/set_imdb_id.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+
+from movienightbot.db.controllers import MoviesController, ServerController
+from movienightbot.util import capitalize_movie_name
+
+movies_controller = MoviesController()
+server_controller = ServerController()
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="Overrides the automatically found IMDB id for a movie with the given IMDB id")
+async def set_imdb_id(interaction: discord.Interaction, imdb_id: str, movie: str):
+    server_id = interaction.guild.id
+    server_row = server_controller.get_by_id(server_id)
+    message_timeout = None if server_row.message_timeout == 0 else server_row.message_timeout
+    movie_name = capitalize_movie_name(movie)
+    updated_rows = movies_controller.update_imdb_id(server_id, movie_name, imdb_id)
+
+    if updated_rows == 1:
+        message = f"Movie {movie_name} has been updated to imdb ID {imdb_id}"
+    elif updated_rows == 0:
+        message = f"Unable to update IMDB id for {movie_name}"
+    else:
+        message = f"Movie {movie_name} updated multiple entries to IMDB id {imdb_id}"
+
+    await interaction.response.send_message(message, delete_after=message_timeout)
+
+
+@set_imdb_id.error
+async def set_imdb_id_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(set_imdb_id)
+    logger.info("Loaded set_imdb_id command")
+
+</document_content>
+</document>
+<document index="33">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/set_watched.py</source>
+<document_content>
+import datetime
+import logging
+
+import discord
+from discord import app_commands
+from peewee import DoesNotExist
+
+from movienightbot.db.controllers import MoviesController, ServerController
+from movienightbot.util import capitalize_movie_name
+
+movies_controller = MoviesController()
+server_controller = ServerController()
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="Sets the specified movie to watched. This movie will not show up on future votes.")
+async def set_watched(interaction: discord.Interaction, movie: str):
+    watched = capitalize_movie_name(movie)
+
+    with movies_controller.transaction():
+        try:
+            movie = movies_controller.get_by_server_and_id(server_id=interaction.guild.id, movie=watched)
+        except DoesNotExist:
+            await interaction.response.send_message(f"No movie titled {watched} has been suggested", ephemeral=True)
+            return
+        movie.watched_on = datetime.datetime.utcnow()
+        movies_controller.update(movie)
+
+    server_id = interaction.guild.id
+    server_row = server_controller.get_by_id(server_id)
+    message_timeout = None if server_row.message_timeout == 0 else server_row.message_timeout
+    await interaction.response.send_message(
+        f"{watched} has been set as watched and will no longer show up in future votes.",
+        delete_after=message_timeout,
+    )
+
+
+@set_watched.error
+async def start_vote_error(
+    interaction: discord.Interaction,
+    error: discord.app_commands.errors.DiscordException,
+):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(set_watched)
+    logger.info("Loaded set_watched command")
+
+</document_content>
+</document>
+<document index="34">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/start_vote.py</source>
+<document_content>
+import logging
+from typing import Optional
+
+import discord
+from discord import app_commands
+from peewee import IntegrityError
+
+from movienightbot.db.controllers import VoteController
+from movienightbot.exc import VoteError
+from movienightbot.util import add_vote_emojis, build_vote_embed, is_admin
+
+logger = logging.getLogger("movienightbot")
+
+vote_controller = VoteController()
+
+
+@app_commands.command(description="[ADMIN COMMAND] Starts the vote. Filters to only genre, if given.")
+@app_commands.check(is_admin)
+async def start_vote(interaction: discord.Interaction, genres: Optional[str] = None):
+    if genres:
+        genres = [g.strip() for g in genres.lower().split(",")]
+
+    server_id = interaction.guild.id
+    with vote_controller.transaction():
+        try:
+            vote_row = vote_controller.start_vote(server_id, genres=genres)
+        except IntegrityError:
+            await interaction.response.send_message("Vote already started!", ephemeral=True)
+            return
+        except VoteError:
+            err_msg = "No movies found"
+            if genres:
+                err_msg += f" for genre(s) {', '.join(genres)}"
+            await interaction.response.send_message(err_msg)
+            return
+        embed = build_vote_embed(server_id)
+        vote_msg = await interaction.channel.send(content=None, embed=embed)
+        vote_row.message_id = vote_msg.id
+        vote_row.channel_id = vote_msg.channel.id
+        vote_controller.update(vote_row)
+        await add_vote_emojis(vote_msg, vote_row.movie_votes)
+        await vote_msg.pin()
+
+
+@start_vote.error
+async def start_vote_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(start_vote)
+    logger.info("Loaded start_vote command")
+
+</document_content>
+</document>
+<document index="35">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/suggest.py</source>
+<document_content>
+import logging
+from typing import List, Tuple, Union
+
+import discord
+import imdb
+from discord import app_commands
+from peewee import DoesNotExist, IntegrityError
+
+from movienightbot.db.controllers import (
+    GenreController,
+    IMDBInfo,
+    IMDBInfoController,
+    MoviesController,
+    ServerController,
+)
+from movienightbot.util import capitalize_movie_name, get_imdb_info
+
+logger = logging.getLogger("movienightbot")
+
+movies_controller = MoviesController()
+server_controller = ServerController()
+imdb_controller = IMDBInfoController()
+genre_controller = GenreController()
+
+
+def imdb_data(movie: str, kind: str) -> Tuple[Union[None, IMDBInfo], Union[None, imdb.Movie.Movie]]:
+    suggestion = capitalize_movie_name(movie)
+    imdb_info = get_imdb_info(suggestion, kind=kind)
+    if not imdb_info:
+        return None, None
+    # see if the row already exists
+    try:
+        imdb_row = imdb_controller.get_by_id(imdb_info.movieID)
+    except DoesNotExist:
+        pass
+    else:
+        return imdb_row, imdb_info
+
+    # row doesn't exist, so add it
+    imdb_row_data = {
+        "imdb_id": imdb_info.movieID,
+        "title": imdb_info["title"],
+        "canonical_title": imdb_info.get("canonical title", imdb_info["title"]),
+        "year": imdb_info.get("year", 0),
+        "thumbnail_poster_url": imdb_info.get("cover url", ""),
+        "full_size_poster_url": imdb_info.get("full-size cover url", ""),
+    }
+    try:
+        imdb_row = imdb_controller.create(imdb_row_data)
+    except IntegrityError as e:
+        logger.error(f"IMDB entry insert error: {imdb_data}\n{e!s}")
+        return None, None
+    return imdb_row, imdb_info
+
+
+def add_genre_info(server_id: int, movie_name: str, genres: List[str]) -> None:
+    clean_movie_name = capitalize_movie_name(movie_name)
+    for genre in genres:
+        genre_controller.add_genre_to_movie(server_id, clean_movie_name, genre)
+
+
+@app_commands.command(description="Adds the movie to the suggestions list for future votes.")
+async def suggest(interaction: discord.Interaction, movie: str):
+    await interaction.response.defer()
+    server_id = interaction.guild.id
+    server_row = server_controller.get_by_id(server_id)
+    if server_row.block_suggestions:
+        await interaction.followup.send("Suggestions are currently disabled on the server", ephemeral=True)
+        return
+
+    if server_row.check_movie_names:
+        allow_tv_shows = server_row.allow_tv_shows
+        kind = None if allow_tv_shows else "movie"
+        imdb_row, imdb_info = imdb_data(movie=movie, kind=kind)
+        suggestion = capitalize_movie_name(imdb_row.title) if imdb_row else capitalize_movie_name(movie)
+        if imdb_row is None:
+            await interaction.followup.send("Could not find the movie title you suggested in IMDb.", ephemeral=True)
+            return
+    else:
+        imdb_row, imdb_info = None, None
+        suggestion = capitalize_movie_name(movie)
+
+    movie_data = {
+        "server": server_id,
+        "movie_name": suggestion,
+        "suggested_by": interaction.user.name,
+        "imdb_id": imdb_row,
+    }
+    movie_row = None
+    try:
+        if imdb_row is None:
+            try:
+                movie_row = movies_controller.get_by_server_and_id(server_id, suggestion)
+            except DoesNotExist:
+                # Movie not found, and no IMDB info to go by, so keep going
+                pass
+            else:
+                raise IntegrityError("Already suggested, but no IMDB info given")
+        movies_controller.create(movie_data)
+    except IntegrityError as e:
+        logger.debug(f"Movie insert error: {movie_data}\n{e!s}")
+        movie_status = "watched" if movie_row and movie_row.watched_on else "suggested"
+        await interaction.followup.send(f"{suggestion} has already been {movie_status} in this server.")
+        return
+
+    if imdb_info:
+        try:
+            add_genre_info(server_id, suggestion, imdb_info["genres"])
+        except IntegrityError as e:
+            logger.error(f"Genre insert error: {server_id} {imdb_info['genres']} {suggestion}\n{e}")
+            await interaction.followup.send(f"Error adding suggestion {suggestion}")
+            return
+
+    await interaction.followup.send(
+        f"Your suggestion of {suggestion} ({imdb_row.year if imdb_row else ''}) has been added to the list.",
+    )
+
+
+@suggest.error
+async def suggest_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.followup.send(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(suggest)
+    logger.info("Loaded suggest command")
+
+</document_content>
+</document>
+<document index="36">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/suggested.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="Posts a link to all movies that have been suggested.")
+async def suggested(interaction: discord.Interaction):
+    from ..application import bot
+
+    await interaction.response.send_message(
+        f"Suggestions can be found at {bot.config.base_url}/movies.html?server={interaction.guild.id}&view=suggested",
+    )
+
+
+@suggested.error
+async def suggest_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else..",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(suggested)
+    logger.info("Loaded suggested command")
+
+</document_content>
+</document>
+<document index="37">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/unwatch.py</source>
+<document_content>
+import logging
+
+import discord
+import peewee as pw
+from discord import app_commands
+
+from ..db.controllers import MoviesController, ServerController
+from ..util import capitalize_movie_name, is_admin
+
+server_controller = ServerController()
+movies_controller = MoviesController()
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="[ADMIN COMMAND] Link to all movies that have been suggested.")
+@app_commands.check(is_admin)
+async def unwatch(interaction: discord.Interaction, movie: str):
+    unwatch = capitalize_movie_name(movie)
+    with movies_controller.transaction():
+        try:
+            movie = movies_controller.get_by_server_and_id(server_id=interaction.guild.id, movie=movie)
+        except pw.DoesNotExist:
+            await interaction.response.send_message(f"No movie titled {unwatch} has been watched", ephemeral=True)
+            return
+        movie.watched_on = None
+        movies_controller.update(movie)
+
+    server_id = interaction.guild.id
+    server_row = server_controller.get_by_id(server_id)
+    message_timeout = None if server_row.message_timeout == 0 else server_row.message_timeout
+    await interaction.response.send_message(
+        f"{unwatch} has been set as unwatched and will show up in future votes.",
+        delete_after=message_timeout,
+    )
+
+
+@unwatch.error
+async def suggest_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(unwatch)
+    logger.info("Loaded unwatch command")
+
+</document_content>
+</document>
+<document index="38">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/votes_page.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="Posts a link to the server's vote page.")
+async def votes_page(interaction: discord.Interaction):
+    from ..application import bot
+
+    await interaction.response.send_message(
+        f"The active vote can be found at {bot.config.base_url}/vote.html?server={interaction.guild.id}",
+    )
+
+
+@votes_page.error
+async def votes_page_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(votes_page)
+    logger.info("Loaded votes_page command")
+
+</document_content>
+</document>
+<document index="39">
+<source>/Users/malcolm/dev/MovieNightBot/movienightbot/commands/watched.py</source>
+<document_content>
+import logging
+
+import discord
+from discord import app_commands
+
+logger = logging.getLogger("movienightbot")
+
+
+@app_commands.command(description="Posts a link to all movies that have been watched.")
+async def watched(interaction: discord.Interaction):
+    from ..application import bot
+
+    await interaction.response.send_message(
+        f"Watched movies can be found at {bot.config.base_url}/movies.html?server={interaction.guild.id}&view=watched",
+    )
+
+
+@watched.error
+async def watched_error(interaction: discord.Interaction, error: discord.app_commands.errors.CheckFailure):
+    await interaction.response.send_message(
+        "Something went wrong during the execution of this command. I guess you should just go do something else.",
+        ephemeral=True,
+    )
+    logger.debug(str(error))
+
+
+async def setup(bot):
+    bot.tree.add_command(watched)
+    logger.info("Loaded watched command")
+
+</document_content>
+</document>
+</documents>
