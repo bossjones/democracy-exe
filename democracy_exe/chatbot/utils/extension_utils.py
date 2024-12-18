@@ -8,7 +8,7 @@ import os
 import pathlib
 
 from collections.abc import AsyncIterator, Iterable
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, List
 
 import aiofiles
 
@@ -18,7 +18,8 @@ from loguru import logger
 
 HERE = os.path.dirname(os.path.dirname(__file__))
 
-
+if TYPE_CHECKING:
+    from democracy_exe.chatbot.core.bot import DemocracyBot
 def extensions() -> Iterable[str]:
     """Yield extension module paths.
 
@@ -137,7 +138,7 @@ async def aio_extensions() -> AsyncIterator[str]:
         raise
 
 
-async def load_extensions(bot: commands.Bot, extension_list: list[str]) -> None:
+async def load_extensions(bot: DemocracyBot, extension_list: list[str]) -> None:
     """Load a list of extensions into the bot.
 
     Args:
@@ -158,7 +159,7 @@ async def load_extensions(bot: commands.Bot, extension_list: list[str]) -> None:
             raise
 
 
-async def reload_extension(bot: commands.Bot, extension: str) -> None:
+async def reload_extension(bot: DemocracyBot, extension: str) -> None:
     """Reload a specific extension.
 
     Args:
@@ -169,14 +170,16 @@ async def reload_extension(bot: commands.Bot, extension: str) -> None:
         Exception: If reloading the extension fails
     """
     try:
-        await bot.reload_extension(extension)
+        bot.reload_extension(extension)
         logger.info(f"Reloaded extension: {extension}")
+        await logger.complete()
     except Exception as e:
         logger.error(f"Failed to reload extension {extension}: {e}")
+        await logger.complete()
         raise
 
 
-async def unload_extension(bot: commands.Bot, extension: str) -> None:
+async def unload_extension(bot: DemocracyBot, extension: str) -> None:
     """Unload a specific extension.
 
     Args:
@@ -187,8 +190,10 @@ async def unload_extension(bot: commands.Bot, extension: str) -> None:
         Exception: If unloading the extension fails
     """
     try:
-        await bot.unload_extension(extension)
+        bot.unload_extension(extension)
         logger.info(f"Unloaded extension: {extension}")
+        await logger.complete()
     except Exception as e:
         logger.error(f"Failed to unload extension {extension}: {e}")
+        await logger.complete()
         raise
