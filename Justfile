@@ -858,3 +858,7 @@ generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dptest.xml"
 	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/dpytest.readthedocs.io/en/latest \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dptest.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml"
+	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/docs.aiohttp.org/en/stable/testing.html \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml
