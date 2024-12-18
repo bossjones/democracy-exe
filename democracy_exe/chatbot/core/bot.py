@@ -583,8 +583,7 @@ class DemocracyBot(commands.Bot):
         logger.info(f"Found extensions: {extensions_found}")
 
         try:
-            load_extensions(self, extensions_found)
-            await asyncio.sleep(.1)
+            await load_extensions(self, extensions_found)
         except Exception as e:
             logger.error(f"Failed to load extensions: {e}")
             logger.exception("Extension loading failed")
