@@ -43,12 +43,20 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-async def bot() -> AsyncGenerator[DemocracyBot, None]:
+async def bot(mocker: MockerFixture) -> AsyncGenerator[DemocracyBot, None]:
     """Create a test bot instance.
+
+    Args:
+        mocker: Pytest mocker fixture
 
     Yields:
         DemocracyBot: A configured test bot instance
     """
+    # Mock aiohttp ClientSession
+    mock_session = mocker.AsyncMock()
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
+
+    # Configure intents
     intents = Intents.default()
     intents.message_content = True
     intents.guilds = True
@@ -59,10 +67,29 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
     intents.messages = True
     intents.reactions = True
 
+    # Create bot instance
     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+
+    # Mock bot.user property
+    mock_user = mocker.Mock(spec=discord.ClientUser)
+    mock_user.id = 123456789
+    mock_user.__str__ = mocker.Mock(return_value="TestBot")
+    mocker.patch.object(bot, "_user", mock_user)
+
+    # Mock websocket
+    mock_ws = mocker.AsyncMock()
+    mock_ws.open = False
+    mocker.patch.object(bot, "ws", mock_ws)
+
+    # Configure test environment
+    await bot.setup_hook()
     dpytest.configure(bot)
+
     yield bot
-    await bot.close()
+
+    # Cleanup
+    if hasattr(bot, "session") and not bot.session.closed:
+        await bot.session.close()
 
 
 @pytest.mark.asyncio
@@ -184,26 +211,23 @@ class TestDemocracyBot:
             mocker: Pytest mocker fixture
             caplog: Pytest log capture fixture
         """
-        # Mock the bot.user property
-        mock_user = mocker.Mock(spec=discord.ClientUser)
-        mock_user.id = 123456789
-        mock_user.__str__ = mocker.Mock(return_value="TestBot")
-        bot.user = mock_user
-
         # Mock preload_guild_data
         mock_preload = mocker.AsyncMock(return_value={})
         mocker.patch("democracy_exe.chatbot.core.bot.preload_guild_data", mock_preload)
 
         # Mock bot attributes
-        bot.users = [mock_user]
+        bot.users = [bot.user]
         bot.guilds = [mocker.Mock(spec=discord.Guild)]
 
+        # Call on_ready
         await bot.on_ready()
 
-        assert bot.invite is not None
-        assert bot.invite.startswith("https://discordapp.com/api/oauth2/authorize")
+        # Verify results
+        assert (
+            bot.invite == f"https://discordapp.com/api/oauth2/authorize?client_id={bot.user.id}&scope=bot&permissions=0"
+        )
         assert isinstance(bot.uptime, datetime.datetime)
-        assert "Ready:" in caplog.text
+        assert "Ready: TestBot (ID: 123456789)" in caplog.text
 
     @pytest.mark.asyncio
     async def test_on_message(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
@@ -265,7 +289,7 @@ class TestDemocracyBot:
         original_error = Exception("Test error")
         error = commands.CommandInvokeError(original_error)
         await bot.on_command_error(ctx, error)
-        assert "In test_command:" in caplog.text
+        assert f"In {ctx.command.qualified_name}:" in caplog.text
 
     @pytest.mark.asyncio
     async def test_close(self, bot: DemocracyBot, mocker: MockerFixture) -> None:
@@ -314,12 +338,20 @@ class TestDemocracyBot:
         mock_channel.send = mocker.AsyncMock()
         mocker.patch.object(bot, "get_channel", return_value=mock_channel)
         mocker.patch.object(bot, "wait_until_ready", mocker.AsyncMock())
-        mocker.patch.object(bot, "is_closed", return_value=True)  # Return True to exit the loop immediately
+
+        # Mock is_closed() to return True after first iteration
+        is_closed_mock = mocker.Mock(side_effect=[False, True])
+        mocker.patch.object(bot, "is_closed", is_closed_mock)
+
+        # Mock sleep to avoid actual delay
+        mock_sleep = mocker.AsyncMock()
+        mocker.patch("asyncio.sleep", mock_sleep)
 
         await bot.my_background_task()
 
-        # Verify message was sent
+        # Verify message was sent and sleep was called
         mock_channel.send.assert_called_once_with("1")
+        mock_sleep.assert_called_once_with(60)
 
     @pytest.mark.asyncio
     async def test_on_worker_monitor(self, bot: DemocracyBot, mocker: MockerFixture, caplog: LogCaptureFixture) -> None:
@@ -332,9 +364,20 @@ class TestDemocracyBot:
         """
         # Mock necessary methods
         mocker.patch.object(bot, "wait_until_ready", mocker.AsyncMock())
-        mocker.patch.object(bot, "is_closed", return_value=True)  # Return True to exit the loop immediately
+
+        # Mock is_closed() to return True after first iteration
+        is_closed_mock = mocker.Mock(side_effect=[False, True])
+        mocker.patch.object(bot, "is_closed", is_closed_mock)
+
+        # Mock sleep to avoid actual delay
+        mock_sleep = mocker.AsyncMock()
+        mocker.patch("asyncio.sleep", mock_sleep)
+
+        # Set log level to capture INFO messages
+        caplog.set_level("INFO")
 
         await bot.on_worker_monitor()
 
-        # Verify log message
+        # Verify log message and sleep was called
         assert "Worker monitor iteration: 1" in caplog.text
+        mock_sleep.assert_called_once_with(10)
