@@ -766,6 +766,7 @@ class AioSettings(BaseSettings):
     llm_human_loop_enabled: bool = Field(env="LLM_HUMAN_LOOP_ENABLED", description="Enable human loop", default=False)
     # Tool allowlist
     tool_allowlist: list[str] = ["tavily_search", "magic_function"]
+    extension_allowlist: list[str] = ["democracy_exe.chatbot.cogs.twitter"]
 
     # Tool-specific configuration
     tavily_search_max_results: int = 3

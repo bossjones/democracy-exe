@@ -16,6 +16,8 @@ import pysnooper
 from discord.ext import commands
 from loguru import logger
 
+from democracy_exe.aio_settings import aiosettings
+
 
 HERE = os.path.dirname(os.path.dirname(__file__))
 print(f"HERE: {HERE}")
@@ -44,7 +46,16 @@ def extensions() -> Iterable[str]:
         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
 
     for file in cogs_dir.rglob("*.py"):
-        if file.name != "__init__.py":
+        logger.error(f"file: {file}")
+        logger.error(f"file.name: {file.name}")
+        logger.error(f"aiosettings.extension_allowlist: {aiosettings.extension_allowlist}")
+        module_name = file.name.replace(".py", "")
+        logger.error(f"module_name: {module_name}")
+        logger.error(f"file.name != '__init__.py': {file.name != '__init__.py'}")
+        logger.error(f"module_name in aiosettings.extension_allowlist: {module_name in aiosettings.extension_allowlist}")
+        is_allowed = any(module_name in item for item in aiosettings.extension_allowlist)
+        logger.error(f"is_allowed: {is_allowed}")
+        if file.name != "__init__.py" and is_allowed:
             # Get path relative to the module root
             base_module_dir = pathlib.Path(HERE).parent.parent
 
@@ -102,7 +113,18 @@ class AsyncExtensionIterator:
             self.current_index += 1
 
             # Skip __init__.py files
-            if file.name == "__init__.py" or file.name == "imagecaption.py":
+            logger.error(f"file: {file}")
+            logger.error(f"file.name: {file.name}")
+            logger.error(f"aiosettings.extension_allowlist: {aiosettings.extension_allowlist}")
+            module_name = file.name.replace(".py", "")
+            logger.error(f"module_name: {module_name}")
+            logger.error(f"file.name != '__init__.py': {file.name != '__init__.py'}")
+            logger.error(f"module_name in aiosettings.extension_allowlist: {module_name in aiosettings.extension_allowlist}")
+            is_allowed = any(module_name in item for item in aiosettings.extension_allowlist)
+            logger.error(f"is_allowed: {is_allowed}")
+
+            # if file is __init__.py or not in allowlist, skip
+            if file.name == "__init__.py" or not is_allowed:
                 continue
 
             try:
