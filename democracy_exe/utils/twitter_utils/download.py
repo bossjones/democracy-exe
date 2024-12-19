@@ -28,6 +28,29 @@ from .models import TweetInfo
 from .types import DownloadResult, TweetDownloadMode, TweetMetadata
 
 
+def _get_media_urls(work_dir: str | pathlib.Path) -> list[str]:
+    """Get media URLs from gallery-dl json format.
+
+    Args:
+        data: Gallery-dl json format
+
+    Returns:
+        List of media URLs
+    """
+    # Get downloaded files
+    tree_list = tree(pathlib.Path(work_dir))
+    # import bpdb
+    # bpdb.set_trace()
+    files = [str(p) for p in tree_list]
+    media_files = filter_media(files)
+
+    logger.info(f"tree_list: {tree_list}")
+    logger.info(f"files: {files}")
+    logger.info(f"media_files: {media_files}")
+
+    return media_files
+
+
 async def download_media(url: str, download_dir: str) -> list[str]:
     """Download media from Twitter URL.
 
@@ -117,7 +140,7 @@ async def download_tweet(
             # bpdb.set_trace()
 
             # Parse metadata from info.json
-            metadata = _parse_tweet_metadata(work_dir)
+            metadata = _parse_tweet_metadata(work_dir, url=url)
 
             logger.info(f"metadata: {metadata}")
 
@@ -153,7 +176,7 @@ async def download_tweet(
             )
 
 
-def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
+def _parse_tweet_metadata(work_dir: str, url: str | None = None) -> TweetMetadata:
     """
     Recursively search for and parse tweet metadata from gallery-dl info.json file.
 
@@ -217,39 +240,33 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
             data = json.load(f)
 
         logger.debug(f"data: {data}")
+        data_model = TweetInfo(**data)
+        media_files = _get_media_urls(work_dir)
 
-        import bpdb
-        bpdb.set_trace()
+        res = TweetMetadata(
+            id=str(data_model.tweet_id),
+            url=url,
+            author= data_model.author.name,
+            content=data_model.content,
+            media_urls=media_files,
+            created_at=data_model.date,
+        )
 
-        # Extract metadata from gallery-dl json format
-        tweet_data = data.get("tweet", {})
-        user_data = tweet_data.get("user", {})
+        logger.debug(f"res: {res}")
 
-        media_urls = [media["url"] for media in tweet_data.get("media", []) if "url" in media]
+        return res
 
-        logger.info(f"tweet_data: {tweet_data}")
-        logger.info(f"user_data: {user_data}")
-        logger.info(f"media_urls: {media_urls}")
-
-        return {
-            "id": str(tweet_data.get("id", "")),
-            "url": tweet_data.get("url", ""),
-            "author": user_data.get("name", ""),
-            "content": tweet_data.get("text", ""),
-            "media_urls": media_urls,
-            "created_at": tweet_data.get("created_at", ""),
-        }
 
     except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as ex:
         logger.exception(f"Error parsing tweet metadata: {ex}")
-        print(ex)
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.error(f"Error Class: {ex.__class__!s}")
-        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-        logger.warning(output)
-        logger.error(f"exc_type: {exc_type}")
-        logger.error(f"exc_value: {exc_value}")
-        traceback.print_tb(exc_traceback)
+        # print(ex)
+        # exc_type, exc_value, exc_traceback = sys.exc_info()
+        # logger.error(f"Error Class: {ex.__class__!s}")
+        # output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        # logger.warning(output)
+        # logger.error(f"exc_type: {exc_type}")
+        # logger.error(f"exc_value: {exc_value}")
+        # traceback.print_tb(exc_traceback)
 
         return {
             "id": "",

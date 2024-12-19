@@ -7,8 +7,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict, Union
 
-from pydantic import BaseModel, Field, validator
-from pydantic.datetime_parse import parse_datetime
+from pydantic import BaseModel, Field, field_validator
+from pydantic._internal import _utils
 
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
 
@@ -381,11 +381,20 @@ class TwitterUser(BaseModel):
     description: str = Field(description="The user's profile description/bio")
     url: str | None = Field(None, description="The user's website URL")
 
-    @validator('date', pre=True)
-    def parse_date(cls, v):
-        """Parse date strings that start with 'dt:' prefix."""
-        if isinstance(v, str) and v.startswith('dt:'):
-            return parse_datetime(v[3:])
+    @field_validator('date', mode='before')
+    @classmethod
+    def parse_date(cls, v: Any) -> Any:
+        """Parse date strings that start with 'dt:' prefix.
+
+        Args:
+            v: The value to parse
+
+        Returns:
+            Parsed datetime or original value
+        """
+        if isinstance(v, str):
+            if v.startswith('dt:'):
+                return datetime.fromisoformat(v[3:])
         return v
 
 
@@ -398,11 +407,11 @@ class TwitterMention(BaseModel):
 
 class TweetInfo(BaseModel):
     """Model representing a Twitter tweet info.json file ."""
-    tweet_id: int | range | Any = Field(description="The unique identifier of the tweet")
+    tweet_id: int | Any = Field(description="The unique identifier of the tweet")
     retweet_id: int | Any = Field(0, description="The ID of the original tweet if this is a retweet")
     quote_id: int | Any = Field(0, description="The ID of the quoted tweet if this is a quote tweet")
     reply_id: int | Any | None = Field(None, description="The ID of the tweet this is replying to")
-    conversation_id: int | range | Any = Field(description="The ID of the conversation thread")
+    conversation_id: int | Any = Field(description="The ID of the conversation thread")
     date: datetime | str | Any = Field(description="The timestamp when the tweet was created")
     author: TwitterUser = Field(description="The user who authored the tweet")
     user: TwitterUser = Field(description="The user in whose timeline this tweet appears")
@@ -418,7 +427,7 @@ class TweetInfo(BaseModel):
     mentions: list[TwitterMention] | None = Field(None, description="List of users mentioned in the tweet")
     content: str = Field(description="The text content of the tweet")
     reply_to: str | None = Field(None, description="The screen name of the user being replied to")
-    count: int | range | Any | None = Field(None, description="Number of media items in the tweet")
+    count: int | Any | None = Field(None, description="Number of media items in the tweet")
     category: str = Field("twitter", description="The category identifier for the tweet")
     subcategory: str = Field(description="The subcategory identifier for the tweet")
     type: str | None = Field(None, description="Type of media in the tweet")
@@ -426,13 +435,50 @@ class TweetInfo(BaseModel):
     birdwatch: str | None = Field(None, description="Birdwatch note content if present")
     description: str | None = Field(None, description="Media description/alt text")
 
-    @validator('date', 'date_original', pre=True)
-    def parse_dates(cls, v):
-        """Parse date strings that start with 'dt:' prefix."""
-        if isinstance(v, str) and v.startswith('dt:'):
-            return parse_datetime(v[3:])
+    @field_validator('date', 'date_original', mode='before')
+    @classmethod
+    def parse_dates(cls, v: Any) -> Any:
+        """Parse date strings that start with 'dt:' prefix.
+
+        Args:
+            v: The value to parse
+
+        Returns:
+            Parsed datetime or original value
+        """
+        if isinstance(v, str):
+            if v.startswith('dt:'):
+                return datetime.fromisoformat(v[3:])
         return v
 
     class Config:
         """Pydantic config."""
         extra = "allow"  # Allow extra fields that might be present in test data
+
+
+# from datetime import datetime
+# from typing import List, Optional, Union
+
+# from pydantic import BaseModel, Field
+
+
+# class TweetMetadata(BaseModel):
+#     """Model representing metadata for a tweet."""
+#     id: Optional[str] = Field(None, description="The unique identifier of the tweet")
+#     url: Optional[str] = Field(None, description="The URL of the tweet")
+#     author: Optional[str] = Field(None, description="The author of the tweet")
+#     content: Optional[str] = Field(None, description="The text content of the tweet")
+#     media_urls: Optional[List[str]] = Field(default_factory=list, description="List of media URLs in the tweet")
+#     created_at: Optional[str] = Field(None, description="The timestamp when the tweet was created")
+
+
+# class TweetMetadataReturnModel(BaseModel):
+#     """Model representing the return value for tweet metadata operations."""
+#     success: bool = Field(True, description="Whether the operation was successful")
+#     metadata: Optional[TweetMetadata] = Field(None, description="The tweet metadata if available")
+#     local_files: Optional[List[str]] = Field(default_factory=list, description="List of local file paths")
+#     error: Optional[str] = Field(None, description="Error message if operation failed")
+
+#     class Config:
+#         """Pydantic config."""
+#         arbitrary_types_allowed = True
