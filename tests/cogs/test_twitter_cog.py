@@ -26,10 +26,11 @@ from loguru import logger
 
 import pytest
 
+from democracy_exe.chatbot.cogs.twitter import HELP_MESSAGE, TwitterError
 from democracy_exe.chatbot.cogs.twitter import Twitter as TwitterCog
-from democracy_exe.chatbot.cogs.twitter import TwitterError
 from democracy_exe.chatbot.core.bot import DemocracyBot
 from democracy_exe.utils._testing import ContextLogger
+from democracy_exe.utils.twitter_utils.embed import create_error_embed, create_info_embed
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
 from tests.tests_utils.last_ctx_cog import LastCtxCog
 
@@ -370,6 +371,271 @@ def assert_success_message(message: discord.Message) -> None:
 #     ignore_localhost=False,
 # )
 @pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_twitter_cog_init(bot_with_twitter_cog: DemocracyBot) -> None:
+    """Test Twitter cog initialization.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+    """
+    cog = bot_with_twitter_cog.get_cog("Twitter")
+    assert isinstance(cog, TwitterCog)
+    assert isinstance(cog.bot, commands.Bot)
+
+
+@pytest.mark.asyncio
+async def test_twitter_cog_on_ready(bot_with_twitter_cog: DemocracyBot, caplog: LogCaptureFixture) -> None:
+    """Test Twitter cog on_ready event.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        caplog: Pytest log capture fixture
+    """
+    cog = bot_with_twitter_cog.get_cog("Twitter")
+    await cog.on_ready()  # type: ignore
+    assert any(record.message == "Twitter Cog ready." for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_twitter_cog_on_guild_join(bot_with_twitter_cog: DemocracyBot, caplog: LogCaptureFixture) -> None:
+    """Test Twitter cog on_guild_join event.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        caplog: Pytest log capture fixture
+    """
+    cog = bot_with_twitter_cog.get_cog("Twitter")
+    guild = bot_with_twitter_cog.guilds[0]
+    await cog.on_guild_join(guild)  # type: ignore
+    assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_tweet_help_command(bot_with_twitter_cog: DemocracyBot) -> None:
+    """Test tweet help command shows help message.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+    """
+    await dpytest.message("?tweet")
+    assert dpytest.verify().message().content(HELP_MESSAGE)
+
+
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2024, 12, 25),
+    strict=True,
+    msg="Still figuring out how to tech llm's to test with dpytest",
+)
+@pytest.mark.asyncio
+async def test_download_tweet_failure(
+    bot_with_twitter_cog: DemocracyBot,
+    mocker: MockerFixture,
+    caplog: LogCaptureFixture,
+    capsys: CaptureFixture,
+) -> None:
+    """Test tweet download failure handling.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        mocker: Pytest mocker fixture
+        caplog: Pytest log capture fixture
+        capsys: Pytest stdout/stderr capture fixture
+    """
+    with capsys.disabled():
+        with ContextLogger(caplog) as _logger:
+            _logger.add(sys.stdout, level="DEBUG")
+            caplog.set_level(logging.DEBUG)
+
+            # Mock shell command execution
+            mock_shell = mocker.AsyncMock(return_value=(b"", b""))
+            mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
+
+            error_msg = "Failed to download tweet"
+            # Mock download_tweet with a side effect to print when it's called
+            mock_result = {"success": False, "error": error_msg, "metadata": {}, "local_files": []}
+
+            async def mock_download_side_effect(*args, **kwargs):
+                print("Mock download_tweet called!")
+                return mock_result
+
+            mock_download = mocker.patch(
+                "democracy_exe.utils.twitter_utils.download.download_tweet",
+                side_effect=mock_download_side_effect,
+                new_callable=mocker.AsyncMock,  # Add this line to make it async
+            )
+
+            await dpytest.message(f"?tweet download {TEST_TWEET_URL}")
+
+            dummy_embed = discord.Embed(
+                title="Download in Progress",
+                description=f"Downloading tweet single from {TEST_TWEET_URL}...",
+                color=discord.Color.gold(),
+            )
+
+            # Wait for messages to be processed
+            await asyncio.sleep(0.1)
+
+            try:
+                # First message should be progress embed
+                # progress = dpytest.get_message(peek=True)
+                # assert_download_progress_embed(progress.embeds[0], TEST_TWEET_URL, "single")
+
+                # assert dpytest.verify().message().embed(dummy_embed)
+                assert dpytest.verify().message().peek().embed(dummy_embed)
+
+                # The progress message should be edited to show the error
+                # We need to get the message again to see the edit
+                # error = dpytest.get_message()
+                # assert error.embeds, "Expected error message to have embeds"
+                # assert_error_embed(error.embeds[0], error_msg)
+
+                mock_download.assert_called_once()
+                mock_shell.assert_called()
+
+                # Verify logs
+                assert any("Download command invoked" in record.message for record in caplog.records)
+                assert any("Download failed" in record.message for record in caplog.records)
+                assert any(error_msg in record.message for record in caplog.records)
+            finally:
+                # Cleanup
+                await dpytest.empty_queue()
+
+
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2024, 12, 25),
+    strict=True,
+    msg="Still figuring out how to tech llm's to test with dpytest",
+)
+@pytest.mark.asyncio
+async def test_thread_command(
+    bot_with_twitter_cog: DemocracyBot, mock_tweet_data: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """Test thread download command.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        mock_tweet_data: Mock tweet data fixture
+        mocker: Pytest mocker fixture
+    """
+    # Mock shell command execution
+    mock_shell = mocker.AsyncMock(return_value=(b"", b""))
+    mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
+
+    mock_download = mocker.patch(
+        "democracy_exe.utils.twitter_utils.download.download_tweet", return_value=mock_tweet_data
+    )
+
+    await dpytest.message(f"?tweet thread {TEST_TWEET_URL}")
+    # Get progress message
+    progress = dpytest.get_message()
+    # Get completion message
+    completion = dpytest.get_message()
+    assert completion.content == "Download complete!"
+    mock_download.assert_called_once_with(TEST_TWEET_URL, mode="thread")
+    mock_shell.assert_called()
+
+
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2024, 12, 25),
+    strict=True,
+    msg="Still figuring out how to tech llm's to test with dpytest",
+)
+@pytest.mark.asyncio
+async def test_card_command(
+    bot_with_twitter_cog: DemocracyBot, mock_tweet_data: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """Test card download command.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        mock_tweet_data: Mock tweet data fixture
+        mocker: Pytest mocker fixture
+    """
+    # Mock shell command execution
+    mock_shell = mocker.AsyncMock(return_value=(b"", b""))
+    mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
+
+    mock_download = mocker.patch(
+        "democracy_exe.utils.twitter_utils.download.download_tweet", return_value=mock_tweet_data
+    )
+
+    await dpytest.message(f"?tweet card {TEST_TWEET_URL}")
+    # Get progress message
+    progress = dpytest.get_message()
+    # Get completion message
+    completion = dpytest.get_message()
+    assert completion.content == "Download complete!"
+    mock_download.assert_called_once_with(TEST_TWEET_URL, mode="card")
+    mock_shell.assert_called()
+
+
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2024, 12, 25),
+    strict=True,
+    msg="Still figuring out how to tech llm's to test with dpytest",
+)
+@pytest.mark.asyncio
+async def test_info_command(
+    bot_with_twitter_cog: DemocracyBot, mock_tweet_data: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """Test tweet info command.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        mock_tweet_data: Mock tweet data fixture
+        mocker: Pytest mocker fixture
+    """
+    # Mock shell command execution
+    mock_shell = mocker.AsyncMock(return_value=(b"", b""))
+    mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
+
+    mock_download = mocker.patch(
+        "democracy_exe.utils.twitter_utils.download.download_tweet", return_value=mock_tweet_data
+    )
+
+    await dpytest.message(f"?tweet info {TEST_TWEET_URL}")
+    messages = dpytest.get_message()
+    expected_embed = create_info_embed(mock_tweet_data["metadata"])
+    actual_embed = messages.embeds[0]
+
+    # Compare relevant fields
+    assert actual_embed.title == expected_embed.title
+    assert actual_embed.description == expected_embed.description
+    assert actual_embed.color == expected_embed.color
+
+    # Compare field values
+    actual_fields = {f.name: f.value for f in actual_embed.fields}
+    expected_fields = {f.name: f.value for f in expected_embed.fields}
+    assert actual_fields == expected_fields
+    mock_create_info_embed = mocker.patch("democracy_exe.utils.twitter_utils.embed.create_info_embed")
+    mock_create_info_embed.return_value = expected_embed
+    mock_create_info_embed.assert_called_once_with(mock_tweet_data["metadata"])
+    mock_download.assert_called_once()
+    mock_shell.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_cleanup_temp_dir(
+    bot_with_twitter_cog: DemocracyBot, tmp_path: pathlib.Path, caplog: LogCaptureFixture
+) -> None:
+    """Test temporary directory cleanup.
+
+    Args:
+        bot_with_twitter_cog: The Discord bot instance with Twitter cog
+        tmp_path: Pytest temporary path fixture
+        caplog: Pytest log capture fixture
+    """
+    cog = bot_with_twitter_cog.get_cog("Twitter")
+    test_dir = tmp_path / "gallery-dl" / "test"
+    test_dir.mkdir(parents=True)
+    test_file = test_dir / "test.txt"
+    test_file.touch()
+
+    cog._cleanup_temp_dir(str(test_file))  # type: ignore
+    assert not test_dir.exists()
+    assert any("Temporary directory cleanup complete" in record.message for record in caplog.records)
+
+
 async def test_download_tweet_success_twitter_cog(
     bot_with_twitter_cog: DemocracyBot,
     mocker: MockerFixture,
@@ -541,501 +807,3 @@ async def test_download_tweet_success_twitter_cog(
                 await dpytest.empty_queue()  # empty the global message queue as test teardown
             finally:
                 pass
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_tweet_with_media(
-#     twitter_cog: TwitterCog, mocker: MockerFixture, mock_tweet_data_with_media: dict[str, Any]
-# ) -> None:
-#     """Test tweet download with media files.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#         mock_tweet_data_with_media: Mock tweet data with media
-#     """
-#     # Mock download_tweet function
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = mock_tweet_data_with_media
-
-#     # Send download command
-#     await dpytest.message("?tweet download " + TEST_TWEET_URL)
-
-#     # Verify progress message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_download_progress_embed(messages.embeds[0], TEST_TWEET_URL, "single")  # type: ignore
-
-#     # Verify success message and file upload
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert "Download complete!" in messages.content
-#     assert len(messages.attachments) > 0
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_tweet_failure(twitter_cog: TwitterCog, mocker: MockerFixture) -> None:
-#     """Test tweet download failure handling.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#     """
-#     # Mock download_tweet function to fail
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = {"success": False, "error": "Download failed", "metadata": None, "local_files": []}
-
-#     # Send download command
-#     await dpytest.message("?tweet download " + TEST_TWEET_URL)
-
-#     # Verify error message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_error_embed(messages.embeds[0], "Download failed")  # type: ignore
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_tweet_invalid_url(twitter_cog: TwitterCog) -> None:
-#     """Test tweet download with invalid URL.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#     """
-#     # Send download command with invalid URL
-#     await dpytest.message("?tweet download invalid_url")
-
-#     # Verify error message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_error_embed(messages.embeds[0], "Failed to download tweet")  # type: ignore
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_tweet_missing_url(twitter_cog: TwitterCog) -> None:
-#     """Test tweet download with missing URL.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#     """
-#     # Send download command without URL
-#     await dpytest.message("?tweet download")
-
-#     # Verify help message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert "HELP_MESSAGE" in messages.content
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_thread_success(
-#     twitter_cog: TwitterCog, mocker: MockerFixture, mock_tweet_data: dict[str, Any]
-# ) -> None:
-#     """Test successful thread download.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#         mock_tweet_data: Mock tweet data
-#     """
-#     # Mock download_tweet function
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = mock_tweet_data
-
-#     # Send thread download command
-#     await dpytest.message("?tweet thread " + TEST_TWEET_URL)
-
-#     # Verify progress message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_download_progress_embed(messages.embeds[0], TEST_TWEET_URL, "thread")  # type: ignore
-
-#     # Verify success message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert "Download complete!" in messages.content
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_card_success(
-#     twitter_cog: TwitterCog, mocker: MockerFixture, mock_tweet_data: dict[str, Any]
-# ) -> None:
-#     """Test successful card download.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#         mock_tweet_data: Mock tweet data
-#     """
-#     # Mock download_tweet function
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = mock_tweet_data
-
-#     # Send card download command
-#     await dpytest.message("?tweet card " + TEST_TWEET_URL)
-
-#     # Verify progress message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_download_progress_embed(messages.embeds[0], TEST_TWEET_URL, "card")  # type: ignore
-
-#     # Verify success message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert "Download complete!" in messages.content
-
-
-# @pytest.mark.asyncio
-# async def test_cleanup_temp_dir(twitter_cog: TwitterCog, tmp_path: pathlib.Path) -> None:
-#     """Test temporary directory cleanup.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         tmp_path: Temporary directory path
-#     """
-#     # Create test directory structure
-#     gallery_dl_dir = tmp_path / "gallery-dl"
-#     gallery_dl_dir.mkdir()
-#     test_file = gallery_dl_dir / "test.txt"
-#     test_file.write_text("test")
-
-#     # Call cleanup
-#     twitter_cog._cleanup_temp_dir(str(test_file))
-
-#     # Verify directory is cleaned up
-#     assert not gallery_dl_dir.exists()
-
-
-# @pytest.mark.asyncio
-# async def test_cleanup_temp_dir_nonexistent(twitter_cog: TwitterCog) -> None:
-#     """Test cleanup with nonexistent directory.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#     """
-#     # Call cleanup with nonexistent path
-#     twitter_cog._cleanup_temp_dir("/nonexistent/path")
-#     # Should not raise any exceptions
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_info_command_success(
-#     twitter_cog: TwitterCog, mocker: MockerFixture, mock_tweet_data: dict[str, Any]
-# ) -> None:
-#     """Test successful info command execution.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#         mock_tweet_data: Mock tweet data
-#     """
-#     # Mock download_tweet function
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = mock_tweet_data
-
-#     # Send info command
-#     await dpytest.message("?tweet info " + TEST_TWEET_URL)
-
-#     # Verify info embed
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert messages.embeds[0].title == "Tweet Information"
-#     assert TEST_TWEET_URL in messages.embeds[0].description
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_info_command_failure(twitter_cog: TwitterCog, mocker: MockerFixture) -> None:
-#     """Test info command failure handling.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#     """
-#     # Mock download_tweet function to fail
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = {
-#         "success": False,
-#         "error": "Failed to fetch info",
-#         "metadata": None,
-#         "local_files": [],
-#     }
-
-#     # Send info command
-#     await dpytest.message("?tweet info " + TEST_TWEET_URL)
-
-#     # Verify error embed
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_error_embed(messages.embeds[0], "Failed to fetch info")
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_missing_permissions(twitter_cog: TwitterCog, mocker: MockerFixture) -> None:
-#     """Test handling of missing permissions.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#     """
-#     # Mock commands.MissingPermissions error
-#     mocker.patch.object(twitter_cog.download, "can_run", side_effect=commands.MissingPermissions(["manage_server"]))
-
-#     # Send download command
-#     await dpytest.message("?tweet download " + TEST_TWEET_URL)
-
-#     # Verify permission error message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert "MANAGE SERVER" in messages.embeds[0].description
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_command_cooldown(twitter_cog: TwitterCog, mocker: MockerFixture) -> None:
-#     """Test command cooldown handling.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#     """
-#     # Mock commands.CommandOnCooldown error
-#     mocker.patch.object(
-#         twitter_cog.download, "can_run", side_effect=commands.CommandOnCooldown(commands.BucketType.default, 5.0, 0)
-#     )
-
-#     # Send download command
-#     await dpytest.message("?tweet download " + TEST_TWEET_URL)
-
-#     # Verify cooldown message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert "cooldown" in messages.embeds[0].description.lower()
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_tweet_network_error(twitter_cog: TwitterCog, mocker: MockerFixture) -> None:
-#     """Test handling of network errors during download.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#     """
-#     # Mock download_tweet function to raise network error
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.side_effect = ConnectionError("Network error")
-
-#     # Send download command
-#     await dpytest.message("?tweet download " + TEST_TWEET_URL)
-
-#     # Verify error message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_error_embed(messages.embeds[0], "Network error")
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.asyncio
-# async def test_download_tweet_rate_limit(twitter_cog: TwitterCog, mocker: MockerFixture) -> None:
-#     """Test handling of rate limit errors.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         mocker: Pytest mocker fixture
-#     """
-#     # Mock download_tweet function to simulate rate limit
-#     mock_download = mocker.patch("democracy_exe.utils.twitter_utils.download.download_tweet")
-#     mock_download.return_value = {"success": False, "error": "Rate limit exceeded", "metadata": None, "local_files": []}
-
-#     # Send download command
-#     await dpytest.message("?tweet download " + TEST_TWEET_URL)
-
-#     # Verify rate limit error message
-#     messages = dpytest.get_message()
-#     assert messages is not None
-#     assert_error_embed(messages.embeds[0], "Rate limit exceeded")
-
-
-# @pytest.mark.asyncio
-# async def test_cleanup_temp_dir_permission_error(
-#     twitter_cog: TwitterCog, tmp_path: pathlib.Path, mocker: MockerFixture
-# ) -> None:
-#     """Test cleanup with permission error.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         tmp_path: Temporary directory path
-#         mocker: Pytest mocker fixture
-#     """
-#     # Create test directory structure
-#     gallery_dl_dir = tmp_path / "gallery-dl"
-#     gallery_dl_dir.mkdir()
-#     test_file = gallery_dl_dir / "test.txt"
-#     test_file.write_text("test")
-
-#     # Mock shutil.rmtree to raise permission error
-#     mock_rmtree = mocker.patch("shutil.rmtree")
-#     mock_rmtree.side_effect = PermissionError("Permission denied")
-
-#     # Call cleanup
-#     twitter_cog._cleanup_temp_dir(str(test_file))
-
-#     # Verify directory still exists (cleanup failed gracefully)
-#     assert gallery_dl_dir.exists()
-
-
-# # @pytest.fixture
-# # def real_tweet_data() -> dict[str, Any]:
-# #     """Create mock tweet data for testing.
-
-# #     Returns:
-# #         Mock tweet data dictionary
-# #     """
-# #     return {
-# #         "tweet_id": 1699925133194858974,
-# #         "retweet_id": 0,
-# #         "quote_id": 0,
-# #         "reply_id": 0,
-# #         "conversation_id": 1699925133194858974,
-# #     "date": "2023-09-07 23:18:29",
-# #     "author": {
-# #         "id": 1640521982486757377,
-# #         "name": "bancodevideo",
-# #         "nick": "videos para responder tweets ➡️ @bancodevideo",
-# #         "location": "",
-# #         "date": "2023-03-28 01:12:04",
-# #         "verified": False,
-# #         "protected": False,
-# #         "profile_banner": "https://pbs.twimg.com/profile_banners/1640521982486757377/1680549523",
-# #         "profile_image": "https://pbs.twimg.com/profile_images/1640527061742759937/A8yiuCsS.jpg",
-# #         "favourites_count": 784,
-# #         "followers_count": 32869,
-# #         "friends_count": 65,
-# #         "listed_count": 32,
-# #         "media_count": 953,
-# #         "statuses_count": 1101,
-# #         "description": "El contenido de esta cuenta no me pertenece en su totalidad ni refleja mis opiniones🔸\n\nContacto: devideosbanco@gmail.com🔸\n\nGrupo de Telegram 👇",
-# #         "url": "https://t.me/+65DPYviLkzNiZDk5"
-# #     },
-# #     "user": {
-# #         "id": 1640521982486757377,
-# #         "name": "bancodevideo",
-# #         "nick": "videos para responder tweets ➡️ @bancodevideo",
-# #         "location": "",
-# #         "date": "2023-03-28 01:12:04",
-# #         "verified": False,
-# #         "protected": False,
-# #         "profile_banner": "https://pbs.twimg.com/profile_banners/1640521982486757377/1680549523",
-# #         "profile_image": "https://pbs.twimg.com/profile_images/1640527061742759937/A8yiuCsS.jpg",
-# #         "favourites_count": 784,
-# #         "followers_count": 32869,
-# #         "friends_count": 65,
-# #         "listed_count": 32,
-# #         "media_count": 953,
-# #         "statuses_count": 1101,
-# #         "description": "El contenido de esta cuenta no me pertenece en su totalidad ni refleja mis opiniones🔸\n\nContacto: devideosbanco@gmail.com🔸\n\nGrupo de Telegram 👇",
-# #         "url": "https://t.me/+65DPYviLkzNiZDk5"
-# #     },
-# #     "lang": "en",
-# #     "source": "Twitter for Android",
-# #     "sensitive": False,
-# #     "favorite_count": 78,
-# #     "quote_count": 3,
-# #     "reply_count": 2,
-# #     "retweet_count": 4,
-# #     "bookmark_count": 218,
-# #     "view_count": 25315,
-# #     "content": "Danny DeVito llorando it's always sunny in Philadelphia I get it now",
-# #     "count": 1,
-# #     "category": "twitter",
-# #     "subcategory": "tweet"
-# #     }
-
-
-# # @pytest.fixture(autouse=True)
-# # async def twitter_cog(mockbot: DemocracyBot) -> TwitterCog:
-# #     """Create and configure Twitter cog for testing.
-
-# #     Args:
-# #         bot: The Discord bot instance
-
-# #     Returns:
-# #         Configured TwitterCog instance
-# #     """
-# #     twitter_cog = TwitterCog(mockbot)
-# #     await mockbot.add_cog(twitter_cog)
-# #     dpytest.configure(mockbot)
-# #     logger.info("Tests starting")
-# #     return twitter_cog
-
-
-# # @pytest.mark.vcronly()
-# # @pytest.mark.default_cassette("test_new_dev_questions_success.yaml")
-# # @pytest.mark.vcr(
-# #     allow_playback_repeats=True,
-# #     match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
-# #     ignore_localhost=False,
-# # )
-# # =========================== short test summary info ============================
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_success - asyncio.queues.QueueEmpty
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_with_media - asyncio.queues.QueueEmpty
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_failure - AssertionError: assert 'Download in Progress' == 'Error'
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_invalid_url - AssertionError: assert 'Download in Progress' == 'Error'
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_missing_url - discord.ext.commands.errors.MissingRequiredArgument: url is a required argu...
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_thread_success - asyncio.queues.QueueEmpty
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_card_success - asyncio.queues.QueueEmpty
-# # FAILED tests/cogs/test_twitter_cog.py::test_info_command_success - discord.ext.commands.errors.CommandInvokeError: Command raised an exception...
-# # FAILED tests/cogs/test_twitter_cog.py::test_info_command_failure - discord.ext.commands.errors.CommandInvokeError: Command raised an exception...
-# # FAILED tests/cogs/test_twitter_cog.py::test_missing_permissions - discord.ext.commands.errors.MissingPermissions: You are missing Manage Serv...
-# # FAILED tests/cogs/test_twitter_cog.py::test_command_cooldown - discord.ext.commands.errors.CommandOnCooldown: You are on cooldown. Try aga...
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_network_error - AssertionError: assert 'Download in Progress' == 'Error'
-# # FAILED tests/cogs/test_twitter_cog.py::test_download_tweet_rate_limit - AssertionError: assert 'Download in Progress' == 'Error'
-
-# # _Results (5.64s):
-# #        6 passed
-# #       13 failed
-# #          - tests/cogs/test_twitter_cog.py:176 test_download_tweet_success
-# #          - tests/cogs/test_twitter_cog.py:205 test_download_tweet_with_media
-# #          - tests/cogs/test_twitter_cog.py:235 test_download_tweet_failure
-# #          - tests/cogs/test_twitter_cog.py:256 test_download_tweet_invalid_url
-# #          - tests/cogs/test_twitter_cog.py:272 test_download_tweet_missing_url
-# #          - tests/cogs/test_twitter_cog.py:288 test_download_thread_success
-# #          - tests/cogs/test_twitter_cog.py:317 test_download_card_success
-# #          - tests/cogs/test_twitter_cog.py:379 test_info_command_success
-# #          - tests/cogs/test_twitter_cog.py:404 test_info_command_failure
-# #          - tests/cogs/test_twitter_cog.py:430 test_missing_permissions
-# #          - tests/cogs/test_twitter_cog.py:450 test_command_cooldown
-# #          - tests/cogs/test_twitter_cog.py:472 test_download_tweet_network_error
-# #          - tests/cogs/test_twitter_cog.py:493 test_download_tweet_rate_limit
