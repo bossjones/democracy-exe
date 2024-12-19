@@ -31,7 +31,8 @@ from democracy_exe.chatbot.cogs.twitter import Twitter as TwitterCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
 from democracy_exe.utils._testing import ContextLogger
 from democracy_exe.utils.twitter_utils.embed import create_error_embed, create_info_embed
-from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
+from democracy_exe.utils.twitter_utils.models import TweetInfo
+from democracy_exe.utils.twitter_utils.types import TweetDownloadMode, TweetMetadata
 from tests.tests_utils.last_ctx_cog import LastCtxCog
 
 
@@ -651,6 +652,7 @@ async def test_download_tweet_success_twitter_cog(
     bot_with_twitter_cog: DemocracyBot,
     mocker: MockerFixture,
     mock_aio_tweet_data_with_media: tuple[dict[str, Any], pathlib.Path],
+    mock_tweet_metadata: TweetMetadata,
     caplog: LogCaptureFixture,
     capsys: CaptureFixture,
 ) -> None:
@@ -712,33 +714,35 @@ async def test_download_tweet_success_twitter_cog(
             async with aiofiles.open(info_json, mode="w", encoding="utf-8") as f:
                 await f.write(json.dumps(info_data))  # type: ignore[arg-type]
 
-            # Create mock data dictionary
-            data = {
-                "success": True,
-                "metadata": {
-                    "id": "123456789",
-                    "url": TEST_TWEET_URL,
-                    "author": "test_user",
-                    "content": "Test tweet content",
-                    "media_urls": [],
-                    "created_at": "2024-01-01",
-                },
-                "local_files": [],
-                "error": None,
-            }
-            data.update({
-                "success": True,
-                "metadata": {
-                    "id": "123456789",
-                    "url": TEST_TWEET_URL,
-                    "author": "test_user",
-                    "content": "Test tweet with media content",
-                    "media_urls": ["https://test.com/video.mp4", "https://test.com/image.jpg"],
-                    "created_at": "2024-01-01",
-                },
-                "local_files": [str(test_video), str(test_image)],
-                "error": None,
-            })
+            # ********************************************* (testing this out) ********************************
+            # # Create mock data dictionary
+            # data = {
+            #     "success": True,
+            #     "metadata": {
+            #         "id": "123456789",
+            #         "url": TEST_TWEET_URL,
+            #         "author": "test_user",
+            #         "content": "Test tweet content",
+            #         "media_urls": [],
+            #         "created_at": "2024-01-01",
+            #     },
+            #     "local_files": [],
+            #     "error": None,
+            # }
+            # data.update({
+            #     "success": True,
+            #     "metadata": {
+            #         "id": "123456789",
+            #         "url": TEST_TWEET_URL,
+            #         "author": "test_user",
+            #         "content": "Test tweet with media content",
+            #         "media_urls": ["https://test.com/video.mp4", "https://test.com/image.jpg"],
+            #         "created_at": "2024-01-01",
+            #     },
+            #     "local_files": [str(test_video), str(test_image)],
+            #     "error": None,
+            # })
+            data = mock_tweet_metadata
 
             # ********************************************* (testing this out) ********************************
 
@@ -818,3 +822,53 @@ async def test_download_tweet_success_twitter_cog(
                 await dpytest.empty_queue()  # empty the global message queue as test teardown
             finally:
                 pass
+
+
+@pytest_asyncio.fixture
+async def mock_tweet_info_data() -> AsyncGenerator[dict[str, Any], None]:
+    """Load mock tweet info data from fixture file.
+
+    Yields:
+        dict[str, Any]: Mock tweet info data
+    """
+    async with aiofiles.open("tests/fixtures/info.json", encoding="utf-8") as f:
+        content = await f.read()
+        data = json.loads(content)
+        yield data
+
+
+@pytest_asyncio.fixture
+async def mock_tweet_media_data() -> AsyncGenerator[dict[str, Any], None]:
+    """Load mock tweet media data from fixture file.
+
+    Yields:
+        dict[str, Any]: Mock tweet media data
+    """
+    async with aiofiles.open(
+        "tests/fixtures/Eminitybaba_-1868256259251863704-(20241215_112617)-img1.mp4.json", encoding="utf-8"
+    ) as f:
+        content = await f.read()
+        data = json.loads(content)
+        yield data
+
+
+@pytest_asyncio.fixture
+async def mock_tweet_metadata(mock_tweet_info_data: dict[str, Any]) -> AsyncGenerator[TweetMetadata, None]:
+    """Convert mock tweet info data into TweetMetadata object.
+
+    Args:
+        mock_tweet_info_data: Mock tweet info data from fixture
+
+    Yields:
+        TweetMetadata: Converted tweet metadata object
+    """
+    data_model = TweetInfo(**mock_tweet_info_data)
+    metadata = TweetMetadata(
+        id=str(data_model.tweet_id),
+        url=TEST_TWEET_URL,  # Using the test URL constant
+        author=data_model.author.name,  # pylint: disable=no-member
+        content=data_model.content,
+        media_urls=[],  # This would typically come from _get_media_urls
+        created_at=data_model.date,
+    )
+    yield metadata

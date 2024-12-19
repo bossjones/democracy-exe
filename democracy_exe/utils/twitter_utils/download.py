@@ -246,7 +246,7 @@ def _parse_tweet_metadata(work_dir: str, url: str | None = None) -> TweetMetadat
         res = TweetMetadata(
             id=str(data_model.tweet_id),
             url=url,
-            author= data_model.author.name,
+            author= data_model.author.name, # pylint: disable=no-member
             content=data_model.content,
             media_urls=media_files,
             created_at=data_model.date,
