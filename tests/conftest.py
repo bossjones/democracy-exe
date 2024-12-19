@@ -575,12 +575,12 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
     intents.messages = True
     intents.guilds = True
 
-    # set up the loop
-    if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
-        await test_bot._async_setup_hook()  # type: ignore
-
     # Create DemocracyBot with test configuration
     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+
+    # set up the loop
+    if isinstance(bot.loop, _LoopSentinel):  # type: ignore
+        await bot._async_setup_hook()  # type: ignore
 
     # Add test-specific error handling
     @bot.event
@@ -703,42 +703,42 @@ def test_data() -> dict[str, Any]:
     }
 
 
-@pytest.fixture(autouse=True)
-def setup_logging(caplog: LogCaptureFixture) -> None:
-    """Configure logging for test environment.
+# @pytest.fixture(autouse=True)
+# def setup_logging(caplog: LogCaptureFixture) -> None:
+#     """Configure logging for test environment.
 
-    Args:
-        caplog: Pytest log capture fixture
-    """
-    import logging
+#     Args:
+#         caplog: Pytest log capture fixture
+#     """
+#     import logging
 
-    caplog.set_level(logging.DEBUG)
+#     caplog.set_level(logging.DEBUG)
 
-    # Add test-specific logging format
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    for handler in logging.getLogger().handlers:
-        handler.setFormatter(formatter)
-
-
-@pytest.fixture(autouse=True)
-def setup_test_state() -> Generator[None, None, None]:
-    """Setup test state for all tests."""
-    global is_dpytest, is_test_environment
-    is_dpytest = True
-    is_test_environment = True
-    yield
-    is_dpytest = False
-    is_test_environment = False
+#     # Add test-specific logging format
+#     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+#     for handler in logging.getLogger().handlers:
+#         handler.setFormatter(formatter)
 
 
-@pytest.fixture
-def event_loop():
-    """Create an event loop for testing.
+# @pytest.fixture(autouse=True)
+# def setup_test_state() -> Generator[None, None, None]:
+#     """Setup test state for all tests."""
+#     global is_dpytest, is_test_environment
+#     is_dpytest = True
+#     is_test_environment = True
+#     yield
+#     is_dpytest = False
+#     is_test_environment = False
 
-    Returns:
-        AbstractEventLoop: The event loop
-    """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
+
+# @pytest.fixture
+# def event_loop():
+#     """Create an event loop for testing.
+
+#     Returns:
+#         AbstractEventLoop: The event loop
+#     """
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     yield loop
+#     loop.close()

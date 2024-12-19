@@ -195,7 +195,11 @@ class Twitter(commands.Cog):
                     if aiosettings.dev_mode:
                         bpdb.pm()
 
-            await progress.edit(content="Download complete!", embed=embed)
+            # Send completion message first
+            await ctx.send("Download complete!")
+            # Then update progress embed
+            await progress.edit(embed=embed)
+            # Finally send any files
             if files:
                 logger.debug(f"Uploading {len(files)} media files")
                 await ctx.send(files=files)

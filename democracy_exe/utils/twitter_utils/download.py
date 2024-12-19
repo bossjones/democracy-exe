@@ -8,7 +8,9 @@ import json
 import logging
 import os
 import pathlib
+import sys
 import tempfile
+import traceback
 
 from typing import Any, Dict, List, Optional
 
@@ -79,6 +81,7 @@ async def download_tweet(
     # Use temporary dir if none provided
     with tempfile.TemporaryDirectory(delete=False) as tmpdirname:
         work_dir = working_dir or tmpdirname
+        logger.info(f"work_dir: {work_dir}")
 
         try:
             # Select command based on mode
@@ -100,11 +103,22 @@ async def download_tweet(
 
             # Get downloaded files
             tree_list = tree(pathlib.Path(work_dir))
+            # import bpdb
+            # bpdb.set_trace()
             files = [str(p) for p in tree_list]
             media_files = filter_media(files)
 
+            logger.info(f"tree_list: {tree_list}")
+            logger.info(f"files: {files}")
+            logger.info(f"media_files: {media_files}")
+
+            # import bpdb
+            # bpdb.set_trace()
+
             # Parse metadata from info.json
             metadata = _parse_tweet_metadata(work_dir)
+
+            logger.info(f"metadata: {metadata}")
 
             return DownloadResult(
                 success=True,
@@ -115,6 +129,14 @@ async def download_tweet(
 
         except Exception as e:
             logger.exception(f"Error downloading tweet: {e}")
+            print(f"{e}")
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print(f"Error Class: {e.__class__}")
+            output = f"[UNEXPECTED] {type(e).__name__}: {e}"
+            print(output)
+            print(f"exc_type: {exc_type}")
+            print(f"exc_value: {exc_value}")
+            traceback.print_tb(exc_traceback)
             return DownloadResult(
                 success=False,
                 metadata={
@@ -140,15 +162,38 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
     Returns:
         Dictionary containing tweet metadata
     """
-    def find_info_json(directory: pathlib.Path) -> pathlib.Path:
-        for root, _, files in os.walk(directory):
+    def find_info_json(directory: pathlib.Path) -> pathlib.Path | None:
+        """Recursively search for info.json file.
+
+        Args:
+            directory: Starting directory for search
+
+        Returns:
+            Path to info.json if found, None otherwise
+        """
+        logger.info(f"Searching for info.json in: {directory}")
+
+        # Check if directory exists
+        if not directory.exists():
+            logger.warning(f"Directory does not exist: {directory}")
+            return None
+
+        # Walk through directory tree
+        for root, dirs, files in os.walk(directory):
+            logger.debug(f"Checking directory: {root}")
+            logger.debug(f"Found files: {files}")
+
             if 'info.json' in files:
-                return pathlib.Path(root) / 'info.json'
-        return pathlib.Path()
+                info_path = pathlib.Path(root) / 'info.json'
+                logger.info(f"Found info.json at: {info_path}")
+                return info_path
+
+        logger.warning(f"No info.json found in {directory} or its subdirectories")
+        return None
 
     info_path = find_info_json(pathlib.Path(work_dir))
 
-    if not info_path.exists():
+    if info_path is None or not info_path.exists():
         logger.warning(f"No info.json found in {work_dir} or its subdirectories")
         return {
             "id": "",
