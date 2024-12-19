@@ -470,16 +470,16 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """
     # dat files are created when using attachments
     print("\n-------------------------\nClean dpytest_*.dat files")
-    filelist = glob.glob("./dpytest_*.dat")
+    filelist: list[str] = glob.glob("./dpytest_*.dat")
     for filepath in filelist:
         try:
-            os.remove(filepath)
-        except Exception:
-            print("Error while deleting file : ", filepath)
+            os.remove(filepath)  # Use sync version since this is cleanup
+        except OSError as e:
+            print(f"Error while deleting file {filepath}: {e}")
 
 
-@pytest.fixture()
-def mock_ebook_txt_file(tmp_path: Path) -> Path:
+@pytest_asyncio.fixture()
+async def mock_ebook_txt_file(tmp_path: Path) -> Path:
     """
     Fixture to create a mock text file for testing purposes.
 
@@ -498,7 +498,7 @@ def mock_ebook_txt_file(tmp_path: Path) -> Path:
     test_ebook_txt_path: Path = (
         tmp_path / "The Project Gutenberg eBook of A Christmas Carol in Prose; Being a Ghost Story of Christmas.txt"
     )
-    shutil.copy(
+    shutil.copy2(
         "democracy_exe/data/chroma/documents/The Project Gutenberg eBook of A Christmas Carol in Prose; Being a Ghost Story of Christmas.txt",
         test_ebook_txt_path,
     )

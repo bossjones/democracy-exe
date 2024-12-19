@@ -883,10 +883,10 @@ generate-ai-docs:
 
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
-	{{UV_RUN}} pytest --capture=tee-sys --verbose --pdb --pdbcls bpdb:BPdb --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
 
 # {{UV_RUN}} pytest -s --verbose  --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
 # {{UV_RUN}} pytest -k  test_download_tweet_success_twitter_cog
 
 test-twitter-cog:
-	{{UV_RUN}} pytest --capture=tee-sys -vvvv  --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
+	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
