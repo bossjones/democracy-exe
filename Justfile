@@ -881,6 +881,18 @@ generate-ai-docs:
 	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/cogs \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/dpytest/tests/test_edit.py \
+	/Users/malcolm/dev/dpytest/tests/test_fetch_message.py \
+	/Users/malcolm/dev/dpytest/tests/test_configure.py \
+	/Users/malcolm/dev/dpytest/tests/test_send.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_embed.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_file.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_message.py \
+	/Users/malcolm/dev/dpytest/tests/test_activity.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml
+
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog

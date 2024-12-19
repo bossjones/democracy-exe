@@ -1381,8 +1381,17 @@ output = "cov.xml"
 # =========================[ PYTEST INI OPTIONS ]========================
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
 filterwarnings = [
     'ignore:configuration option "asyncio_default_fixture_loop_scope" is unset',
+    "ignore::DeprecationWarning:.venv.*:",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20:.venv.*:",
+    "ignore::DeprecationWarning:discord.*:",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20:pydantic.*:",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20:fireworks.*:",
+    "ignore::DeprecationWarning:audioop:",
+    "default::DeprecationWarning:democracy_exe.*:",
+    "default::pydantic.warnings.PydanticDeprecatedSince20:democracy_exe.*:",
 ]
 # retries = 5
 # retry_delay = 0.5

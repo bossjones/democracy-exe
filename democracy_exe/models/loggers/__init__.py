@@ -29,4 +29,4 @@ class LoggerModel(BaseModel):
     # children: ListLoggerModel = None
 
 
-LoggerModel.update_forward_refs()
+LoggerModel.model_rebuild()
