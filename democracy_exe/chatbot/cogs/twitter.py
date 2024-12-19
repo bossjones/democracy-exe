@@ -132,7 +132,7 @@ class Twitter(commands.Cog):
         """
         logger.info(f"{type(self).__name__} -> _handle_download -> ctx = {ctx}, url = {url}, mode = {mode}")
         logger.debug(f"Starting download handler - URL: {url}, Mode: {mode}")
-        # async with ctx.typing():
+
         # Create progress message with embed
         progress_embed = create_download_progress_embed(url, mode)
         progress = await ctx.send(embed=progress_embed)
@@ -307,30 +307,30 @@ class Twitter(commands.Cog):
             TwitterError: If getting info fails
         """
         logger.debug(f"Info command invoked - URL: {url}")
-        async with ctx.typing():
-            try:
-                logger.debug("Fetching tweet metadata")
-                result = await download_tweet(url, mode="single")
-                logger.debug(f"Metadata fetch result: success={result['success']}")
 
-                if not result["success"]:
-                    logger.debug(f"Metadata fetch failed: {result['error']}")
-                    error_embed = create_error_embed(result["error"])
-                    await ctx.send(embed=error_embed)
-                    return
+        try:
+            logger.debug("Fetching tweet metadata")
+            result = await download_tweet(url, mode="single")
+            logger.debug(f"Metadata fetch result: success={result['success']}")
 
-                # Create detailed info embed
-                metadata = cast(TweetMetadata, result["metadata"])
-                embed = create_info_embed(metadata)
-                logger.debug("Created info embed")
-                await ctx.send(embed=embed)
-                logger.debug("Info command completed successfully")
-
-            except Exception as e:
-                logger.exception("Error in info command")
-                error_embed = create_error_embed(str(e))
+            if not result["success"]:
+                logger.debug(f"Metadata fetch failed: {result['error']}")
+                error_embed = create_error_embed(result["error"])
                 await ctx.send(embed=error_embed)
-                raise TwitterError(f"Failed to get tweet info: {e}") from e
+                return
+
+            # Create detailed info embed
+            metadata = cast(TweetMetadata, result["metadata"])
+            embed = create_info_embed(metadata)
+            logger.debug("Created info embed")
+            await ctx.send(embed=embed)
+            logger.debug("Info command completed successfully")
+
+        except Exception as e:
+            logger.exception("Error in info command")
+            error_embed = create_error_embed(str(e))
+            await ctx.send(embed=error_embed)
+            raise TwitterError(f"Failed to get tweet info: {e}") from e
 
     @info.error
     async def info_error_handler(self, ctx, error):

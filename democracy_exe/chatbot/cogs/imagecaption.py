@@ -200,7 +200,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
             ctx: Command context
             url: Optional image URL
         """
-        # async with ctx.typing():
+
         try:
             # Handle message with no image
             if not url and not ctx.message.attachments: # type: ignore
