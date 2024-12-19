@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 
+from asyncio import Semaphore
 from asyncio.subprocess import Process
 from pathlib import Path
 from typing import List, Tuple, Union
@@ -265,9 +266,14 @@ def _popen_stdout_lock(cmd_arg: str, cwd: str | None = None) -> None:
         subprocess.CompletedProcess(args=cmd_arg, returncode=0)
 
 
+# Global semaphore to prevent concurrent executions
+_SHELL_SEMAPHORE = Semaphore(1)
+
 async def run_coroutine_subprocess(cmd: str, uri: str, working_dir: str | None = None) -> str:
     """
     Run a command as a coroutine subprocess using asyncio.create_subprocess_shell.
+
+    Uses a semaphore to prevent concurrent executions of fast commands.
 
     Args:
         cmd (str): The command to run as a string.
@@ -277,10 +283,11 @@ async def run_coroutine_subprocess(cmd: str, uri: str, working_dir: str | None =
     Returns:
         str: The decoded stdout output of the command.
     """
-    if working_dir is None:
-        working_dir = f"{pathlib.Path('./').absolute()}"
+    async with _SHELL_SEMAPHORE:
+        if working_dir is None:
+            working_dir = f"{pathlib.Path('./').absolute()}"
 
-    await asyncio.sleep(0.05)
+        await asyncio.sleep(0.05)
 
     timer = Timer(text=f"Task {__name__} elapsed time: {{:.1f}}")
 

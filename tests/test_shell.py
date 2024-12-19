@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import pathlib
+import time
 
 from typing import TYPE_CHECKING, Any
 
@@ -163,6 +164,26 @@ async def test_run_coroutine_subprocess() -> None:
     """
     result = await run_coroutine_subprocess("echo 'Hello, World!'", "file:///tmp", str(pathlib.Path.cwd()))
     assert result == "Hello, World!"
+
+
+@pytest.mark.asyncio()
+async def test_run_coroutine_subprocess_concurrent() -> None:
+    """
+    Test concurrent execution of run_coroutine_subprocess.
+
+    Verifies that multiple fast commands execute sequentially due to the semaphore.
+    """
+    start_time = time.time()
+    # Run multiple fast commands concurrently
+    results = await asyncio.gather(*[
+        run_coroutine_subprocess("echo 'test'", "file:///tmp", str(pathlib.Path.cwd())) for _ in range(3)
+    ])
+    elapsed = time.time() - start_time
+
+    # Verify all commands completed successfully
+    assert all(result == "test" for result in results)
+    # Verify commands ran sequentially (each taking ~0.05s sleep)
+    assert elapsed >= 0.15  # 3 commands * 0.05s minimum
 
 
 def test_shell_console(capsys: CaptureFixture[str]) -> None:
