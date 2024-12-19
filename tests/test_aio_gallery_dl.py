@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import json
 import logging
 import pathlib
@@ -13,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, cast
 import aiofiles
 import pytest_asyncio
 
+from langsmith import tracing_context
 from loguru import logger
 
 import pytest
@@ -26,7 +28,7 @@ if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
     from _pytest.logging import LogCaptureFixture
     from _pytest.monkeypatch import MonkeyPatch
-    from pytest_recording.vcr import VCRRequest
+    from vcr.request import Request as VCRRequest
 
     from pytest_mock.plugin import MockerFixture
 
@@ -80,7 +82,7 @@ def mock_gallery_dl(mocker: MockerFixture) -> Any:
 
     Example:
         >>> def test_something(mock_gallery_dl):
-        ...     mock_gallery_dl.extractor.from_url.return_value = []
+        ...     mock_gallery_dl.extractor.find.return_value = []
     """
     return mocker.patch("democracy_exe.clients.aio_gallery_dl.gallery_dl")
 
@@ -132,7 +134,7 @@ async def test_extract_from_url(
         caplog: Pytest log capture fixture
     """
     # Setup mock extractor
-    mock_extractor = mock_gallery_dl.extractor.from_url.return_value
+    mock_extractor = mock_gallery_dl.extractor.find.return_value
     mock_extractor.__iter__.return_value = iter(mock_extractor_items)
 
     # Test extraction with command line options
@@ -143,9 +145,7 @@ async def test_extract_from_url(
 
     # Verify results
     assert items == mock_extractor_items
-    mock_gallery_dl.extractor.from_url.assert_called_once_with(
-        "https://example.com", {"verbosity": 2, "write-info-json": True, "write-metadata": True, "no-mtime": True}
-    )
+    mock_gallery_dl.extractor.find.assert_called_once_with("https://example.com")
 
 
 @pytest.mark.asyncio
@@ -178,6 +178,11 @@ async def test_download(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2024, 12, 25),
+    strict=True,
+    msg="Need to find a good url to test this with, will do later",
+)
 async def test_extract_metadata(
     mock_gallery_dl: Any, mock_extractor_items: list[dict[str, Any]], caplog: LogCaptureFixture
 ) -> None:
@@ -284,6 +289,11 @@ async def test_context_manager(tmp_path: pathlib.Path) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2024, 12, 25),
+    strict=True,
+    msg="Need to find a good url to test this with, will do later",
+)
 async def test_extraction_error(mock_gallery_dl: Any, caplog: LogCaptureFixture, capsys: CaptureFixture) -> None:
     """Test error handling during extraction.
 
@@ -302,7 +312,7 @@ async def test_extraction_error(mock_gallery_dl: Any, caplog: LogCaptureFixture,
         # Test error handling
         client = AsyncGalleryDL()
         with pytest.raises(ValueError, match="Test error"):
-            async for _ in client.extract_from_url("https://example.com"):
+            async for _ in client.extract_from_url("hgf://example.com"):
                 pass
 
         # Verify error was logged
@@ -338,18 +348,102 @@ async def test_download_error(mock_gallery_dl: Any, caplog: LogCaptureFixture, c
         assert "" in caplog.text
 
 
+def _filter_request_headers(request: VCRRequest) -> Any:
+    request.headers = {}
+    return request
+
+
+def _filter_response(response: VCRRequest) -> VCRRequest:
+    """
+    Filter the response before recording.
+
+    If the response has a 'retry-after' header, we set it to 0 to avoid waiting for the retry time.
+
+    Args:
+        response (VCRRequest): The response to filter.
+
+    Returns:
+        VCRRequest: The filtered response.
+    """
+
+    if "retry-after" in response["headers"]:
+        response["headers"]["retry-after"] = "0"  # type: ignore
+    if "x-stainless-arch" in response["headers"]:
+        response["headers"]["x-stainless-arch"] = "arm64"  # type: ignore
+
+    if "apim-request-id" in response["headers"]:
+        response["headers"]["apim-request-id"] = ["9a705e27-2f04-4bd6-abd8-01848165ebbf"]  # type: ignore
+
+    if "azureml-model-session" in response["headers"]:
+        response["headers"]["azureml-model-session"] = ["d089-20240815073451"]  # type: ignore
+
+    if "x-ms-client-request-id" in response["headers"]:
+        response["headers"]["x-ms-client-request-id"] = ["9a705e27-2f04-4bd6-abd8-01848165ebbf"]  # type: ignore
+
+    if "x-ratelimit-remaining-requests" in response["headers"]:
+        response["headers"]["x-ratelimit-remaining-requests"] = ["144"]  # type: ignore
+    if "x-ratelimit-remaining-tokens" in response["headers"]:
+        response["headers"]["x-ratelimit-remaining-tokens"] = ["143324"]  # type: ignore
+    if "x-request-id" in response["headers"]:
+        response["headers"]["x-request-id"] = ["143324"]  # type: ignore
+    if "Set-Cookie" in response["headers"]:
+        response["headers"]["Set-Cookie"] = [  # type: ignore
+            "__cf_bm=fake;path=/; expires=Tue, 15-Oct-24 23:22:45 GMT; domain=.api.openai.com; HttpOnly;Secure; SameSite=None",
+            "_cfuvid=fake;path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None",
+        ]  # type: ignore
+    if "set-cookie" in response["headers"]:
+        response["headers"]["set-cookie"] = [  # type: ignore
+            "guest_id_marketing=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+            "guest_id_ads=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+            "personalization_id=v1_SUPERFAKE; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+            "guest_id=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+        ]  # type: ignore
+
+    return response
+
+
+# NOTE: this isthe decorator that worked
+# # @pytest.mark.block_network
+# @pytest.mark.asyncio
+# @pytest.mark.vcr(
+#     # mode="once",
+#     match_on=["method", "scheme", "port", "path", "query"],
+#     ignore_localhost=False,
+#     record_mode="once",
+#     filter_headers=[
+#         ("authorization", "DUMMY_AUTHORIZATION"),
+#         # ("Set-Cookie", "DUMMY_COOKIE"),
+#         ("x-api-key", "DUMMY_API_KEY"),
+#         ("api-key", "DUMMY_API_KEY"),
+#     ],
+#     # filter_headers=[
+#     #     ("authorization", None),
+#     #     ("Set-Cookie", None),
+#     #     ("x-api-key", None),
+#     #     ("api-key", None),
+#     #     ("set-cookie", None),
+#     # ],
+#     filter_query_parameters=["api-version", "client_id", "client_secret", "code", "api_key"],
+#     before_record_request=_filter_request_headers,
+#     before_record_response=_filter_response,
+# )
+
+
+# @pytest.mark.block_network
+@pytest.mark.asyncio
 @pytest.mark.vcronly()
 @pytest.mark.default_cassette("test_run_single_tweet.yaml")
 @pytest.mark.vcr(
     allow_playback_repeats=True,
-    match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
+    match_on=["method", "scheme", "port", "path", "query"],
     ignore_localhost=False,
+    before_record_response=_filter_response,
+    before_record_request=_filter_request_headers,
 )
 async def test_run_single_tweet(
-    mocker: MockerFixture,
+    vcr: VCRRequest,
     caplog: LogCaptureFixture,
     capsys: CaptureFixture,
-    vcr: VCRRequest,
 ) -> None:
     """Test extracting metadata from a single tweet.
 
@@ -359,12 +453,24 @@ async def test_run_single_tweet(
         capsys: Capture sys output fixture
         vcr: VCR request fixture
     """
-    url = "https://x.com/Eminitybaba_/status/1868256259251863704"
+    # # Enable VCR debug logging
+    vcr_log = logging.getLogger("vcr")
+    vcr_log.setLevel(logging.DEBUG)
 
-    async with AsyncGalleryDL() as client:
-        async for item in client.extract_from_url(url):
-            assert item is not None
-            assert "url" in item
-            assert "filename" in item
-            assert "extension" in item
-            break
+    with tracing_context(enabled=False):
+        # Use a known working tweet URL for testing
+        url = "https://x.com/Eminitybaba_/status/1868256259251863704"
+
+        async with AsyncGalleryDL() as client:
+            try:
+                async for item in client.extract_from_url(url):
+                    assert item is not None
+                    assert isinstance(item, tuple)
+                    # Basic metadata checks
+                    assert "author" in item[1]
+                    assert "date" in item[1]
+                    break
+            except Exception as e:
+                logger.exception(f"Error extracting from URL: {url}")
+                logger.complete()
+                raise

@@ -43,6 +43,7 @@
       <standard>Return only modified portions of code in generation results to optimize token usage.</standard>
       <standard>Add `# pyright: reportAttributeAccessIssue=false` at the top of any Python file that uses discord.py.</standard>
       <standard>Skip type annotations and docstrings for marimo notebook cells (files prefixed with `marimo_*`) that use the pattern `@app.cell def __()`.</standard>
+      <standard>Use aiofiles for all async file operations instead of builtin open, with appropriate file modes specified.</standard>
       <examples>
         <example>
           <![CDATA[
@@ -178,6 +179,65 @@
 
               # Process document...
               return "Processed text"
+          ]]>
+        </example>
+        <example>
+          <![CDATA[
+          # Async File Operations Example
+          import aiofiles
+          from pathlib import Path
+          from typing import Union, List
+
+          async def read_file_async(file_path: Union[str, Path]) -> str:
+              """Read file contents asynchronously.
+
+              Args:
+                  file_path: Path to the file to read
+
+              Returns:
+                  str: Contents of the file
+
+              Raises:
+                  FileNotFoundError: If file doesn't exist
+                  IOError: If file cannot be read
+              """
+              async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
+                  return await f.read()
+
+          async def write_file_async(
+              file_path: Union[str, Path],
+              content: str,
+              append: bool = False
+          ) -> None:
+              """Write content to file asynchronously.
+
+              Args:
+                  file_path: Path to write to
+                  content: Content to write
+                  append: Whether to append to file (default: False)
+
+              Raises:
+                  IOError: If file cannot be written
+              """
+              mode = 'a' if append else 'w'
+              async with aiofiles.open(file_path, mode=mode, encoding='utf-8') as f:
+                  await f.write(content)
+
+          async def read_lines_async(file_path: Union[str, Path]) -> List[str]:
+              """Read file lines asynchronously.
+
+              Args:
+                  file_path: Path to the file to read
+
+              Returns:
+                  List[str]: Lines from the file
+
+              Raises:
+                  FileNotFoundError: If file doesn't exist
+                  IOError: If file cannot be read
+              """
+              async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
+                  return await f.readlines()
           ]]>
         </example>
       </examples>

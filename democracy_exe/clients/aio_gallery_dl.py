@@ -303,9 +303,8 @@ class AsyncGalleryDL:
         """
         try:
             extractor = await self._run_in_executor(
-                gallery_dl.extractor.from_url,  # type: ignore[attr-defined] # pylint: disable=no-member
-                url,
-                self.config
+                gallery_dl.extractor.find,  # type: ignore[attr-defined] # pylint: disable=no-member
+                url
             )
 
             # Create async iterator from sync iterator

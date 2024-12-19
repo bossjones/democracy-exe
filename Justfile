@@ -954,3 +954,11 @@ local-regenerate-cassettes:
 local-regenerate-vcr: local-regenerate-cassettes
 
 regenerate-cassettes: local-regenerate-cassettes
+
+test-gallery-dl-debug:
+	uv run pytest --capture=tee-sys --pdb --pdbcls bpdb:BPdb --showlocals --tb=short -k test_run_single_tweet
+
+test-gallery-dl:
+	uv run pytest --capture=tee-sys -k test_run_single_tweet
+
+# /Users/malcolm/dev/gallery-dl/gallery_dl

@@ -13,6 +13,7 @@
     <instruction>In `tasks`, include subfolders for image-generation, lore-writing, code-generation, and code-review.</instruction>
     <instruction>Create a `templates` folder to store reusable component structures.</instruction>
     <instruction>Include a comprehensive README.md file at the root level.</instruction>
+    <instruction>When generating or modifying code, return only the changed or new portions, not the entire function or file.</instruction>
   </instructions>
 
   <python_standards>
@@ -41,6 +42,8 @@
       <standard>Use loguru for all logging with proper formatting and context.</standard>
       <standard>Return only modified portions of code in generation results to optimize token usage.</standard>
       <standard>Add `# pyright: reportAttributeAccessIssue=false` at the top of any Python file that uses discord.py.</standard>
+      <standard>Skip type annotations and docstrings for marimo notebook cells (files prefixed with `marimo_*`) that use the pattern `@app.cell def __()`.</standard>
+      <standard>Use aiofiles for all async file operations instead of builtin open, with appropriate file modes specified.</standard>
       <examples>
         <example>
           <![CDATA[
@@ -176,6 +179,65 @@
 
               # Process document...
               return "Processed text"
+          ]]>
+        </example>
+        <example>
+          <![CDATA[
+          # Async File Operations Example
+          import aiofiles
+          from pathlib import Path
+          from typing import Union, List
+
+          async def read_file_async(file_path: Union[str, Path]) -> str:
+              """Read file contents asynchronously.
+
+              Args:
+                  file_path: Path to the file to read
+
+              Returns:
+                  str: Contents of the file
+
+              Raises:
+                  FileNotFoundError: If file doesn't exist
+                  IOError: If file cannot be read
+              """
+              async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
+                  return await f.read()
+
+          async def write_file_async(
+              file_path: Union[str, Path],
+              content: str,
+              append: bool = False
+          ) -> None:
+              """Write content to file asynchronously.
+
+              Args:
+                  file_path: Path to write to
+                  content: Content to write
+                  append: Whether to append to file (default: False)
+
+              Raises:
+                  IOError: If file cannot be written
+              """
+              mode = 'a' if append else 'w'
+              async with aiofiles.open(file_path, mode=mode, encoding='utf-8') as f:
+                  await f.write(content)
+
+          async def read_lines_async(file_path: Union[str, Path]) -> List[str]:
+              """Read file lines asynchronously.
+
+              Args:
+                  file_path: Path to the file to read
+
+              Returns:
+                  List[str]: Lines from the file
+
+              Raises:
+                  FileNotFoundError: If file doesn't exist
+                  IOError: If file cannot be read
+              """
+              async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
+                  return await f.readlines()
           ]]>
         </example>
       </examples>
@@ -824,6 +886,10 @@ democracy-exe/
     </reasoning>
 
     <prompt_engineering_standards>
+      <output_format>
+        <standard>Specify that responses should only include changed or new code snippets, not entire functions or files.</standard>
+        <standard>Use diff-like format to clearly indicate additions and deletions when appropriate.</standard>
+      </output_format>
       <xml_structure>
         <standard>Use clear, descriptive tag names that are self-explanatory (e.g., &lt;context&gt;, &lt;task&gt;, &lt;examples&gt;).</standard>
         <standard>Organize content hierarchically with proper nesting of tags.</standard>
@@ -849,24 +915,32 @@ democracy-exe/
       </best_practices>
 
       <reflection_patterns>
-        <standard>Include explicit thinking steps in prompts using &lt;reflection&gt; tags.</standard>
+        <standard>Always use chain-of-thought prompting by default to improve accuracy and coherence.</standard>
+        <standard>Include explicit thinking steps in prompts using &lt;thinking&gt; and &lt;answer&gt; tags.</standard>
         <standard>Break down complex tasks into clear steps.</standard>
-        <standard>Use chain-of-thought prompting for complex reasoning.</standard>
+        <standard>Use structured thinking for tasks involving:</standard>
+        <list>
+          <item>Complex math or logic</item>
+          <item>Multi-step analysis</item>
+          <item>Writing complex documents</item>
+          <item>Decisions with multiple factors</item>
+          <item>Research and investigation</item>
+        </list>
         <example>
           <![CDATA[
           <prompt>
             <context>Analyzing a complex codebase for refactoring.</context>
-            <reflection>
+            <thinking>
               1. First, I'll identify the main components and their relationships
               2. Then, I'll analyze each component for SOLID principles
               3. Finally, I'll propose specific refactoring steps
-            </reflection>
-            <output_format>
+            </thinking>
+            <answer>
               Provide a structured analysis with:
               - Component relationships
               - SOLID violations
               - Refactoring proposals
-            </output_format>
+            </answer>
           </prompt>
           ]]>
         </example>
