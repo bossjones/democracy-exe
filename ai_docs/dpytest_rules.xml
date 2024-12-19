@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dpytest-rules>
+    <!-- Core Verification Chain -->
+    <rule id="verification-chain">
+        <description>The verification chain starts with dpytest.verify() and builds up through method chaining</description>
+        <chain-structure>
+            <step>dpytest.verify() returns a Verify object</step>
+            <step>.message() returns a VerifyMessage object for message verification</step>
+            <step>.activity() returns a VerifyActivity object for bot activity verification</step>
+        </chain-structure>
+    </rule>
+
+    <!-- Message Verification -->
+    <rule id="verify-message">
+        <description>Message verification allows checking content, embeds, and attachments</description>
+        <methods>
+            <method name="content">
+                <param>content: Optional[str]</param>
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Checks exact message content match or None for no content</behavior>
+            </method>
+            <method name="embed">
+                <param>embed: Optional[discord.Embed]</param>
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Checks exact embed match or None for no embed</behavior>
+            </method>
+            <method name="attachment">
+                <param>attach: Optional[Union[str, pathlib.Path]]</param>
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Checks attachment matches file at path or None for no attachment</behavior>
+            </method>
+            <method name="nothing">
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Verifies no message was sent</behavior>
+            </method>
+            <method name="contains">
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Changes verification mode to check if content/embed contains rather than exact match</behavior>
+            </method>
+            <method name="peek">
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Checks message without removing it from the queue</behavior>
+            </method>
+        </methods>
+    </rule>
+
+    <!-- Message Queue Behavior -->
+    <rule id="message-queue">
+        <description>Messages are stored in a PeekableQueue and processed in order</description>
+        <behaviors>
+            <behavior>Messages are added to queue when sent by bot</behavior>
+            <behavior>Verification removes message from queue unless peek() is used</behavior>
+            <behavior>Queue can be emptied using dpytest.empty_queue()</behavior>
+        </behaviors>
+    </rule>
+
+    <!-- Verification Results -->
+    <rule id="verification-results">
+        <description>All verifications return boolean results when asserted</description>
+        <assertions>
+            <assert>assert dpytest.verify().message().content("text") # Returns True if exact match</assert>
+            <assert>assert dpytest.verify().message().contains().content("text") # Returns True if contains</assert>
+            <assert>assert not dpytest.verify().message().content("wrong") # Returns False if no match</assert>
+        </assertions>
+    </rule>
+
+    <!-- Common Patterns -->
+    <rule id="common-patterns">
+        <description>Common verification patterns and their usage</description>
+        <patterns>
+            <pattern>
+                <example>assert dpytest.verify().message().content("text")</example>
+                <usage>Verify exact message content</usage>
+            </pattern>
+            <pattern>
+                <example>assert dpytest.verify().message().peek().content("text")</example>
+                <usage>Check message without removing from queue</usage>
+            </pattern>
+            <pattern>
+                <example>assert dpytest.verify().message().contains().content("partial")</example>
+                <usage>Check if message contains text</usage>
+            </pattern>
+            <pattern>
+                <example>assert dpytest.verify().message().nothing()</example>
+                <usage>Verify no message was sent</usage>
+            </pattern>
+            <pattern>
+                <example>assert dpytest.verify().message().embed(expected_embed)</example>
+                <usage>Verify exact embed match</usage>
+            </pattern>
+            <pattern>
+                <example>assert dpytest.verify().message().attachment(file_path)</example>
+                <usage>Verify file attachment</usage>
+            </pattern>
+        </patterns>
+    </rule>
+
+    <!-- Type Information -->
+    <rule id="return-types">
+        <description>Return types for each verification step</description>
+        <types>
+            <type>
+                <method>dpytest.verify()</method>
+                <returns>Verify object</returns>
+            </type>
+            <type>
+                <method>verify().message()</method>
+                <returns>VerifyMessage object</returns>
+            </type>
+            <type>
+                <method>verify().activity()</method>
+                <returns>VerifyActivity object</returns>
+            </type>
+            <type>
+                <method>Any verification chain when asserted</method>
+                <returns>bool</returns>
+            </type>
+        </types>
+    </rule>
+
+    <!-- Verification Order -->
+    <rule id="verification-order">
+        <description>Rules about verification order and chaining</description>
+        <ordering>
+            <rule>Verifications must start with dpytest.verify()</rule>
+            <rule>Type-specific methods (.message() or .activity()) must come next</rule>
+            <rule>Modifiers (contains(), peek()) must come before content/embed/attachment checks</rule>
+            <rule>Multiple verifications on same message require peek() for all but last</rule>
+        </ordering>
+    </rule>
+
+    <!-- Error Prevention -->
+    <rule id="error-prevention">
+        <description>Common errors to avoid in verification chains</description>
+        <errors>
+            <error>
+                <case>Forgetting to assert the verification</case>
+                <result>No verification performed, warning raised</result>
+            </error>
+            <error>
+                <case>Mixing nothing() with content/embed/attachment checks</case>
+                <result>ValueError raised</result>
+            </error>
+            <error>
+                <case>Checking message after queue is empty</case>
+                <result>Returns False</result>
+            </error>
+            <error>
+                <case>Using incompatible modifiers</case>
+                <result>ValueError raised</result>
+            </error>
+        </errors>
+    </rule>
+
+    <!-- Attachment Testing -->
+    <rule id="attachment-testing">
+        <description>Detailed information about testing file attachments in messages</description>
+        <methods>
+            <method name="attachment">
+                <param>attach: Optional[Union[str, pathlib.Path]]</param>
+                <returns>VerifyMessage for chaining</returns>
+                <behavior>Compares file contents byte-by-byte for exact matching</behavior>
+                <notes>
+                    <note>Path can be relative or absolute</note>
+                    <note>None parameter ensures no attachments exist</note>
+                    <note>Multiple attachments in a message are supported</note>
+                </notes>
+            </method>
+        </methods>
+        <patterns>
+            <pattern>
+                <example>await channel.send(file=discord.File(path))</example>
+                <usage>Send a single file attachment</usage>
+            </pattern>
+            <pattern>
+                <example>await channel.send(files=[discord.File(path1), discord.File(path2)])</example>
+                <usage>Send multiple file attachments</usage>
+            </pattern>
+            <pattern>
+                <example>await channel.send("Here's your file!", file=discord.File(path))</example>
+                <usage>Send file with accompanying message</usage>
+            </pattern>
+            <pattern>
+                <example>await channel.send(embed=embed, file=discord.File(path))</example>
+                <usage>Send file with embed</usage>
+            </pattern>
+        </patterns>
+        <verification-examples>
+            <example>
+                <code>assert dpytest.verify().message().attachment(path)</code>
+                <description>Verify single attachment matches file at path</description>
+            </example>
+            <example>
+                <code>assert dpytest.verify().message().peek().attachment(path1)</code>
+                <description>Check first attachment while keeping message in queue</description>
+            </example>
+            <example>
+                <code>assert dpytest.verify().message().attachment(None)</code>
+                <description>Verify message has no attachments</description>
+            </example>
+        </verification-examples>
+        <attachment-properties>
+            <property>
+                <name>filename</name>
+                <description>Original filename of the attachment</description>
+            </property>
+            <property>
+                <name>content_type</name>
+                <description>MIME type of the attachment (e.g., "image/jpeg")</description>
+            </property>
+            <property>
+                <name>size</name>
+                <description>Size of the attachment in bytes</description>
+            </property>
+            <property>
+                <name>height</name>
+                <description>Height of image attachments (None for non-images)</description>
+            </property>
+            <property>
+                <name>width</name>
+                <description>Width of image attachments (None for non-images)</description>
+            </property>
+        </attachment-properties>
+        <best-practices>
+            <practice>Always use pathlib.Path for consistent path handling across platforms</practice>
+            <practice>Verify file contents rather than just names for robust testing</practice>
+            <practice>Use peek() when verifying multiple properties of the same attachment</practice>
+            <practice>Clean up test files after verification is complete</practice>
+        </best-practices>
+    </rule>
+</dpytest-rules>

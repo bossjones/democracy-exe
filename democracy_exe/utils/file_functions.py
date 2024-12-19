@@ -1102,3 +1102,173 @@ def run_tree(tmpdirname: str) -> list[str]:
 
 
 # smoke tests
+
+async def aprint_and_append(dir_listing: list[str], tree_str: str, silent: bool = False) -> None:
+    """
+    Async version of print_and_append function.
+
+    Args:
+    ----
+        dir_listing (list[str]): List to append to.
+        tree_str (str): String to print and append.
+        silent (bool, optional): Whether to suppress printing. Defaults to False.
+
+    """
+    if not silent:
+        print(tree_str)  # We keep print since it's not blocking
+    dir_listing.append(tree_str)
+
+async def atree(directory: str | pathlib.Path, silent: bool = False) -> list[pathlib.Path]:
+    """
+    Async version of tree function to generate a tree structure of a directory.
+
+    Args:
+    ----
+        directory (pathlib.Path): Path to the directory.
+        silent (bool, optional): Whether to suppress printing. Defaults to False.
+
+    Returns:
+    -------
+        list[pathlib.Path]: List of file paths in the directory.
+
+    """
+    logger.debug(f"directory -> {directory}")
+    if isinstance(directory, str):
+        directory = fix_path(directory)
+        logger.debug(f"directory -> {directory}")
+        directory = pathlib.Path(directory)
+        logger.debug(f"directory -> {directory}")
+    try:
+        assert directory.is_dir()
+    except:
+        raise OSError(f"{directory} is not a directory.")
+
+    file_system: list[pathlib.Path] = []
+    _tree = []
+    await aprint_and_append(_tree, f"+ {directory}", silent=silent)
+
+    # Get all paths using rglob synchronously since it's a generator
+    paths = sorted(directory.rglob("*"))
+
+    for path in paths:
+        file_system.append(pathlib.Path(f"{path.resolve()}"))
+        try:
+            depth = len(path.resolve().relative_to(directory.resolve()).parts)
+        except ValueError:
+            continue
+        spacer = "    " * depth
+        await aprint_and_append(_tree, f"{spacer}+ {path.name}", silent=silent)
+
+    return sorted(file_system, key=os.path.getmtime)
+
+async def afilter_images(working_dir: list[str]) -> list[str]:
+    """
+    Async version of filter_images function.
+
+    Args:
+    ----
+        working_dir (list[str]): List of file paths.
+
+    Returns:
+    -------
+        list[str]: List of image file paths.
+
+    """
+    filtered = []
+    for f in working_dir:
+        path = pathlib.Path(f"{f}")
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS:
+            filtered.append(f)
+    return filtered
+
+async def afilter_videos(working_dir: list[str]) -> list[str]:
+    """
+    Async version of filter_videos function.
+
+    Args:
+    ----
+        working_dir (list[str]): List of file paths.
+
+    Returns:
+    -------
+        list[str]: List of video file paths.
+
+    """
+    filtered = []
+    for f in working_dir:
+        path = pathlib.Path(f"{f}")
+        if path.is_file() and path.suffix.lower() in VIDEO_EXTENSIONS:
+            filtered.append(f)
+    return filtered
+
+async def afilter_media(working_dir: list[str]) -> list[str]:
+    """
+    Async version of filter_media function.
+    Filters image and video files from a directory.
+
+    Args:
+    ----
+        working_dir (list[str]): List of file paths.
+
+    Returns:
+    -------
+        list[str]: List of image and video file paths.
+
+    """
+    imgs = await afilter_images(working_dir)
+    videos = await afilter_videos(working_dir)
+    return imgs + videos
+
+async def aget_files_to_upload(tmpdirname: str) -> list[str]:
+    """
+    Async version of get_files_to_upload.
+    Get directory and iterate over files to upload.
+
+    Args:
+    ----
+        tmpdirname (str): Directory path to process.
+
+    Returns:
+    -------
+        list[str]: List of files to upload.
+
+    """
+    tree_list = await atree(pathlib.Path(f"{tmpdirname}"))
+    rich.print(tree_list)
+
+    file_to_upload_list = [f"{p}" for p in tree_list]
+    logger.debug(f"aget_files_to_upload -> file_to_upload_list = {file_to_upload_list}")
+    rich.print(file_to_upload_list)
+
+    file_to_upload = await afilter_media(file_to_upload_list)
+
+    logger.debug(f"aget_files_to_upload -> file_to_upload = {file_to_upload}")
+
+    rich.print(file_to_upload)
+    return file_to_upload
+
+async def arun_tree(tmpdirname: str) -> list[str]:
+    """
+    Async version of run_tree.
+
+    Args:
+    ----
+        tmpdirname (str): Directory path to process.
+
+    Returns:
+    -------
+        list[str]: List of media files found.
+
+    """
+    # Now that we are finished processing, we can upload the files to discord
+    tree_list = await atree(pathlib.Path(f"{tmpdirname}"))
+    rich.print("tree_list ->")
+    rich.print(tree_list)
+
+    file_to_upload_list = [f"{p}" for p in tree_list]
+    logger.debug(f"compress_video-> file_to_upload_list = {file_to_upload_list}")
+    rich.print(file_to_upload_list)
+
+    file_to_upload = await afilter_media(file_to_upload_list)
+
+    return file_to_upload

@@ -2,18 +2,198 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
+import pathlib
 
 from collections.abc import AsyncIterator, Callable
+from datetime import datetime
 from functools import partial
-from typing import Any, Dict, Optional, TypeVar, cast, overload
+from typing import Any, Dict, List, Optional, TypeVar, Union, cast, overload
 
+import aiofiles
 import gallery_dl
 
 from loguru import logger
+from pydantic import BaseModel, EmailStr, Field
+
+from democracy_exe.utils.file_functions import expand_path_str, tilda
 
 
 T = TypeVar("T")
 R = TypeVar("R")
+
+
+
+
+
+
+from pydantic import ConfigDict, SecretStr
+
+
+class HttpConfig(BaseModel):
+    """Configuration for HTTP downloader settings."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    adjust_extensions: bool = Field(True, alias="adjust-extensions")
+    mtime: bool = True
+    rate: int | None = None
+    retries: int = 4
+    timeout: float = 30.0
+    verify: bool = True
+
+class YtdlConfig(BaseModel):
+    """Configuration for youtube-dl downloader settings."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    format: str | None = None
+    forward_cookies: bool = Field(False, alias="forward-cookies")
+    logging: bool = True
+    mtime: bool = True
+    outtmpl: str | None = None
+    rate: int | None = None
+    retries: int = 4
+    timeout: float = 30.0
+    verify: bool = True
+
+class DownloaderConfig(BaseModel):
+    """Configuration for downloader settings."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    filesize_min: int | None = Field(None, alias="filesize-min")
+    filesize_max: int | None = Field(None, alias="filesize-max")
+    part: bool = True
+    part_directory: str | None = Field(None, alias="part-directory")
+    http: HttpConfig
+    ytdl: YtdlConfig
+
+class OutputConfig(BaseModel):
+    """Configuration for output settings."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    mode: str = "auto"
+    progress: bool = True
+    shorten: bool = True
+    log: str = "[{name}][{levelname}][{extractor.url}] {message}"
+    logfile: str | None = None
+    unsupportedfile: str | None = None
+
+class DirectoryConfig(BaseModel):
+    """Configuration for directory settings."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    directory: list[str]
+
+class InstagramConfig(BaseModel):
+    """Configuration for Instagram extractor."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    highlights: bool = False
+    videos: bool = True
+    include: str = "all"
+    directory: list[str]
+    stories: DirectoryConfig
+    channel: DirectoryConfig
+    tagged: DirectoryConfig
+    reels: DirectoryConfig
+    filename: str
+    date_format: str = Field(alias="date-format")
+    cookies: str | None = None
+    username: SecretStr | None = None
+    password: SecretStr | None = None
+    sleep_request: float = Field(8.0, alias="sleep-request")
+
+class RedditConfig(BaseModel):
+    """Configuration for Reddit extractor."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    client_id: SecretStr = Field(alias="client-id")
+    user_agent: str = Field(alias="user-agent")
+    browser: str
+    refresh_token: SecretStr | None = Field(None, alias="refresh-token")
+    comments: int = 0
+    morecomments: bool = False
+    date_min: int = Field(0, alias="date-min")
+    date_max: int = Field(253402210800, alias="date-max")
+    date_format: str = Field(alias="date-format")
+    id_min: str | None = Field(None, alias="id-min")
+    id_max: str | None = Field(None, alias="id-max")
+    recursion: int = 0
+    videos: bool = True
+    parent_directory: bool = Field(True, alias="parent-directory")
+    directory: list[str]
+    filename: str
+
+class TwitterConfig(BaseModel):
+    """Configuration for Twitter extractor."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    quoted: bool = True
+    replies: bool = True
+    retweets: bool = True
+    twitpic: bool = False
+    videos: bool = True
+    cookies: str | None = None
+    filename: str
+
+class DeviantartConfig(BaseModel):
+    """Configuration for DeviantArt extractor."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    extra: bool = False
+    flat: bool = True
+    folders: bool = False
+    journals: str = "html"
+    mature: bool = True
+    metadata: bool = False
+    original: bool = True
+    quality: int = 100
+    wait_min: int = Field(0, alias="wait-min")
+
+class PixivConfig(BaseModel):
+    """Configuration for Pixiv extractor."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    username: SecretStr | None = None
+    password: SecretStr | None = None
+    avatar: bool = False
+    ugoira: bool = True
+
+class ExtractorConfig(BaseModel):
+    """Configuration for extractors."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_directory: str = Field("./gallery-dl/", alias="base-directory")
+    postprocessors: Any | None = None
+    archive: str | None = None
+    cookies: str | None = None
+    cookies_update: bool = Field(True, alias="cookies-update")
+    proxy: str | None = None
+    skip: bool = True
+    sleep: int = 0
+    sleep_request: int = Field(0, alias="sleep-request")
+    sleep_extractor: int = Field(0, alias="sleep-extractor")
+    path_restrict: str = Field("auto", alias="path-restrict")
+    path_replace: str = Field("_", alias="path-replace")
+    path_remove: str = Field("\\u0000-\\u001f\\u007f", alias="path-remove")
+    user_agent: str = Field(alias="user-agent")
+    path_strip: str = Field("auto", alias="path-strip")
+    path_extended: bool = Field(True, alias="path-extended")
+    extension_map: dict[str, str] = Field(alias="extension-map")
+    instagram: InstagramConfig
+    reddit: RedditConfig
+    twitter: TwitterConfig
+    deviantart: DeviantartConfig
+    pixiv: PixivConfig
+
+class GalleryDLConfig(BaseModel):
+    """Root configuration model for gallery-dl."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    extractor: ExtractorConfig
+    downloader: DownloaderConfig
+    output: OutputConfig
+    netrc: bool = False
 
 
 class AsyncGalleryDL:
@@ -36,18 +216,42 @@ class AsyncGalleryDL:
         self,
         config: dict[str, Any] | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
+        verbose: bool = False,
+        write_info_json: bool = False,
+        write_metadata: bool = False,
+        no_mtime: bool = False,
+        config_file: str | None = None,
     ) -> None:
         """Initialize AsyncGalleryDL.
 
         Args:
             config: Gallery-dl configuration dictionary
             loop: Optional asyncio event loop to use
+            verbose: Enable verbose output
+            write_info_json: Write info JSON files
+            write_metadata: Write metadata files
+            no_mtime: Don't set file modification times
+            config_file: Path to gallery-dl config file (default: ~/.gallery-dl.conf)
 
         Example:
             >>> client = AsyncGalleryDL({"your": "config"})
         """
         self.config = config or {}
+        if verbose:
+            self.config["verbosity"] = 2
+        if write_info_json:
+            self.config["write-info-json"] = True
+        if write_metadata:
+            self.config["write-metadata"] = True
+        if no_mtime:
+            self.config["no-mtime"] = True
         self.loop = loop or asyncio.get_event_loop()
+
+        # Load config file if specified
+        if config_file:
+            self.config_file = expand_path_str(config_file)
+        else:
+            self.config_file = expand_path_str("~/.gallery-dl.conf")
 
     @overload
     async def _run_in_executor(
@@ -99,9 +303,8 @@ class AsyncGalleryDL:
         """
         try:
             extractor = await self._run_in_executor(
-                gallery_dl.extractor.from_url,  # type: ignore[attr-defined] # pylint: disable=no-member
-                url,
-                self.config
+                gallery_dl.extractor.find,  # type: ignore[attr-defined] # pylint: disable=no-member
+                url
             )
 
             # Create async iterator from sync iterator
@@ -194,6 +397,16 @@ class AsyncGalleryDL:
             ...     # Use client here
             ...     pass
         """
+        # Load config file if it exists
+        if os.path.exists(self.config_file):
+            try:
+                async with aiofiles.open(self.config_file, encoding="utf-8") as f:
+                    config_data = json.loads(await f.read())
+                    self.config.update(config_data)
+                logger.debug(f"Loaded gallery-dl config from {self.config_file}")
+            except Exception as e:
+                logger.error(f"Error loading gallery-dl config: {e}")
+
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

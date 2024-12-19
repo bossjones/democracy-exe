@@ -4,10 +4,8 @@ import json
 import os
 import pathlib
 
-from _asyncio import Future
-from collections.abc import Iterator
-from os import PathLike
-from typing import List
+from collections.abc import AsyncIterator, Awaitable, Iterator
+from typing import List, cast
 
 import aiofiles
 import pandas as pd
@@ -17,10 +15,17 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from democracy_exe.utils.file_functions import (
+    afilter_images,
+    afilter_media,
+    afilter_videos,
+    aget_files_to_upload,
     aio_json_loads,
     aio_read_jsonfile,
     aioread_file,
     aiowrite_file,
+    aprint_and_append,
+    arun_tree,
+    atree,
     check_file_size,
     expand_path_str,
     filter_audio,
@@ -91,7 +96,7 @@ def test_get_all_media_files_to_upload(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio()
-async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> None:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -102,7 +107,7 @@ async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> Iterator[Future
 
 
 @pytest.mark.asyncio()
-async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> None:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -113,7 +118,7 @@ async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
 
 
 @pytest.mark.asyncio()
-async def test_run_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_run_aio_json_loads(tmp_path: pathlib.PosixPath) -> None:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -146,11 +151,14 @@ def test_filter_media(mocker: MockerFixture):
     mock_filter_videos.assert_called_once_with(["file1.png", "file2.mp4", "file3.txt"])
 
 
-def test_get_dataframe_from_csv(mocker: MockerFixture):
+def test_get_dataframe_from_csv(mocker: MockerFixture) -> None:
+    """Test get_dataframe_from_csv function."""
     mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame({"col1": [1], "col2": [2]}))
     result = get_dataframe_from_csv("/Users/malcolm/dev/bossjones/democracy_exe/test.csv")
-    assert result.equals(pd.DataFrame({"col1": [1], "col2": [2]})), (
-        f"Expected DataFrame: {pd.DataFrame({'col1': [1], 'col2': [2]})}, but got: {result}"
+    # Cast result to DataFrame since it could be a tuple
+    df_result = cast(pd.DataFrame, result)
+    assert df_result.equals(pd.DataFrame({"col1": [1], "col2": [2]})), (
+        f"Expected DataFrame: {pd.DataFrame({'col1': [1], 'col2': [2]})}, but got: {df_result}"
     )
     mock_read_csv.assert_called_once_with("/Users/malcolm/dev/bossjones/democracy_exe/test.csv")
 
@@ -161,7 +169,7 @@ def test_rich_format_followers():
 
 
 @pytest.mark.asyncio()
-async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> None:
     test_data = "Test content"
     test_file = tmp_path / "test.txt"
     await aiowrite_file(test_data, str(tmp_path), "test", "txt")
@@ -169,7 +177,7 @@ async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
 
 
 @pytest.mark.asyncio()
-async def test_aioread_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aioread_file(tmp_path: pathlib.PosixPath) -> None:
     test_data = "Test content"
     test_file = tmp_path / "test.txt"
     test_file.write_text(test_data)
@@ -485,3 +493,104 @@ def test_tree(tmp_path: pathlib.PosixPath):
     assert any("file1.txt" in str(path) for path in result)
     assert any("dir1" in str(path) for path in result)
     assert any("file2.txt" in str(path) for path in result)
+
+
+@pytest.mark.asyncio()
+async def test_aprint_and_append() -> None:
+    """Test async print and append function."""
+    dir_listing = []
+    await aprint_and_append(dir_listing, "test_str", silent=True)
+    assert dir_listing == ["test_str"]
+
+
+@pytest.mark.asyncio()
+async def test_atree(tmp_path: pathlib.Path) -> None:
+    """Test async tree function."""
+    # Create test files and directories
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "dir1").mkdir()
+    (tmp_path / "dir1" / "file2.txt").touch()
+
+    result = await atree(tmp_path)
+    assert len(result) == 3
+    assert any(str(tmp_path) in str(path) for path in result)
+    assert any("file1.txt" in str(path) for path in result)
+    assert any("dir1" in str(path) for path in result)
+    assert any("file2.txt" in str(path) for path in result)
+
+
+@pytest.mark.asyncio()
+async def test_afilter_images(tmp_path: pathlib.Path) -> None:
+    """Test async filter images function."""
+    image_file = tmp_path / "image.jpg"
+    txt_file = tmp_path / "text.txt"
+    image_file.touch()
+    txt_file.touch()
+
+    result = await afilter_images([str(image_file), str(txt_file)])
+    assert result == [str(image_file)]
+
+
+@pytest.mark.asyncio()
+async def test_afilter_videos(tmp_path: pathlib.Path) -> None:
+    """Test async filter videos function."""
+    video_file = tmp_path / "video.mp4"
+    txt_file = tmp_path / "text.txt"
+    video_file.touch()
+    txt_file.touch()
+
+    result = await afilter_videos([str(video_file), str(txt_file)])
+    assert result == [str(video_file)]
+
+
+@pytest.mark.asyncio()
+async def test_afilter_media(tmp_path: pathlib.Path) -> None:
+    """Test async filter media function."""
+    image_file = tmp_path / "image.jpg"
+    video_file = tmp_path / "video.mp4"
+    txt_file = tmp_path / "text.txt"
+    image_file.touch()
+    video_file.touch()
+    txt_file.touch()
+
+    result = await afilter_media([str(image_file), str(video_file), str(txt_file)])
+    assert len(result) == 2
+    assert str(image_file) in result
+    assert str(video_file) in result
+    assert str(txt_file) not in result
+
+
+@pytest.mark.asyncio()
+async def test_aget_files_to_upload(tmp_path: pathlib.Path) -> None:
+    """Test async get files to upload function."""
+    image_file = tmp_path / "image.jpg"
+    video_file = tmp_path / "video.mp4"
+    txt_file = tmp_path / "text.txt"
+
+    image_file.touch()
+    video_file.touch()
+    txt_file.touch()
+
+    result = await aget_files_to_upload(str(tmp_path))
+    assert len(result) == 2
+    assert str(image_file) in result
+    assert str(video_file) in result
+    assert str(txt_file) not in result
+
+
+@pytest.mark.asyncio()
+async def test_arun_tree(tmp_path: pathlib.Path) -> None:
+    """Test async run tree function."""
+    image_file = tmp_path / "image.jpg"
+    video_file = tmp_path / "video.mp4"
+    txt_file = tmp_path / "text.txt"
+
+    image_file.touch()
+    video_file.touch()
+    txt_file.touch()
+
+    result = await arun_tree(str(tmp_path))
+    assert len(result) == 2
+    assert str(image_file) in result
+    assert str(video_file) in result
+    assert str(txt_file) not in result

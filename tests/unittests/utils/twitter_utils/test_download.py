@@ -36,18 +36,51 @@ def mock_info_json(tmp_path: pathlib.Path) -> pathlib.Path:
         Path to mock info.json file
     """
     info_data = {
-        "tweet": {
-            "id": "123456789",
-            "url": "https://twitter.com/user/status/123456789",
-            "text": "Test tweet content",
-            "created_at": "2024-03-10T12:00:00Z",
-            "user": {"name": "Test User"},
-            "media": [{"url": "https://example.com/image1.jpg"}, {"url": "https://example.com/image2.jpg"}],
-        }
+        "tweet_id": 123456789,
+        "conversation_id": 123456789,
+        "date": "2024-03-10T12:00:00Z",
+        "author": {
+            "id": 251084543,
+            "name": "Test User",
+            "nick": "Test Nick",
+            "date": "2011-02-12 12:07:13",
+            "profile_image": "https://example.com/profile.jpg",
+            "favourites_count": 21833,
+            "followers_count": 73026,
+            "friends_count": 10009,
+            "listed_count": 66,
+            "media_count": 17013,
+            "statuses_count": 423991,
+            "description": "Test description",
+        },
+        "user": {
+            "id": 251084543,
+            "name": "Test User",
+            "nick": "Test Nick",
+            "date": "2011-02-12 12:07:13",
+            "profile_image": "https://example.com/profile.jpg",
+            "favourites_count": 21833,
+            "followers_count": 73026,
+            "friends_count": 10009,
+            "listed_count": 66,
+            "media_count": 17013,
+            "statuses_count": 423991,
+            "description": "Test description",
+        },
+        "lang": "en",
+        "source": "Twitter Web App",
+        "content": "Test tweet content",
+        "subcategory": "tweet",
     }
 
+    # Create info.json
     info_path = tmp_path / "info.json"
     info_path.write_text(json.dumps(info_data))
+
+    # Create a test image file
+    test_image = tmp_path / "test.jpg"
+    test_image.touch()
+
     return info_path
 
 
@@ -69,13 +102,11 @@ class TestDownloadTweet:
         mock_shell = mocker.AsyncMock(return_value=(b"", b""))
         mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
 
-        # Mock file creation
-        test_image = tmp_path / "image.jpg"
-        test_image.touch()
+        # Get the test image created by mock_info_json fixture
+        test_image = mock_info_json.parent / "test.jpg"
 
         # These are sync functions, so regular Mock is fine
         mocker.patch("democracy_exe.utils.file_functions.tree", return_value=[test_image])
-
         mocker.patch("democracy_exe.utils.file_functions.filter_media", return_value=[str(test_image)])
 
         # Test download
@@ -86,9 +117,11 @@ class TestDownloadTweet:
         # Verify AsyncMock was called
         mock_shell.assert_awaited_once()
 
+        # Verify result structure
         assert result["success"] is True
         assert result["metadata"]["id"] == "123456789"
         assert result["metadata"]["author"] == "Test User"
+        assert result["metadata"]["content"] == "Test tweet content"
         assert len(result["local_files"]) == 1
         assert result["error"] is None
 
@@ -156,7 +189,7 @@ class TestParseMetadata:
         assert metadata["id"] == "123456789"
         assert metadata["author"] == "Test User"
         assert metadata["content"] == "Test tweet content"
-        assert len(metadata["media_urls"]) == 2
+        assert len(metadata["media_urls"]) == 1
         assert metadata["created_at"] == "2024-03-10T12:00:00Z"
 
     def test_parse_metadata_missing_file(self, tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:

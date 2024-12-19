@@ -1028,6 +1028,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "tests/conftest.py" = ["D", "F811"]
 "*.pyi" = ["D", "E501", "E701", "I002"]
 "democracy_exe/chatbot/core/bot.py" = ["B026"]
+"democracy_exe/utils/twitter_utils/models.py" = ["SIM102"]
 
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
@@ -1505,6 +1506,13 @@ ignore-paths = [
     "democracy_exe/agentic/studio/*",
 ]
 
+[tool.pylint.similarities]
+min-similarity-lines = 4
+ignore-comments = "yes"
+ignore-docstrings = "yes"
+ignore-imports = "yes"
+
+
 # SOURCE: https://github.com/ocellicode/gpyt-commandbus/blob/80172644b35af7b4679ace734bea1c5ea2212a52/pyproject.toml#L21
 [tool.pylint.exceptions]
 overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
@@ -1822,11 +1830,11 @@ logging-format-style = "new"
 
 logging-modules = ["logging", "loguru"]
 
-[tool.pylint.similarities]
-ignore-comments = true
-ignore-docstrings = true
-ignore-imports = false
-min-similarity-lines = 5
+# [tool.pylint.similarities]
+# ignore-comments = true
+# ignore-docstrings = true
+# ignore-imports = false
+# min-similarity-lines = 5
 
 # NOTE: see https://github.com/Ruzzy77/python-template/blob/57c8964f1efb2635d0bdca5684613a8d8736aed0/pyrightconfig.json
 [tool.pyright]

@@ -75,6 +75,8 @@ IS_RUNNING_ON_GITHUB_ACTIONS = bool(os.environ.get("GITHUB_ACTOR"))
 HERE = os.path.abspath(os.path.dirname(__file__))
 FAKE_TIME = datetime.datetime(2020, 12, 25, 17, 5, 55)
 
+IGNORE_HOSTS: list[str] = ["api.smith.langchain.com"]
+
 
 class IgnoreOrder:
     """
@@ -234,51 +236,136 @@ def is_chroma_uri(uri: str) -> bool:
     return any(x in uri for x in ["localhost", "127.0.0.1"])
 
 
-def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
-    """
-    Custom matcher to determine if the requests are the same.
-
-    - For internal adobe requests, we match the parts of the multipart request. This is needed as we can't compare the body
-        directly as the chunk boundary is generated randomly
-    - For opensearch requests, we just match the body
-    - For openai, allow llm-proxy
-    - For others, we match both uri and body
+def is_twitter(uri: str) -> bool:
+    """Check if a URI is a Twitter URI.
 
     Args:
-        r1 (VCRRequest): The first request.
-        r2 (VCRRequest): The second request.
+        uri (str): The URI to check.
 
     Returns:
-        bool: True if the requests match, False otherwise.
+        bool: True if the URI is a Twitter URI, False otherwise.
     """
-
-    if r1.uri == r2.uri:
-        if r1.body == r2.body:
-            return True
-    elif (
-        is_opensearch_uri(r1.uri)
-        and is_opensearch_uri(r2.uri)
-        or is_llm_uri(r1.uri)
-        and is_llm_uri(r2.uri)
-        or is_chroma_uri(r1.uri)
-        and is_chroma_uri(r2.uri)
-    ):
-        return r1.body == r2.body
-
-    return False
+    pattern = (
+        r"(?:https?://)?(?:www\.|mobile\.)?"
+        r"(?:(?:[fv]x)?twitter|(?:fix(?:up|v))?x)\.com"
+    )
+    return bool(re.search(pattern, uri))
 
 
-# SOURCE: https://github.com/kiwicom/pytest-recording/tree/master
-def pytest_recording_configure(config: PytestConfig, vcr: VCR) -> None:
-    """
-    Configure VCR for pytest-recording.
+def is_instagram(uri: str) -> bool:
+    """Check if a URI is an Instagram URI.
+
+    This function checks both general Instagram URLs and specific user profile URLs.
+    It excludes URLs for posts (/p/), TV (/tv/), reels (/reel/), explore (/explore/),
+    and stories (/stories/).
 
     Args:
-        config (PytestConfig): The pytest config object.
-        vcr (VCR): The VCR object.
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is an Instagram URI, False otherwise.
     """
-    vcr.register_matcher("request_matcher", request_matcher)
-    vcr.match_on = ["request_matcher"]
+    base_pattern = r"(?:https?://)?(?:www\.)?instagram\.com"
+    user_pattern = base_pattern + r"/(?!(?:p|tv|reel|explore|stories)/)([^/?#]+)"
+
+    # Check if it matches either the base pattern or user pattern
+    return bool(re.search(base_pattern, uri)) or bool(re.search(user_pattern, uri))
+
+
+def is_reddit(uri: str) -> bool:
+    """Check if a URI is a Reddit URI.
+
+    This function checks various Reddit URL patterns including:
+    - Subreddit URLs (/r/subreddit/)
+    - User URLs (/u/username/ or /user/username/)
+    - Submission URLs (/comments/id/ or /gallery/id/)
+    - Reddit-hosted images (i.redd.it, preview.redd.it, i.reddituploads.com)
+    - Share URLs (/r/subreddit/s/shareid)
+    - Home feed URLs
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is a Reddit URI, False otherwise.
+    """
+    patterns = [
+        # Subreddit pattern
+        r"(?:https?://)?(?:\w+\.)?reddit\.com(/r/[^/?#]+(?:/([a-z]+))?)/?(?:\?([^#]*))?(?:$|#)",
+        # Home pattern
+        r"(?:https?://)?(?:\w+\.)?reddit\.com((?:/([a-z]+))?)/?(?:\?([^#]*))?(?:$|#)",
+        # User pattern
+        r"(?:https?://)?(?:\w+\.)?reddit\.com/u(?:ser)?/([^/?#]+(?:/([a-z]+))?)/?(?:\?([^#]*))?$",
+        # Submission pattern
+        r"(?:https?://)?(?:(?:\w+\.)?reddit\.com/(?:(?:r|u|user)/[^/?#]+/comments|gallery)|redd\.it)/([a-z0-9]+)",
+        # Image pattern
+        r"(?:https?://)?((?:i|preview)\.redd\.it|i\.reddituploads\.com)/([^/?#]+)(\?[^#]*)?",
+        # Redirect/Share pattern
+        r"(?:https?://)?(?:(?:\w+\.)?reddit\.com/(?:(?:r)/([^/?#]+)))/s/([a-zA-Z0-9]{10})",
+    ]
+
+    return any(bool(re.search(pattern, uri)) for pattern in patterns)
+
+
+def is_youtube(uri: str) -> bool:
+    """Check if a URI is a YouTube URI.
+
+    This function checks various YouTube URL patterns including:
+    - Standard youtube.com URLs (with various subdomains)
+    - Short youtu.be URLs
+    - YouTube handle URLs
+    - YouTube channel URLs
+    - YouTube embed URLs
+    - YouTube shorts URLs
+    - Alternative YouTube frontends (invidious, hooktube, etc.)
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is a YouTube URI, False otherwise.
+    """
+    patterns = [
+        # Main YouTube pattern for videos
+        r"""(?x)^
+            (?:https?://|//)
+            (?:(?:(?:(?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids)?\.com|
+               (?:www\.)?deturl\.com/www\.youtube\.com|
+               (?:www\.)?pwnyoutube\.com|
+               (?:www\.)?hooktube\.com|
+               (?:www\.)?yourepeat\.com|
+               tube\.majestyc\.net|
+               youtube\.googleapis\.com)/
+            (?:.*?\#/)?
+            (?:
+                (?:(?:v|embed|e|shorts|live)/(?!videoseries|live_stream))
+                |(?:
+                    (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?
+                    (?:\?|\#!?)
+                    (?:.*?[&;])??
+                    v=
+                )
+            ))
+            |(?:
+               youtu\.be|
+               vid\.plus|
+               zwearz\.com/watch
+            )/
+            |(?:www\.)?cleanvideosearch\.com/media/action/yt/watch\?videoId=
+            )?
+            [0-9A-Za-z_-]{11}
+            (?:\#|$)""",
+        # YouTube handle pattern
+        r"^(?:https?://(?:www\.)?youtube\.com)?/(@[a-zA-Z0-9_-]+)",
+        # YouTube channel pattern
+        r"^(?:https?://(?:www\.)?youtube\.com)?/(UC[a-zA-Z0-9_-]{22})",
+        # YouTube embed pattern
+        r"(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/(?:embed|v|p)/[0-9A-Za-z_-]{11}",
+        # YouTube shorts pattern
+        r"(?:https?://)?(?:www\.)?youtube\.com/shorts/[0-9A-Za-z_-]{11}",
+    ]
+
+    return any(bool(re.search(pattern, uri, re.VERBOSE)) for pattern in patterns)
 
 
 def filter_response(response: VCRRequest) -> VCRRequest:
@@ -323,15 +410,83 @@ def filter_response(response: VCRRequest) -> VCRRequest:
     return response
 
 
+def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
+    """
+    Custom matcher to determine if the requests are the same.
+
+    - For internal adobe requests, we match the parts of the multipart request. This is needed as we can't compare the body
+        directly as the chunk boundary is generated randomly
+    - For opensearch requests, we just match the body
+    - For openai, allow llm-proxy
+    - For social media (YouTube, Instagram, Twitter, Reddit), match based on domain patterns
+    - For others, we match both uri and body
+
+    Args:
+        r1 (VCRRequest): The first request.
+        r2 (VCRRequest): The second request.
+
+    Returns:
+        bool: True if the requests match, False otherwise.
+    """
+    # First check: If URIs are identical, compare the bodies
+    # This is the simplest case where both requests are to the same endpoint
+    if r1.uri == r2.uri:
+        if r1.body == r2.body:
+            return True
+    # Second check: Handle special cases for different types of URIs
+    # This allows matching requests to equivalent services (e.g. openai and llm-proxy)
+    elif (
+        # Case 1: Both requests are to OpenSearch endpoints (e.g. opensearch or es.amazonaws.com)
+        is_opensearch_uri(r1.uri)
+        and is_opensearch_uri(r2.uri)
+        # Case 2: Both requests are to LLM endpoints (e.g. openai, anthropic, llm-proxy)
+        or is_llm_uri(r1.uri)
+        and is_llm_uri(r2.uri)
+        # Case 3: Both requests are to Chroma endpoints (localhost/127.0.0.1)
+        or is_chroma_uri(r1.uri)
+        and is_chroma_uri(r2.uri)
+        # Case 4: Both requests are to YouTube endpoints
+        or is_youtube(r1.uri)
+        and is_youtube(r2.uri)
+        # Case 5: Both requests are to Instagram endpoints
+        or is_instagram(r1.uri)
+        and is_instagram(r2.uri)
+        # Case 6: Both requests are to Twitter endpoints
+        or is_twitter(r1.uri)
+        and is_twitter(r2.uri)
+        # Case 7: Both requests are to Reddit endpoints
+        or is_reddit(r1.uri)
+        and is_reddit(r2.uri)
+    ):
+        # For these special cases, we only compare the body content
+        # The URIs might be different but functionally equivalent
+        return r1.body == r2.body
+
+    # If none of the above conditions match, the requests are considered different
+    return False
+
+
+# SOURCE: https://github.com/kiwicom/pytest-recording/tree/master
+def pytest_recording_configure(config: PytestConfig, vcr: VCR) -> None:
+    """
+    Configure VCR for pytest-recording.
+
+    Args:
+        config (PytestConfig): The pytest config object.
+        vcr (VCR): The VCR object.
+    """
+    vcr.register_matcher("request_matcher", request_matcher)
+    vcr.match_on = ["request_matcher"]
+
+
 def filter_request(request: VCRRequest) -> VCRRequest | None:
     """
     Filter the request before recording.
 
-    If the request is of type multipart/form-data we don't filter anything, else we perform two additional filterings -
-    1. Processes the request body text, replacing today's date with a placeholder.This is necessary to ensure
-        consistency in recorded VCR requests. Without this modification, requests would contain varying body text
-        with older dates, leading to failures in request body text comparison when executed with new dates.
-    2. Filter out specific fields from post data fields
+    If the request is of type multipart/form-data we don't filter anything, else we perform additional filterings:
+    1. Skip recording login requests and requests to ignored hosts
+    2. Processes the request body text, replacing today's date with a placeholder
+    3. Filter out specific fields from post data fields
 
     Args:
         request (VCRRequest): The request to filter.
@@ -339,12 +494,21 @@ def filter_request(request: VCRRequest) -> VCRRequest | None:
     Returns:
         Optional[VCRRequest]: The filtered request, or None if the request should be ignored.
     """
+    # Skip recording login requests
+    if request.path == "/login":
+        return None
+
+    # Skip recording requests to ignored hosts defined in IGNORE_HOSTS
+    if IGNORE_HOSTS and any(request.url.startswith(host) for host in IGNORE_HOSTS):
+        return None
 
     # vcr does not handle multipart/form-data correctly as reported on https://github.com/kevin1024/vcrpy/issues/521
     # so let it pass through as is
     if ctype := request.headers.get("Content-Type"):
         ctype = ctype.decode("utf-8") if isinstance(ctype, bytes) else ctype
         if "multipart/form-data" in ctype:
+            # Clear request headers to avoid recording sensitive data
+            request.headers = {}
             return request
 
     request = copy.deepcopy(request)
@@ -353,6 +517,9 @@ def filter_request(request: VCRRequest) -> VCRRequest | None:
         # request to https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken
         # can be made by ChatLLMInvoker of venice-gentech
         return None
+
+    # Clear request headers to avoid recording sensitive data
+    request.headers = {}
 
     # filter dates
     if request.body is not None:

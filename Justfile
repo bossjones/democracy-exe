@@ -796,6 +796,10 @@ install-youtube-transcript:
 test-lint:
 	uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
 
+# Run linting for duplicate code
+test-lint-similarities:
+	uv run pylint --disable=all --enable=duplicate-code --output-format=colorized --max-line-length=120 --rcfile pyproject.toml democracy_exe tests
+
 # Verify types with pyright
 pyright-verify-types:
 	#!/usr/bin/env bash
@@ -893,6 +897,33 @@ generate-ai-docs:
 	/Users/malcolm/dev/dpytest/tests/test_activity.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/configuration.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/api.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/advanced.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/debugging.html \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/gallery-dl/test/__init__.py \
+	/Users/malcolm/dev/gallery-dl/test/test_cache.py \
+	/Users/malcolm/dev/gallery-dl/test/test_config.py \
+	/Users/malcolm/dev/gallery-dl/test/test_cookies.py \
+	/Users/malcolm/dev/gallery-dl/test/test_downloader.py \
+	/Users/malcolm/dev/gallery-dl/test/test_extractor.py \
+	/Users/malcolm/dev/gallery-dl/test/test_formatter.py \
+	/Users/malcolm/dev/gallery-dl/test/test_job.py \
+	/Users/malcolm/dev/gallery-dl/test/test_oauth.py \
+	/Users/malcolm/dev/gallery-dl/test/test_output.py \
+	/Users/malcolm/dev/gallery-dl/test/test_postprocessor.py \
+	/Users/malcolm/dev/gallery-dl/test/test_results.py \
+	/Users/malcolm/dev/gallery-dl/test/test_text.py \
+	/Users/malcolm/dev/gallery-dl/test/test_util.py \
+	/Users/malcolm/dev/gallery-dl/test/test_ytdl.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml
+
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
@@ -902,3 +933,32 @@ test-twitter-cog-debug:
 
 test-twitter-cog:
 	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
+
+
+
+# In order to properly create new cassette files, you must first delete the existing cassette files and directories. This will regenerate all cassette files and rerun tests.
+delete-existing-cassettes:
+	./scripts/delete-existing-cassettes.sh
+
+# delete all cassette files and directories, regenerate all cassette files and rerun tests
+local-regenerate-cassettes:
+	@echo -e "\nDelete all cassette files and directories\n"
+	just delete-existing-cassettes
+	@echo -e "\nRegenerate all cassette files using --record-mode=all\n"
+	@echo -e "\nNOTE: This is expected to FAIL the first time when it is recording the cassette files!\n"
+	just uv_unittests_vcr_record_final || true
+	@echo -e "\nrun regulate tests to verify that the cassettes are working\n"
+	just test-debug
+
+# (alias) delete all cassette files and directories, regenerate all cassette files and rerun tests
+local-regenerate-vcr: local-regenerate-cassettes
+
+regenerate-cassettes: local-regenerate-cassettes
+
+test-gallery-dl-debug:
+	uv run pytest --capture=tee-sys --pdb --pdbcls bpdb:BPdb --showlocals --tb=short -k test_run_single_tweet
+
+test-gallery-dl:
+	uv run pytest --capture=tee-sys -k test_run_single_tweet
+
+# /Users/malcolm/dev/gallery-dl/gallery_dl
