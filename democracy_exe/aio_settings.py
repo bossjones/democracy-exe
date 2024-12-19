@@ -10,6 +10,7 @@ import os
 import pathlib
 
 from collections.abc import Callable
+from datetime import timedelta, timezone
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, cast
@@ -38,14 +39,16 @@ from yarl import URL
 from democracy_exe import __version__
 
 
-def goob_user_agent() -> str:
+def democracy_user_agent() -> str:
     """Get a common user agent"""
-    return f"goob-ai/{__version__}"
+    return f"democracy-exe/{__version__}"
 
 
 # Get rid of warning
 # USER_AGENT environment variable not set, consider setting it to identify your requests.
-os.environ["USER_AGENT"] = goob_user_agent()
+os.environ["USER_AGENT"] = democracy_user_agent()
+
+TIMEZONE = timezone(timedelta(hours=8), name='Asia/Kuala_Lumpur')
 
 
 TEMP_DIR = Path(gettempdir())

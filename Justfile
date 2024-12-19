@@ -796,6 +796,10 @@ install-youtube-transcript:
 test-lint:
 	uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
 
+# Run linting for duplicate code
+test-lint-similarities:
+	uv run pylint --disable=all --enable=duplicate-code --output-format=colorized --max-line-length=120 --rcfile pyproject.toml democracy_exe tests
+
 # Verify types with pyright
 pyright-verify-types:
 	#!/usr/bin/env bash

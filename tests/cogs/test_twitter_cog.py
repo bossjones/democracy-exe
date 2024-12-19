@@ -410,6 +410,7 @@ async def test_twitter_cog_on_guild_join(bot_with_twitter_cog: DemocracyBot, cap
     assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
 
 
+# NOTE: to get this to to pass after the refactor, you might need to incorporate things like which channel this is being said in etc.
 @pytest.mark.asyncio
 async def test_tweet_help_command(bot_with_twitter_cog: DemocracyBot) -> None:
     """Test tweet help command shows help message.

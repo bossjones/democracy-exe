@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, Ty
 
 import aiohttp
 import discord
+import pysnooper
 
 from discord import (
     Activity,
@@ -621,6 +622,141 @@ class DemocracyBot(commands.Bot):
             logger.info(f"Worker monitor iteration: {counter}")
             await asyncio.sleep(10)
 
+    # # NOTE: attempting to refactor the on_message method to be more readable and maintainable
+    # async def on_message(self, message: discord.Message) -> None:
+    #     """Process incoming messages and route them through the AI pipeline."""
+    #     if not self._should_process_message(message):
+    #         return
+
+    #     if message.reference is not None:
+    #         await self._handle_reply(message, message.reference.resolved, message.content)
+    #         return
+
+    #     if self.enable_ai and self._is_gpt_channel(message.channel):
+    #         await self._process_ai_message(message)
+    #     else:
+    #         logger.info("AI is disabled, skipping message processing... with llm")
+    #         await self.process_commands(message)
+
+
+
+
+    # # NOTE: enhanced version of the on_message method
+    # # see: https://github.com/bossjones/goob_ai/blob/a63f43ab3592542097e762349d53955bcc97ad1d/src/goob_ai/goob_bot.py
+    # # @pysnooper.snoop(thread_info=True, max_variable_length=None, depth=10)
+    # # Process incoming messages and route them through the AI pipeline
+    # async def on_message(self, message: discord.Message) -> None:
+    #     """Process incoming messages and route them through the AI pipeline.
+
+    #     Args:
+    #         message: The Discord message to process
+    #     """
+
+    #     # Check if bot user is properly initialized
+    #     if not self.user:
+    #         logger.error("Bot user is not initialized")
+    #         return
+
+    #     # Ignore messages from the bot itself to prevent feedback loops
+    #     if message.author == self.user:
+    #         logger.info("Skipping message from bot itself")
+    #         return
+
+    #     # Ignore @everyone and @here
+    #     if "@here" in message.content or "@everyone" in message.content:
+    #         logger.info("Skipping message with @everyone or @here")
+    #         return
+
+
+    #     # TODO: This is where all the AI logic is going to go
+    #     logger.info(f"Thread message to process - {message.author}: {message.content[:50]}")  # pyright: ignore[reportAttributeAccessIssue] # type: ignore
+    #     if message.author.bot:
+    #         logger.info(f"Skipping message from bot itself, message.author.bot = {message.author.bot}")
+    #         return
+
+    #     # skip messages that start w/ bot's prefix
+    #     if message.content.startswith(aiosettings.prefix):  # pyright: ignore[reportAttributeAccessIssue]
+    #         logger.info(f"Skipping message that starts with {aiosettings.prefix}")
+    #         return
+
+
+    #     # NOTE: on discord.message.reference, see: https://discordpy.readthedocs.io/en/stable/api.html#discord.Message.reference
+    #     # #     reference: Optional[:class:`~discord.MessageReference`]
+    #     # The message that this message references. This is only applicable to messages of
+    #     # type :attr:`MessageType.pins_add`, crossposted messages created by a
+    #     # followed channel integration, or message replies.
+
+    #     # Check if this message is a reply to another message
+    #     if message.reference is not None:
+    #         # Get the message being replied to
+    #         ref_message = message.reference.resolved
+
+    #         # Check if the replied-to message was from this bot
+    #         if ref_message.author.id == message.author.bot:
+    #             # Remove any @ mentions of the bot from the message content
+    #             content = message.content.replace(f"<@{message.author.bot}>", "").strip()
+    #             # Update the message content with cleaned version
+    #             message.content = content.strip()
+
+    #             # Show typing indicator while generating response
+    #             await message.channel.trigger_typing()
+    #             # Generate AI response to the user's message
+    #             response = await self.__generate_response(message)
+
+    #             # Send the response as a reply to maintain thread context
+    #             await message.reply(response)
+    #         # Exit message handling since we've processed the reply
+    #         return
+
+    #     # if AI is enabled and message is in the GPT channel, process the message
+    #     if self.enable_ai and (str(message.channel.type) == "text" and message.channel.id == 1240294186201124929):
+    #         logger.info("AI is enabled, processing message...")
+    #         # Check if the bot is mentioned in the message
+    #         if self.user.mentioned_in(message):
+    #             # Get or create a thread for this conversation
+    #             thread = await self.message_handler._get_thread(message)
+    #             if thread is None:
+    #                 return
+
+    #             # Extract thread and user IDs and convert to strings for consistency
+    #             thread_id = thread.id
+    #             user_id = message.author.id
+
+    #             if isinstance(thread_id, int):
+    #                 thread_id = str(thread_id)
+    #             if isinstance(user_id, int):
+    #                 user_id = str(user_id)
+
+    #             # Format the input data for the AI processing pipeline
+    #             input_data = {
+    #                 "messages": [format_inbound_message(message)],
+    #                 "configurable": {"thread_id": thread_id, "user_id": user_id}
+    #             }
+
+    #             # Process message through AI pipeline and handle any errors
+    #             try:
+    #                 response = await self.message_handler.stream_bot_response(self.graph, input_data)
+    #             except Exception as e:
+    #                 logger.exception(f"Error streaming bot response: {e}")
+    #                 response = "An error occurred while processing your message."
+
+    #             # Log that we're about to send the response
+    #             logger.debug("Sending response to thread...")
+
+    #             # Split response into chunks if it exceeds Discord's message length limit
+    #             chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+
+    #             # Send each chunk as a separate message in the thread
+    #             for chunk in chunks:
+    #                 await thread.send(chunk)
+    #     else:
+    #         logger.info("AI is disabled, skipping message processing... with llm")
+
+    #         # This function processes the commands that have been registered to the bot and other groups. Without this coroutine, none of the commands will be triggered.
+    #         await self.process_commands(message)
+
+    # NOTE: original version of the on_message method
+    # TODO: figure out how to refactor this to be more readable and maintainable and make tests pass
     # Process incoming messages and route them through the AI pipeline
     async def on_message(self, message: Message) -> None:
         """Process incoming messages and route them through the AI pipeline.
@@ -682,3 +818,181 @@ class DemocracyBot(commands.Bot):
         else:
             logger.info("AI is disabled, skipping message processing... with llm")
             await self.process_commands(message)
+
+
+    # NOTE: attempting to refactor the on_message method to be more readable and maintainable
+    def _should_process_message(self, message: discord.Message) -> bool:
+        """Determine if a Discord message should be processed by the bot's AI pipeline.
+
+        This method implements filtering logic to determine whether a message should be
+        processed by the bot's AI pipeline. It checks multiple conditions to prevent
+        unwanted message processing and potential feedback loops.
+
+        Args:
+            message: The Discord message to evaluate. Contains metadata about the
+                message including its author, content, and channel information.
+
+        Returns:
+            bool: True if the message should be processed by the bot's AI pipeline,
+                False if the message should be ignored.
+
+        Note:
+            Messages are ignored if any of these conditions are met:
+            - Bot user is not initialized
+            - Message is from the bot itself
+            - Message contains @here or @everyone mentions
+            - Message is from another bot
+            - Message starts with the bot's command prefix
+
+        Example:
+            ```python
+            if self._should_process_message(message):
+                await self._process_ai_message(message)
+            ```
+        """
+        if not self.user:
+            logger.error("Bot user is not initialized")
+            return False
+
+        if message.author == self.user:
+            logger.info("Skipping message from bot itself")
+            return False
+
+        if "@here" in message.content or "@everyone" in message.content:
+            logger.info("Skipping message with @everyone or @here")
+            return False
+
+        if message.author.bot:
+            logger.info(f"Skipping message from bot itself, message.author.bot = {message.author.bot}")
+            return False
+
+        if message.content.startswith(aiosettings.prefix):
+            logger.info(f"Skipping message that starts with {aiosettings.prefix}")
+            return False
+
+        return True
+
+    async def _handle_reply(
+        self,
+        message: discord.Message,
+        reply_to: discord.Message,
+        content: str
+    ) -> bool:
+        """Handle a reply to a message.
+
+        Processes a reply to a message, checking if it's a reply to the bot and
+        handling the response appropriately.
+
+        Args:
+            message: The current message being processed
+            reply_to: The message being replied to
+            content: The content of the current message
+
+        Returns:
+            bool: True if the message was handled as a reply, False otherwise
+
+        Raises:
+            discord.DiscordException: If there's an error sending the response
+        """
+        # Skip if not replying to bot
+        if reply_to.author.id != self.user.id:
+            logger.info("Skipping reply to non-bot message")
+            return False
+
+        try:
+            # Process reply and send response
+            response = await self._process_message(message, content)
+            await message.reply(response)
+            return True
+        except Exception as e:
+            logger.exception(f"Error handling reply: {e!s}")
+            raise
+
+        return False
+
+    def _is_gpt_channel(self, channel: discord.TextChannel) -> bool:
+        """Check if the given channel is the designated GPT channel.
+
+        This method determines if a channel is the designated GPT channel by checking
+        its type and ID. The GPT channel is where AI-powered interactions are allowed
+        to take place.
+
+        Args:
+            channel: The Discord text channel to evaluate. Must be a TextChannel
+                instance containing channel metadata and properties.
+
+        Returns:
+            bool: True if the channel is the designated GPT channel, False otherwise.
+
+        Note:
+            A channel is considered a GPT channel if:
+            - It is a text channel (channel.type == "text")
+            - Its ID matches the predefined GPT channel ID (1240294186201124929)
+        """
+        return str(channel.type) == "text" and channel.id == 1240294186201124929
+
+    async def _process_ai_message(self, message: discord.Message) -> None:
+        """Process a message through the bot's AI pipeline.
+
+        This method handles the AI processing workflow for a Discord message. It checks if the bot
+        is mentioned, creates or retrieves a thread for the conversation, and processes the message
+        through the AI pipeline to generate a response.
+
+        Args:
+            message: The Discord message to process. Must contain the message content,
+                author information, and channel metadata.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If there's an error during the AI processing pipeline or response streaming.
+                The error is logged and a generic error message is sent to the user.
+
+        Note:
+            The method performs the following steps:
+            1. Checks if the bot is mentioned in the message
+            2. Creates or retrieves a thread for the conversation
+            3. Formats the message for AI processing
+            4. Processes the message through the AI pipeline
+            5. Splits and sends the response in chunks if necessary (Discord's 2000 char limit)
+        """
+        # Exit early if the bot isn't explicitly mentioned in the message
+        if not self.user.mentioned_in(message):
+            return
+
+        # Get or create a thread for this conversation using the message handler
+        thread = await self.message_handler._get_thread(message)
+        # Exit if thread creation/retrieval failed
+        if thread is None:
+            return
+
+        # Convert thread and user IDs to strings for consistent handling in the AI pipeline
+        thread_id = str(thread.id)
+        user_id = str(message.author.id)
+
+        # Prepare the input data structure for the AI pipeline
+        # format_inbound_message converts the Discord message to a format the AI can process
+        input_data = {
+            "messages": [format_inbound_message(message)],  # Convert message to AI-readable format
+            "configurable": {"thread_id": thread_id, "user_id": user_id}  # Add metadata for context
+        }
+
+        try:
+            # Process the message through the AI pipeline and get the response
+            # Uses the LangGraph instance (self.graph) to generate the response
+            response = await self.message_handler.stream_bot_response(self.graph, input_data)
+        except Exception as e:
+            # Log any errors that occur during processing and return a generic error message
+            logger.exception(f"Error streaming bot response: {e}")
+            response = "An error occurred while processing your message."
+
+        # Log that we're about to send the response
+        logger.debug("Sending response to thread...")
+
+        # Split response into chunks of 2000 characters to comply with Discord's message length limit
+        chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+
+        # Send each chunk as a separate message in the thread
+        for chunk in chunks:
+            await thread.send(chunk)
