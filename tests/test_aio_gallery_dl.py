@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import pathlib
 
 from collections.abc import AsyncIterator, Generator
 from typing import TYPE_CHECKING, Any, Dict, cast
+
+import aiofiles
+import pytest_asyncio
 
 from loguru import logger
 
 import pytest
 
-from democracy_exe.clients.aio_gallery_dl import AsyncGalleryDL
+from democracy_exe.clients.aio_gallery_dl import AsyncGalleryDL, GalleryDLConfig
 from democracy_exe.utils._testing import ContextLogger
 
 
@@ -129,15 +134,17 @@ async def test_extract_from_url(
     mock_extractor = mock_gallery_dl.extractor.from_url.return_value
     mock_extractor.__iter__.return_value = iter(mock_extractor_items)
 
-    # Test extraction
-    client = AsyncGalleryDL()
+    # Test extraction with command line options
+    client = AsyncGalleryDL(verbose=True, write_info_json=True, write_metadata=True, no_mtime=True)
     items = []
     async for item in client.extract_from_url("https://example.com"):
         items.append(item)
 
     # Verify results
     assert items == mock_extractor_items
-    mock_gallery_dl.extractor.from_url.assert_called_once_with("https://example.com", {})
+    mock_gallery_dl.extractor.from_url.assert_called_once_with(
+        "https://example.com", {"verbosity": 2, "write-info-json": True, "write-metadata": True, "no-mtime": True}
+    )
 
 
 @pytest.mark.asyncio
@@ -197,15 +204,82 @@ async def test_extract_metadata(
     mock_gallery_dl.extractor.from_url.assert_called_once_with("https://example.com", {})
 
 
+@pytest_asyncio.fixture
+async def sample_config(tmp_path: pathlib.Path) -> str:
+    """Provide path to sample gallery-dl config file.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture
+
+    Returns:
+        Path to sample config file
+    """
+    config_path = tmp_path / "gallery-dl.conf"
+    async with aiofiles.open("tests/fixtures/gallery_dl.conf") as f:
+        config_data = await f.read()
+    async with aiofiles.open(config_path, "w") as f:
+        await f.write(config_data)
+    return str(config_path)
+
+
 @pytest.mark.asyncio
-async def test_context_manager() -> None:
+async def test_config_validation(sample_config: str) -> None:
+    """Test that config file loads and validates correctly.
+
+    Args:
+        sample_config: Path to sample config file
+    """
+    async with AsyncGalleryDL(config_file=sample_config) as client:
+        # Validate the config matches our Pydantic models
+        config = GalleryDLConfig(**client.config)
+
+        # Test some specific values
+        assert config.extractor.base_directory == "./gallery-dl/"
+        assert config.extractor.instagram.username.get_secret_value() == "testuser"
+        assert config.extractor.reddit.client_id.get_secret_value() == "test_client_id"
+        assert config.downloader.http.timeout == 30.0
+        assert config.output.mode == "auto"
+
+
+@pytest.mark.asyncio
+async def test_context_manager(tmp_path: pathlib.Path) -> None:
     """Test async context manager protocol.
 
     This test verifies that the AsyncGalleryDL class correctly implements
-    the async context manager protocol.
+    the async context manager protocol and loads config files.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture
     """
+    # Test without config file
     async with AsyncGalleryDL() as client:
         assert isinstance(client, AsyncGalleryDL)
+
+    # Test with config file
+    config_file = tmp_path / "gallery-dl.conf"
+    test_config = {
+        "extractor": {
+            "base-directory": "~/Downloads",
+            "user-agent": "Mozilla/5.0",
+        }
+    }
+
+    with open(config_file, "w", encoding="utf-8") as f:
+        json.dump(test_config, f)
+
+    async with AsyncGalleryDL(config_file=str(config_file)) as client:
+        assert isinstance(client, AsyncGalleryDL)
+        assert client.config["extractor"]["base-directory"] == "~/Downloads"
+        assert client.config["extractor"]["user-agent"] == "Mozilla/5.0"
+
+    # Test with invalid config file
+    invalid_config = tmp_path / "invalid.conf"
+    with open(invalid_config, "w", encoding="utf-8") as f:
+        f.write("invalid json")
+
+    async with AsyncGalleryDL(config_file=str(invalid_config)) as client:
+        assert isinstance(client, AsyncGalleryDL)
+        assert "extractor" not in client.config
 
 
 @pytest.mark.asyncio

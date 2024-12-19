@@ -1,0 +1,297 @@
+Help me come up with a pydantic model that can represent this data here, please note a lot of these values are optional. Update the existing pydantic models in aio_gallery_dl.py i'm using the following versions:
+
+"pydantic[email]>=2.9.2",
+"pydantic-settings>=2.6.1",
+
+Here is my gallery-dl.conf
+
+{
+    "extractor":
+    {
+        "base-directory": "./gallery-dl/",
+        "postprocessors": null,
+        "archive": null,
+        "cookies": null,
+        "cookies-update": true,
+        "proxy": null,
+        "skip": true,
+
+
+        "sleep": 0,
+        "sleep-request": 0,
+        "sleep-extractor": 0,
+
+        "path-restrict": "auto",
+        "path-replace": "_",
+        "path-remove": "\\u0000-\\u001f\\u007f",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0",
+
+        "path-strip": "auto",
+        "path-extended": true,
+
+        "extension-map": {
+            "jpeg": "jpg",
+            "jpe" : "jpg",
+            "jfif": "jpg",
+            "jif" : "jpg",
+            "jfi" : "jpg"
+        },
+
+        "artstation":
+        {
+            "external": false,
+            "pro-first": true
+        },
+        "aryion":
+        {
+            "username": null,
+            "password": null
+        },
+        "blogger":
+        {
+            "videos": true
+        },
+        "danbooru":
+        {
+            "username": null,
+            "password": null,
+            "ugoira": false
+        },
+        "deviantart":
+        {
+            "extra": false,
+            "flat": true,
+            "folders": false,
+            "journals": "html",
+            "mature": true,
+            "metadata": false,
+            "original": true,
+            "quality": 100,
+            "wait-min": 0
+        },
+        "exhentai":
+        {
+            "username": null,
+            "password": null,
+            "domain": "auto",
+            "limits": true,
+            "original": true,
+            "wait-min": 3.0,
+            "wait-max": 6.0
+        },
+        "flickr":
+        {
+            "videos": true,
+            "size-max": null
+        },
+        "gelbooru":
+        {
+            "api": true
+        },
+        "gfycat":
+        {
+            "format": "mp4"
+        },
+        "hitomi":
+        {
+            "metadata": true
+        },
+        "idolcomplex":
+        {
+            "username": null,
+            "password": null,
+            "wait-min": 3.0,
+            "wait-max": 6.0
+        },
+        "imgur":
+        {
+            "mp4": true
+        },
+        "instagram":
+        {
+            "highlights": false,
+            "videos": true,
+            "include": "all",
+            "directory": ["Instagram", "{username}", "Posts", "({date}) ({post_shortcode}) - {description[0:150]}"],
+            "stories": {
+                "directory": ["Instagram", "{username}", "Stories", "({expires}) {post_id}"]
+            },
+            "channel": {
+                "directory": ["Instagram", "{username}", "IGTV", "{post_id}"]
+            },
+            "tagged": {
+                "directory": ["Instagram", "{tagged_username}", "Tagged", "{username}"]
+            },
+            "reels": {
+                "directory": ["Instagram", "{username}", "Reels", "{post_shortcode}"]
+            },
+            "filename": "({date})_{username}_{num}.{extension}",
+            "date-format": "%Y-%m-%dT%H:%M:%S",
+            "cookies": "~/Downloads/wavymemes-56560c6c-1073-4615-b590-02605c2d052a.txt",
+            "username": "fakeuser",
+            "password": "fakepassword",
+            "sleep-request": 8.0
+        },
+        "nijie":
+        {
+            "username": null,
+            "password": null
+        },
+        "oauth":
+        {
+            "browser": "true",
+            "cache": true,
+            "host": "localhost",
+            "port": 6414
+        },
+        "pinterest":
+        {
+            "domain": "auto",
+            "sections": true,
+            "videos": true
+        },
+        "pixiv":
+        {
+            "username": null,
+            "password": null,
+            "avatar": false,
+            "ugoira": true
+        },
+        "reactor":
+        {
+            "wait-min": 3.0,
+            "wait-max": 6.0
+        },
+        "reddit":
+        {
+            "client-id": "fakeclientid",
+            "user-agent": "Python:gdl:v1.0 (by /u/fakeuser)",
+            "browser": "firefox:macos",
+            "refresh-token": null,
+            "comments": 0,
+            "morecomments": false,
+            "date-min": 0,
+            "date-max": 253402210800,
+            "date-format": "%Y-%m-%dT%H:%M:%S",
+            "id-min": null,
+            "id-max": null,
+            "recursion": 0,
+            "videos": true,
+            "parent-directory": true,
+            "directory":  ["reddit", "_u_{author}", "{subreddit}"],
+            "filename": "{subreddit}_{author}_{title}_{id}_{num}_{filename}_{date}.{extension}"
+        },
+        "redgifs":
+        {
+            "format": [
+                "hd",
+                "sd",
+                "gif"
+            ],
+            "username": "fakeuser",
+            "password": "fakepassword"
+
+        },
+        "seiga":
+        {
+            "username": null,
+            "password": null
+        },
+        "tumblr":
+        {
+            "avatar": false,
+            "external": false,
+            "inline": true,
+            "posts": "all",
+            "reblogs": true
+        },
+        "twitter":
+        {
+            "quoted": true,
+            "replies": true,
+            "retweets": true,
+            "twitpic": false,
+            "videos": true,
+            "cookies": "/Users/malcolm/Downloads/iamproessorex-twitter-cookies-7274fd19-367d-49e7-ade8-f461dda018c6.txt",
+            "filename": "{author[name]}-{tweet_id}-({date:%Y%m%d_%H%M%S})-img{num}.{extension}"
+        },
+        "vsco":
+        {
+            "videos": true
+        },
+        "wallhaven":
+        {
+            "api-key": null
+        },
+        "weibo":
+        {
+            "retweets": true,
+            "videos": true
+        },
+        "booru":
+        {
+            "tags": false
+        }
+    },
+
+    "downloader":
+    {
+        "filesize-min": null,
+        "filesize-max": null,
+        "part": true,
+        "part-directory": null,
+
+        "http":
+        {
+            "adjust-extensions": true,
+            "mtime": true,
+            "rate": null,
+            "retries": 4,
+            "timeout": 30.0,
+            "verify": true
+        },
+
+        "ytdl":
+        {
+            "format": null,
+            "forward-cookies": false,
+            "logging": true,
+            "mtime": true,
+            "outtmpl": null,
+            "rate": null,
+            "retries": 4,
+            "timeout": 30.0,
+            "verify": true
+        }
+    },
+
+    "output":
+    {
+        "mode": "auto",
+        "progress": true,
+        "shorten": true,
+        "log": "[{name}][{levelname}][{extractor.url}] {message}",
+        "logfile": null,
+        "unsupportedfile": null
+    },
+
+    "netrc": false
+}
+
+
+you can use the following links as reference:
+
+
+https://github.com/mikf/gallery-dl/blob/master/docs/gallery-dl.conf
+https://github.com/mikf/gallery-dl/tree/master?tab=readme-ov-file#configuration
+https://gdl-org.github.io/docs/configuration.html
+
+
+A list of all available configuration options and their descriptions
+can be found at `<https://gdl-org.github.io/docs/configuration.html>`__.
+
+| For a default configuration file with available options set to their
+  default values, see `<docs/gallery-dl.conf>`__.
+
+| For a commented example with more involved settings and option usage,
+  see `<docs/gallery-dl-example.conf>`__.

@@ -897,12 +897,32 @@ generate-ai-docs:
 	/Users/malcolm/dev/dpytest/tests/test_activity.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml"
 	uv run files-to-prompt \
 	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/configuration.html \
 	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/api.html \
 	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/advanced.html \
 	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/debugging.html \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/gallery-dl/test/__init__.py \
+	/Users/malcolm/dev/gallery-dl/test/test_cache.py \
+	/Users/malcolm/dev/gallery-dl/test/test_config.py \
+	/Users/malcolm/dev/gallery-dl/test/test_cookies.py \
+	/Users/malcolm/dev/gallery-dl/test/test_downloader.py \
+	/Users/malcolm/dev/gallery-dl/test/test_extractor.py \
+	/Users/malcolm/dev/gallery-dl/test/test_formatter.py \
+	/Users/malcolm/dev/gallery-dl/test/test_job.py \
+	/Users/malcolm/dev/gallery-dl/test/test_oauth.py \
+	/Users/malcolm/dev/gallery-dl/test/test_output.py \
+	/Users/malcolm/dev/gallery-dl/test/test_postprocessor.py \
+	/Users/malcolm/dev/gallery-dl/test/test_results.py \
+	/Users/malcolm/dev/gallery-dl/test/test_text.py \
+	/Users/malcolm/dev/gallery-dl/test/test_util.py \
+	/Users/malcolm/dev/gallery-dl/test/test_ytdl.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml
 
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:

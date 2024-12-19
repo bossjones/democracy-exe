@@ -1,0 +1,5791 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/gallery-dl/test/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/gallery-dl/test/test_cache.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2020 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest.mock import patch
+
+import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import config, util  # noqa E402
+
+dbpath = tempfile.mkstemp()[1]
+config.set(("cache",), "file", dbpath)
+from gallery_dl import cache  # noqa E402
+cache._init()
+
+
+#  def tearDownModule():
+#      util.remove_file(dbpath)
+
+
+class TestCache(unittest.TestCase):
+
+    def test_decorator(self):
+
+        @cache.memcache()
+        def mc1():
+            pass
+
+        @cache.memcache(maxage=10)
+        def mc2():
+            pass
+
+        @cache.cache()
+        def dbc():
+            pass
+
+        self.assertIsInstance(mc1, cache.CacheDecorator)
+        self.assertIsInstance(mc2, cache.MemoryCacheDecorator)
+        self.assertIsInstance(dbc, cache.DatabaseCacheDecorator)
+
+    def test_keyarg_mem_simple(self):
+        @cache.memcache(keyarg=2)
+        def ka(a, b, c):
+            return a+b+c
+
+        self.assertEqual(ka(1, 1, 1), 3)
+        self.assertEqual(ka(2, 2, 2), 6)
+
+        self.assertEqual(ka(0, 0, 1), 3)
+        self.assertEqual(ka(9, 9, 1), 3)
+        self.assertEqual(ka(0, 0, 2), 6)
+        self.assertEqual(ka(9, 9, 2), 6)
+
+    def test_keyarg_mem(self):
+        @cache.memcache(keyarg=2, maxage=10)
+        def ka(a, b, c):
+            return a+b+c
+
+        self.assertEqual(ka(1, 1, 1), 3)
+        self.assertEqual(ka(2, 2, 2), 6)
+
+        self.assertEqual(ka(0, 0, 1), 3)
+        self.assertEqual(ka(9, 9, 1), 3)
+        self.assertEqual(ka(0, 0, 2), 6)
+        self.assertEqual(ka(9, 9, 2), 6)
+
+    def test_keyarg_db(self):
+        @cache.cache(keyarg=2, maxage=10)
+        def ka(a, b, c):
+            return a+b+c
+
+        self.assertEqual(ka(1, 1, 1), 3)
+        self.assertEqual(ka(2, 2, 2), 6)
+
+        self.assertEqual(ka(0, 0, 1), 3)
+        self.assertEqual(ka(9, 9, 1), 3)
+        self.assertEqual(ka(0, 0, 2), 6)
+        self.assertEqual(ka(9, 9, 2), 6)
+
+    def test_expires_mem(self):
+        @cache.memcache(maxage=2)
+        def ex(a, b, c):
+            return a+b+c
+
+        with patch("time.time") as tmock:
+            tmock.return_value = 0.001
+            self.assertEqual(ex(1, 1, 1), 3)
+            self.assertEqual(ex(2, 2, 2), 3)
+            self.assertEqual(ex(3, 3, 3), 3)
+
+            # value is still cached after 1 second
+            tmock.return_value += 1.0
+            self.assertEqual(ex(3, 3, 3), 3)
+            self.assertEqual(ex(2, 2, 2), 3)
+            self.assertEqual(ex(1, 1, 1), 3)
+
+            # new value after 'maxage' seconds
+            tmock.return_value += 1.0
+            self.assertEqual(ex(3, 3, 3), 9)
+            self.assertEqual(ex(2, 2, 2), 9)
+            self.assertEqual(ex(1, 1, 1), 9)
+
+    def test_expires_db(self):
+        @cache.cache(maxage=2)
+        def ex(a, b, c):
+            return a+b+c
+
+        with patch("time.time") as tmock:
+            tmock.return_value = 0.999
+            self.assertEqual(ex(1, 1, 1), 3)
+            self.assertEqual(ex(2, 2, 2), 3)
+            self.assertEqual(ex(3, 3, 3), 3)
+
+            # value is still cached after 1 second
+            tmock.return_value += 1.0
+            self.assertEqual(ex(3, 3, 3), 3)
+            self.assertEqual(ex(2, 2, 2), 3)
+            self.assertEqual(ex(1, 1, 1), 3)
+
+            # new value after 'maxage' seconds
+            tmock.return_value += 1.0
+            self.assertEqual(ex(3, 3, 3), 9)
+            self.assertEqual(ex(2, 2, 2), 9)
+            self.assertEqual(ex(1, 1, 1), 9)
+
+    def test_update_mem_simple(self):
+        @cache.memcache(keyarg=0)
+        def up(a, b, c):
+            return a+b+c
+
+        self.assertEqual(up(1, 1, 1), 3)
+        up.update(1, 0)
+        up.update(2, 9)
+        self.assertEqual(up(1, 0, 0), 0)
+        self.assertEqual(up(2, 0, 0), 9)
+
+    def test_update_mem(self):
+        @cache.memcache(keyarg=0, maxage=10)
+        def up(a, b, c):
+            return a+b+c
+
+        self.assertEqual(up(1, 1, 1), 3)
+        up.update(1, 0)
+        up.update(2, 9)
+        self.assertEqual(up(1, 0, 0), 0)
+        self.assertEqual(up(2, 0, 0), 9)
+
+    def test_update_db(self):
+        @cache.cache(keyarg=0, maxage=10)
+        def up(a, b, c):
+            return a+b+c
+
+        self.assertEqual(up(1, 1, 1), 3)
+        up.update(1, 0)
+        up.update(2, 9)
+        self.assertEqual(up(1, 0, 0), 0)
+        self.assertEqual(up(2, 0, 0), 9)
+
+    def test_invalidate_mem_simple(self):
+        @cache.memcache(keyarg=0)
+        def inv(a, b, c):
+            return a+b+c
+
+        self.assertEqual(inv(1, 1, 1), 3)
+        inv.invalidate(1)
+        inv.invalidate(2)
+        self.assertEqual(inv(1, 0, 0), 1)
+        self.assertEqual(inv(2, 0, 0), 2)
+
+    def test_invalidate_mem(self):
+        @cache.memcache(keyarg=0, maxage=10)
+        def inv(a, b, c):
+            return a+b+c
+
+        self.assertEqual(inv(1, 1, 1), 3)
+        inv.invalidate(1)
+        inv.invalidate(2)
+        self.assertEqual(inv(1, 0, 0), 1)
+        self.assertEqual(inv(2, 0, 0), 2)
+
+    def test_invalidate_db(self):
+        @cache.cache(keyarg=0, maxage=10)
+        def inv(a, b, c):
+            return a+b+c
+
+        self.assertEqual(inv(1, 1, 1), 3)
+        inv.invalidate(1)
+        inv.invalidate(2)
+        self.assertEqual(inv(1, 0, 0), 1)
+        self.assertEqual(inv(2, 0, 0), 2)
+
+    def test_database_read(self):
+        @cache.cache(keyarg=0, maxage=10)
+        def db(a, b, c):
+            return a+b+c
+
+        # initialize cache
+        self.assertEqual(db(1, 1, 1), 3)
+        db.update(2, 6)
+
+        # check and clear the in-memory portion of said cache
+        self.assertEqual(db.cache[1][0], 3)
+        self.assertEqual(db.cache[2][0], 6)
+        db.cache.clear()
+        self.assertEqual(db.cache, {})
+
+        # fetch results from database
+        self.assertEqual(db(1, 0, 0), 3)
+        self.assertEqual(db(2, 0, 0), 6)
+
+        # check in-memory cache updates
+        self.assertEqual(db.cache[1][0], 3)
+        self.assertEqual(db.cache[2][0], 6)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/gallery-dl/test/test_config.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2015-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+
+import tempfile
+
+ROOTDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOTDIR)
+from gallery_dl import config, util  # noqa E402
+
+
+class TestConfig(unittest.TestCase):
+
+    def setUp(self):
+        config.set(()        , "a", 1)
+        config.set(("b",)    , "a", 2)
+        config.set(("b", "b"), "a", 3)
+        config.set(("b",)    , "c", "text")
+        config.set(("b", "b"), "c", [8, 9])
+
+    def tearDown(self):
+        config.clear()
+
+    def test_get(self):
+        self.assertEqual(config.get(()        , "a")   , 1)
+        self.assertEqual(config.get(("b",)    , "a")   , 2)
+        self.assertEqual(config.get(("b", "b"), "a")   , 3)
+
+        self.assertEqual(config.get(()        , "c")   , None)
+        self.assertEqual(config.get(("b",)    , "c")   , "text")
+        self.assertEqual(config.get(("b", "b"), "c")   , [8, 9])
+
+        self.assertEqual(config.get(("a",)    , "g")   , None)
+        self.assertEqual(config.get(("a", "a"), "g")   , None)
+        self.assertEqual(config.get(("e", "f"), "g")   , None)
+        self.assertEqual(config.get(("e", "f"), "g", 4), 4)
+
+    def test_interpolate(self):
+        self.assertEqual(config.interpolate(()        , "a"), 1)
+        self.assertEqual(config.interpolate(("b",)    , "a"), 1)
+        self.assertEqual(config.interpolate(("b", "b"), "a"), 1)
+
+        self.assertEqual(config.interpolate(()        , "c"), None)
+        self.assertEqual(config.interpolate(("b",)    , "c"), "text")
+        self.assertEqual(config.interpolate(("b", "b"), "c"), [8, 9])
+
+        self.assertEqual(config.interpolate(("a",)    , "g")   , None)
+        self.assertEqual(config.interpolate(("a", "a"), "g")   , None)
+        self.assertEqual(config.interpolate(("e", "f"), "g")   , None)
+        self.assertEqual(config.interpolate(("e", "f"), "g", 4), 4)
+
+        self.assertEqual(config.interpolate(("b",), "d", 1) , 1)
+        self.assertEqual(config.interpolate(("d",), "d", 1) , 1)
+        config.set(()    , "d", 2)
+        self.assertEqual(config.interpolate(("b",), "d", 1) , 2)
+        self.assertEqual(config.interpolate(("d",), "d", 1) , 2)
+        config.set(("b",), "d", 3)
+        self.assertEqual(config.interpolate(("b",), "d", 1) , 2)
+        self.assertEqual(config.interpolate(("d",), "d", 1) , 2)
+
+    def test_interpolate_common(self):
+
+        def lookup():
+            return config.interpolate_common(
+                ("Z1", "Z2"), (
+                    ("A1", "A2"),
+                    ("B1",),
+                    ("C1", "C2", "C3"),
+                ), "KEY", "DEFAULT",
+            )
+
+        def test(path, value, expected=None):
+            config.set(path, "KEY", value)
+            self.assertEqual(lookup(), expected or value)
+
+        self.assertEqual(lookup(), "DEFAULT")
+        test(("Z1",), 1)
+        test(("Z1", "Z2"), 2)
+        test(("Z1", "Z2", "C1"), 3)
+        test(("Z1", "Z2", "C1", "C2"), 4)
+        test(("Z1", "Z2", "C1", "C2", "C3"), 5)
+        test(("Z1", "Z2", "B1"), 6)
+        test(("Z1", "Z2", "A1"), 7)
+        test(("Z1", "Z2", "A1", "A2"), 8)
+        test(("Z1", "A1", "A2"), 999, 8)
+        test(("Z1", "Z2", "A1", "A2", "A3"), 999, 8)
+        test((), 9)
+
+    def test_accumulate(self):
+        self.assertEqual(config.accumulate((), "l"), [])
+
+        config.set(()        , "l", [5, 6])
+        config.set(("c",)    , "l", [3, 4])
+        config.set(("c", "c"), "l", [1, 2])
+        self.assertEqual(
+            config.accumulate((), "l")        , [5, 6])
+        self.assertEqual(
+            config.accumulate(("c",), "l")    , [3, 4, 5, 6])
+        self.assertEqual(
+            config.accumulate(("c", "c"), "l"), [1, 2, 3, 4, 5, 6])
+
+        config.set(("c",), "l", None)
+        config.unset(("c", "c"), "l")
+        self.assertEqual(
+            config.accumulate((), "l")        , [5, 6])
+        self.assertEqual(
+            config.accumulate(("c",), "l")    , [5, 6])
+        self.assertEqual(
+            config.accumulate(("c", "c"), "l"), [5, 6])
+
+    def test_set(self):
+        config.set(()        , "c", [1, 2, 3])
+        config.set(("b",)    , "c", [1, 2, 3])
+        config.set(("e", "f"), "g", value=234)
+        self.assertEqual(config.get(()        , "c"), [1, 2, 3])
+        self.assertEqual(config.get(("b",)    , "c"), [1, 2, 3])
+        self.assertEqual(config.get(("e", "f"), "g"), 234)
+
+    def test_setdefault(self):
+        config.setdefault(()        , "c", [1, 2, 3])
+        config.setdefault(("b",)    , "c", [1, 2, 3])
+        config.setdefault(("e", "f"), "g", value=234)
+        self.assertEqual(config.get(()        , "c"), [1, 2, 3])
+        self.assertEqual(config.get(("b",)    , "c"), "text")
+        self.assertEqual(config.get(("e", "f"), "g"), 234)
+
+    def test_unset(self):
+        config.unset(()    , "a")
+        config.unset(("b",), "c")
+        config.unset(("a",), "d")
+        config.unset(("b",), "d")
+        config.unset(("c",), "d")
+        self.assertEqual(config.get(()    , "a"), None)
+        self.assertEqual(config.get(("b",), "a"), 2)
+        self.assertEqual(config.get(("b",), "c"), None)
+        self.assertEqual(config.get(("a",), "d"), None)
+        self.assertEqual(config.get(("b",), "d"), None)
+        self.assertEqual(config.get(("c",), "d"), None)
+
+    def test_apply(self):
+        options = (
+            (("b",)    , "c", [1, 2, 3]),
+            (("e", "f"), "g", 234),
+        )
+
+        self.assertEqual(config.get(("b",)    , "c"), "text")
+        self.assertEqual(config.get(("e", "f"), "g"), None)
+
+        with config.apply(options):
+            self.assertEqual(config.get(("b",)    , "c"), [1, 2, 3])
+            self.assertEqual(config.get(("e", "f"), "g"), 234)
+
+        self.assertEqual(config.get(("b",)    , "c"), "text")
+        self.assertEqual(config.get(("e", "f"), "g"), None)
+
+    def test_load(self):
+        with tempfile.TemporaryDirectory() as base:
+            path1 = os.path.join(base, "cfg1")
+            with open(path1, "w") as fp:
+                fp.write('{"a": 1, "b": {"a": 2, "c": "text"}}')
+
+            path2 = os.path.join(base, "cfg2")
+            with open(path2, "w") as fp:
+                fp.write('{"a": 7, "b": {"a": 8, "e": "foo"}}')
+
+            config.clear()
+            config.load((path1,))
+            self.assertEqual(config.get(()    , "a"), 1)
+            self.assertEqual(config.get(("b",), "a"), 2)
+            self.assertEqual(config.get(("b",), "c"), "text")
+
+            config.load((path2,))
+            self.assertEqual(config.get(()    , "a"), 7)
+            self.assertEqual(config.get(("b",), "a"), 8)
+            self.assertEqual(config.get(("b",), "c"), "text")
+            self.assertEqual(config.get(("b",), "e"), "foo")
+
+            config.clear()
+            config.load((path1, path2))
+            self.assertEqual(config.get(()    , "a"), 7)
+            self.assertEqual(config.get(("b",), "a"), 8)
+            self.assertEqual(config.get(("b",), "c"), "text")
+            self.assertEqual(config.get(("b",), "e"), "foo")
+
+
+class TestConfigFiles(unittest.TestCase):
+
+    def test_default_config(self):
+        cfg = self._load("gallery-dl.conf")
+        self.assertIsInstance(cfg, dict)
+        self.assertTrue(cfg)
+
+    def test_example_config(self):
+        cfg = self._load("gallery-dl-example.conf")
+        self.assertIsInstance(cfg, dict)
+        self.assertTrue(cfg)
+
+    @staticmethod
+    def _load(name):
+        path = os.path.join(ROOTDIR, "docs", name)
+        try:
+            with open(path) as fp:
+                return util.json_loads(fp.read())
+        except FileNotFoundError:
+            raise unittest.SkipTest(path + " not available")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/gallery-dl/test/test_cookies.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2017-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest import mock
+
+import time
+import logging
+import tempfile
+from os.path import join
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import config, extractor  # noqa E402
+
+
+class TestCookiejar(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.path = tempfile.TemporaryDirectory()
+
+        cls.cookiefile = join(cls.path.name, "cookies.txt")
+        with open(cls.cookiefile, "w") as fp:
+            fp.write("""# HTTP Cookie File
+.example.org\tTRUE\t/\tFALSE\t253402210800\tNAME\tVALUE
+""")
+
+        cls.invalid_cookiefile = join(cls.path.name, "invalid.txt")
+        with open(cls.invalid_cookiefile, "w") as fp:
+            fp.write("""# asd
+.example.org\tTRUE/FALSE\t253402210800\tNAME\tVALUE
+""")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.path.cleanup()
+        config.clear()
+
+    def test_cookiefile(self):
+        config.set((), "cookies", self.cookiefile)
+        cookies = _get_extractor("test").cookies
+        self.assertEqual(len(cookies), 1)
+
+        cookie = next(iter(cookies))
+        self.assertEqual(cookie.domain, ".example.org")
+        self.assertEqual(cookie.path  , "/")
+        self.assertEqual(cookie.name  , "NAME")
+        self.assertEqual(cookie.value , "VALUE")
+
+    def test_invalid_cookiefile(self):
+        self._test_warning(self.invalid_cookiefile, ValueError)
+
+    def test_invalid_filename(self):
+        self._test_warning(join(self.path.name, "nothing"), FileNotFoundError)
+
+    def _test_warning(self, filename, exc):
+        config.set((), "cookies", filename)
+        log = logging.getLogger("generic")
+
+        with mock.patch.object(log, "warning") as mock_warning:
+            cookies = _get_extractor("test").cookies
+
+        self.assertEqual(len(cookies), 0)
+        self.assertEqual(mock_warning.call_count, 1)
+        self.assertEqual(mock_warning.call_args[0][0], "cookies: %s")
+        self.assertIsInstance(mock_warning.call_args[0][1], exc)
+
+
+class TestCookiedict(unittest.TestCase):
+
+    def setUp(self):
+        self.cdict = {"NAME1": "VALUE1", "NAME2": "VALUE2"}
+        config.set((), "cookies", self.cdict)
+
+    def tearDown(self):
+        config.clear()
+
+    def test_dict(self):
+        cookies = _get_extractor("test").cookies
+
+        self.assertEqual(len(cookies), len(self.cdict))
+        self.assertEqual(sorted(cookies.keys()), sorted(self.cdict.keys()))
+        self.assertEqual(sorted(cookies.values()), sorted(self.cdict.values()))
+
+    def test_domain(self):
+        for category in ["exhentai", "idolcomplex", "nijie", "horne"]:
+            extr = _get_extractor(category)
+            cookies = extr.cookies
+            for key in self.cdict:
+                self.assertTrue(key in cookies)
+            for c in cookies:
+                self.assertEqual(c.domain, extr.cookies_domain)
+
+
+class TestCookieLogin(unittest.TestCase):
+
+    def tearDown(self):
+        config.clear()
+
+    def test_cookie_login(self):
+        extr_cookies = {
+            "exhentai"   : ("ipb_member_id", "ipb_pass_hash"),
+            "idolcomplex": ("login", "pass_hash"),
+            "nijie"      : ("nijie_tok",),
+            "horne"      : ("horne_tok",),
+        }
+        for category, cookienames in extr_cookies.items():
+            cookies = {name: "value" for name in cookienames}
+            config.set((), "cookies", cookies)
+            extr = _get_extractor(category)
+            with mock.patch.object(extr, "_login_impl") as mock_login:
+                extr.login()
+                mock_login.assert_not_called()
+
+
+class TestCookieUtils(unittest.TestCase):
+
+    def test_check_cookies(self):
+        extr = _get_extractor("test")
+        self.assertFalse(extr.cookies, "empty")
+        self.assertFalse(extr.cookies_domain, "empty")
+
+        # always returns False when checking for empty cookie list
+        self.assertFalse(extr.cookies_check(()))
+
+        self.assertFalse(extr.cookies_check(("a",)))
+        self.assertFalse(extr.cookies_check(("a", "b")))
+        self.assertFalse(extr.cookies_check(("a", "b", "c")))
+
+        extr.cookies.set("a", "1")
+        self.assertTrue(extr.cookies_check(("a",)))
+        self.assertFalse(extr.cookies_check(("a", "b")))
+        self.assertFalse(extr.cookies_check(("a", "b", "c")))
+
+        extr.cookies.set("b", "2")
+        self.assertTrue(extr.cookies_check(("a",)))
+        self.assertTrue(extr.cookies_check(("a", "b")))
+        self.assertFalse(extr.cookies_check(("a", "b", "c")))
+
+    def test_check_cookies_domain(self):
+        extr = _get_extractor("test")
+        self.assertFalse(extr.cookies, "empty")
+        extr.cookies_domain = ".example.org"
+
+        self.assertFalse(extr.cookies_check(("a",)))
+        self.assertFalse(extr.cookies_check(("a", "b")))
+
+        extr.cookies.set("a", "1")
+        self.assertFalse(extr.cookies_check(("a",)))
+
+        extr.cookies.set("a", "1", domain=extr.cookies_domain)
+        self.assertTrue(extr.cookies_check(("a",)))
+
+        extr.cookies.set("a", "1", domain="www" + extr.cookies_domain)
+        self.assertEqual(len(extr.cookies), 3)
+        self.assertTrue(extr.cookies_check(("a",)))
+
+        extr.cookies.set("b", "2", domain=extr.cookies_domain)
+        extr.cookies.set("c", "3", domain=extr.cookies_domain)
+        self.assertTrue(extr.cookies_check(("a", "b", "c")))
+
+    def test_check_cookies_expires(self):
+        extr = _get_extractor("test")
+        self.assertFalse(extr.cookies, "empty")
+        self.assertFalse(extr.cookies_domain, "empty")
+
+        now = int(time.time())
+        log = logging.getLogger("generic")
+
+        extr.cookies.set("a", "1", expires=now-100)
+        with mock.patch.object(log, "warning") as mw:
+            self.assertFalse(extr.cookies_check(("a",)))
+            self.assertEqual(mw.call_count, 1)
+            self.assertEqual(mw.call_args[0], ("Cookie '%s' has expired", "a"))
+
+        extr.cookies.set("a", "1", expires=now+100)
+        with mock.patch.object(log, "warning") as mw:
+            self.assertTrue(extr.cookies_check(("a",)))
+            self.assertEqual(mw.call_count, 1)
+            self.assertEqual(mw.call_args[0], (
+                "Cookie '%s' will expire in less than %s hour%s", "a", 1, ""))
+
+        extr.cookies.set("a", "1", expires=now+100+7200)
+        with mock.patch.object(log, "warning") as mw:
+            self.assertTrue(extr.cookies_check(("a",)))
+            self.assertEqual(mw.call_count, 1)
+            self.assertEqual(mw.call_args[0], (
+                "Cookie '%s' will expire in less than %s hour%s", "a", 3, "s"))
+
+        extr.cookies.set("a", "1", expires=now+100+24*3600)
+        with mock.patch.object(log, "warning") as mw:
+            self.assertTrue(extr.cookies_check(("a",)))
+            self.assertEqual(mw.call_count, 0)
+
+
+def _get_extractor(category):
+    extr = extractor.find(URLS[category])
+    extr.initialize()
+    return extr
+
+
+URLS = {
+    "exhentai"   : "https://exhentai.org/g/1200119/d55c44d3d0/",
+    "idolcomplex": "https://idol.sankakucomplex.com/post/show/1",
+    "nijie"      : "https://nijie.info/view.php?id=1",
+    "horne"      : "https://horne.red/view.php?id=1",
+    "test"       : "generic:https://example.org/",
+}
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/gallery-dl/test/test_downloader.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2018-2022 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest.mock import Mock, MagicMock, patch
+
+import re
+import logging
+import os.path
+import binascii
+import tempfile
+import threading
+import http.server
+
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import downloader, extractor, output, config, path  # noqa E402
+from gallery_dl.downloader.http import MIME_TYPES, SIGNATURE_CHECKS # noqa E402
+
+
+class MockDownloaderModule(Mock):
+    __downloader__ = "mock"
+
+
+class FakeJob():
+
+    def __init__(self):
+        self.extractor = extractor.find("generic:https://example.org/")
+        self.extractor.initialize()
+        self.pathfmt = path.PathFormat(self.extractor)
+        self.out = output.NullOutput()
+        self.get_logger = logging.getLogger
+
+
+class TestDownloaderModule(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # allow import of ytdl downloader module without youtube_dl installed
+        cls._orig_ytdl = sys.modules.get("youtube_dl")
+        sys.modules["youtube_dl"] = MagicMock()
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._orig_ytdl:
+            sys.modules["youtube_dl"] = cls._orig_ytdl
+        else:
+            del sys.modules["youtube_dl"]
+
+    def tearDown(self):
+        downloader._cache.clear()
+
+    def test_find(self):
+        cls = downloader.find("http")
+        self.assertEqual(cls.__name__, "HttpDownloader")
+        self.assertEqual(cls.scheme  , "http")
+
+        cls = downloader.find("https")
+        self.assertEqual(cls.__name__, "HttpDownloader")
+        self.assertEqual(cls.scheme  , "http")
+
+        cls = downloader.find("text")
+        self.assertEqual(cls.__name__, "TextDownloader")
+        self.assertEqual(cls.scheme  , "text")
+
+        cls = downloader.find("ytdl")
+        self.assertEqual(cls.__name__, "YoutubeDLDownloader")
+        self.assertEqual(cls.scheme  , "ytdl")
+
+        self.assertEqual(downloader.find("ftp"), None)
+        self.assertEqual(downloader.find("foo"), None)
+        self.assertEqual(downloader.find(1234) , None)
+        self.assertEqual(downloader.find(None) , None)
+
+    @patch("builtins.__import__")
+    def test_cache(self, import_module):
+        import_module.return_value = MockDownloaderModule()
+        downloader.find("http")
+        downloader.find("text")
+        downloader.find("ytdl")
+        self.assertEqual(import_module.call_count, 3)
+        downloader.find("http")
+        downloader.find("text")
+        downloader.find("ytdl")
+        self.assertEqual(import_module.call_count, 3)
+
+    @patch("builtins.__import__")
+    def test_cache_http(self, import_module):
+        import_module.return_value = MockDownloaderModule()
+        downloader.find("http")
+        downloader.find("https")
+        self.assertEqual(import_module.call_count, 1)
+
+    @patch("builtins.__import__")
+    def test_cache_https(self, import_module):
+        import_module.return_value = MockDownloaderModule()
+        downloader.find("https")
+        downloader.find("http")
+        self.assertEqual(import_module.call_count, 1)
+
+
+class TestDownloaderBase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.dir = tempfile.TemporaryDirectory()
+        cls.fnum = 0
+        config.set((), "base-directory", cls.dir.name)
+        cls.job = FakeJob()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.dir.cleanup()
+        config.clear()
+
+    @classmethod
+    def _prepare_destination(cls, content=None, part=True, extension=None):
+        name = "file-{}".format(cls.fnum)
+        cls.fnum += 1
+
+        kwdict = {
+            "category"   : "test",
+            "subcategory": "test",
+            "filename"   : name,
+            "extension"  : extension,
+        }
+
+        pathfmt = cls.job.pathfmt
+        pathfmt.set_directory(kwdict)
+        pathfmt.set_filename(kwdict)
+        pathfmt.build_path()
+
+        if content:
+            mode = "w" + ("b" if isinstance(content, bytes) else "")
+            with pathfmt.open(mode) as fp:
+                fp.write(content)
+
+        return pathfmt
+
+    def _run_test(self, url, input, output,
+                  extension, expected_extension=None):
+        pathfmt = self._prepare_destination(input, extension=extension)
+        success = self.downloader.download(url, pathfmt)
+
+        # test successful download
+        self.assertTrue(success, "downloading '{}' failed".format(url))
+
+        # test content
+        mode = "r" + ("b" if isinstance(output, bytes) else "")
+        with pathfmt.open(mode) as fp:
+            content = fp.read()
+        self.assertEqual(content, output)
+
+        # test filename extension
+        self.assertEqual(
+            pathfmt.extension,
+            expected_extension,
+            content[0:16],
+        )
+        self.assertEqual(
+            os.path.splitext(pathfmt.realpath)[1][1:],
+            expected_extension,
+        )
+
+
+class TestHTTPDownloader(TestDownloaderBase):
+
+    @classmethod
+    def setUpClass(cls):
+        TestDownloaderBase.setUpClass()
+        cls.downloader = downloader.find("http")(cls.job)
+
+        host = "127.0.0.1"
+        port = 0  # select random not-in-use port
+
+        try:
+            server = http.server.HTTPServer((host, port), HttpRequestHandler)
+        except OSError as exc:
+            raise unittest.SkipTest(
+                "cannot spawn local HTTP server ({})".format(exc))
+
+        host, port = server.server_address
+        cls.address = "http://{}:{}".format(host, port)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    def _run_test(self, ext, input, output,
+                  extension, expected_extension=None):
+        TestDownloaderBase._run_test(
+            self, self.address + "/" + ext, input, output,
+            extension, expected_extension)
+
+    def tearDown(self):
+        self.downloader.minsize = self.downloader.maxsize = None
+
+    def test_http_download(self):
+        self._run_test("jpg", None, DATA["jpg"], "jpg", "jpg")
+        self._run_test("png", None, DATA["png"], "png", "png")
+        self._run_test("gif", None, DATA["gif"], "gif", "gif")
+
+    def test_http_offset(self):
+        self._run_test("jpg", DATA["jpg"][:123], DATA["jpg"], "jpg", "jpg")
+        self._run_test("png", DATA["png"][:12] , DATA["png"], "png", "png")
+        self._run_test("gif", DATA["gif"][:1]  , DATA["gif"], "gif", "gif")
+
+    def test_http_extension(self):
+        self._run_test("jpg", None, DATA["jpg"], None, "jpg")
+        self._run_test("png", None, DATA["png"], None, "png")
+        self._run_test("gif", None, DATA["gif"], None, "gif")
+
+    def test_http_adjust_extension(self):
+        self._run_test("jpg", None, DATA["jpg"], "png", "jpg")
+        self._run_test("png", None, DATA["png"], "gif", "png")
+        self._run_test("gif", None, DATA["gif"], "jpg", "gif")
+
+    def test_http_filesize_min(self):
+        url = self.address + "/gif"
+        pathfmt = self._prepare_destination(None, extension=None)
+        self.downloader.minsize = 100
+        with self.assertLogs(self.downloader.log, "WARNING"):
+            success = self.downloader.download(url, pathfmt)
+        self.assertTrue(success)
+        self.assertEqual(pathfmt.temppath, "")
+
+    def test_http_filesize_max(self):
+        url = self.address + "/jpg"
+        pathfmt = self._prepare_destination(None, extension=None)
+        self.downloader.maxsize = 100
+        with self.assertLogs(self.downloader.log, "WARNING"):
+            success = self.downloader.download(url, pathfmt)
+        self.assertTrue(success)
+        self.assertEqual(pathfmt.temppath, "")
+
+
+class TestTextDownloader(TestDownloaderBase):
+
+    @classmethod
+    def setUpClass(cls):
+        TestDownloaderBase.setUpClass()
+        cls.downloader = downloader.find("text")(cls.job)
+
+    def test_text_download(self):
+        self._run_test("text:foobar", None, "foobar", "txt", "txt")
+
+    def test_text_offset(self):
+        self._run_test("text:foobar", "foo", "foobar", "txt", "txt")
+
+    def test_text_empty(self):
+        self._run_test("text:", None, "", "txt", "txt")
+
+
+class HttpRequestHandler(http.server.BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        try:
+            output = DATA[self.path[1:]]
+        except KeyError:
+            self.send_response(404)
+            self.wfile.write(self.path.encode())
+            return
+
+        headers = {"Content-Length": len(output)}
+
+        if "Range" in self.headers:
+            status = 206
+
+            match = re.match(r"bytes=(\d+)-", self.headers["Range"])
+            start = int(match.group(1))
+
+            headers["Content-Range"] = "bytes {}-{}/{}".format(
+                start, len(output)-1, len(output))
+            output = output[start:]
+        else:
+            status = 200
+
+        self.send_response(status)
+        for key, value in headers.items():
+            self.send_header(key, value)
+        self.end_headers()
+        self.wfile.write(output)
+
+
+SAMPLES = {
+    ("jpg" , binascii.a2b_base64(
+        "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB"
+        "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEB"
+        "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB"
+        "AQEBAQEBAQEBAQEBAQH/wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAA"
+        "AAAAAAAACv/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAA"
+        "AAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AfwD/2Q==")),
+    ("png" , binascii.a2b_base64(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQIHWP4DwAB"
+        "AQEANl9ngAAAAABJRU5ErkJggg==")),
+    ("gif" , binascii.a2b_base64(
+        "R0lGODdhAQABAIAAAP///////ywAAAAAAQABAAACAkQBADs=")),
+    ("bmp" , b"BM"),
+    ("webp", b"RIFF????WEBP"),
+    ("avif", b"????ftypavif"),
+    ("avif", b"????ftypavis"),
+    ("heic", b"????ftypheic"),
+    ("heic", b"????ftypheim"),
+    ("heic", b"????ftypheis"),
+    ("heic", b"????ftypheix"),
+    ("svg" , b"<?xml"),
+    ("ico" , b"\x00\x00\x01\x00"),
+    ("cur" , b"\x00\x00\x02\x00"),
+    ("psd" , b"8BPS"),
+    ("mp4" , b"????ftypmp4"),
+    ("mp4" , b"????ftypavc1"),
+    ("mp4" , b"????ftypiso3"),
+    ("m4v" , b"????ftypM4V"),
+    ("mov" , b"????ftypqt  "),
+    ("webm", b"\x1A\x45\xDF\xA3"),
+    ("ogg" , b"OggS"),
+    ("wav" , b"RIFF????WAVE"),
+    ("mp3" , b"ID3"),
+    ("mp3" , b"\xFF\xFB"),
+    ("mp3" , b"\xFF\xF3"),
+    ("mp3" , b"\xFF\xF2"),
+    ("zip" , b"PK\x03\x04"),
+    ("zip" , b"PK\x05\x06"),
+    ("zip" , b"PK\x07\x08"),
+    ("rar" , b"Rar!\x1A\x07"),
+    ("rar" , b"\x52\x61\x72\x21\x1A\x07"),
+    ("7z"  , b"\x37\x7A\xBC\xAF\x27\x1C"),
+    ("pdf" , b"%PDF-"),
+    ("swf" , b"FWS"),
+    ("swf" , b"CWS"),
+    ("blend", b"BLENDER-v303RENDH"),
+    ("obj" , b"# Blender v3.2.0 OBJ File: 'foo.blend'"),
+    ("clip", b"CSFCHUNK\x00\x00\x00\x00"),
+}
+
+
+DATA = {}
+
+for ext, content in SAMPLES:
+    if ext not in DATA:
+        DATA[ext] = content
+
+for idx, (_, content) in enumerate(SAMPLES):
+    DATA["S{:>02}".format(idx)] = content
+
+
+# reverse mime types mapping
+MIME_TYPES = {
+    ext: mtype
+    for mtype, ext in MIME_TYPES.items()
+}
+
+
+def generate_tests():
+    def generate_test(idx, ext, content):
+        def test(self):
+            self._run_test("S{:>02}".format(idx), None, content, "bin", ext)
+        test.__name__ = "test_http_ext_{:>02}_{}".format(idx, ext)
+        return test
+
+    for idx, (ext, content) in enumerate(SAMPLES):
+        test = generate_test(idx, ext, content)
+        setattr(TestHTTPDownloader, test.__name__, test)
+
+
+generate_tests()
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/gallery-dl/test/test_extractor.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2018-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest.mock import patch
+
+import time
+import string
+from datetime import datetime, timedelta
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import extractor, util  # noqa E402
+from gallery_dl.extractor import mastodon  # noqa E402
+from gallery_dl.extractor.common import Extractor, Message  # noqa E402
+from gallery_dl.extractor.directlink import DirectlinkExtractor  # noqa E402
+
+_list_classes = extractor._list_classes
+
+try:
+    RESULTS = os.environ.get("GDL_TEST_RESULTS")
+    if RESULTS:
+        results = util.import_file(RESULTS)
+    else:
+        from test import results
+except ImportError:
+    results = None
+
+
+class FakeExtractor(Extractor):
+    category = "fake"
+    subcategory = "test"
+    pattern = "fake:"
+
+    def items(self):
+        yield Message.Version, 1
+        yield Message.Url, "text:foobar", {}
+
+
+class TestExtractorModule(unittest.TestCase):
+    VALID_URIS = (
+        "https://example.org/file.jpg",
+        "tumblr:foobar",
+        "oauth:flickr",
+        "generic:https://example.org/",
+        "recursive:https://example.org/document.html",
+    )
+
+    def setUp(self):
+        extractor._cache.clear()
+        extractor._module_iter = extractor._modules_internal()
+        extractor._list_classes = _list_classes
+
+    def test_find(self):
+        for uri in self.VALID_URIS:
+            result = extractor.find(uri)
+            self.assertIsInstance(result, Extractor, uri)
+
+        for not_found in ("", "/tmp/file.ext"):
+            self.assertIsNone(extractor.find(not_found))
+
+        for invalid in (None, [], {}, 123, b"test:"):
+            with self.assertRaises(TypeError):
+                extractor.find(invalid)
+
+    def test_add(self):
+        uri = "fake:foobar"
+        self.assertIsNone(extractor.find(uri))
+
+        extractor.add(FakeExtractor)
+        self.assertIsInstance(extractor.find(uri), FakeExtractor)
+
+    def test_add_module(self):
+        uri = "fake:foobar"
+        self.assertIsNone(extractor.find(uri))
+
+        classes = extractor.add_module(sys.modules[__name__])
+        self.assertEqual(len(classes), 1)
+        self.assertEqual(classes[0].pattern, FakeExtractor.pattern)
+        self.assertEqual(classes[0], FakeExtractor)
+        self.assertIsInstance(extractor.find(uri), FakeExtractor)
+
+    def test_from_url(self):
+        for uri in self.VALID_URIS:
+            cls = extractor.find(uri).__class__
+            extr = cls.from_url(uri)
+            self.assertIs(type(extr), cls)
+            self.assertIsInstance(extr, Extractor)
+
+        for not_found in ("", "/tmp/file.ext"):
+            self.assertIsNone(FakeExtractor.from_url(not_found))
+
+        for invalid in (None, [], {}, 123, b"test:"):
+            with self.assertRaises(TypeError):
+                FakeExtractor.from_url(invalid)
+
+    @unittest.skipIf(not results, "no test data")
+    def test_categories(self):
+        for result in results.all():
+            url = result["#url"]
+            cls = result["#class"]
+            try:
+                extr = cls.from_url(url)
+            except ImportError as exc:
+                if exc.name in ("youtube_dl", "yt_dlp"):
+                    print("Skipping '{}' category checks".format(cls.category))
+                    continue
+                raise
+            self.assertTrue(extr, url)
+
+            categories = result.get("#category")
+            if categories:
+                base, cat, sub = categories
+            else:
+                cat = cls.category
+                sub = cls.subcategory
+                base = cls.basecategory
+            self.assertEqual(extr.category, cat, url)
+            self.assertEqual(extr.subcategory, sub, url)
+            self.assertEqual(extr.basecategory, base, url)
+
+    @unittest.skipIf(not results, "no test data")
+    def test_unique_pattern_matches(self):
+        # collect testcase URLs
+        test_urls = []
+        append = test_urls.append
+
+        for result in results.all():
+            append((result["#url"], result["#class"]))
+
+        # iterate over all testcase URLs
+        for url, extr1 in test_urls:
+            matches = []
+
+            # ... and apply all regex patterns to each one
+            for extr2 in _list_classes():
+
+                # skip DirectlinkExtractor pattern if it isn't tested
+                if extr1 != DirectlinkExtractor and \
+                        extr2 == DirectlinkExtractor:
+                    continue
+
+                match = extr2.pattern.match(url)
+                if match:
+                    matches.append((match, extr2))
+
+            # fail if more or less than 1 match happened
+            if len(matches) > 1:
+                msg = "'{}' gets matched by more than one pattern:".format(url)
+                for match, extr in matches:
+                    msg += "\n\n- {}:\n{}".format(
+                        extr.__name__, match.re.pattern)
+                self.fail(msg)
+
+            elif len(matches) < 1:
+                msg = "'{}' isn't matched by any pattern".format(url)
+                self.fail(msg)
+
+            else:
+                self.assertIs(extr1, matches[0][1], url)
+
+    def test_init(self):
+        """Test for exceptions in Extractor.initialize() and .finalize()"""
+        for cls in extractor.extractors():
+            if cls.category == "ytdl":
+                continue
+            extr = cls.from_url(cls.example)
+            if not extr and cls.basecategory and not cls.instances:
+                continue
+            extr.initialize()
+            extr.finalize()
+
+    @unittest.skipIf(sys.hexversion < 0x3060000, "test fails in CI")
+    def test_init_ytdl(self):
+        try:
+            extr = extractor.find("ytdl:")
+            extr.initialize()
+            extr.finalize()
+        except ImportError as exc:
+            if exc.name in ("youtube_dl", "yt_dlp"):
+                raise unittest.SkipTest("cannot import module '{}'".format(
+                    exc.name))
+            raise
+
+    def test_docstrings(self):
+        """Ensure docstring uniqueness"""
+        for extr1 in extractor.extractors():
+            for extr2 in extractor.extractors():
+                if extr1 != extr2 and extr1.__doc__ and extr2.__doc__:
+                    self.assertNotEqual(
+                        extr1.__doc__,
+                        extr2.__doc__,
+                        "{} <-> {}".format(extr1, extr2),
+                    )
+
+    def test_names(self):
+        """Ensure extractor classes are named CategorySubcategoryExtractor"""
+        def capitalize(c):
+            if "-" in c:
+                return string.capwords(c.replace("-", " ")).replace(" ", "")
+            return c.capitalize()
+
+        for extr in extractor.extractors():
+            if extr.category not in ("", "oauth", "ytdl"):
+                expected = "{}{}Extractor".format(
+                    capitalize(extr.category),
+                    capitalize(extr.subcategory),
+                )
+                if expected[0].isdigit():
+                    expected = "_" + expected
+                self.assertEqual(expected, extr.__name__)
+
+
+class TestExtractorWait(unittest.TestCase):
+
+    def test_wait_seconds(self):
+        extr = extractor.find("generic:https://example.org/")
+        seconds = 5
+        until = time.time() + seconds
+
+        with patch("time.sleep") as sleep, patch.object(extr, "log") as log:
+            extr.wait(seconds=seconds)
+
+            sleep.assert_called_once_with(6.0)
+
+            calls = log.info.mock_calls
+            self.assertEqual(len(calls), 1)
+            self._assert_isotime(calls[0][1][1], until)
+
+    def test_wait_until(self):
+        extr = extractor.find("generic:https://example.org/")
+        until = time.time() + 5
+
+        with patch("time.sleep") as sleep, patch.object(extr, "log") as log:
+            extr.wait(until=until)
+
+            calls = sleep.mock_calls
+            self.assertEqual(len(calls), 1)
+            self.assertAlmostEqual(calls[0][1][0], 6.0, places=1)
+
+            calls = log.info.mock_calls
+            self.assertEqual(len(calls), 1)
+            self._assert_isotime(calls[0][1][1], until)
+
+    def test_wait_until_datetime(self):
+        extr = extractor.find("generic:https://example.org/")
+        until = util.datetime_utcnow() + timedelta(seconds=5)
+        until_local = datetime.now() + timedelta(seconds=5)
+
+        if not until.microsecond:
+            until = until.replace(microsecond=until_local.microsecond)
+
+        with patch("time.sleep") as sleep, patch.object(extr, "log") as log:
+            extr.wait(until=until)
+
+            calls = sleep.mock_calls
+            self.assertEqual(len(calls), 1)
+            self.assertAlmostEqual(calls[0][1][0], 6.0, places=1)
+
+            calls = log.info.mock_calls
+            self.assertEqual(len(calls), 1)
+            self._assert_isotime(calls[0][1][1], until_local)
+
+    def _assert_isotime(self, output, until):
+        if not isinstance(until, datetime):
+            until = datetime.fromtimestamp(until)
+        o = self._isotime_to_seconds(output)
+        u = self._isotime_to_seconds(until.time().isoformat()[:8])
+        self.assertLessEqual(o-u, 1.0)
+
+    @staticmethod
+    def _isotime_to_seconds(isotime):
+        parts = isotime.split(":")
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+
+
+class TextExtractorOAuth(unittest.TestCase):
+
+    def test_oauth1(self):
+        for category in ("flickr", "smugmug", "tumblr"):
+            extr = extractor.find("oauth:" + category)
+
+            with patch.object(extr, "_oauth1_authorization_flow") as m:
+                for msg in extr:
+                    pass
+                self.assertEqual(len(m.mock_calls), 1)
+
+    def test_oauth2(self):
+        for category in ("deviantart", "reddit"):
+            extr = extractor.find("oauth:" + category)
+
+            with patch.object(extr, "_oauth2_authorization_code_grant") as m:
+                for msg in extr:
+                    pass
+                self.assertEqual(len(m.mock_calls), 1)
+
+    def test_oauth2_mastodon(self):
+        extr = extractor.find("oauth:mastodon:pawoo.net")
+
+        with patch.object(extr, "_oauth2_authorization_code_grant") as m, \
+                patch.object(extr, "_register") as r:
+            for msg in extr:
+                pass
+            self.assertEqual(len(r.mock_calls), 0)
+            self.assertEqual(len(m.mock_calls), 1)
+
+    def test_oauth2_mastodon_unknown(self):
+        extr = extractor.find("oauth:mastodon:example.com")
+
+        with patch.object(extr, "_oauth2_authorization_code_grant") as m, \
+                patch.object(extr, "_register") as r:
+            r.return_value = {
+                "client-id"    : "foo",
+                "client-secret": "bar",
+            }
+
+            for msg in extr:
+                pass
+
+            self.assertEqual(len(r.mock_calls), 1)
+            self.assertEqual(len(m.mock_calls), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/gallery-dl/test/test_formatter.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2021-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import time
+import unittest
+import datetime
+import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import formatter, text, util  # noqa E402
+
+
+class TestFormatter(unittest.TestCase):
+
+    kwdict = {
+        "a": "hElLo wOrLd",
+        "b": "äöü",
+        "j": "げんそうきょう",
+        "d": {"a": "foo", "b": 0, "c": None},
+        "i": 2,
+        "l": ["a", "b", "c"],
+        "n": None,
+        "s": " \n\r\tSPACE    ",
+        "h": "<p>foo </p> &amp; bar <p> </p>",
+        "u": "&#x27;&lt; / &gt;&#x27;",
+        "t": 1262304000,
+        "ds": "2010-01-01T01:00:00+0100",
+        "dt": datetime.datetime(2010, 1, 1),
+        "dt_dst": datetime.datetime(2010, 6, 1),
+        "name": "Name",
+        "title1": "Title",
+        "title2": "",
+        "title3": None,
+        "title4": 0,
+    }
+
+    def test_conversions(self):
+        self._run_test("{a!l}", "hello world")
+        self._run_test("{a!u}", "HELLO WORLD")
+        self._run_test("{a!c}", "Hello world")
+        self._run_test("{a!C}", "Hello World")
+        self._run_test("{s!t}", "SPACE")
+        self._run_test("{a!U}", self.kwdict["a"])
+        self._run_test("{u!U}", "'< / >'")
+        self._run_test("{a!H}", self.kwdict["a"])
+        self._run_test("{h!H}", "foo & bar")
+        self._run_test("{u!H}", "'< / >'")
+        self._run_test("{n!H}", "")
+        self._run_test("{a!s}", self.kwdict["a"])
+        self._run_test("{a!r}", "'" + self.kwdict["a"] + "'")
+        self._run_test("{a!a}", "'" + self.kwdict["a"] + "'")
+        self._run_test("{b!a}", "'\\xe4\\xf6\\xfc'")
+        self._run_test("{a!S}", self.kwdict["a"])
+        self._run_test("{l!S}", "a, b, c")
+        self._run_test("{n!S}", "")
+        self._run_test("{t!d}", datetime.datetime(2010, 1, 1))
+        self._run_test("{t!d:%Y-%m-%d}", "2010-01-01")
+        self._run_test("{dt!T}", "1262304000")
+        self._run_test("{l!j}", '["a","b","c"]')
+        self._run_test("{dt!j}", '"2010-01-01 00:00:00"')
+        self._run_test("{a!g}", "hello-world")
+        self._run_test("{a!L}", 11)
+        self._run_test("{l!L}", 3)
+        self._run_test("{d!L}", 3)
+
+        with self.assertRaises(KeyError):
+            self._run_test("{a!q}", "hello world")
+
+    def test_optional(self):
+        self._run_test("{name}{title1}", "NameTitle")
+        self._run_test("{name}{title1:?//}", "NameTitle")
+        self._run_test("{name}{title1:? **/''/}", "Name **Title''")
+
+        self._run_test("{name}{title2}", "Name")
+        self._run_test("{name}{title2:?//}", "Name")
+        self._run_test("{name}{title2:? **/''/}", "Name")
+
+        self._run_test("{name}{title3}", "NameNone")
+        self._run_test("{name}{title3:?//}", "Name")
+        self._run_test("{name}{title3:? **/''/}", "Name")
+
+        self._run_test("{name}{title4}", "Name0")
+        self._run_test("{name}{title4:?//}", "Name")
+        self._run_test("{name}{title4:? **/''/}", "Name")
+
+    def test_missing(self):
+        replacement = "None"
+
+        self._run_test("{missing}", replacement)
+        self._run_test("{missing.attr}", replacement)
+        self._run_test("{missing[key]}", replacement)
+        self._run_test("{missing:?a//}", "")
+
+        self._run_test("{name[missing]}", replacement)
+        self._run_test("{name[missing].attr}", replacement)
+        self._run_test("{name[missing][key]}", replacement)
+        self._run_test("{name[missing]:?a//}", "")
+
+    def test_missing_custom_default(self):
+        replacement = default = "foobar"
+        self._run_test("{missing}"     , replacement, default)
+        self._run_test("{missing.attr}", replacement, default)
+        self._run_test("{missing[key]}", replacement, default)
+        self._run_test("{missing:?a//}", "a" + default, default)
+
+    def test_fmt_func(self):
+        self._run_test("{t}" , self.kwdict["t"] , None, int)
+        self._run_test("{t}" , self.kwdict["t"] , None, util.identity)
+        self._run_test("{dt}", self.kwdict["dt"], None, util.identity)
+        self._run_test("{ds}", self.kwdict["dt"], None, text.parse_datetime)
+        self._run_test("{ds:D%Y-%m-%dT%H:%M:%S%z}", self.kwdict["dt"],
+                       None, util.identity)
+
+    def test_alternative(self):
+        self._run_test("{a|z}"    , "hElLo wOrLd")
+        self._run_test("{z|a}"    , "hElLo wOrLd")
+        self._run_test("{z|y|a}"  , "hElLo wOrLd")
+        self._run_test("{z|y|x|a}", "hElLo wOrLd")
+        self._run_test("{z|n|a|y}", "hElLo wOrLd")
+
+        self._run_test("{z|a!C}"      , "Hello World")
+        self._run_test("{z|a:Rh/C/}"  , "CElLo wOrLd")
+        self._run_test("{z|a!C:RH/C/}", "Cello World")
+        self._run_test("{z|y|x:?</>/}", "")
+
+        self._run_test("{d[c]|d[b]|d[a]}", "foo")
+        self._run_test("{d[a]|d[b]|d[c]}", "foo")
+        self._run_test("{d[z]|d[y]|d[x]}", "None")
+
+    def test_indexing(self):
+        self._run_test("{l[0]}" , "a")
+        self._run_test("{a[6]}" , "w")
+
+    def test_dict_access(self):
+        self._run_test("{d[a]}"  , "foo")
+        self._run_test("{d['a']}", "foo")
+        self._run_test('{d["a"]}', "foo")
+
+    def test_slice_str(self):
+        v = self.kwdict["a"]
+        self._run_test("{a[1:10]}"  , v[1:10])
+        self._run_test("{a[-10:-1]}", v[-10:-1])
+        self._run_test("{a[5:]}" , v[5:])
+        self._run_test("{a[50:]}", v[50:])
+        self._run_test("{a[:5]}" , v[:5])
+        self._run_test("{a[:50]}", v[:50])
+        self._run_test("{a[:]}"  , v)
+        self._run_test("{a[1:10:2]}"  , v[1:10:2])
+        self._run_test("{a[-10:-1:2]}", v[-10:-1:2])
+        self._run_test("{a[5::2]}" , v[5::2])
+        self._run_test("{a[50::2]}", v[50::2])
+        self._run_test("{a[:5:2]}" , v[:5:2])
+        self._run_test("{a[:50:2]}", v[:50:2])
+        self._run_test("{a[::]}"   , v)
+
+        self._run_test("{a:[1:10]}"  , v[1:10])
+        self._run_test("{a:[-10:-1]}", v[-10:-1])
+        self._run_test("{a:[5:]}" , v[5:])
+        self._run_test("{a:[50:]}", v[50:])
+        self._run_test("{a:[:5]}" , v[:5])
+        self._run_test("{a:[:50]}", v[:50])
+        self._run_test("{a:[:]}"  , v)
+        self._run_test("{a:[1:10:2]}"  , v[1:10:2])
+        self._run_test("{a:[-10:-1:2]}", v[-10:-1:2])
+        self._run_test("{a:[5::2]}" , v[5::2])
+        self._run_test("{a:[50::2]}", v[50::2])
+        self._run_test("{a:[:5:2]}" , v[:5:2])
+        self._run_test("{a:[:50:2]}", v[:50:2])
+        self._run_test("{a:[::]}"   , v)
+
+    def test_slice_bytes(self):
+        v = self.kwdict["j"]
+        self._run_test("{j[b1:10]}"  , v[1:3])
+        self._run_test("{j[b-10:-1]}", v[-3:-1])
+        self._run_test("{j[b5:]}"    , v[2:])
+        self._run_test("{j[b50:]}"   , v[50:])
+        self._run_test("{j[b:5]}"    , v[:1])
+        self._run_test("{j[b:50]}"   , v[:50])
+        self._run_test("{j[b:]}"     , v)
+        self._run_test("{j[b::]}"    , v)
+
+        self._run_test("{j:[b1:10]}"  , v[1:3])
+        self._run_test("{j:[b-10:-1]}", v[-3:-1])
+        self._run_test("{j:[b5:]}"    , v[2:])
+        self._run_test("{j:[b50:]}"   , v[50:])
+        self._run_test("{j:[b:5]}"    , v[:1])
+        self._run_test("{j:[b:50]}"   , v[:50])
+        self._run_test("{j:[b:]}"     , v)
+        self._run_test("{j:[b::]}"    , v)
+
+    def test_maxlen(self):
+        v = self.kwdict["a"]
+        self._run_test("{a:L5/foo/}" , "foo")
+        self._run_test("{a:L50/foo/}", v)
+        self._run_test("{a:L50/foo/>50}", " " * 39 + v)
+        self._run_test("{a:L50/foo/>51}", "foo")
+        self._run_test("{a:Lab/foo/}", "foo")
+
+    def test_join(self):
+        self._run_test("{l:J}"       , "abc")
+        self._run_test("{l:J,}"      , "a,b,c")
+        self._run_test("{l:J,/}"     , "a,b,c")
+        self._run_test("{l:J,/>20}"  , "               a,b,c")
+        self._run_test("{l:J - }"    , "a - b - c")
+        self._run_test("{l:J - /}"   , "a - b - c")
+        self._run_test("{l:J - />20}", "           a - b - c")
+
+        self._run_test("{a:J/}"      , self.kwdict["a"])
+        self._run_test("{a:J, /}"    , self.kwdict["a"])
+
+    def test_replace(self):
+        self._run_test("{a:Rh/C/}"  , "CElLo wOrLd")
+        self._run_test("{a!l:Rh/C/}", "Cello world")
+        self._run_test("{a!u:Rh/C/}", "HELLO WORLD")
+
+        self._run_test("{a!l:Rl/_/}", "he__o wor_d")
+        self._run_test("{a!l:Rl//}" , "heo word")
+        self._run_test("{name:Rame/othing/}", "Nothing")
+
+    def test_datetime(self):
+        self._run_test("{ds:D%Y-%m-%dT%H:%M:%S%z}", "2010-01-01 00:00:00")
+        self._run_test("{ds:D%Y}", "2010-01-01T01:00:00+0100")
+        self._run_test("{l:D%Y}", "None")
+
+    def test_offset(self):
+        self._run_test("{dt:O 01:00}", "2010-01-01 01:00:00")
+        self._run_test("{dt:O+02:00}", "2010-01-01 02:00:00")
+        self._run_test("{dt:O-03:45}", "2009-12-31 20:15:00")
+
+        self._run_test("{dt:O12}", "2010-01-01 12:00:00")
+        self._run_test("{dt:O-24}", "2009-12-31 00:00:00")
+
+        self._run_test("{ds:D%Y-%m-%dT%H:%M:%S%z/O1}", "2010-01-01 01:00:00")
+        self._run_test("{t!d:O2}", "2010-01-01 02:00:00")
+
+    def test_offset_local(self):
+        ts = self.kwdict["dt"].replace(
+            tzinfo=datetime.timezone.utc).timestamp()
+        offset = time.localtime(ts).tm_gmtoff
+        dt = self.kwdict["dt"] + datetime.timedelta(seconds=offset)
+        self._run_test("{dt:O}", str(dt))
+        self._run_test("{dt:Olocal}", str(dt))
+
+        ts = self.kwdict["dt_dst"].replace(
+            tzinfo=datetime.timezone.utc).timestamp()
+        offset = time.localtime(ts).tm_gmtoff
+        dt = self.kwdict["dt_dst"] + datetime.timedelta(seconds=offset)
+        self._run_test("{dt_dst:O}", str(dt))
+        self._run_test("{dt_dst:Olocal}", str(dt))
+
+    def test_sort(self):
+        self._run_test("{l:S}" , "['a', 'b', 'c']")
+        self._run_test("{l:Sa}", "['a', 'b', 'c']")
+        self._run_test("{l:Sd}", "['c', 'b', 'a']")
+        self._run_test("{l:Sr}", "['c', 'b', 'a']")
+
+        self._run_test(
+            "{a:S}", "[' ', 'E', 'L', 'L', 'O', 'd', 'h', 'l', 'o', 'r', 'w']")
+        self._run_test(
+            "{a:S-asc}",  # starts with 'S', contains 'a'
+            "[' ', 'E', 'L', 'L', 'O', 'd', 'h', 'l', 'o', 'r', 'w']")
+        self._run_test(
+            "{a:Sort-reverse}",  # starts with 'S', contains 'r'
+            "['w', 'r', 'o', 'l', 'h', 'd', 'O', 'L', 'L', 'E', ' ']")
+
+    def test_specifier_arithmetic(self):
+        self._run_test("{i:A+1}", "3")
+        self._run_test("{i:A-1}", "1")
+        self._run_test("{i:A*3}", "6")
+
+    def test_specifier_conversions(self):
+        self._run_test("{a:Cl}"   , "hello world")
+        self._run_test("{h:CHC}"  , "Foo & Bar")
+        self._run_test("{l:CSulc}", "A, b, c")
+
+    def test_specifier_limit(self):
+        self._run_test("{a:X20/ */}", "hElLo wOrLd")
+        self._run_test("{a:X10/ */}", "hElLo wO *")
+
+        with self.assertRaises(ValueError):
+            self._run_test("{a:Xfoo/ */}", "hello wo *")
+
+    def test_chain_special(self):
+        # multiple replacements
+        self._run_test("{a:Rh/C/RE/e/RL/l/}", "Cello wOrld")
+        self._run_test("{d[b]!s:R1/Q/R2/A/R0/Y/}", "Y")
+
+        # join-and-replace
+        self._run_test("{l:J-/Rb/E/}", "a-E-c")
+
+        # join and slice
+        self._run_test("{l:J-/[1:-1]}", "-b-")
+
+        # optional-and-maxlen
+        self._run_test("{d[a]:?</>/L1/too long/}", "<too long>")
+        self._run_test("{d[c]:?</>/L5/too long/}", "")
+
+        # parse and format datetime
+        self._run_test("{ds:D%Y-%m-%dT%H:%M:%S%z/%Y%m%d}", "20100101")
+
+        # sort and join
+        self._run_test("{a:S/J}", " ELLOdhlorw")
+
+    def test_separator(self):
+        orig_separator = formatter._SEPARATOR
+        try:
+            formatter._SEPARATOR = "|"
+            self._run_test("{a:Rh|C|RE|e|RL|l|}", "Cello wOrld")
+            self._run_test("{d[b]!s:R1|Q|R2|A|R0|Y|}", "Y")
+
+            formatter._SEPARATOR = "##"
+            self._run_test("{l:J-##Rb##E##}", "a-E-c")
+            self._run_test("{l:J-##[1:-1]}", "-b-")
+
+            formatter._SEPARATOR = "\0"
+            self._run_test("{d[a]:?<\0>\0L1\0too long\0}", "<too long>")
+            self._run_test("{d[c]:?<\0>\0L5\0too long\0}", "")
+
+            formatter._SEPARATOR = "?"
+            self._run_test("{ds:D%Y-%m-%dT%H:%M:%S%z?%Y%m%d}", "20100101")
+        finally:
+            formatter._SEPARATOR = orig_separator
+
+    def test_globals_env(self):
+        os.environ["FORMATTER_TEST"] = value = self.kwdict["a"]
+
+        self._run_test("{_env[FORMATTER_TEST]}"  , value)
+        self._run_test("{_env[FORMATTER_TEST]!l}", value.lower())
+        self._run_test("{z|_env[FORMATTER_TEST]}", value)
+
+    def test_globals_now(self):
+        fmt = formatter.parse("{_now}")
+        out1 = fmt.format_map(self.kwdict)
+        self.assertRegex(out1, r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(\.\d+)?$")
+
+        out = formatter.parse("{_now:%Y%m%d}").format_map(self.kwdict)
+        now = datetime.datetime.now()
+        self.assertRegex(out, r"^\d{8}$")
+        self.assertEqual(out, format(now, "%Y%m%d"))
+
+        out = formatter.parse("{z|_now:%Y}").format_map(self.kwdict)
+        self.assertRegex(out, r"^\d{4}$")
+        self.assertEqual(out, format(now, "%Y"))
+
+        out2 = fmt.format_map(self.kwdict)
+        self.assertRegex(out1, r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(\.\d+)?$")
+        self.assertNotEqual(out1, out2)
+
+    def test_globals_nul(self):
+        value = "None"
+
+        self._run_test("{_nul}"         , value)
+        self._run_test("{_nul[key]}"    , value)
+        self._run_test("{z|_nul}"       , value)
+        self._run_test("{z|_nul:%Y%m%s}", value)
+
+    def test_literals(self):
+        value = "foo"
+
+        self._run_test("{'foo'}"      , value)
+        self._run_test("{'foo'!u}"    , value.upper())
+        self._run_test("{'f00':R0/o/}", value)
+
+        self._run_test("{z|'foo'}"      , value)
+        self._run_test("{z|''|'foo'}"   , value)
+        self._run_test("{z|'foo'!u}"    , value.upper())
+        self._run_test("{z|'f00':R0/o/}", value)
+
+        self._run_test("{_lit[foo]}"       , value)
+        self._run_test("{_lit[foo]!u}"     , value.upper())
+        self._run_test("{_lit[f00]:R0/o/}" , value)
+        self._run_test("{_lit[foobar][:3]}", value)
+        self._run_test("{z|_lit[foo]}"     , value)
+
+        # empty (#4492)
+        self._run_test("{z|''}" , "")
+        self._run_test("{''|''}", "")
+
+        # special characters (dots, brackets, singlee quotes) (#5539)
+        self._run_test("{'f.o.o'}"    , "f.o.o")
+        self._run_test("{_lit[f.o.o]}", "f.o.o")
+        self._run_test("{_lit[f'o'o]}", "f'o'o")
+        self._run_test("{'f.[].[]'}"  , "f.[].[]")
+        self._run_test("{z|'f.[].[]'}", "f.[].[]")
+
+    def test_template(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            path1 = os.path.join(tmpdirname, "tpl1")
+            path2 = os.path.join(tmpdirname, "tpl2")
+
+            with open(path1, "w") as fp:
+                fp.write("{a}")
+            fmt1 = formatter.parse("\fT " + path1)
+
+            with open(path2, "w") as fp:
+                fp.write("{a!u:Rh/C/}\nFooBar")
+            fmt2 = formatter.parse("\fT " + path2)
+
+        self.assertEqual(fmt1.format_map(self.kwdict), self.kwdict["a"])
+        self.assertEqual(fmt2.format_map(self.kwdict), "HELLO WORLD\nFooBar")
+
+        with self.assertRaises(OSError):
+            formatter.parse("\fT /")
+
+    def test_expression(self):
+        self._run_test("\fE a", self.kwdict["a"])
+        self._run_test("\fE name * 2 + ' ' + a", "{}{} {}".format(
+            self.kwdict["name"], self.kwdict["name"], self.kwdict["a"]))
+
+    @unittest.skipIf(sys.hexversion < 0x3060000, "no fstring support")
+    def test_fstring(self):
+        self._run_test("\fF {a}", self.kwdict["a"])
+        self._run_test("\fF {name}{name} {a}", "{}{} {}".format(
+            self.kwdict["name"], self.kwdict["name"], self.kwdict["a"]))
+        self._run_test("\fF foo-'\"{a.upper()}\"'-bar",
+                       """foo-'"{}"'-bar""".format(self.kwdict["a"].upper()))
+
+    @unittest.skipIf(sys.hexversion < 0x3060000, "no fstring support")
+    def test_template_fstring(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            path1 = os.path.join(tmpdirname, "tpl1")
+            path2 = os.path.join(tmpdirname, "tpl2")
+
+            with open(path1, "w") as fp:
+                fp.write("{a}")
+            fmt1 = formatter.parse("\fTF " + path1)
+
+            with open(path2, "w") as fp:
+                fp.write("foo-'\"{a.upper()}\"'-bar")
+            fmt2 = formatter.parse("\fTF " + path2)
+
+        self.assertEqual(fmt1.format_map(self.kwdict), self.kwdict["a"])
+        self.assertEqual(fmt2.format_map(self.kwdict),
+                         """foo-'"{}"'-bar""".format(self.kwdict["a"].upper()))
+
+        with self.assertRaises(OSError):
+            formatter.parse("\fTF /")
+
+    def test_module(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            path = os.path.join(tmpdirname, "testmod.py")
+
+            with open(path, "w") as fp:
+                fp.write("""
+def gentext(kwdict):
+    name = kwdict.get("Name") or kwdict.get("name") or "foo"
+    return "'{title1}' by {}".format(name, **kwdict)
+
+def lengths(kwdict):
+    a = 0
+    for k, v in kwdict.items():
+        try:
+            a += len(v)
+        except TypeError:
+            pass
+    return format(a)
+
+def noarg():
+    return ""
+""")
+            sys.path.insert(0, tmpdirname)
+            try:
+                fmt1 = formatter.parse("\fM testmod:gentext")
+                fmt2 = formatter.parse("\fM testmod:lengths")
+                fmt0 = formatter.parse("\fM testmod:noarg")
+
+                with self.assertRaises(AttributeError):
+                    formatter.parse("\fM testmod:missing")
+                with self.assertRaises(ImportError):
+                    formatter.parse("\fM missing:missing")
+            finally:
+                sys.path.pop(0)
+
+            fmt3 = formatter.parse("\fM " + path + ":gentext")
+            fmt4 = formatter.parse("\fM " + path + ":lengths")
+
+        self.assertEqual(fmt1.format_map(self.kwdict), "'Title' by Name")
+        self.assertEqual(fmt2.format_map(self.kwdict), "126")
+
+        self.assertEqual(fmt3.format_map(self.kwdict), "'Title' by Name")
+        self.assertEqual(fmt4.format_map(self.kwdict), "126")
+
+        with self.assertRaises(TypeError):
+            self.assertEqual(fmt0.format_map(self.kwdict), "")
+
+    def _run_test(self, format_string, result, default=None, fmt=format):
+        fmt = formatter.parse(format_string, default, fmt)
+        output = fmt.format_map(self.kwdict)
+        self.assertEqual(output, result, format_string)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/gallery-dl/test/test_job.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2021-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest.mock import patch
+
+import io
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import job, config, text  # noqa E402
+from gallery_dl.extractor.common import Extractor, Message  # noqa E402
+
+
+class TestJob(unittest.TestCase):
+
+    def tearDown(self):
+        config.clear()
+
+    def _capture_stdout(self, extr_or_job):
+        if isinstance(extr_or_job, Extractor):
+            jobinstance = self.jobclass(extr_or_job)
+        else:
+            jobinstance = extr_or_job
+
+        with io.StringIO() as buffer:
+            stdout = sys.stdout
+            sys.stdout = buffer
+            try:
+                jobinstance.run()
+            finally:
+                sys.stdout = stdout
+
+            return buffer.getvalue()
+
+
+class TestDownloadJob(TestJob):
+    jobclass = job.DownloadJob
+
+    def test_extractor_filter(self):
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr)
+
+        func = tjob._build_extractor_filter()
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), False)
+        self.assertEqual(func(TestExtractorAlt)   , True)
+
+        config.set((), "blacklist", ":test_subcategory")
+        func = tjob._build_extractor_filter()
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), True)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+        config.set((), "whitelist", "test_category:test_subcategory")
+        func = tjob._build_extractor_filter()
+        self.assertEqual(func(TestExtractor)      , True)
+        self.assertEqual(func(TestExtractorParent), False)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+
+class TestKeywordJob(TestJob):
+    jobclass = job.KeywordJob
+
+    def test_default(self):
+        self.maxDiff = None
+        extr = TestExtractor.from_url("test:self")
+        self.assertEqual(self._capture_stdout(extr), """\
+Keywords for directory names:
+-----------------------------
+author['id']
+  123
+author['name']
+  test
+author['self']
+  <circular reference>
+category
+  test_category
+subcategory
+  test_subcategory
+user['id']
+  123
+user['name']
+  test
+user['self']
+  <circular reference>
+
+Keywords for filenames and --filter:
+------------------------------------
+author['id']
+  123
+author['name']
+  test
+author['self']
+  <circular reference>
+category
+  test_category
+extension
+  jpg
+filename
+  1
+num
+  1
+subcategory
+  test_subcategory
+tags[N]
+  0 foo
+  1 bar
+  2 テスト
+user['id']
+  123
+user['name']
+  test
+user['self']
+  <circular reference>
+""")
+
+
+class TestUrlJob(TestJob):
+    jobclass = job.UrlJob
+
+    def test_default(self):
+        extr = TestExtractor.from_url("test:")
+        self.assertEqual(self._capture_stdout(extr), """\
+https://example.org/1.jpg
+https://example.org/2.jpg
+https://example.org/3.jpg
+""")
+
+    def test_fallback(self):
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr)
+        tjob.handle_url = tjob.handle_url_fallback
+
+        self.assertEqual(self._capture_stdout(tjob), """\
+https://example.org/1.jpg
+| https://example.org/alt/1.jpg
+https://example.org/2.jpg
+| https://example.org/alt/2.jpg
+https://example.org/3.jpg
+| https://example.org/alt/3.jpg
+""")
+
+    def test_parent(self):
+        extr = TestExtractorParent.from_url("test:parent")
+        self.assertEqual(self._capture_stdout(extr), """\
+test:child
+test:child
+test:child
+""")
+
+    def test_child(self):
+        extr = TestExtractorParent.from_url("test:parent")
+        tjob = job.UrlJob(extr, depth=0)
+        self.assertEqual(self._capture_stdout(tjob), 3 * """\
+https://example.org/1.jpg
+https://example.org/2.jpg
+https://example.org/3.jpg
+""")
+
+
+class TestInfoJob(TestJob):
+    jobclass = job.InfoJob
+
+    def test_default(self):
+        extr = TestExtractor.from_url("test:")
+        self.assertEqual(self._capture_stdout(extr), """\
+Category / Subcategory
+  "test_category" / "test_subcategory"
+
+Filename format (default):
+  "test_{filename}.{extension}"
+
+Directory format (default):
+  ["{category}"]
+
+""")
+
+    def test_custom(self):
+        config.set((), "filename", "custom")
+        config.set((), "directory", ("custom",))
+        config.set((), "sleep-request", 321)
+        extr = TestExtractor.from_url("test:")
+        extr.request_interval = 123.456
+
+        self.assertEqual(self._capture_stdout(extr), """\
+Category / Subcategory
+  "test_category" / "test_subcategory"
+
+Filename format (custom):
+  "custom"
+Filename format (default):
+  "test_{filename}.{extension}"
+
+Directory format (custom):
+  ["custom"]
+Directory format (default):
+  ["{category}"]
+
+Request interval (custom):
+  321
+Request interval (default):
+  123.456
+
+""")
+
+    def test_base_category(self):
+        extr = TestExtractor.from_url("test:")
+        extr.basecategory = "test_basecategory"
+
+        self.assertEqual(self._capture_stdout(extr), """\
+Category / Subcategory / Basecategory
+  "test_category" / "test_subcategory" / "test_basecategory"
+
+Filename format (default):
+  "test_{filename}.{extension}"
+
+Directory format (default):
+  ["{category}"]
+
+""")
+
+
+class TestDataJob(TestJob):
+    jobclass = job.DataJob
+
+    def test_default(self):
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr, file=io.StringIO())
+        user = {"id": 123, "name": "test"}
+
+        tjob.run()
+
+        self.assertEqual(tjob.data, [
+            (Message.Directory, {
+                "category"   : "test_category",
+                "subcategory": "test_subcategory",
+                "user"       : user,
+                "author"     : user,
+            }),
+            (Message.Url, "https://example.org/1.jpg", {
+                "category"   : "test_category",
+                "subcategory": "test_subcategory",
+                "filename"   : "1",
+                "extension"  : "jpg",
+                "num"        : 1,
+                "tags"       : ["foo", "bar", "テスト"],
+                "user"       : user,
+                "author"     : user,
+            }),
+            (Message.Url, "https://example.org/2.jpg", {
+                "category"   : "test_category",
+                "subcategory": "test_subcategory",
+                "filename"   : "2",
+                "extension"  : "jpg",
+                "num"        : 2,
+                "tags"       : ["foo", "bar", "テスト"],
+                "user"       : user,
+                "author"     : user,
+            }),
+            (Message.Url, "https://example.org/3.jpg", {
+                "category"   : "test_category",
+                "subcategory": "test_subcategory",
+                "filename"   : "3",
+                "extension"  : "jpg",
+                "num"        : 3,
+                "tags"       : ["foo", "bar", "テスト"],
+                "user"       : user,
+                "author"     : user,
+            }),
+        ])
+
+    def test_exception(self):
+        extr = TestExtractorException.from_url("test:exception")
+        tjob = self.jobclass(extr, file=io.StringIO())
+        tjob.run()
+        self.assertEqual(
+            tjob.data[-1], ("ZeroDivisionError", "division by zero"))
+
+    def test_private(self):
+        config.set(("output",), "private", True)
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr, file=io.StringIO())
+
+        tjob.run()
+
+        for i in range(1, 4):
+            self.assertEqual(
+                tjob.data[i][2]["_fallback"],
+                ("https://example.org/alt/{}.jpg".format(i),),
+            )
+
+    def test_sleep(self):
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr, file=io.StringIO())
+
+        config.set((), "sleep-extractor", 123)
+        with patch("time.sleep") as sleep:
+            tjob.run()
+        sleep.assert_called_once_with(123)
+
+        config.set((), "sleep-extractor", 0)
+        with patch("time.sleep") as sleep:
+            tjob.run()
+        sleep.assert_not_called()
+
+    def test_ascii(self):
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr)
+
+        tjob.file = buffer = io.StringIO()
+        tjob.run()
+        self.assertIn("""\
+      "tags": [
+        "foo",
+        "bar",
+        "\\u30c6\\u30b9\\u30c8"
+      ],
+""", buffer.getvalue())
+
+        tjob.file = buffer = io.StringIO()
+        tjob.ascii = False
+        tjob.run()
+        self.assertIn("""\
+      "tags": [
+        "foo",
+        "bar",
+        "テスト"
+      ],
+""", buffer.getvalue())
+
+    def test_num_string(self):
+        extr = TestExtractor.from_url("test:")
+        tjob = self.jobclass(extr, file=io.StringIO())
+
+        with patch("gallery_dl.util.number_to_string") as nts:
+            tjob.run()
+        self.assertEqual(len(nts.call_args_list), 0)
+
+        config.set(("output",), "num-to-str", True)
+        with patch("gallery_dl.util.number_to_string") as nts:
+            tjob.run()
+        self.assertEqual(len(nts.call_args_list), 72)
+
+        tjob.run()
+        self.assertEqual(tjob.data[-1][0], Message.Url)
+        self.assertEqual(tjob.data[-1][2]["num"], "3")
+
+
+class TestExtractor(Extractor):
+    category = "test_category"
+    subcategory = "test_subcategory"
+    directory_fmt = ("{category}",)
+    filename_fmt = "test_{filename}.{extension}"
+    pattern = r"test:(child|self)?$"
+
+    def __init__(self, match):
+        Extractor.__init__(self, match)
+        self.user = {"id": 123, "name": "test"}
+        if match.group(1) == "self":
+            self.user["self"] = self.user
+
+    def items(self):
+        root = "https://example.org"
+        user = self.user
+
+        yield Message.Directory, {
+            "user": user,
+            "author": user,
+        }
+
+        for i in range(1, 4):
+            url = "{}/{}.jpg".format(root, i)
+            yield Message.Url, url, text.nameext_from_url(url, {
+                "num" : i,
+                "tags": ["foo", "bar", "テスト"],
+                "user": user,
+                "author": user,
+                "_fallback": ("{}/alt/{}.jpg".format(root, i),),
+            })
+
+
+class TestExtractorParent(Extractor):
+    category = "test_category"
+    subcategory = "test_subcategory_parent"
+    pattern = r"test:parent"
+
+    def items(self):
+        url = "test:child"
+
+        for i in range(11, 14):
+            yield Message.Queue, url, {
+                "num" : i,
+                "tags": ["abc", "def"],
+                "_extractor": TestExtractor,
+            }
+
+
+class TestExtractorException(Extractor):
+    category = "test_category"
+    subcategory = "test_subcategory_exception"
+    pattern = r"test:exception$"
+
+    def items(self):
+        return 1/0
+
+
+class TestExtractorAlt(Extractor):
+    category = "test_category_alt"
+    subcategory = "test_subcategory"
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/gallery-dl/test/test_oauth.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2018-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import oauth, text  # noqa E402
+
+TESTSERVER = "http://term.ie/oauth/example"
+CONSUMER_KEY = "key"
+CONSUMER_SECRET = "secret"
+REQUEST_TOKEN = "requestkey"
+REQUEST_TOKEN_SECRET = "requestsecret"
+ACCESS_TOKEN = "accesskey"
+ACCESS_TOKEN_SECRET = "accesssecret"
+
+
+class TestOAuthSession(unittest.TestCase):
+
+    def test_concat(self):
+        concat = oauth.concat
+
+        self.assertEqual(concat(), "")
+        self.assertEqual(concat("str"), "str")
+        self.assertEqual(concat("str1", "str2"), "str1&str2")
+
+        self.assertEqual(concat("&", "?/"), "%26&%3F%2F")
+        self.assertEqual(
+            concat("GET", "http://example.org/", "foo=bar&baz=a"),
+            "GET&http%3A%2F%2Fexample.org%2F&foo%3Dbar%26baz%3Da"
+        )
+
+    def test_nonce(self, size=16):
+        nonce_values = set(oauth.nonce(size) for _ in range(size))
+
+        # uniqueness
+        self.assertEqual(len(nonce_values), size)
+
+        # length
+        for nonce in nonce_values:
+            self.assertEqual(len(nonce), size)
+
+    def test_quote(self):
+        quote = oauth.quote
+
+        reserved = ",;:!\"§$%&/(){}[]=?`´+*'äöü"
+        unreserved = ("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                      "abcdefghijklmnopqrstuvwxyz"
+                      "0123456789-._~")
+
+        for char in unreserved:
+            self.assertEqual(quote(char), char)
+
+        for char in reserved:
+            quoted = quote(char)
+            quoted_hex = quoted.replace("%", "")
+            self.assertTrue(quoted.startswith("%"))
+            self.assertTrue(len(quoted) >= 3)
+            self.assertEqual(quoted_hex.upper(), quoted_hex)
+
+    def test_generate_signature(self):
+        client = oauth.OAuth1Client(
+            CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+        request = MockRequest()
+        params = []
+        self.assertEqual(
+            client.generate_signature(request, params),
+            "Wt2xo49dM5pkL4gsnCakNdHaVUo%3D")
+
+        request = MockRequest("https://example.org/")
+        params = [("hello", "world"), ("foo", "bar")]
+        self.assertEqual(
+            client.generate_signature(request, params),
+            "ay2269%2F8uKpZqKJR1doTtpv%2Bzn0%3D")
+
+        request = MockRequest("https://example.org/index.html"
+                              "?hello=world&foo=bar", method="POST")
+        params = [("oauth_signature_method", "HMAC-SHA1")]
+        self.assertEqual(
+            client.generate_signature(request, params),
+            "yVZWb1ts4smdMmXxMlhaXrkoOng%3D")
+
+    def test_dunder_call(self):
+        client = oauth.OAuth1Client(
+            CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+        request = MockRequest("https://example.org/")
+
+        with patch("time.time") as tmock, \
+             patch("gallery_dl.oauth.nonce") as nmock:
+            tmock.return_value = 123456789.123
+            nmock.return_value = "abcdefghijklmno"
+
+            client(request)
+
+        self.assertEqual(
+            request.headers["Authorization"],
+            """OAuth \
+oauth_consumer_key="key",\
+oauth_nonce="abcdefghijklmno",\
+oauth_signature_method="HMAC-SHA1",\
+oauth_timestamp="123456789",\
+oauth_version="1.0",\
+oauth_token="accesskey",\
+oauth_signature="DjtTk5j5P3BDZFnstZ%2FtEYcwD6c%3D"\
+""")
+
+    def test_request_token(self):
+        response = self._oauth_request(
+            "/request_token.php", {})
+        expected = "oauth_token=requestkey&oauth_token_secret=requestsecret"
+        self.assertEqual(response, expected, msg=response)
+
+        data = text.parse_query(response)
+        self.assertTrue(data["oauth_token"], REQUEST_TOKEN)
+        self.assertTrue(data["oauth_token_secret"], REQUEST_TOKEN_SECRET)
+
+    def test_access_token(self):
+        response = self._oauth_request(
+            "/access_token.php", {}, REQUEST_TOKEN, REQUEST_TOKEN_SECRET)
+        expected = "oauth_token=accesskey&oauth_token_secret=accesssecret"
+        self.assertEqual(response, expected, msg=response)
+
+        data = text.parse_query(response)
+        self.assertTrue(data["oauth_token"], ACCESS_TOKEN)
+        self.assertTrue(data["oauth_token_secret"], ACCESS_TOKEN_SECRET)
+
+    def test_authenticated_call(self):
+        params = {"method": "foo", "a": "äöüß/?&#", "äöüß/?&#": "a"}
+        response = self._oauth_request(
+            "/echo_api.php", params, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+        self.assertEqual(text.parse_query(response), params)
+
+    def _oauth_request(self, endpoint, params=None,
+                       oauth_token=None, oauth_token_secret=None):
+        # the test server at 'term.ie' is unreachable
+        raise unittest.SkipTest()
+
+        session = oauth.OAuth1Session(
+            CONSUMER_KEY, CONSUMER_SECRET,
+            oauth_token, oauth_token_secret,
+        )
+        try:
+            response = session.get(TESTSERVER + endpoint, params=params)
+            response.raise_for_status()
+            return response.text
+        except OSError:
+            raise unittest.SkipTest()
+
+
+class MockRequest():
+
+    def __init__(self, url="", method="GET"):
+        self.url = url
+        self.method = method
+        self.headers = {}
+
+
+if __name__ == "__main__":
+    unittest.main(warnings="ignore")
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/gallery-dl/test/test_output.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2021 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import output  # noqa E402
+
+
+class TestShorten(unittest.TestCase):
+
+    def test_shorten_noop(self, f=output.shorten_string):
+        self.assertEqual(f(""      , 10), "")
+        self.assertEqual(f("foobar", 10), "foobar")
+
+    def test_shorten(self, f=output.shorten_string):
+        s = "01234567890123456789"  # string of length 20
+        self.assertEqual(f(s, 30), s)
+        self.assertEqual(f(s, 25), s)
+        self.assertEqual(f(s, 20), s)
+        self.assertEqual(f(s, 19), "012345678…123456789")
+        self.assertEqual(f(s, 18), "01234567…123456789")
+        self.assertEqual(f(s, 17), "01234567…23456789")
+        self.assertEqual(f(s, 16), "0123456…23456789")
+        self.assertEqual(f(s, 15), "0123456…3456789")
+        self.assertEqual(f(s, 14), "012345…3456789")
+        self.assertEqual(f(s, 13), "012345…456789")
+        self.assertEqual(f(s, 12), "01234…456789")
+        self.assertEqual(f(s, 11), "01234…56789")
+        self.assertEqual(f(s, 10), "0123…56789")
+        self.assertEqual(f(s, 9) , "0123…6789")
+        self.assertEqual(f(s, 3) , "0…9")
+        self.assertEqual(f(s, 2) , "…9")
+
+    def test_shorten_separator(self, f=output.shorten_string):
+        s = "01234567890123456789"  # string of length 20
+        self.assertEqual(f(s, 20, "|---|"), s)
+        self.assertEqual(f(s, 19, "|---|"), "0123456|---|3456789")
+        self.assertEqual(f(s, 15, "|---|"), "01234|---|56789")
+        self.assertEqual(f(s, 10, "|---|"), "01|---|789")
+
+        self.assertEqual(f(s, 19, "..."), "01234567...23456789")
+        self.assertEqual(f(s, 19, "..") , "01234567..123456789")
+        self.assertEqual(f(s, 19, ".")  , "012345678.123456789")
+        self.assertEqual(f(s, 19, "")   , "0123456780123456789")
+
+
+class TestShortenEAW(unittest.TestCase):
+
+    def test_shorten_eaw_noop(self, f=output.shorten_string_eaw):
+        self.assertEqual(f(""      , 10), "")
+        self.assertEqual(f("foobar", 10), "foobar")
+
+    def test_shorten_eaw(self, f=output.shorten_string_eaw):
+        s = "01234567890123456789"  # 20 ascii characters
+        self.assertEqual(f(s, 30), s)
+        self.assertEqual(f(s, 25), s)
+        self.assertEqual(f(s, 20), s)
+        self.assertEqual(f(s, 19), "012345678…123456789")
+        self.assertEqual(f(s, 18), "01234567…123456789")
+        self.assertEqual(f(s, 17), "01234567…23456789")
+        self.assertEqual(f(s, 16), "0123456…23456789")
+        self.assertEqual(f(s, 15), "0123456…3456789")
+        self.assertEqual(f(s, 14), "012345…3456789")
+        self.assertEqual(f(s, 13), "012345…456789")
+        self.assertEqual(f(s, 12), "01234…456789")
+        self.assertEqual(f(s, 11), "01234…56789")
+        self.assertEqual(f(s, 10), "0123…56789")
+        self.assertEqual(f(s, 9) , "0123…6789")
+        self.assertEqual(f(s, 3) , "0…9")
+        self.assertEqual(f(s, 2) , "…9")
+
+    def test_shorten_eaw_wide(self, f=output.shorten_string_eaw):
+        s = "幻想郷幻想郷幻想郷幻想郷"  # 12 wide characters
+        self.assertEqual(f(s, 30), s)
+        self.assertEqual(f(s, 25), s)
+        self.assertEqual(f(s, 20), "幻想郷幻…想郷幻想郷")
+        self.assertEqual(f(s, 19), "幻想郷幻…想郷幻想郷")
+        self.assertEqual(f(s, 18), "幻想郷幻…郷幻想郷")
+        self.assertEqual(f(s, 17), "幻想郷幻…郷幻想郷")
+        self.assertEqual(f(s, 16), "幻想郷…郷幻想郷")
+        self.assertEqual(f(s, 15), "幻想郷…郷幻想郷")
+        self.assertEqual(f(s, 14), "幻想郷…幻想郷")
+        self.assertEqual(f(s, 13), "幻想郷…幻想郷")
+        self.assertEqual(f(s, 12), "幻想…幻想郷")
+        self.assertEqual(f(s, 11), "幻想…幻想郷")
+        self.assertEqual(f(s, 10), "幻想…想郷")
+        self.assertEqual(f(s, 9) , "幻想…想郷")
+        self.assertEqual(f(s, 3) , "…郷")
+
+    def test_shorten_eaw_mix(self, f=output.shorten_string_eaw):
+        s = "幻-想-郷##幻-想-郷##幻-想-郷"  # mixed characters
+        self.assertEqual(f(s, 28), s)
+        self.assertEqual(f(s, 25), "幻-想-郷##幻…郷##幻-想-郷")
+
+        self.assertEqual(f(s, 20), "幻-想-郷#…##幻-想-郷")
+        self.assertEqual(f(s, 19), "幻-想-郷#…#幻-想-郷")
+        self.assertEqual(f(s, 18), "幻-想-郷…#幻-想-郷")
+        self.assertEqual(f(s, 17), "幻-想-郷…幻-想-郷")
+        self.assertEqual(f(s, 16), "幻-想-…#幻-想-郷")
+        self.assertEqual(f(s, 15), "幻-想-…幻-想-郷")
+        self.assertEqual(f(s, 14), "幻-想-…-想-郷")
+        self.assertEqual(f(s, 13), "幻-想-…-想-郷")
+        self.assertEqual(f(s, 12), "幻-想…-想-郷")
+        self.assertEqual(f(s, 11), "幻-想…想-郷")
+        self.assertEqual(f(s, 10), "幻-…-想-郷")
+        self.assertEqual(f(s, 9) , "幻-…想-郷")
+        self.assertEqual(f(s, 3) , "…郷")
+
+    def test_shorten_eaw_separator(self, f=output.shorten_string_eaw):
+        s = "01234567890123456789"  # 20 ascii characters
+        self.assertEqual(f(s, 20, "|---|"), s)
+        self.assertEqual(f(s, 19, "|---|"), "0123456|---|3456789")
+        self.assertEqual(f(s, 15, "|---|"), "01234|---|56789")
+        self.assertEqual(f(s, 10, "|---|"), "01|---|789")
+
+        self.assertEqual(f(s, 19, "..."), "01234567...23456789")
+        self.assertEqual(f(s, 19, "..") , "01234567..123456789")
+        self.assertEqual(f(s, 19, ".")  , "012345678.123456789")
+        self.assertEqual(f(s, 19, "")   , "0123456780123456789")
+
+    def test_shorten_eaw_separator_wide(self, f=output.shorten_string_eaw):
+        s = "幻想郷幻想郷幻想郷幻想郷"  # 12 wide characters
+        self.assertEqual(f(s, 24, "|---|"), s)
+        self.assertEqual(f(s, 19, "|---|"), "幻想郷|---|郷幻想郷")
+        self.assertEqual(f(s, 15, "|---|"), "幻想|---|幻想郷")
+        self.assertEqual(f(s, 10, "|---|"), "幻|---|郷")
+
+        self.assertEqual(f(s, 19, "..."), "幻想郷幻...郷幻想郷")
+        self.assertEqual(f(s, 19, "..") , "幻想郷幻..郷幻想郷")
+        self.assertEqual(f(s, 19, ".")  , "幻想郷幻.想郷幻想郷")
+        self.assertEqual(f(s, 19, "")   , "幻想郷幻想郷幻想郷")
+
+    def test_shorten_eaw_separator_mix_(self, f=output.shorten_string_eaw):
+        s = "幻-想-郷##幻-想-郷##幻-想-郷"  # mixed characters
+        self.assertEqual(f(s, 30, "|---|"), s)
+        self.assertEqual(f(s, 19, "|---|"), "幻-想-|---|幻-想-郷")
+        self.assertEqual(f(s, 15, "|---|"), "幻-想|---|想-郷")
+        self.assertEqual(f(s, 10, "|---|"), "幻|---|-郷")
+
+        self.assertEqual(f(s, 19, "..."), "幻-想-郷...幻-想-郷")
+        self.assertEqual(f(s, 19, "..") , "幻-想-郷..#幻-想-郷")
+        self.assertEqual(f(s, 19, ".")  , "幻-想-郷#.#幻-想-郷")
+        self.assertEqual(f(s, 19, "")   , "幻-想-郷###幻-想-郷")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/gallery-dl/test/test_postprocessor.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2019-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+from unittest.mock import Mock, mock_open, patch
+
+import shutil
+import logging
+import zipfile
+import tempfile
+import collections
+from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import extractor, output, path  # noqa E402
+from gallery_dl import postprocessor, config  # noqa E402
+from gallery_dl.postprocessor.common import PostProcessor  # noqa E402
+
+
+class MockPostprocessorModule(Mock):
+    __postprocessor__ = "mock"
+
+
+class FakeJob():
+
+    def __init__(self, extr=extractor.find("generic:https://example.org/")):
+        extr.directory_fmt = ("{category}",)
+        self.extractor = extr
+        self.pathfmt = path.PathFormat(extr)
+        self.out = output.NullOutput()
+        self.get_logger = logging.getLogger
+        self.hooks = collections.defaultdict(list)
+
+    def register_hooks(self, hooks, options):
+        for hook, callback in hooks.items():
+            self.hooks[hook].append(callback)
+
+
+class TestPostprocessorModule(unittest.TestCase):
+
+    def setUp(self):
+        postprocessor._cache.clear()
+
+    def test_find(self):
+        for name in (postprocessor.modules):
+            cls = postprocessor.find(name)
+            self.assertEqual(cls.__name__, name.capitalize() + "PP")
+            self.assertIs(cls.__base__, PostProcessor)
+
+        self.assertEqual(postprocessor.find("foo"), None)
+        self.assertEqual(postprocessor.find(1234) , None)
+        self.assertEqual(postprocessor.find(None) , None)
+
+    @patch("builtins.__import__")
+    def test_cache(self, import_module):
+        import_module.return_value = MockPostprocessorModule()
+
+        for name in (postprocessor.modules):
+            postprocessor.find(name)
+        self.assertEqual(import_module.call_count, len(postprocessor.modules))
+
+        # no new calls to import_module
+        for name in (postprocessor.modules):
+            postprocessor.find(name)
+        self.assertEqual(import_module.call_count, len(postprocessor.modules))
+
+
+class BasePostprocessorTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.dir = tempfile.TemporaryDirectory()
+        config.set((), "base-directory", cls.dir.name)
+        cls.job = FakeJob()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.dir.cleanup()
+        config.clear()
+
+    def tearDown(self):
+        self.job.hooks.clear()
+
+    def _create(self, options=None, data=None):
+        kwdict = {"category": "test", "filename": "file", "extension": "ext"}
+        if options is None:
+            options = {}
+        if data is not None:
+            kwdict.update(data)
+
+        self.pathfmt = self.job.pathfmt
+        self.pathfmt.set_directory(kwdict)
+        self.pathfmt.set_filename(kwdict)
+        self.pathfmt.build_path()
+
+        pp = postprocessor.find(self.__class__.__name__[:-4].lower())
+        return pp(self.job, options)
+
+    def _trigger(self, events=None):
+        for event in (events or ("prepare", "file")):
+            for callback in self.job.hooks[event]:
+                callback(self.pathfmt)
+
+
+class ClassifyTest(BasePostprocessorTest):
+
+    def test_classify_default(self):
+        pp = self._create()
+
+        self.assertEqual(pp.mapping, {
+            ext: directory
+            for directory, exts in pp.DEFAULT_MAPPING.items()
+            for ext in exts
+        })
+        self.pathfmt.set_extension("jpg")
+        self.pathfmt.build_path()
+
+        pp.prepare(self.pathfmt)
+        path = os.path.join(self.dir.name, "test", "Pictures")
+        self.assertEqual(self.pathfmt.path, path + "/file.jpg")
+        self.assertEqual(self.pathfmt.realpath, path + "/file.jpg")
+
+        with patch("os.makedirs") as mkdirs:
+            self._trigger()
+            mkdirs.assert_called_once_with(path, exist_ok=True)
+
+    def test_classify_noop(self):
+        pp = self._create()
+        rp = self.pathfmt.realpath
+
+        pp.prepare(self.pathfmt)
+        self.assertEqual(self.pathfmt.path, rp)
+        self.assertEqual(self.pathfmt.realpath, rp)
+
+        with patch("os.makedirs") as mkdirs:
+            self._trigger()
+            self.assertEqual(mkdirs.call_count, 0)
+
+    def test_classify_custom(self):
+        pp = self._create({"mapping": {
+            "foo/bar": ["foo", "bar"],
+        }})
+
+        self.assertEqual(pp.mapping, {
+            "foo": "foo/bar",
+            "bar": "foo/bar",
+        })
+        self.pathfmt.set_extension("foo")
+        self.pathfmt.build_path()
+
+        pp.prepare(self.pathfmt)
+        path = os.path.join(self.dir.name, "test", "foo", "bar")
+        self.assertEqual(self.pathfmt.path, path + "/file.foo")
+        self.assertEqual(self.pathfmt.realpath, path + "/file.foo")
+
+        with patch("os.makedirs") as mkdirs:
+            self._trigger()
+            mkdirs.assert_called_once_with(path, exist_ok=True)
+
+
+class ExecTest(BasePostprocessorTest):
+
+    def test_command_string(self):
+        self._create({
+            "command": "echo {} {_path} {_directory} {_filename} && rm {};",
+        })
+
+        with patch("gallery_dl.util.Popen") as p:
+            i = Mock()
+            i.wait.return_value = 0
+            p.return_value = i
+            self._trigger(("after",))
+
+        p.assert_called_once_with(
+            "echo {0} {0} {1} {2} && rm {0};".format(
+                self.pathfmt.realpath,
+                self.pathfmt.realdirectory,
+                self.pathfmt.filename),
+            shell=True)
+        i.wait.assert_called_once_with()
+
+    def test_command_list(self):
+        self._create({
+            "command": ["~/script.sh", "{category}",
+                        "\fE _directory.upper()"],
+        })
+
+        with patch("gallery_dl.util.Popen") as p:
+            i = Mock()
+            i.wait.return_value = 0
+            p.return_value = i
+            self._trigger(("after",))
+
+        p.assert_called_once_with(
+            [
+                os.path.expanduser("~/script.sh"),
+                self.pathfmt.kwdict["category"],
+                self.pathfmt.realdirectory.upper(),
+            ],
+            shell=False,
+        )
+
+    def test_command_returncode(self):
+        self._create({
+            "command": "echo {}",
+        })
+
+        with patch("gallery_dl.util.Popen") as p:
+            i = Mock()
+            i.wait.return_value = 123
+            p.return_value = i
+
+            with self.assertLogs() as log:
+                self._trigger(("after",))
+
+        msg = ("WARNING:postprocessor.exec:'echo {}' returned with "
+               "non-zero exit status (123)".format(self.pathfmt.realpath))
+        self.assertEqual(log.output[0], msg)
+
+    def test_async(self):
+        self._create({
+            "async"  : True,
+            "command": "echo {}",
+        })
+
+        with patch("gallery_dl.util.Popen") as p:
+            i = Mock()
+            p.return_value = i
+            self._trigger(("after",))
+
+        self.assertTrue(p.called)
+        self.assertFalse(i.wait.called)
+
+
+class HashTest(BasePostprocessorTest):
+
+    def test_default(self):
+        self._create({})
+
+        with self.pathfmt.open() as fp:
+            fp.write(b"Foo Bar\n")
+
+        self._trigger()
+
+        kwdict = self.pathfmt.kwdict
+        self.assertEqual(
+            "35c9c9c7c90ad764bae9e2623f522c24", kwdict["md5"], "md5")
+        self.assertEqual(
+            "14d3d804494ef4e57d72de63e4cfee761240471a", kwdict["sha1"], "sha1")
+
+    def test_custom_hashes(self):
+        self._create({"hashes": "sha256:a,sha512:b"})
+
+        with self.pathfmt.open() as fp:
+            fp.write(b"Foo Bar\n")
+
+        self._trigger()
+
+        kwdict = self.pathfmt.kwdict
+        self.assertEqual(
+            "4775b55be17206445d7015a5fc7656f38a74b880670523c3b175455f885f2395",
+            kwdict["a"], "sha256")
+        self.assertEqual(
+            "6028f9e6957f4ca929941318c4bba6258713fd5162f9e33bd10e1c456d252700"
+            "3e1095b50736c4fd1e2deea152e3c8ecd5993462a747208e4d842659935a1c62",
+            kwdict["b"], "sha512")
+
+    def test_custom_hashes_dict(self):
+        self._create({"hashes": {"a": "sha256", "b": "sha512"}})
+
+        with self.pathfmt.open() as fp:
+            fp.write(b"Foo Bar\n")
+
+        self._trigger()
+
+        kwdict = self.pathfmt.kwdict
+        self.assertEqual(
+            "4775b55be17206445d7015a5fc7656f38a74b880670523c3b175455f885f2395",
+            kwdict["a"], "sha256")
+        self.assertEqual(
+            "6028f9e6957f4ca929941318c4bba6258713fd5162f9e33bd10e1c456d252700"
+            "3e1095b50736c4fd1e2deea152e3c8ecd5993462a747208e4d842659935a1c62",
+            kwdict["b"], "sha512")
+
+
+class MetadataTest(BasePostprocessorTest):
+
+    def test_metadata_default(self):
+        pp = self._create()
+
+        # default arguments
+        self.assertEqual(pp.write    , pp._write_json)
+        self.assertEqual(pp.extension, "json")
+        self.assertTrue(callable(pp._json_encode))
+
+    def test_metadata_json(self):
+        pp = self._create({
+            "mode"      : "json",
+            "extension" : "JSON",
+        }, {
+            "public"    : "hello ワールド",
+            "_private"  : "foo バー",
+        })
+
+        self.assertEqual(pp.write    , pp._write_json)
+        self.assertEqual(pp.extension, "JSON")
+        self.assertTrue(callable(pp._json_encode))
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realpath + ".JSON"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+        if sys.hexversion >= 0x3060000:
+            # python 3.4 & 3.5 have random order without 'sort: True'
+            self.assertEqual(self._output(m), """{
+    "category": "test",
+    "filename": "file",
+    "extension": "ext",
+    "public": "hello ワールド"
+}
+""")
+
+    def test_metadata_json_options(self):
+        pp = self._create({
+            "mode"      : "json",
+            "ascii"     : True,
+            "sort"      : True,
+            "separators": [",", " : "],
+            "private"   : True,
+            "indent"    : None,
+            "open"      : "a",
+            "encoding"  : "UTF-8",
+            "extension" : "JSON",
+        }, {
+            "public"    : "hello ワールド",
+            "_private"  : "foo バー",
+        })
+
+        self.assertEqual(pp.write    , pp._write_json)
+        self.assertEqual(pp.extension, "JSON")
+        self.assertTrue(callable(pp._json_encode))
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realpath + ".JSON"
+        m.assert_called_once_with(path, "a", encoding="UTF-8")
+        self.assertEqual(self._output(m), """{\
+"_private" : "foo \\u30d0\\u30fc",\
+"category" : "test",\
+"extension" : "ext",\
+"filename" : "file",\
+"public" : "hello \\u30ef\\u30fc\\u30eb\\u30c9"}
+""")
+
+    def test_metadata_tags(self):
+        pp = self._create(
+            {"mode": "tags"},
+            {"tags": ["foo", "bar", "baz"]},
+        )
+        self.assertEqual(pp.write, pp._write_tags)
+        self.assertEqual(pp.extension, "txt")
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realpath + ".txt"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+        self.assertEqual(self._output(m), "foo\nbar\nbaz\n")
+
+    def test_metadata_tags_split_1(self):
+        self._create(
+            {"mode": "tags"},
+            {"tags": "foo, bar, baz"},
+        )
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+        self.assertEqual(self._output(m), "foo\nbar\nbaz\n")
+
+    def test_metadata_tags_split_2(self):
+        self._create(
+            {"mode": "tags"},
+            {"tags": "foobar1 foobar2 foobarbaz"},
+        )
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+        self.assertEqual(self._output(m), "foobar1\nfoobar2\nfoobarbaz\n")
+
+    def test_metadata_tags_tagstring(self):
+        self._create(
+            {"mode": "tags"},
+            {"tag_string": "foo, bar, baz"},
+        )
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+        self.assertEqual(self._output(m), "foo\nbar\nbaz\n")
+
+    def test_metadata_tags_dict(self):
+        self._create(
+            {"mode": "tags"},
+            {"tags": {"g": ["foobar1", "foobar2"], "m": ["foobarbaz"]}},
+        )
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+        self.assertEqual(self._output(m), "foobar1\nfoobar2\nfoobarbaz\n")
+
+    def test_metadata_tags_list_of_dict(self):
+        self._create(
+            {"mode": "tags"},
+            {"tags": [
+                {"g": "foobar1", "m": "foobar2", "u": True},
+                {"g": None, "m": "foobarbaz", "u": [3, 4]},
+            ]},
+        )
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+        self.assertEqual(self._output(m), "foobar1\nfoobar2\nfoobarbaz\n")
+
+    def test_metadata_custom(self):
+        def test(pp_info):
+            pp = self._create(pp_info, {"foo": "bar"})
+            self.assertEqual(pp.write, pp._write_custom)
+            self.assertEqual(pp.extension, "txt")
+            self.assertTrue(pp._content_fmt)
+
+            with patch("builtins.open", mock_open()) as m:
+                self._trigger()
+            self.assertEqual(self._output(m), "bar\nNone\n")
+            self.job.hooks.clear()
+
+        test({"mode": "custom", "content-format": "{foo}\n{missing}\n"})
+        test({"mode": "custom", "content-format": ["{foo}", "{missing}"]})
+        test({"mode": "custom", "format": "{foo}\n{missing}\n"})
+        test({"format": "{foo}\n{missing}\n"})
+
+    def test_metadata_extfmt(self):
+        pp = self._create({
+            "extension"       : "ignored",
+            "extension-format": "json",
+        })
+
+        self.assertEqual(pp._filename, pp._filename_extfmt)
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realdirectory + "file.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_extfmt_2(self):
+        self._create({
+            "extension-format": "{extension!u}-data:{category:Res/ES/}",
+        })
+
+        self.pathfmt.prefix = "2."
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realdirectory + "file.2.EXT-data:tESt"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_directory(self):
+        self._create({
+            "directory": "metadata",
+        })
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realdirectory + "metadata/file.ext.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_directory_2(self):
+        self._create({
+            "directory"       : "metadata////",
+            "extension-format": "json",
+        })
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realdirectory + "metadata/file.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_directory_format(self):
+        self._create(
+            {"directory": ["..", "json", "\fE str(id // 500 * 500 + 500)"]},
+            {"id": 12345},
+        )
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realdirectory + "../json/12500/file.ext.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_basedirectory(self):
+        self._create({"base-directory": True})
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.basedirectory + "file.ext.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_basedirectory_custom(self):
+        self._create({
+            "base-directory": "/home/test",
+            "directory": "meta",
+        })
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = "/home/test/meta/file.ext.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_filename(self):
+        self._create({
+            "filename"        : "{category}_{filename}_/meta/\n\r.data",
+            "extension-format": "json",
+        })
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        path = self.pathfmt.realdirectory + "test_file__meta_.data"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_stdout(self):
+        self._create({"filename": "-", "indent": None, "sort": True})
+
+        with patch("sys.stdout", Mock()) as m:
+            self._trigger()
+
+        self.assertEqual(self._output(m), """\
+{"category": "test", "extension": "ext", "filename": "file"}
+""")
+
+    def test_metadata_modify(self):
+        kwdict = {"foo": 0, "bar": {"bax": 1, "bay": 2, "baz": 3, "ba2": {}}}
+        self._create({
+            "mode": "modify",
+            "fields": {
+                "foo"          : "{filename}-{foo!s}",
+                "foo2"         : "\fE bar['bax'] + 122",
+                "bar[\"baz\"]" : "{_now}",
+                "bar['ba2'][a]": "test",
+            },
+        }, kwdict)
+
+        pdict = self.pathfmt.kwdict
+        self.assertIsNot(kwdict, pdict)
+        self.assertEqual(pdict["foo"], kwdict["foo"])
+        self.assertEqual(pdict["bar"], kwdict["bar"])
+
+        self._trigger()
+
+        self.assertEqual(pdict["foo"] , "file-0")
+        self.assertEqual(pdict["foo2"], 123)
+        self.assertEqual(pdict["bar"]["ba2"]["a"], "test")
+        self.assertIsInstance(pdict["bar"]["baz"], datetime)
+
+    def test_metadata_delete(self):
+        kwdict = {
+            "foo": 0,
+            "bar": {
+                "bax": 1,
+                "bay": 2,
+                "baz": {"a": 3, "b": 4},
+            },
+        }
+        self._create({
+            "mode": "delete",
+            "fields": ["foo", "bar['bax']", "bar[\"baz\"][a]"],
+        }, kwdict)
+
+        pdict = self.pathfmt.kwdict
+        self.assertIsNot(kwdict, pdict)
+
+        self.assertEqual(pdict["foo"], kwdict["foo"])
+        self.assertEqual(pdict["bar"], kwdict["bar"])
+
+        self._trigger()
+
+        self.assertNotIn("foo", pdict)
+        self.assertNotIn("bax", pdict["bar"])
+        self.assertNotIn("a", pdict["bar"]["baz"])
+
+        # no errors for deleted/undefined fields
+        self._trigger()
+        self.assertNotIn("foo", pdict)
+        self.assertNotIn("bax", pdict["bar"])
+        self.assertNotIn("a", pdict["bar"]["baz"])
+
+    def test_metadata_option_skip(self):
+        self._create({"skip": True})
+
+        with patch("builtins.open", mock_open()) as m, \
+                patch("os.path.exists") as e:
+            e.return_value = True
+            self._trigger()
+
+        self.assertTrue(e.called)
+        self.assertTrue(not m.called)
+        self.assertTrue(not len(self._output(m)))
+
+        with patch("builtins.open", mock_open()) as m, \
+                patch("os.path.exists") as e:
+            e.return_value = False
+            self._trigger()
+
+        self.assertTrue(e.called)
+        self.assertTrue(m.called)
+        self.assertGreater(len(self._output(m)), 0)
+
+        path = self.pathfmt.realdirectory + "file.ext.json"
+        m.assert_called_once_with(path, "w", encoding="utf-8")
+
+    def test_metadata_option_skip_false(self):
+        self._create({"skip": False})
+
+        with patch("builtins.open", mock_open()) as m, \
+                patch("os.path.exists") as e:
+            self._trigger()
+
+        self.assertTrue(not e.called)
+        self.assertTrue(m.called)
+
+    def test_metadata_option_include(self):
+        self._create(
+            {"include": ["_private", "filename", "foo"], "sort": True},
+            {"public": "hello ワールド", "_private": "foo バー"},
+        )
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        self.assertEqual(self._output(m), """{
+    "_private": "foo バー",
+    "filename": "file"
+}
+""")
+
+    def test_metadata_option_exclude(self):
+        self._create(
+            {"exclude": ["category", "filename", "foo"], "sort": True},
+            {"public": "hello ワールド", "_private": "foo バー"},
+        )
+
+        with patch("builtins.open", mock_open()) as m:
+            self._trigger()
+
+        self.assertEqual(self._output(m), """{
+    "extension": "ext",
+    "public": "hello ワールド"
+}
+""")
+
+    @staticmethod
+    def _output(mock):
+        return "".join(
+            call[1][0]
+            for call in mock.mock_calls
+            if call[0].endswith("write")
+        )
+
+
+class MtimeTest(BasePostprocessorTest):
+
+    def test_mtime_datetime(self):
+        self._create(None, {"date": datetime(1980, 1, 1)})
+        self._trigger()
+        self.assertEqual(self.pathfmt.kwdict["_mtime"], 315532800)
+
+    def test_mtime_timestamp(self):
+        self._create(None, {"date": 315532800})
+        self._trigger()
+        self.assertEqual(self.pathfmt.kwdict["_mtime"], 315532800)
+
+    def test_mtime_none(self):
+        self._create(None, {"date": None})
+        self._trigger()
+        self.assertNotIn("_mtime", self.pathfmt.kwdict)
+
+    def test_mtime_undefined(self):
+        self._create(None, {})
+        self._trigger()
+        self.assertNotIn("_mtime", self.pathfmt.kwdict)
+
+    def test_mtime_key(self):
+        self._create({"key": "foo"}, {"foo": 315532800})
+        self._trigger()
+        self.assertEqual(self.pathfmt.kwdict["_mtime"], 315532800)
+
+    def test_mtime_value(self):
+        self._create({"value": "{foo}"}, {"foo": 315532800})
+        self._trigger()
+        self.assertEqual(self.pathfmt.kwdict["_mtime"], 315532800)
+
+
+class PythonTest(BasePostprocessorTest):
+
+    def test_module(self):
+        path = os.path.join(self.dir.name, "module.py")
+        self._write_module(path)
+
+        sys.path.insert(0, self.dir.name)
+        try:
+            self._create({"function": "module:calc"}, {"_value": 123})
+        finally:
+            del sys.path[0]
+
+        self.assertNotIn("_result", self.pathfmt.kwdict)
+        self._trigger()
+        self.assertEqual(self.pathfmt.kwdict["_result"], 246)
+
+    def test_path(self):
+        path = os.path.join(self.dir.name, "module.py")
+        self._write_module(path)
+
+        self._create({"function": path + ":calc"}, {"_value": 12})
+
+        self.assertNotIn("_result", self.pathfmt.kwdict)
+        self._trigger()
+        self.assertEqual(self.pathfmt.kwdict["_result"], 24)
+
+    def _write_module(self, path):
+        with open(path, "w") as fp:
+            fp.write("""
+def calc(kwdict):
+    kwdict["_result"] = kwdict["_value"] * 2
+""")
+
+
+class RenameTest(BasePostprocessorTest):
+
+    def _prepare(self, filename):
+        path = self.pathfmt.realdirectory
+        shutil.rmtree(path, ignore_errors=True)
+        os.makedirs(path, exist_ok=True)
+
+        with open(path + filename, "w"):
+            pass
+
+        return path
+
+    def test_rename_from(self):
+        self._create({"from": "{id}.{extension}"}, {"id": 12345})
+        path = self._prepare("12345.ext")
+
+        self._trigger()
+
+        self.assertEqual(os.listdir(path), ["file.ext"])
+
+    def test_rename_to(self):
+        self._create({"to": "{id}.{extension}"}, {"id": 12345})
+        path = self._prepare("file.ext")
+
+        self._trigger(("skip",))
+
+        self.assertEqual(os.listdir(path), ["12345.ext"])
+
+    def test_rename_from_to(self):
+        self._create({"from": "name", "to": "{id}"}, {"id": 12345})
+        path = self._prepare("name")
+
+        self._trigger()
+
+        self.assertEqual(os.listdir(path), ["12345"])
+
+    def test_rename_noopt(self):
+        with self.assertRaises(ValueError):
+            self._create({})
+
+    def test_rename_skip(self):
+        self._create({"from": "{id}.{extension}"}, {"id": 12345})
+        path = self._prepare("12345.ext")
+        with open(path + "file.ext", "w"):
+            pass
+
+        with self.assertLogs("postprocessor.rename", level="WARNING") as cm:
+            self._trigger()
+        self.assertTrue(cm.output[0].startswith(
+            "WARNING:postprocessor.rename:Not renaming "
+            "'12345.ext' to 'file.ext'"))
+        self.assertEqual(sorted(os.listdir(path)), ["12345.ext", "file.ext"])
+
+
+class ZipTest(BasePostprocessorTest):
+
+    def test_zip_default(self):
+        pp = self._create()
+        self.assertEqual(self.job.hooks["file"][0], pp.write_fast)
+        self.assertEqual(pp.path, self.pathfmt.realdirectory[:-1])
+        self.assertEqual(pp.delete, True)
+        self.assertEqual(pp.args, (
+            pp.path + ".zip", "a", zipfile.ZIP_STORED, True,
+        ))
+        self.assertTrue(pp.args[0].endswith("/test.zip"))
+
+    def test_zip_safe(self):
+        pp = self._create({"mode": "safe"})
+        self.assertEqual(self.job.hooks["file"][0], pp.write_safe)
+        self.assertEqual(pp.path, self.pathfmt.realdirectory[:-1])
+        self.assertEqual(pp.delete, True)
+        self.assertEqual(pp.args, (
+            pp.path + ".zip", "a", zipfile.ZIP_STORED, True,
+        ))
+        self.assertTrue(pp.args[0].endswith("/test.zip"))
+
+    def test_zip_options(self):
+        pp = self._create({
+            "keep-files": True,
+            "compression": "zip",
+            "extension": "cbz",
+        })
+        self.assertEqual(pp.delete, False)
+        self.assertEqual(pp.args, (
+            pp.path + ".cbz", "a", zipfile.ZIP_DEFLATED, True,
+        ))
+        self.assertTrue(pp.args[0].endswith("/test.cbz"))
+
+    def test_zip_write(self):
+        with tempfile.NamedTemporaryFile("w", dir=self.dir.name) as file:
+            pp = self._create({"files": [file.name, "_info_.json"],
+                               "keep-files": True})
+
+            filename = os.path.basename(file.name)
+            file.write("foobar\n")
+
+            # write dummy file with 3 different names
+            for i in range(3):
+                name = "file{}.ext".format(i)
+                self.pathfmt.temppath = file.name
+                self.pathfmt.filename = name
+
+                self._trigger()
+
+                nti = pp.zfile.NameToInfo
+                self.assertEqual(len(nti), i+2)
+                self.assertIn(name, nti)
+
+            # check file contents
+            self.assertEqual(len(nti), 4)
+            self.assertIn("file0.ext", nti)
+            self.assertIn("file1.ext", nti)
+            self.assertIn("file2.ext", nti)
+            self.assertIn(filename, nti)
+
+            # write the last file a second time (will be skipped)
+            self._trigger()
+            self.assertEqual(len(pp.zfile.NameToInfo), 4)
+
+        # close file
+        self._trigger(("finalize",))
+
+        # reopen to check persistence
+        with zipfile.ZipFile(pp.zfile.filename) as file:
+            nti = file.NameToInfo
+            self.assertEqual(len(pp.zfile.NameToInfo), 4)
+            self.assertIn("file0.ext", nti)
+            self.assertIn("file1.ext", nti)
+            self.assertIn("file2.ext", nti)
+            self.assertIn(filename, nti)
+
+        os.unlink(pp.zfile.filename)
+
+    def test_zip_write_mock(self):
+
+        def side_effect(_, name):
+            pp.zfile.NameToInfo.add(name)
+
+        pp = self._create()
+        pp.zfile = Mock()
+        pp.zfile.NameToInfo = set()
+        pp.zfile.write.side_effect = side_effect
+
+        # write 3 files
+        for i in range(3):
+            self.pathfmt.temppath = self.pathfmt.realdirectory + "file.ext"
+            self.pathfmt.filename = "file{}.ext".format(i)
+            self._trigger()
+
+        # write the last file a second time (should be skipped)
+        self._trigger()
+
+        # close file
+        self._trigger(("finalize",))
+
+        self.assertEqual(pp.zfile.write.call_count, 3)
+        for call in pp.zfile.write.call_args_list:
+            args, kwargs = call
+            self.assertEqual(len(args), 2)
+            self.assertEqual(len(kwargs), 0)
+            self.assertEqual(args[0], self.pathfmt.temppath)
+            self.assertRegex(args[1], r"file\d\.ext")
+        self.assertEqual(pp.zfile.close.call_count, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/gallery-dl/test/test_results.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2015-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+
+import re
+import json
+import hashlib
+import datetime
+import collections
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import \
+    extractor, util, job, config, exception, formatter  # noqa E402
+
+
+RESULTS = os.environ.get("GDL_TEST_RESULTS")
+if RESULTS:
+    results = util.import_file(RESULTS)
+else:
+    from test import results
+
+
+# temporary issues, etc.
+BROKEN = {
+}
+
+CONFIG = {
+    "cache": {
+        "file": None,
+    },
+    "downloader": {
+        "adjust-extensions": False,
+        "part": False,
+    },
+}
+
+
+AUTH_REQUIRED = {
+    "pixiv",
+    "nijie",
+    "horne",
+    "reddit",
+    "seiga",
+    "fantia",
+    "instagram",
+    "twitter",
+}
+
+AUTH_KEYS = (
+    "username",
+    "cookies",
+    "api-key",
+    "client-id",
+    "access-token",
+    "refresh-token",
+)
+
+
+class TestExtractorResults(unittest.TestCase):
+
+    def setUp(self):
+        setup_test_config()
+
+    def tearDown(self):
+        config.clear()
+
+    @classmethod
+    def setUpClass(cls):
+        cls._skipped = []
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._skipped:
+            print("\n\nSkipped tests:")
+            for url, exc in cls._skipped:
+                print('- {} ("{}")'.format(url, exc))
+
+    def assertRange(self, value, range, msg=None):
+        if range.step > 1:
+            self.assertIn(value, range, msg=msg)
+        else:
+            self.assertLessEqual(value, range.stop, msg=msg)
+            self.assertGreaterEqual(value, range.start, msg=msg)
+
+    def _run_test(self, result):
+        base, cat, sub = result_categories(result)
+        result.pop("#comment", None)
+        result.pop("#category", None)
+        auth = result.pop("#auth", None)
+
+        extr_url = extractor.find(result["#url"])
+        self.assertTrue(extr_url, "extractor by URL/find")
+        extr_cls = extr = result["#class"].from_url(result["#url"])
+        self.assertTrue(extr_url, "extractor by cls.from_url()")
+        self.assertIs(extr_url.__class__, extr_cls.__class__)
+
+        if len(result) <= 2:
+            return  # only matching
+
+        if auth is None:
+            auth = (cat in AUTH_REQUIRED)
+        elif not auth:
+            # auth explicitly disabled
+            for key in AUTH_KEYS:
+                config.set((), key, None)
+
+        if auth and not any(extr.config(key) for key in AUTH_KEYS):
+            return self._skipped.append((result["#url"], "no auth"))
+
+        if "#options" in result:
+            for key, value in result["#options"].items():
+                key = key.split(".")
+                config.set(key[:-1], key[-1], value)
+        if "#range" in result:
+            config.set((), "image-range"  , result["#range"])
+            config.set((), "chapter-range", result["#range"])
+
+        tjob = ResultJob(extr, content=("#sha1_content" in result))
+
+        if "#exception" in result:
+            with self.assertRaises(result["#exception"], msg="#exception"):
+                tjob.run()
+            return
+
+        try:
+            tjob.run()
+        except exception.StopExtraction:
+            pass
+        except exception.HttpError as exc:
+            exc = str(exc)
+            if re.match(r"'5\d\d ", exc) or \
+                    re.search(r"\bRead timed out\b", exc):
+                self._skipped.append((result["#url"], exc))
+                self.skipTest(exc)
+            raise
+
+        if result.get("#archive", True):
+            self.assertEqual(
+                len(set(tjob.archive_list)),
+                len(tjob.archive_list),
+                msg="archive-id uniqueness")
+
+        if tjob.queue:
+            # test '_extractor' entries
+            for url, kwdict in zip(tjob.url_list, tjob.kwdict_list):
+                if "_extractor" in kwdict:
+                    extr = kwdict["_extractor"].from_url(url)
+                    if extr is None and not result.get("#extractor", True):
+                        continue
+                    self.assertIsInstance(extr, kwdict["_extractor"])
+                    self.assertEqual(extr.url, url)
+        else:
+            # test 'extension' entries
+            for kwdict in tjob.kwdict_list:
+                self.assertIn("extension", kwdict, msg="#extension")
+
+        # test extraction results
+        if "#sha1_url" in result:
+            self.assertEqual(
+                result["#sha1_url"],
+                tjob.url_hash.hexdigest(),
+                msg="#sha1_url")
+
+        if "#sha1_content" in result:
+            expected = result["#sha1_content"]
+            digest = tjob.content_hash.hexdigest()
+            if isinstance(expected, str):
+                self.assertEqual(expected, digest, msg="#sha1_content")
+            else:  # iterable
+                self.assertIn(digest, expected, msg="#sha1_content")
+
+        if "#sha1_metadata" in result:
+            self.assertEqual(
+                result["#sha1_metadata"],
+                tjob.kwdict_hash.hexdigest(),
+                "#sha1_metadata")
+
+        if "#count" in result:
+            count = result["#count"]
+            len_urls = len(tjob.url_list)
+            if isinstance(count, str):
+                self.assertRegex(
+                    count, r"^ *(==|!=|<|<=|>|>=) *\d+ *$", msg="#count")
+                expr = "{} {}".format(len_urls, count)
+                self.assertTrue(eval(expr), msg=expr)
+            elif isinstance(count, range):
+                self.assertRange(len_urls, count, msg="#count")
+            else:  # assume integer
+                self.assertEqual(len_urls, count, msg="#count")
+
+        if "#pattern" in result:
+            self.assertGreater(len(tjob.url_list), 0, msg="#pattern")
+            pattern = result["#pattern"]
+            if isinstance(pattern, str):
+                for url in tjob.url_list:
+                    self.assertRegex(url, pattern, msg="#pattern")
+            else:
+                for url, pat in zip(tjob.url_list, pattern):
+                    self.assertRegex(url, pat, msg="#pattern")
+
+        if "#urls" in result:
+            expected = result["#urls"]
+            if isinstance(expected, str):
+                self.assertTrue(tjob.url_list, msg="#urls")
+                self.assertEqual(tjob.url_list[0], expected, msg="#urls")
+            else:
+                self.assertSequenceEqual(tjob.url_list, expected, msg="#urls")
+
+        metadata = {k: v for k, v in result.items() if k[0] != "#"}
+        if metadata:
+            for kwdict in tjob.kwdict_list:
+                self._test_kwdict(kwdict, metadata)
+
+    def _test_kwdict(self, kwdict, tests, parent=None):
+        for key, test in tests.items():
+            if key.startswith("?"):
+                key = key[1:]
+                if key not in kwdict:
+                    continue
+            path = "{}.{}".format(parent, key) if parent else key
+            self.assertIn(key, kwdict, msg=path)
+            value = kwdict[key]
+
+            if isinstance(test, dict):
+                self._test_kwdict(value, test, path)
+            elif isinstance(test, type):
+                self.assertIsInstance(value, test, msg=path)
+            elif isinstance(test, range):
+                self.assertRange(value, test, msg=path)
+            elif isinstance(test, set):
+                self.assertIn(value, test, msg=path)
+            elif isinstance(test, list):
+                subtest = False
+                for idx, item in enumerate(test):
+                    if isinstance(item, dict):
+                        subtest = True
+                        subpath = "{}[{}]".format(path, idx)
+                        self._test_kwdict(value[idx], item, subpath)
+                if not subtest:
+                    self.assertEqual(test, value, msg=path)
+            elif isinstance(test, str):
+                if test.startswith("re:"):
+                    self.assertRegex(value, test[3:], msg=path)
+                elif test.startswith("dt:"):
+                    self.assertIsInstance(value, datetime.datetime, msg=path)
+                    self.assertEqual(test[3:], str(value), msg=path)
+                elif test.startswith("type:"):
+                    self.assertEqual(test[5:], type(value).__name__, msg=path)
+                elif test.startswith("len:"):
+                    self.assertIsInstance(value, (list, tuple), msg=path)
+                    self.assertEqual(int(test[4:]), len(value), msg=path)
+                else:
+                    self.assertEqual(test, value, msg=path)
+            else:
+                self.assertEqual(test, value, msg=path)
+
+
+class ResultJob(job.DownloadJob):
+    """Generate test-results for extractor runs"""
+
+    def __init__(self, url, parent=None, content=False):
+        job.DownloadJob.__init__(self, url, parent)
+        self.queue = False
+        self.content = content
+
+        self.url_list = []
+        self.url_hash = hashlib.sha1()
+        self.kwdict_list = []
+        self.kwdict_hash = hashlib.sha1()
+        self.archive_list = []
+        self.archive_hash = hashlib.sha1()
+        self.content_hash = hashlib.sha1()
+
+        if content:
+            self.fileobj = TestPathfmt(self.content_hash)
+        else:
+            self._update_content = lambda url, kwdict: None
+
+        self.format_directory = TestFormatter(
+            "".join(self.extractor.directory_fmt)).format_map
+        self.format_filename = TestFormatter(
+            self.extractor.filename_fmt).format_map
+        self.format_archive = TestFormatter(
+            self.extractor.archive_fmt).format_map
+
+    def run(self):
+        self._init()
+        for msg in self.extractor:
+            self.dispatch(msg)
+
+    def handle_url(self, url, kwdict, fallback=None):
+        self._update_url(url)
+        self._update_kwdict(kwdict)
+        self._update_archive(kwdict)
+        self._update_content(url, kwdict)
+        self.format_filename(kwdict)
+
+    def handle_directory(self, kwdict):
+        self._update_kwdict(kwdict, False)
+        self.format_directory(kwdict)
+
+    def handle_metadata(self, kwdict):
+        pass
+
+    def handle_queue(self, url, kwdict):
+        self.queue = True
+        self._update_url(url)
+        self._update_kwdict(kwdict)
+
+    def _update_url(self, url):
+        self.url_list.append(url)
+        self.url_hash.update(url.encode())
+
+    def _update_kwdict(self, kwdict, to_list=True):
+        if to_list:
+            self.kwdict_list.append(kwdict.copy())
+        kwdict = util.filter_dict(kwdict)
+        self.kwdict_hash.update(
+            json.dumps(kwdict, sort_keys=True, default=str).encode())
+
+    def _update_archive(self, kwdict):
+        archive_id = self.format_archive(kwdict)
+        self.archive_list.append(archive_id)
+        self.archive_hash.update(archive_id.encode())
+
+    def _update_content(self, url, kwdict):
+        self.fileobj.kwdict = kwdict
+
+        downloader = self.get_downloader(url.partition(":")[0])
+        if downloader.download(url, self.fileobj):
+            return
+
+        for num, url in enumerate(kwdict.get("_fallback") or (), 1):
+            self.log.warning("Trying fallback URL #%d", num)
+            downloader = self.get_downloader(url.partition(":")[0])
+            if downloader.download(url, self.fileobj):
+                return
+
+
+class TestPathfmt():
+
+    def __init__(self, hashobj):
+        self.hashobj = hashobj
+        self.path = ""
+        self.size = 0
+        self.kwdict = {}
+        self.extension = "jpg"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+    def open(self, mode):
+        self.size = 0
+        return self
+
+    def write(self, content):
+        """Update SHA1 hash"""
+        self.size += len(content)
+        self.hashobj.update(content)
+
+    def tell(self):
+        return self.size
+
+    def part_size(self):
+        return 0
+
+
+class TestFormatter(formatter.StringFormatter):
+
+    @staticmethod
+    def _noop(_):
+        return ""
+
+    def _apply_simple(self, key, fmt):
+        if key == "extension" or "_parse_optional." in repr(fmt):
+            return self._noop
+
+        def wrap(obj):
+            return fmt(obj[key])
+        return wrap
+
+    def _apply(self, key, funcs, fmt):
+        if key == "extension" or "_parse_optional." in repr(fmt):
+            return self._noop
+
+        def wrap(obj):
+            obj = obj[key]
+            for func in funcs:
+                obj = func(obj)
+            return fmt(obj)
+        return wrap
+
+
+def setup_test_config():
+    config._config.update(CONFIG)
+
+
+def load_test_config():
+    try:
+        path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "archive", "config.json")
+        with open(path) as fp:
+            CONFIG.update(json.loads(fp.read()))
+    except FileNotFoundError:
+        pass
+    except Exception as exc:
+        sys.exit("Error when loading {}: {}: {}".format(
+            path, exc.__class__.__name__, exc))
+
+
+def result_categories(result):
+    categories = result.get("#category")
+    if categories:
+        return categories
+
+    cls = result["#class"]
+    return cls.basecategory, cls.category, cls.subcategory
+
+
+def generate_tests():
+    """Dynamically generate extractor unittests"""
+    def _generate_method(result):
+        def test(self):
+            print("\n" + result["#url"])
+            try:
+                self._run_test(result)
+            except KeyboardInterrupt as exc:
+                v = input("\n[e]xit | [f]ail | [S]kip ? ").strip().lower()
+                if v in ("e", "exit"):
+                    raise
+                if v in ("f", "fail"):
+                    self.fail("manual test failure")
+                else:
+                    self._skipped.append((result["#url"], "manual skip"))
+                    self.skipTest(exc)
+        return test
+
+    # enable selective testing for direct calls
+    if __name__ == "__main__" and len(sys.argv) > 1:
+        category, _, subcategory = sys.argv[1].partition(":")
+        del sys.argv[1:]
+
+        if category.startswith("+"):
+            basecategory = category[1:].lower()
+            tests = [t for t in results.all()
+                     if result_categories(t)[0].lower() == basecategory]
+        else:
+            tests = results.category(category)
+
+        if subcategory:
+            if subcategory.startswith("+"):
+                url = subcategory[1:]
+                tests = [t for t in tests if url in t["#url"]]
+            elif subcategory.startswith("~"):
+                com = subcategory[1:]
+                tests = [t for t in tests
+                         if "#comment" in t and com in t["#comment"].lower()]
+            else:
+                tests = [t for t in tests
+                         if result_categories(t)[-1] == subcategory]
+    else:
+        tests = results.all()
+
+    # add 'test_...' methods
+    enum = collections.defaultdict(int)
+    for result in tests:
+        base, cat, sub = result_categories(result)
+        name = "{}_{}".format(cat, sub)
+        enum[name] += 1
+
+        method = _generate_method(result)
+        method.__doc__ = result["#url"]
+        method.__name__ = "test_{}_{}".format(name, enum[name])
+        setattr(TestExtractorResults, method.__name__, method)
+
+
+generate_tests()
+if __name__ == "__main__":
+    load_test_config()
+    unittest.main(warnings="ignore")
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/gallery-dl/test/test_text.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2015-2022 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+
+import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import text, util  # noqa E402
+
+
+INVALID = ((), [], {}, None, 1, 2.3)
+INVALID_ALT = ((), [], {}, None, "")
+
+
+class TestText(unittest.TestCase):
+
+    def test_remove_html(self, f=text.remove_html):
+        result = "Hello World."
+
+        # standard usage
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("Hello World."), result)
+        self.assertEqual(f(" Hello  World.  "), result)
+        self.assertEqual(f("Hello<br/>World."), result)
+        self.assertEqual(
+            f("<div><b class='a'>Hello</b><i>World.</i></div>"), result)
+
+        # empty HTML
+        self.assertEqual(f("<div></div>"), "")
+        self.assertEqual(f(" <div>   </div> "), "")
+
+        # malformed HTML
+        self.assertEqual(f("<div</div>"), "")
+        self.assertEqual(f("<div<Hello World.</div>"), "")
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), "")
+
+    def test_split_html(self, f=text.split_html):
+        result = ["Hello", "World."]
+        empty = []
+
+        # standard usage
+        self.assertEqual(f(""), empty)
+        self.assertEqual(f("Hello World."), ["Hello World."])
+        self.assertEqual(f(" Hello  World.  "), ["Hello  World."])
+        self.assertEqual(f("Hello<br/>World."), result)
+        self.assertEqual(f(" Hello <br/> World.  "), result)
+        self.assertEqual(
+            f("<div><b class='a'>Hello</b><i>World.</i></div>"), result)
+
+        # escaped HTML entities
+        self.assertEqual(
+            f("<i>&lt;foo&gt;</i> <i>&lt;bar&gt; </i>"), ["<foo>", "<bar>"])
+
+        # empty HTML
+        self.assertEqual(f("<div></div>"), empty)
+        self.assertEqual(f(" <div>   </div> "), empty)
+
+        # malformed HTML
+        self.assertEqual(f("<div</div>"), empty)
+        self.assertEqual(f("<div<Hello World.</div>"), empty)
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), empty)
+
+    def test_slugify(self, f=text.slugify):
+        self.assertEqual(f("Hello World"), "hello-world")
+        self.assertEqual(f("-HeLLo---World-"), "hello-world")
+        self.assertEqual(f("_-H#e:l#l:o+\t+W?o!rl=d-_"), "hello-world")
+        self.assertEqual(f("_Hello_World_"), "hello_world")
+
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("-"), "")
+        self.assertEqual(f("--"), "")
+
+        self.assertEqual(f(()), "")
+        self.assertEqual(f([]), "")
+        self.assertEqual(f({}), "")
+        self.assertEqual(f(None), "none")
+        self.assertEqual(f(1), "1")
+        self.assertEqual(f(2.3), "23")
+
+    def test_ensure_http_scheme(self, f=text.ensure_http_scheme):
+        result = "https://example.org/filename.ext"
+
+        # standard usage
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("example.org/filename.ext"), result)
+        self.assertEqual(f("/example.org/filename.ext"), result)
+        self.assertEqual(f("//example.org/filename.ext"), result)
+        self.assertEqual(f("://example.org/filename.ext"), result)
+
+        # no change
+        self.assertEqual(f(result), result)
+        self.assertEqual(
+            f("http://example.org/filename.ext"),
+            "http://example.org/filename.ext",
+        )
+
+        # ...
+        self.assertEqual(
+            f("htp://example.org/filename.ext"),
+            "https://htp://example.org/filename.ext",
+        )
+
+        # invalid arguments
+        for value in INVALID_ALT:
+            self.assertEqual(f(value), value)
+
+    def test_root_from_url(self, f=text.root_from_url):
+        result = "https://example.org"
+        self.assertEqual(f("https://example.org")     , result)
+        self.assertEqual(f("https://example.org/")    , result)
+        self.assertEqual(f("https://example.org/path"), result)
+        self.assertEqual(f("example.org/")            , result)
+        self.assertEqual(f("example.org/path/")       , result)
+
+        result = "http://example.org"
+        self.assertEqual(f("http://example.org")      , result)
+        self.assertEqual(f("http://example.org/")     , result)
+        self.assertEqual(f("http://example.org/path/"), result)
+        self.assertEqual(f("example.org/", "http://") , result)
+
+    def test_filename_from_url(self, f=text.filename_from_url):
+        result = "filename.ext"
+
+        # standard usage
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("filename.ext"), result)
+        self.assertEqual(f("/filename.ext"), result)
+        self.assertEqual(f("example.org/filename.ext"), result)
+        self.assertEqual(f("http://example.org/v2/filename.ext"), result)
+        self.assertEqual(
+            f("http://example.org/v2/filename.ext?param=value#frag"), result)
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), "")
+
+    def test_ext_from_url(self, f=text.ext_from_url):
+        result = "ext"
+
+        # standard usage
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("filename"), "")
+        self.assertEqual(f("filename.ext"), result)
+        self.assertEqual(f("/filename.ExT"), result)
+        self.assertEqual(f("example.org/filename.ext"), result)
+        self.assertEqual(f("http://example.org/v2/filename.ext"), result)
+        self.assertEqual(
+            f("http://example.org/v2/filename.ext?param=value#frag"), result)
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), "")
+
+    def test_nameext_from_url(self, f=text.nameext_from_url):
+        empty = {"filename": "", "extension": ""}
+        result = {"filename": "filename", "extension": "ext"}
+
+        # standard usage
+        self.assertEqual(f(""), empty)
+        self.assertEqual(f("filename.ext"), result)
+        self.assertEqual(f("/filename.ExT"), result)
+        self.assertEqual(f("example.org/filename.ext"), result)
+        self.assertEqual(f("http://example.org/v2/filename.ext"), result)
+        self.assertEqual(
+            f("http://example.org/v2/filename.ext?param=value#frag"), result)
+
+        # long "extension"
+        fn = "httpswww.example.orgpath-path-path-path-path-path-path-path"
+        self.assertEqual(f(fn), {"filename": fn, "extension": ""})
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), empty)
+
+    def test_extract(self, f=text.extract):
+        txt = "<a><b>"
+        self.assertEqual(f(txt, "<", ">"), ("a" , 3))
+        self.assertEqual(f(txt, "X", ">"), (None, 0))
+        self.assertEqual(f(txt, "<", "X"), (None, 0))
+
+        # 'pos' argument
+        for i in range(1, 4):
+            self.assertEqual(f(txt, "<", ">", i), ("b", 6))
+        for i in range(4, 10):
+            self.assertEqual(f(txt, "<", ">", i), (None, i))
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value, "<"  , ">")  , (None, 0))
+            self.assertEqual(f(txt  , value, ">")  , (None, 0))
+            self.assertEqual(f(txt  , "<"  , value), (None, 0))
+
+    def test_extr(self, f=text.extr):
+        txt = "<a><b>"
+        self.assertEqual(f(txt, "X", ">"), "")
+        self.assertEqual(f(txt, "<", "X"), "")
+        self.assertEqual(f(txt, "<", ">"), "a")
+        self.assertEqual(f(txt, "><", ">"), "b")
+
+        # 'default' argument
+        self.assertEqual(f(txt, "<", "X", None), None)
+        self.assertEqual(f(txt, "<", "X", default=None), None)
+        self.assertEqual(f(txt, "<", "X", default=()), ())
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value, "<"  , ">")  , "")
+            self.assertEqual(f(txt  , value, ">")  , "")
+            self.assertEqual(f(txt  , "<"  , value), "")
+
+    def test_rextract(self, f=text.rextract):
+        txt = "<a><b>"
+        self.assertEqual(f(txt, "<", ">"), ("b" , 3))
+        self.assertEqual(f(txt, "X", ">"), (None, -1))
+        self.assertEqual(f(txt, "<", "X"), (None, -1))
+
+        # 'pos' argument
+        for i in range(10, 3, -1):
+            self.assertEqual(f(txt, "<", ">", i), ("b", 3))
+        for i in range(3, 0, -1):
+            self.assertEqual(f(txt, "<", ">", i), ("a", 0))
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value, "<"  , ">")  , (None, -1))
+            self.assertEqual(f(txt  , value, ">")  , (None, -1))
+            self.assertEqual(f(txt  , "<"  , value), (None, -1))
+
+    def test_extract_all(self, f=text.extract_all):
+        txt = "[c][b][a]: xyz! [d][e"
+
+        self.assertEqual(
+            f(txt, ()), ({}, 0))
+        self.assertEqual(
+            f(txt, (("C", "[", "]"), ("B", "[", "]"), ("A", "[", "]"))),
+            ({"A": "a", "B": "b", "C": "c"}, 9),
+        )
+
+        # 'None' as field name
+        self.assertEqual(
+            f(txt, ((None, "[", "]"), (None, "[", "]"), ("A", "[", "]"))),
+            ({"A": "a"}, 9),
+        )
+        self.assertEqual(
+            f(txt, ((None, "[", "]"), (None, "[", "]"), (None, "[", "]"))),
+            ({}, 9),
+        )
+
+        # failed matches
+        self.assertEqual(
+            f(txt, (("C", "[", "]"), ("X", "X", "X"), ("B", "[", "]"))),
+            ({"B": "b", "C": "c", "X": None}, 6),
+        )
+
+        # 'pos' argument
+        self.assertEqual(
+            f(txt, (("B", "[", "]"), ("A", "[", "]")), pos=1),
+            ({"A": "a", "B": "b"}, 9),
+        )
+
+        # 'values' argument
+        self.assertEqual(
+            f(txt, (("C", "[", "]"),), values={"A": "a", "B": "b"}),
+            ({"A": "a", "B": "b", "C": "c"}, 3),
+        )
+
+        vdict = {}
+        rdict, pos = f(txt, (), values=vdict)
+        self.assertIs(vdict, rdict)
+
+    def test_extract_iter(self, f=text.extract_iter):
+        txt = "[c][b][a]: xyz! [d][e"
+
+        def g(*args):
+            return list(f(*args))
+
+        self.assertEqual(
+            g("", "[", "]"), [])
+        self.assertEqual(
+            g("[a]", "[", "]"), ["a"])
+        self.assertEqual(
+            g(txt, "[", "]"), ["c", "b", "a", "d"])
+        self.assertEqual(
+            g(txt, "X", "X"), [])
+        self.assertEqual(
+            g(txt, "[", "]", 6), ["a", "d"])
+
+    def test_extract_from(self, f=text.extract_from):
+        txt = "[c][b][a]: xyz! [d][e"
+
+        e = f(txt)
+        self.assertEqual(e("[", "]"), "c")
+        self.assertEqual(e("[", "]"), "b")
+        self.assertEqual(e("[", "]"), "a")
+        self.assertEqual(e("[", "]"), "d")
+        self.assertEqual(e("[", "]"), "")
+        self.assertEqual(e("[", "]"), "")
+
+        e = f(txt, pos=6, default="END")
+        self.assertEqual(e("[", "]"), "a")
+        self.assertEqual(e("[", "]"), "d")
+        self.assertEqual(e("[", "]"), "END")
+        self.assertEqual(e("[", "]"), "END")
+
+    def test_parse_unicode_escapes(self, f=text.parse_unicode_escapes):
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("foobar"), "foobar")
+        self.assertEqual(f("foo'bar"), "foo'bar")
+        self.assertEqual(f("foo\\u2019bar"), "foo'bar")
+        self.assertEqual(f("foo\\u201bar"), "foo'ar")
+        self.assertEqual(f("foo\\u201zar"), "foo\\u201zar")
+        self.assertEqual(
+            f("\\u2018foo\\u2019\\u2020bar\\u00ff"),
+            "'foo'†barÿ",
+        )
+
+    def test_parse_bytes(self, f=text.parse_bytes):
+        self.assertEqual(f("0"), 0)
+        self.assertEqual(f("50"), 50)
+        self.assertEqual(f("50k"), 50 * 1024**1)
+        self.assertEqual(f("50m"), 50 * 1024**2)
+        self.assertEqual(f("50g"), 50 * 1024**3)
+        self.assertEqual(f("50t"), 50 * 1024**4)
+        self.assertEqual(f("50p"), 50 * 1024**5)
+
+        # fractions
+        self.assertEqual(f("123.456"), 123)
+        self.assertEqual(f("123.567"), 124)
+        self.assertEqual(f("0.5M"), round(0.5 * 1024**2))
+
+        # invalid arguments
+        for value in INVALID_ALT:
+            self.assertEqual(f(value), 0)
+        self.assertEqual(f("NaN"), 0)
+        self.assertEqual(f("invalid"), 0)
+        self.assertEqual(f(" 123 kb "), 0)
+
+    def test_parse_int(self, f=text.parse_int):
+        self.assertEqual(f(0), 0)
+        self.assertEqual(f("0"), 0)
+        self.assertEqual(f(123), 123)
+        self.assertEqual(f("123"), 123)
+
+        # invalid arguments
+        for value in INVALID_ALT:
+            self.assertEqual(f(value), 0)
+        self.assertEqual(f("123.456"), 0)
+        self.assertEqual(f("zzz"), 0)
+        self.assertEqual(f([1, 2, 3]), 0)
+        self.assertEqual(f({1: 2, 3: 4}), 0)
+
+        # 'default' argument
+        default = "default"
+        for value in INVALID_ALT:
+            self.assertEqual(f(value, default), default)
+        self.assertEqual(f("zzz", default), default)
+
+    def test_parse_float(self, f=text.parse_float):
+        self.assertEqual(f(0), 0.0)
+        self.assertEqual(f("0"), 0.0)
+        self.assertEqual(f(123), 123.0)
+        self.assertEqual(f("123"), 123.0)
+        self.assertEqual(f(123.456), 123.456)
+        self.assertEqual(f("123.456"), 123.456)
+
+        # invalid arguments
+        for value in INVALID_ALT:
+            self.assertEqual(f(value), 0.0)
+        self.assertEqual(f("zzz"), 0.0)
+        self.assertEqual(f([1, 2, 3]), 0.0)
+        self.assertEqual(f({1: 2, 3: 4}), 0.0)
+
+        # 'default' argument
+        default = "default"
+        for value in INVALID_ALT:
+            self.assertEqual(f(value, default), default)
+        self.assertEqual(f("zzz", default), default)
+
+    def test_parse_query(self, f=text.parse_query):
+        # standard usage
+        self.assertEqual(f(""), {})
+        self.assertEqual(f("foo=1"), {"foo": "1"})
+        self.assertEqual(f("foo=1&bar=2"), {"foo": "1", "bar": "2"})
+
+        # missing value
+        self.assertEqual(f("bar"), {})
+        self.assertEqual(f("foo=1&bar"), {"foo": "1"})
+        self.assertEqual(f("foo=1&bar&baz=3"), {"foo": "1", "baz": "3"})
+
+        # keys with identical names
+        self.assertEqual(f("foo=1&foo=2"), {"foo": "1"})
+        self.assertEqual(
+            f("foo=1&bar=2&foo=3&bar=4"),
+            {"foo": "1", "bar": "2"},
+        )
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), {})
+
+    def test_parse_query_list(self, f=text.parse_query_list):
+        # standard usage
+        self.assertEqual(f(""), {})
+        self.assertEqual(f("foo=1"), {"foo": "1"})
+        self.assertEqual(f("foo=1&bar=2"), {"foo": "1", "bar": "2"})
+
+        # missing value
+        self.assertEqual(f("bar"), {})
+        self.assertEqual(f("foo=1&bar"), {"foo": "1"})
+        self.assertEqual(f("foo=1&bar&baz=3"), {"foo": "1", "baz": "3"})
+
+        # keys with identical names
+        self.assertEqual(f("foo=1&foo=2"), {"foo": ["1", "2"]})
+        self.assertEqual(
+            f("foo=1&bar=2&foo=3&bar=4&foo=5"),
+            {"foo": ["1", "3", "5"], "bar": ["2", "4"]},
+        )
+
+        # invalid arguments
+        for value in INVALID:
+            self.assertEqual(f(value), {})
+
+    def test_parse_timestamp(self, f=text.parse_timestamp):
+        null = util.datetime_utcfromtimestamp(0)
+        value = util.datetime_utcfromtimestamp(1555816235)
+
+        self.assertEqual(f(0)           , null)
+        self.assertEqual(f("0")         , null)
+        self.assertEqual(f(1555816235)  , value)
+        self.assertEqual(f("1555816235"), value)
+
+        for value in INVALID_ALT:
+            self.assertEqual(f(value), None)
+            self.assertEqual(f(value, "foo"), "foo")
+
+    def test_parse_datetime(self, f=text.parse_datetime):
+        null = util.datetime_utcfromtimestamp(0)
+
+        self.assertEqual(f("1970-01-01T00:00:00+00:00"), null)
+        self.assertEqual(f("1970-01-01T00:00:00+0000") , null)
+        self.assertEqual(f("1970.01.01", "%Y.%m.%d")   , null)
+
+        self.assertEqual(
+            f("2019-05-07T21:25:02+09:00"),
+            datetime.datetime(2019, 5, 7, 12, 25, 2),
+        )
+        self.assertEqual(
+            f("2019-05-07T21:25:02+0900"),
+            datetime.datetime(2019, 5, 7, 12, 25, 2),
+        )
+        self.assertEqual(
+            f("2019-05-07T21:25:02.753+0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
+            datetime.datetime(2019, 5, 7, 12, 25, 2),
+        )
+        self.assertEqual(
+            f("2019-05-07T21:25:02", "%Y-%m-%dT%H:%M:%S", utcoffset=9),
+            datetime.datetime(2019, 5, 7, 12, 25, 2),
+        )
+        self.assertEqual(
+            f("2019-05-07 21:25:02"),
+            "2019-05-07 21:25:02",
+        )
+
+        for value in INVALID:
+            self.assertEqual(f(value), None)
+        self.assertEqual(f("1970.01.01"), "1970.01.01")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/gallery-dl/test/test_util.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2015-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+
+import io
+import time
+import random
+import string
+import datetime
+import platform
+import tempfile
+import itertools
+import http.cookiejar
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import util, text, exception  # noqa E402
+
+
+class TestRange(unittest.TestCase):
+
+    def test_parse_empty(self, f=util.RangePredicate._parse):
+        self.assertEqual(f(""), [])
+        self.assertEqual(f([]), [])
+
+    def test_parse_digit(self, f=util.RangePredicate._parse):
+        self.assertEqual(f("2"), [range(2, 3)])
+
+        self.assertEqual(
+            f("2, 3, 4"),
+            [range(2, 3),
+             range(3, 4),
+             range(4, 5)],
+        )
+
+    def test_parse_range(self, f=util.RangePredicate._parse):
+        self.assertEqual(f("1-2"), [range(1, 3)])
+        self.assertEqual(f("2-"), [range(2, sys.maxsize)])
+        self.assertEqual(f("-3"), [range(1, 4)])
+        self.assertEqual(f("-"), [range(1, sys.maxsize)])
+
+        self.assertEqual(
+            f("-2,4,6-8,10-"),
+            [range(1, 3),
+             range(4, 5),
+             range(6, 9),
+             range(10, sys.maxsize)],
+        )
+        self.assertEqual(
+            f(" - 3 , 4-  4, 2-6"),
+            [range(1, 4),
+             range(4, 5),
+             range(2, 7)],
+        )
+
+    def test_parse_slice(self, f=util.RangePredicate._parse):
+        self.assertEqual(f("2:4")  , [range(2, 4)])
+        self.assertEqual(f("3::")  , [range(3, sys.maxsize)])
+        self.assertEqual(f(":4:")  , [range(1, 4)])
+        self.assertEqual(f("::5")  , [range(1, sys.maxsize, 5)])
+        self.assertEqual(f("::")   , [range(1, sys.maxsize)])
+        self.assertEqual(f("2:3:4"), [range(2, 3, 4)])
+
+        self.assertEqual(
+            f("2:4, 4:, :4, :4:, ::4"),
+            [range(2, 4),
+             range(4, sys.maxsize),
+             range(1, 4),
+             range(1, 4),
+             range(1, sys.maxsize, 4)],
+        )
+        self.assertEqual(
+            f(" : 3 , 4:  4, 2:6"),
+            [range(1, 3),
+             range(4, 4),
+             range(2, 6)],
+        )
+
+
+class TestPredicate(unittest.TestCase):
+
+    def test_range_predicate(self):
+        dummy = None
+
+        pred = util.RangePredicate(" - 3 , 4-  4, 2-6")
+        for i in range(6):
+            self.assertTrue(pred(dummy, dummy))
+        with self.assertRaises(exception.StopExtraction):
+            pred(dummy, dummy)
+
+        pred = util.RangePredicate("1, 3, 5")
+        self.assertTrue(pred(dummy, dummy))
+        self.assertFalse(pred(dummy, dummy))
+        self.assertTrue(pred(dummy, dummy))
+        self.assertFalse(pred(dummy, dummy))
+        self.assertTrue(pred(dummy, dummy))
+        with self.assertRaises(exception.StopExtraction):
+            pred(dummy, dummy)
+
+        pred = util.RangePredicate("")
+        with self.assertRaises(exception.StopExtraction):
+            pred(dummy, dummy)
+
+    def test_unique_predicate(self):
+        dummy = None
+        pred = util.UniquePredicate()
+
+        # no duplicates
+        self.assertTrue(pred("1", dummy))
+        self.assertTrue(pred("2", dummy))
+        self.assertFalse(pred("1", dummy))
+        self.assertFalse(pred("2", dummy))
+        self.assertTrue(pred("3", dummy))
+        self.assertFalse(pred("3", dummy))
+
+        # duplicates for "text:"
+        self.assertTrue(pred("text:123", dummy))
+        self.assertTrue(pred("text:123", dummy))
+        self.assertTrue(pred("text:123", dummy))
+
+    def test_filter_predicate(self):
+        url = ""
+
+        pred = util.FilterPredicate("a < 3")
+        self.assertTrue(pred(url, {"a": 2}))
+        self.assertFalse(pred(url, {"a": 3}))
+
+        with self.assertRaises(SyntaxError):
+            util.FilterPredicate("(")
+
+        self.assertFalse(
+            util.FilterPredicate("a > 1")(url, {"a": None}))
+        self.assertFalse(
+            util.FilterPredicate("b > 1")(url, {"a": 2}))
+
+        pred = util.FilterPredicate(["a < 3", "b < 4", "c < 5"])
+        self.assertTrue(pred(url, {"a": 2, "b": 3, "c": 4}))
+        self.assertFalse(pred(url, {"a": 3, "b": 3, "c": 4}))
+        self.assertFalse(pred(url, {"a": 2, "b": 4, "c": 4}))
+        self.assertFalse(pred(url, {"a": 2, "b": 3, "c": 5}))
+
+        self.assertFalse(pred(url, {"a": 2}))
+
+    def test_build_predicate(self):
+        pred = util.build_predicate([])
+        self.assertIsInstance(pred, type(lambda: True))
+
+        pred = util.build_predicate([util.UniquePredicate()])
+        self.assertIsInstance(pred, util.UniquePredicate)
+
+        pred = util.build_predicate([util.UniquePredicate(),
+                                     util.UniquePredicate()])
+        self.assertIs(pred.func, util.chain_predicates)
+
+
+class TestISO639_1(unittest.TestCase):
+
+    def test_code_to_language(self):
+        d = "default"
+        self._run_test(util.code_to_language, {
+            ("en",): "English",
+            ("FR",): "French",
+            ("ja",): "Japanese",
+            ("xx",): None,
+            (""  ,): None,
+            (None,): None,
+            ("en", d): "English",
+            ("FR", d): "French",
+            ("xx", d): d,
+            (""  , d): d,
+            (None, d): d,
+        })
+
+    def test_language_to_code(self):
+        d = "default"
+        self._run_test(util.language_to_code, {
+            ("English",): "en",
+            ("fRENch",): "fr",
+            ("Japanese",): "ja",
+            ("xx",): None,
+            (""  ,): None,
+            (None,): None,
+            ("English", d): "en",
+            ("fRENch", d): "fr",
+            ("xx", d): d,
+            (""  , d): d,
+            (None, d): d,
+        })
+
+    def _run_test(self, func, tests):
+        for args, result in tests.items():
+            self.assertEqual(func(*args), result)
+
+
+class TestCookiesTxt(unittest.TestCase):
+
+    def test_cookiestxt_load(self):
+
+        def _assert(content, expected):
+            cookies = util.cookiestxt_load(io.StringIO(content, None))
+            for c, e in zip(cookies, expected):
+                self.assertEqual(c.__dict__, e.__dict__)
+
+        _assert("", [])
+        _assert("\n\n\n", [])
+        _assert("$ Comment", [])
+        _assert("# Comment", [])
+        _assert(" # Comment \n\n $ Comment ", [])
+        _assert(
+            ".example.org\tTRUE\t/\tTRUE\t0\tname\tvalue",
+            [self._cookie("name", "value", ".example.org")],
+        )
+        _assert(
+            ".example.org\tTRUE\t/\tTRUE\t\tname\t",
+            [self._cookie("name", "", ".example.org")],
+        )
+        _assert(
+            "\tTRUE\t/\tTRUE\t\tname\t",
+            [self._cookie("name", "", "")],
+        )
+        _assert(
+            "# Netscape HTTP Cookie File\n"
+            "\n"
+            "# default\n"
+            ".example.org	TRUE	/	FALSE	0	n1	v1\n"
+            ".example.org	TRUE	/	TRUE	2145945600	n2	v2\n"
+            ".example.org	TRUE	/path	FALSE	0		n3\n"
+            "\n"
+            "  # # extra # #  \n"
+            "www.example.org	FALSE	/	FALSE		n4	\n"
+            "www.example.org	FALSE	/path	FALSE	100	n5	v5\n",
+            [
+                self._cookie(
+                    "n1", "v1", ".example.org", True, "/", False),
+                self._cookie(
+                    "n2", "v2", ".example.org", True, "/", True, 2145945600),
+                self._cookie(
+                    "n3", None, ".example.org", True, "/path", False),
+                self._cookie(
+                    "n4", ""  , "www.example.org", False, "/", False),
+                self._cookie(
+                    "n5", "v5", "www.example.org", False, "/path", False, 100),
+            ],
+        )
+
+        with self.assertRaises(ValueError):
+            util.cookiestxt_load("example.org\tTRUE\t/\tTRUE\t0\tname")
+
+    def test_cookiestxt_store(self):
+
+        def _assert(cookies, expected):
+            fp = io.StringIO(newline=None)
+            util.cookiestxt_store(fp, cookies)
+            self.assertMultiLineEqual(fp.getvalue(), expected)
+
+        _assert([], "# Netscape HTTP Cookie File\n\n")
+        _assert(
+            [self._cookie("name", "value", ".example.org")],
+            "# Netscape HTTP Cookie File\n\n"
+            ".example.org\tTRUE\t/\tTRUE\t0\tname\tvalue\n",
+        )
+        _assert(
+            [
+                self._cookie(
+                    "n1", "v1", ".example.org", True, "/", False),
+                self._cookie(
+                    "n2", "v2", ".example.org", True, "/", True, 2145945600),
+                self._cookie(
+                    "n3", None, ".example.org", True, "/path", False),
+                self._cookie(
+                    "n4", ""  , "www.example.org", False, "/", False),
+                self._cookie(
+                    "n5", "v5", "www.example.org", False, "/path", False, 100),
+                self._cookie(
+                    "n6", "v6", "", False),
+            ],
+            "# Netscape HTTP Cookie File\n"
+            "\n"
+            ".example.org	TRUE	/	FALSE	0	n1	v1\n"
+            ".example.org	TRUE	/	TRUE	2145945600	n2	v2\n"
+            ".example.org	TRUE	/path	FALSE	0		n3\n"
+            "www.example.org	FALSE	/	FALSE	0	n4	\n"
+            "www.example.org	FALSE	/path	FALSE	100	n5	v5\n",
+        )
+
+    def _cookie(self, name, value, domain, domain_specified=True,
+                path="/", secure=True, expires=None):
+        return http.cookiejar.Cookie(
+            0, name, value, None, False,
+            domain, domain_specified, domain.startswith("."),
+            path, False, secure, expires, False, None, None, {},
+        )
+
+
+class TestOther(unittest.TestCase):
+
+    def test_bencode(self):
+        self.assertEqual(util.bencode(0), "")
+        self.assertEqual(util.bencode(123), "123")
+        self.assertEqual(util.bencode(123, "01"), "1111011")
+        self.assertEqual(util.bencode(123, "BA"), "AAAABAA")
+
+    def test_bdecode(self):
+        self.assertEqual(util.bdecode(""), 0)
+        self.assertEqual(util.bdecode("123"), 123)
+        self.assertEqual(util.bdecode("1111011", "01"), 123)
+        self.assertEqual(util.bdecode("AAAABAA", "BA"), 123)
+
+    def test_bencode_bdecode(self):
+        for _ in range(100):
+            value = random.randint(0, 1000000)
+            for alphabet in ("01", "0123456789", string.ascii_letters):
+                result = util.bdecode(util.bencode(value, alphabet), alphabet)
+                self.assertEqual(result, value)
+
+    def test_advance(self):
+        items = range(5)
+
+        self.assertCountEqual(
+            util.advance(items, 0), items)
+        self.assertCountEqual(
+            util.advance(items, 3), range(3, 5))
+        self.assertCountEqual(
+            util.advance(items, 9), [])
+        self.assertCountEqual(
+            util.advance(util.advance(items, 1), 2), range(3, 5))
+
+    def test_unique(self):
+        self.assertSequenceEqual(
+            list(util.unique("")), "")
+        self.assertSequenceEqual(
+            list(util.unique("AABBCC")), "ABC")
+        self.assertSequenceEqual(
+            list(util.unique("ABABABCAABBCC")), "ABC")
+        self.assertSequenceEqual(
+            list(util.unique([1, 2, 1, 3, 2, 1])), [1, 2, 3])
+
+    def test_unique_sequence(self):
+        self.assertSequenceEqual(
+            list(util.unique_sequence("")), "")
+        self.assertSequenceEqual(
+            list(util.unique_sequence("AABBCC")), "ABC")
+        self.assertSequenceEqual(
+            list(util.unique_sequence("ABABABCAABBCC")), "ABABABCABC")
+        self.assertSequenceEqual(
+            list(util.unique_sequence([1, 2, 1, 3, 2, 1])), [1, 2, 1, 3, 2, 1])
+
+    def test_contains(self):
+        c = [1, "2", 3, 4, "5", "foo"]
+        self.assertTrue(util.contains(c, 1))
+        self.assertTrue(util.contains(c, "foo"))
+        self.assertTrue(util.contains(c, [1, 3, "5"]))
+        self.assertTrue(util.contains(c, ["a", "b", "5"]))
+        self.assertFalse(util.contains(c, "bar"))
+        self.assertFalse(util.contains(c, [2, 5, "bar"]))
+
+        s = "1 2 3 asd qwe y(+)c f(+)(-) bar"
+        self.assertTrue(util.contains(s, "y(+)c"))
+        self.assertTrue(util.contains(s, ["asd", "qwe", "yxc"]))
+        self.assertTrue(util.contains(s, ["sdf", "dfg", "qwe"]))
+        self.assertFalse(util.contains(s, "tag1"))
+        self.assertFalse(util.contains(s, ["tag1", "tag2", "tag3"]))
+
+        s = "1, 2, 3, asd, qwe, y(+)c, f(+)(-), bar"
+        self.assertTrue(util.contains(s, "y(+)c", ", "))
+        self.assertTrue(util.contains(s, ["sdf", "dfg", "qwe"], ", "))
+        self.assertFalse(util.contains(s, "tag1", ", "))
+
+    def test_raises(self):
+        func = util.raises(Exception)
+        with self.assertRaises(Exception):
+            func()
+
+        func = util.raises(ValueError)
+        with self.assertRaises(ValueError):
+            func(1)
+        with self.assertRaises(ValueError):
+            func(2)
+        with self.assertRaises(ValueError):
+            func(3)
+
+    def test_identity(self):
+        for value in (123, "foo", [1, 2, 3], (1, 2, 3), {1: 2}, None):
+            self.assertIs(util.identity(value), value)
+
+    def test_noop(self):
+        self.assertEqual(util.noop(), None)
+
+    def test_md5(self):
+        self.assertEqual(util.md5(b""),
+                         "d41d8cd98f00b204e9800998ecf8427e")
+        self.assertEqual(util.md5(b"hello"),
+                         "5d41402abc4b2a76b9719d911017c592")
+
+        self.assertEqual(util.md5(""),
+                         "d41d8cd98f00b204e9800998ecf8427e")
+        self.assertEqual(util.md5("hello"),
+                         "5d41402abc4b2a76b9719d911017c592")
+        self.assertEqual(util.md5("ワルド"),
+                         "051f29cd6c942cf110a0ccc5729871d2")
+
+        self.assertEqual(util.md5(0),
+                         "d41d8cd98f00b204e9800998ecf8427e")
+        self.assertEqual(util.md5(()),
+                         "d41d8cd98f00b204e9800998ecf8427e")
+        self.assertEqual(util.md5(None),
+                         "d41d8cd98f00b204e9800998ecf8427e")
+
+    def test_sha1(self):
+        self.assertEqual(util.sha1(b""),
+                         "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+        self.assertEqual(util.sha1(b"hello"),
+                         "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d")
+
+        self.assertEqual(util.sha1(""),
+                         "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+        self.assertEqual(util.sha1("hello"),
+                         "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d")
+        self.assertEqual(util.sha1("ワルド"),
+                         "0cbe319081aa0e9298448ec2bb16df8c494aa04e")
+
+        self.assertEqual(util.sha1(0),
+                         "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+        self.assertEqual(util.sha1(()),
+                         "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+        self.assertEqual(util.sha1(None),
+                         "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+
+    def test_compile_expression(self):
+        expr = util.compile_expression("1 + 2 * 3")
+        self.assertEqual(expr(), 7)
+        self.assertEqual(expr({"a": 1, "b": 2, "c": 3}), 7)
+        self.assertEqual(expr({"a": 9, "b": 9, "c": 9}), 7)
+
+        expr = util.compile_expression("a + b * c")
+        self.assertEqual(expr({"a": 1, "b": 2, "c": 3}), 7)
+        self.assertEqual(expr({"a": 9, "b": 9, "c": 9}), 90)
+
+        expr = util.compile_expression_raw("a + b * c")
+        with self.assertRaises(NameError):
+            expr()
+        with self.assertRaises(NameError):
+            expr({"a": 2})
+
+        with self.assertRaises(SyntaxError):
+            util.compile_expression("")
+        with self.assertRaises(SyntaxError):
+            util.compile_expression("x++")
+
+        expr = util.compile_expression("1 and abort()")
+        with self.assertRaises(exception.StopExtraction):
+            expr()
+
+    def test_import_file(self):
+        module = util.import_file("datetime")
+        self.assertIs(module, datetime)
+
+        with tempfile.TemporaryDirectory() as path:
+            file = path + "/module_test.py"
+            with open(file, "w") as fp:
+                fp.write("""
+import datetime
+key = "foobar"
+value = 123
+""")
+            module = util.import_file(file)
+
+        self.assertEqual(module.__name__, "module_test")
+        self.assertEqual(module.key, "foobar")
+        self.assertEqual(module.value, 123)
+        self.assertIs(module.datetime, datetime)
+
+    def test_custom_globals(self):
+        value = {"v": "foobar"}
+        result = "8843d7f92416211de9ebb963ff4ce28125932878"
+
+        expr = util.compile_expression("hash_sha1(v)")
+        self.assertEqual(expr(value), result)
+
+        expr = util.compile_expression("hs(v)", globals={"hs": util.sha1})
+        self.assertEqual(expr(value), result)
+
+        with tempfile.TemporaryDirectory() as path:
+            file = path + "/module_sha1.py"
+            with open(file, "w") as fp:
+                fp.write("""
+import hashlib
+def hash(value):
+    return hashlib.sha1(value.encode()).hexdigest()
+""")
+            module = util.import_file(file)
+
+        expr = util.compile_expression("hash(v)", globals=module.__dict__)
+        self.assertEqual(expr(value), result)
+
+        GLOBALS_ORIG = util.GLOBALS
+        try:
+            util.GLOBALS = module.__dict__
+            expr = util.compile_expression("hash(v)")
+        finally:
+            util.GLOBALS = GLOBALS_ORIG
+        self.assertEqual(expr(value), result)
+
+    def test_build_duration_func(self, f=util.build_duration_func):
+
+        def test_single(df, v):
+            for _ in range(10):
+                self.assertEqual(df(), v)
+
+        def test_range(df, lower, upper):
+            for __ in range(10):
+                v = df()
+                self.assertGreaterEqual(v, lower)
+                self.assertLessEqual(v, upper)
+
+        for v in (0, 0.0, "", None, (), []):
+            self.assertIsNone(f(v))
+
+        for v in (0, 0.0, "", None, (), []):
+            test_single(f(v, 1.0), 1.0)
+
+        test_single(f(3), 3)
+        test_single(f(3.0), 3.0)
+        test_single(f("3"), 3)
+        test_single(f("3.0-"), 3)
+        test_single(f("  3  -"), 3)
+
+        test_range(f((2, 4)), 2, 4)
+        test_range(f([2, 4]), 2, 4)
+        test_range(f("2-4"), 2, 4)
+        test_range(f("  2.0  - 4 "), 2, 4)
+
+    def test_extractor_filter(self):
+        # empty
+        func = util.build_extractor_filter("")
+        self.assertEqual(func(TestExtractor)      , True)
+        self.assertEqual(func(TestExtractorParent), True)
+        self.assertEqual(func(TestExtractorAlt)   , True)
+
+        # category
+        func = util.build_extractor_filter("test_category")
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), False)
+        self.assertEqual(func(TestExtractorAlt)   , True)
+
+        # subcategory
+        func = util.build_extractor_filter("*:test_subcategory")
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), True)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+        # basecategory
+        func = util.build_extractor_filter("test_basecategory")
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), False)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+        # category-subcategory pair
+        func = util.build_extractor_filter("test_category:test_subcategory")
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), True)
+        self.assertEqual(func(TestExtractorAlt)   , True)
+
+        # combination
+        func = util.build_extractor_filter(
+            ["test_category", "*:test_subcategory"])
+        self.assertEqual(func(TestExtractor)      , False)
+        self.assertEqual(func(TestExtractorParent), False)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+        # whitelist
+        func = util.build_extractor_filter(
+            "test_category:test_subcategory", negate=False)
+        self.assertEqual(func(TestExtractor)      , True)
+        self.assertEqual(func(TestExtractorParent), False)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+        func = util.build_extractor_filter(
+            ["test_category:test_subcategory", "*:test_subcategory_parent"],
+            negate=False)
+        self.assertEqual(func(TestExtractor)      , True)
+        self.assertEqual(func(TestExtractorParent), True)
+        self.assertEqual(func(TestExtractorAlt)   , False)
+
+    def test_generate_token(self):
+        tokens = set()
+        for _ in range(100):
+            token = util.generate_token()
+            tokens.add(token)
+            self.assertEqual(len(token), 16 * 2)
+            self.assertRegex(token, r"^[0-9a-f]+$")
+        self.assertGreaterEqual(len(tokens), 99)
+
+        token = util.generate_token(80)
+        self.assertEqual(len(token), 80 * 2)
+        self.assertRegex(token, r"^[0-9a-f]+$")
+
+    def test_format_value(self):
+        self.assertEqual(util.format_value(0)         , "0")
+        self.assertEqual(util.format_value(1)         , "1")
+        self.assertEqual(util.format_value(12)        , "12")
+        self.assertEqual(util.format_value(123)       , "123")
+        self.assertEqual(util.format_value(1234)      , "1.23k")
+        self.assertEqual(util.format_value(12345)     , "12.34k")
+        self.assertEqual(util.format_value(123456)    , "123.45k")
+        self.assertEqual(util.format_value(1234567)   , "1.23M")
+        self.assertEqual(util.format_value(12345678)  , "12.34M")
+        self.assertEqual(util.format_value(123456789) , "123.45M")
+        self.assertEqual(util.format_value(1234567890), "1.23G")
+
+    def test_combine_dict(self):
+        self.assertEqual(
+            util.combine_dict({}, {}),
+            {})
+        self.assertEqual(
+            util.combine_dict({1: 1, 2: 2}, {2: 4, 4: 8}),
+            {1: 1, 2: 4, 4: 8})
+        self.assertEqual(
+            util.combine_dict(
+                {1: {11: 22, 12: 24}, 2: {13: 26, 14: 28}},
+                {1: {11: 33, 13: 39}, 2: "str"}),
+            {1: {11: 33, 12: 24, 13: 39}, 2: "str"})
+        self.assertEqual(
+            util.combine_dict(
+                {1: {2: {3: {4: {"1": "a", "2": "b"}}}}},
+                {1: {2: {3: {4: {"1": "A", "3": "C"}}}}}),
+            {1: {2: {3: {4: {"1": "A", "2": "b", "3": "C"}}}}})
+
+    def test_transform_dict(self):
+        d = {}
+        util.transform_dict(d, str)
+        self.assertEqual(d, {})
+
+        d = {1: 123, 2: "123", 3: True, 4: None}
+        util.transform_dict(d, str)
+        self.assertEqual(
+            d, {1: "123", 2: "123", 3: "True", 4: "None"})
+
+        d = {1: 123, 2: "123", 3: "foo", 4: {11: 321, 12: "321", 13: "bar"}}
+        util.transform_dict(d, text.parse_int)
+        self.assertEqual(
+            d, {1: 123, 2: 123, 3: 0, 4: {11: 321, 12: 321, 13: 0}})
+
+    def test_filter_dict(self):
+        d = {}
+        r = util.filter_dict(d)
+        self.assertEqual(r, d)
+        self.assertIsNot(r, d)
+
+        d = {"foo": 123, "bar": [], "baz": None}
+        r = util.filter_dict(d)
+        self.assertEqual(r, d)
+        self.assertIsNot(r, d)
+
+        d = {"foo": 123, "_bar": [], "__baz__": None}
+        r = util.filter_dict(d)
+        self.assertEqual(r, {"foo": 123})
+
+    def test_enumerate_reversed(self):
+
+        seq = [11, 22, 33]
+        result = [(3, 33), (2, 22), (1, 11)]
+
+        def gen():
+            for i in seq:
+                yield i
+
+        def gen_2():
+            yield from seq
+
+        def assertEqual(it1, it2):
+            ae = self.assertEqual
+            for i1, i2 in itertools.zip_longest(it1, it2):
+                ae(i1, i2)
+
+        assertEqual(
+            util.enumerate_reversed(seq), [(2, 33), (1, 22), (0, 11)])
+        assertEqual(
+            util.enumerate_reversed(seq, 1), result)
+        assertEqual(
+            util.enumerate_reversed(seq, 2), [(4, 33), (3, 22), (2, 11)])
+
+        assertEqual(
+            util.enumerate_reversed(gen(), 0, len(seq)),
+            [(2, 33), (1, 22), (0, 11)])
+        assertEqual(
+            util.enumerate_reversed(gen(), 1, len(seq)), result)
+        assertEqual(
+            util.enumerate_reversed(gen_2(), 1, len(seq)), result)
+        assertEqual(
+            util.enumerate_reversed(gen_2(), 2, len(seq)),
+            [(4, 33), (3, 22), (2, 11)])
+
+    def test_number_to_string(self, f=util.number_to_string):
+        self.assertEqual(f(1)     , "1")
+        self.assertEqual(f(1.0)   , "1.0")
+        self.assertEqual(f("1.0") , "1.0")
+        self.assertEqual(f([1])   , [1])
+        self.assertEqual(f({1: 2}), {1: 2})
+        self.assertEqual(f(True)  , True)
+        self.assertEqual(f(None)  , None)
+
+    def test_to_string(self, f=util.to_string):
+        self.assertEqual(f(1)    , "1")
+        self.assertEqual(f(1.0)  , "1.0")
+        self.assertEqual(f("1.0"), "1.0")
+
+        self.assertEqual(f("")   , "")
+        self.assertEqual(f(None) , "")
+        self.assertEqual(f(0)    , "")
+
+        self.assertEqual(f(["a"]), "a")
+        self.assertEqual(f([1])  , "1")
+        self.assertEqual(f(["a", "b", "c"]), "a, b, c")
+        self.assertEqual(f([1, 2, 3]), "1, 2, 3")
+
+    def test_datetime_to_timestamp(self, f=util.datetime_to_timestamp):
+        self.assertEqual(f(util.EPOCH), 0.0)
+        self.assertEqual(f(datetime.datetime(2010, 1, 1)), 1262304000.0)
+        self.assertEqual(f(datetime.datetime(2010, 1, 1, 0, 0, 0, 128000)),
+                         1262304000.128000)
+        with self.assertRaises(TypeError):
+            f(None)
+
+    def test_datetime_to_timestamp_string(
+            self, f=util.datetime_to_timestamp_string):
+        self.assertEqual(f(util.EPOCH), "0")
+        self.assertEqual(f(datetime.datetime(2010, 1, 1)), "1262304000")
+        self.assertEqual(f(None), "")
+
+    def test_datetime_from_timestamp(
+            self, f=util.datetime_from_timestamp):
+        self.assertEqual(f(0.0), util.EPOCH)
+        self.assertEqual(f(1262304000.0), datetime.datetime(2010, 1, 1))
+        self.assertEqual(f(1262304000.128000).replace(microsecond=0),
+                         datetime.datetime(2010, 1, 1, 0, 0, 0))
+
+    def test_datetime_utcfromtimestamp(
+            self, f=util.datetime_utcfromtimestamp):
+        self.assertEqual(f(0.0), util.EPOCH)
+        self.assertEqual(f(1262304000.0), datetime.datetime(2010, 1, 1))
+
+    def test_datetime_utcnow(
+            self, f=util.datetime_utcnow):
+        self.assertIsInstance(f(), datetime.datetime)
+
+    def test_universal_none(self):
+        obj = util.NONE
+
+        self.assertFalse(obj)
+        self.assertEqual(len(obj), 0)
+        self.assertEqual(int(obj), 0)
+        self.assertEqual(hash(obj), 0)
+
+        self.assertEqual(str(obj), str(None))
+        self.assertEqual(repr(obj), repr(None))
+        self.assertEqual(format(obj), str(None))
+        self.assertEqual(format(obj, "%F"), str(None))
+
+        self.assertIs(obj.attr, obj)
+        self.assertIs(obj["key"], obj)
+        self.assertIs(obj(), obj)
+        self.assertIs(obj(1, "a"), obj)
+        self.assertIs(obj(foo="bar"), obj)
+        self.assertIs(iter(obj), obj)
+        self.assertEqual(util.json_dumps(obj), "null")
+
+        self.assertLess(obj, "foo")
+        self.assertLessEqual(obj, None)
+        self.assertTrue(obj == obj)
+        self.assertFalse(obj == 0)
+        self.assertFalse(obj != obj)
+        self.assertGreater(123, obj)
+        self.assertGreaterEqual(1.23, obj)
+
+        self.assertEqual(obj + 123, obj)
+        self.assertEqual(obj - 123, obj)
+        self.assertEqual(obj * 123, obj)
+        #  self.assertEqual(obj @ 123, obj)
+        self.assertEqual(obj / 123, obj)
+        self.assertEqual(obj // 123, obj)
+        self.assertEqual(obj % 123, obj)
+
+        self.assertEqual(123 + obj, obj)
+        self.assertEqual(123 - obj, obj)
+        self.assertEqual(123 * obj, obj)
+        #  self.assertEqual(123 @ obj, obj)
+        self.assertEqual(123 / obj, obj)
+        self.assertEqual(123 // obj, obj)
+        self.assertEqual(123 % obj, obj)
+
+        self.assertEqual(obj << 123, obj)
+        self.assertEqual(obj >> 123, obj)
+        self.assertEqual(obj & 123, obj)
+        self.assertEqual(obj ^ 123, obj)
+        self.assertEqual(obj | 123, obj)
+
+        self.assertEqual(123 << obj, obj)
+        self.assertEqual(123 >> obj, obj)
+        self.assertEqual(123 & obj, obj)
+        self.assertEqual(123 ^ obj, obj)
+        self.assertEqual(123 | obj, obj)
+
+        self.assertEqual(-obj, obj)
+        self.assertEqual(+obj, obj)
+        self.assertEqual(~obj, obj)
+        self.assertEqual(abs(obj), obj)
+
+        mapping = {}
+        mapping[obj] = 123
+        self.assertIn(obj, mapping)
+        self.assertEqual(mapping[obj], 123)
+
+        array = [1, 2, 3]
+        self.assertEqual(array[obj], 1)
+
+        if platform.python_implementation().lower() == "cpython":
+            self.assertTrue(time.localtime(obj))
+
+        i = 0
+        for _ in obj:
+            i += 1
+        self.assertEqual(i, 0)
+
+    def test_module_proxy(self):
+        proxy = util.ModuleProxy()
+
+        self.assertIs(proxy.os, os)
+        self.assertIs(proxy.os.path, os.path)
+        self.assertIs(proxy["os"], os)
+        self.assertIs(proxy["os.path"], os.path)
+        self.assertIs(proxy["os"].path, os.path)
+
+        self.assertIs(proxy.abcdefghi, util.NONE)
+        self.assertIs(proxy["abcdefghi"], util.NONE)
+        self.assertIs(proxy["abc.def.ghi"], util.NONE)
+        self.assertIs(proxy["os.path2"], util.NONE)
+
+    def test_null_context(self):
+        with util.NullContext():
+            pass
+
+        with util.NullContext() as ctx:
+            self.assertIs(ctx, None)
+
+        try:
+            with util.NullContext() as ctx:
+                exc_orig = ValueError()
+                raise exc_orig
+        except ValueError as exc:
+            self.assertIs(exc, exc_orig)
+
+
+class TestExtractor():
+    category = "test_category"
+    subcategory = "test_subcategory"
+    basecategory = "test_basecategory"
+
+
+class TestExtractorParent(TestExtractor):
+    category = "test_category"
+    subcategory = "test_subcategory_parent"
+
+
+class TestExtractorAlt(TestExtractor):
+    category = "test_category_alt"
+    subcategory = "test_subcategory"
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/gallery-dl/test/test_ytdl.py</source>
+<document_content>
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright 2022-2023 Mike Fährmann
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from gallery_dl import ytdl, util, config  # noqa E402
+
+
+class Test_CommandlineArguments(unittest.TestCase):
+    module_name = "youtube_dl"
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.module = __import__(cls.module_name)
+        except (ImportError, SyntaxError):
+            raise unittest.SkipTest("cannot import module '{}'".format(
+                cls.module_name))
+        cls.default = ytdl.parse_command_line(cls.module, [])
+
+    def test_ignore_errors(self):
+        self._("--ignore-errors" , "ignoreerrors", True)
+        self._("--abort-on-error", "ignoreerrors", False)
+
+    def test_default_search(self):
+        self._(["--default-search", "foo"] , "default_search", "foo")
+
+    def test_mark_watched(self):
+        self._("--mark-watched"   , "mark_watched", True)
+        self._("--no-mark-watched", "mark_watched", False)
+
+    def test_proxy(self):
+        self._(["--proxy", "socks5://127.0.0.1:1080/"],
+               "proxy", "socks5://127.0.0.1:1080/")
+        self._(["--cn-verification-proxy", "https://127.0.0.1"],
+               "cn_verification_proxy", "https://127.0.0.1")
+        self._(["--geo-verification-proxy", "127.0.0.1"],
+               "geo_verification_proxy", "127.0.0.1")
+
+    def test_network_options(self):
+        self._(["--socket-timeout", "3.5"],
+               "socket_timeout", 3.5)
+        self._(["--source-address", "127.0.0.1"],
+               "source_address", "127.0.0.1")
+        self._("-4"          , "source_address", "0.0.0.0")
+        self._("--force-ipv4", "source_address", "0.0.0.0")
+        self._("-6"          , "source_address", "::")
+        self._("--force-ipv6", "source_address", "::")
+
+    def test_thumbnail_options(self):
+        self._("--write-thumbnail", "writethumbnail", True)
+        self._("--write-all-thumbnails", "write_all_thumbnails", True)
+
+    def test_authentication_options(self):
+        self._(["-u"        , "foo"], "username", "foo")
+        self._(["--username", "foo"], "username", "foo")
+
+        self._(["-p"        , "bar"], "password", "bar")
+        self._(["--password", "bar"], "password", "bar")
+
+        self._(["--ap-mso"     , "mso"], "ap_mso", "mso")
+        self._(["--ap-username", "foo"], "ap_username", "foo")
+        self._(["--ap-password", "bar"], "ap_password", "bar")
+
+        self._(["-2"         , "pass"], "twofactor", "pass")
+        self._(["--twofactor", "pass"], "twofactor", "pass")
+
+        self._(["--video-password", "pass"], "videopassword", "pass")
+
+        self._("-n"     , "usenetrc", True)
+        self._("--netrc", "usenetrc", True)
+
+    def test_subtitle_options(self):
+        self._("--write-sub"     , "writesubtitles"   , True)
+        self._("--write-auto-sub", "writeautomaticsub", True)
+
+        self._(["--sub-format", "best"], "subtitlesformat", "best")
+        self._(["--sub-langs", "en,ru"], "subtitleslangs", ["en", "ru"])
+
+    def test_retries(self):
+        inf = float("inf")
+
+        self._(["--retries", "5"], "retries", 5)
+        self._(["--retries", "inf"], "retries", inf)
+        self._(["--retries", "infinite"], "retries", inf)
+        self._(["--fragment-retries", "8"], "fragment_retries", 8)
+        self._(["--fragment-retries", "inf"], "fragment_retries", inf)
+        self._(["--fragment-retries", "infinite"], "fragment_retries", inf)
+
+    def test_geo_bypass(self):
+        self._("--geo-bypass", "geo_bypass", True)
+        self._("--no-geo-bypass", "geo_bypass", False)
+        self._(["--geo-bypass-country", "EN"], "geo_bypass_country", "EN")
+        self._(["--geo-bypass-ip-block", "198.51.100.14/24"],
+               "geo_bypass_ip_block", "198.51.100.14/24")
+
+    def test_headers(self):
+        headers = self.module.std_headers
+
+        self.assertNotEqual(headers["User-Agent"], "Foo/1.0")
+        self._(["--user-agent", "Foo/1.0"])
+        self.assertEqual(headers["User-Agent"], "Foo/1.0")
+
+        self.assertNotIn("Referer", headers)
+        self._(["--referer", "http://example.org/"])
+        self.assertEqual(headers["Referer"], "http://example.org/")
+
+        self.assertNotEqual(headers["Accept"], "*/*")
+        self.assertNotIn("DNT", headers)
+        self._([
+            "--add-header", "accept:*/*",
+            "--add-header", "dnt:1",
+        ])
+        self.assertEqual(headers["accept"], "*/*")
+        self.assertEqual(headers["dnt"], "1")
+
+    def test_extract_audio(self):
+        opts = self._(["--extract-audio"])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "best",
+            "preferredquality": "5",
+            "nopostoverwrites": False,
+        })
+
+        opts = self._([
+            "--extract-audio",
+            "--audio-format", "opus",
+            "--audio-quality", "9",
+            "--no-post-overwrites",
+        ])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "opus",
+            "preferredquality": "9",
+            "nopostoverwrites": True,
+        })
+
+    def test_recode_video(self):
+        opts = self._(["--recode-video", " mkv "])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mkv",
+        })
+
+    def test_subs(self):
+        opts = self._(["--convert-subs", "srt"])
+        conv = {"key": "FFmpegSubtitlesConvertor", "format": "srt"}
+        if self.module_name == "yt_dlp":
+            conv["when"] = "before_dl"
+        self.assertEqual(opts["postprocessors"][0], conv)
+
+    def test_embed(self):
+        subs = {"key": "FFmpegEmbedSubtitle"}
+        thumb = {"key": "EmbedThumbnail", "already_have_thumbnail": False}
+        if self.module_name == "yt_dlp":
+            subs["already_have_subtitle"] = False
+
+        opts = self._(["--embed-subs", "--embed-thumbnail"])
+        self.assertEqual(opts["postprocessors"][:2], [subs, thumb])
+
+        thumb["already_have_thumbnail"] = True
+        if self.module_name == "yt_dlp":
+            subs["already_have_subtitle"] = True
+            thumb["already_have_thumbnail"] = "all"
+
+        opts = self._([
+            "--embed-thumbnail",
+            "--embed-subs",
+            "--write-sub",
+            "--write-all-thumbnails",
+        ])
+        self.assertEqual(opts["postprocessors"][:2], [subs, thumb])
+
+    def test_metadata(self):
+        opts = self._("--add-metadata")
+        self.assertEqual(opts["postprocessors"][0], {"key": "FFmpegMetadata"})
+
+    def test_metadata_from_title(self):
+        opts = self._(["--metadata-from-title", "%(artist)s - %(title)s"])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key": "MetadataFromTitle",
+            "titleformat": "%(artist)s - %(title)s",
+        })
+
+    def test_xattr(self):
+        self._("--xattr-set-filesize", "xattr_set_filesize", True)
+
+        opts = self._("--xattrs")
+        self.assertEqual(opts["postprocessors"][0], {"key": "XAttrMetadata"})
+
+    def test_noop(self):
+        cmdline = [
+            "--update",
+            "--dump-user-agent",
+            "-F",
+            "--list-formats",
+            "--list-extractors",
+            "--list-thumbnails",
+            "--list-subs",
+            "--ap-list-mso",
+            "--extractor-descriptions",
+            "--ignore-config",
+        ]
+
+        if self.module_name != "yt_dlp":
+            cmdline.extend((
+                "--dump-json",
+                "--dump-single-json",
+                "--config-location", "~",
+            ))
+
+        result = self._(cmdline)
+        result["daterange"] = self.default["daterange"]
+        self.assertEqual(result, self.default)
+
+    def _(self, cmdline, option=util.SENTINEL, expected=None):
+        if isinstance(cmdline, str):
+            cmdline = [cmdline]
+        result = ytdl.parse_command_line(self.module, cmdline)
+        if option is not util.SENTINEL:
+            self.assertEqual(result[option], expected, option)
+        return result
+
+
+class Test_CommandlineArguments_YtDlp(Test_CommandlineArguments):
+    module_name = "yt_dlp"
+
+    def test_retries_extractor(self):
+        inf = float("inf")
+
+        self._(["--extractor-retries", "5"], "extractor_retries", 5)
+        self._(["--extractor-retries", "inf"], "extractor_retries", inf)
+        self._(["--extractor-retries", "infinite"], "extractor_retries", inf)
+
+    def test_remuxs_video(self):
+        opts = self._(["--remux-video", " mkv "])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key": "FFmpegVideoRemuxer",
+            "preferedformat": "mkv",
+        })
+
+    def test_metadata(self):
+        opts = self._(["--embed-metadata",
+                       "--no-embed-chapters",
+                       "--embed-info-json"])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key": "FFmpegMetadata",
+            "add_chapters": False,
+            "add_metadata": True,
+            "add_infojson": True,
+        })
+
+    def test_metadata_from_title(self):
+        opts = self._(["--metadata-from-title", "%(artist)s - %(title)s"])
+        self.assertEqual(opts["postprocessors"][0], {
+            "key"    : "MetadataParser",
+            "when"   : "pre_process",
+            "actions": [self.module.MetadataFromFieldPP.to_action(
+                "title:%(artist)s - %(title)s")],
+        })
+
+    def test_geo_bypass(self):
+        try:
+            ytdl.parse_command_line(self.module, ["--xff", "default"])
+        except Exception:
+            # before --xff (c16644642)
+            return Test_CommandlineArguments.test_geo_bypass(self)
+
+        self._(["--xff", "default"],
+               "geo_bypass", "default")
+        self._(["--xff", "never"],
+               "geo_bypass", "never")
+        self._(["--xff", "EN"],
+               "geo_bypass", "EN")
+        self._(["--xff", "198.51.100.14/24"],
+               "geo_bypass", "198.51.100.14/24")
+
+        self._("--geo-bypass",
+               "geo_bypass", "default")
+        self._("--no-geo-bypass",
+               "geo_bypass", "never")
+        self._(["--geo-bypass-country", "EN"],
+               "geo_bypass", "EN")
+        self._(["--geo-bypass-ip-block", "198.51.100.14/24"],
+               "geo_bypass", "198.51.100.14/24")
+
+    def test_cookiesfrombrowser(self):
+        self._(["--cookies-from-browser", "firefox"],
+               "cookiesfrombrowser", ("firefox", None, None, None))
+        self._(["--cookies-from-browser", "firefox:profile"],
+               "cookiesfrombrowser", ("firefox", "profile", None, None))
+        self._(["--cookies-from-browser", "firefox+keyring"],
+               "cookiesfrombrowser", ("firefox", None, "KEYRING", None))
+        self._(["--cookies-from-browser", "firefox::container"],
+               "cookiesfrombrowser", ("firefox", None, None, "container"))
+        self._(["--cookies-from-browser",
+                "firefox+keyring:profile::container"],
+               "cookiesfrombrowser",
+               ("firefox", "profile", "KEYRING", "container"))
+
+
+if __name__ == "__main__":
+    unittest.main(warnings="ignore")
+
+</document_content>
+</document>
+</documents>

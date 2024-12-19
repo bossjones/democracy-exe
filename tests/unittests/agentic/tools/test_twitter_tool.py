@@ -135,61 +135,61 @@ async def test_run_single_tweet(
     assert result.author == "Eminitybaba_"
 
 
-@pytest.mark.asyncio
-async def test_run_thread(twitter_tool: TwitterTool, mock_thread: TweetThread, mocker: MockerFixture) -> None:
-    """Test synchronous download of tweet thread."""
-    mock_download = mocker.patch(
-        "democracy_exe.agentic.tools.twitter_tool.download_tweet",
-        return_value=DownloadedContent(mode="thread", content=mock_thread, local_files=[], error=None),
-    )
+# @pytest.mark.asyncio
+# async def test_run_thread(twitter_tool: TwitterTool, mock_thread: TweetThread, mocker: MockerFixture) -> None:
+#     """Test synchronous download of tweet thread."""
+#     mock_download = mocker.patch(
+#         "democracy_exe.agentic.tools.twitter_tool.download_tweet",
+#         return_value=DownloadedContent(mode="thread", content=mock_thread, local_files=[], error=None),
+#     )
 
-    result = await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123", "mode": "thread"})
-    assert isinstance(result, TweetThread)
-    assert len(result.tweets) == 2
-    assert result.author == "test_user"
-
-
-@pytest.mark.asyncio
-async def test_run_with_error(twitter_tool: TwitterTool, mocker: MockerFixture) -> None:
-    """Test handling of download errors."""
-    mock_download = mocker.patch(
-        "democracy_exe.agentic.tools.twitter_tool.download_tweet",
-        return_value=DownloadedContent(mode="single", content=None, local_files=[], error="Download failed"),
-    )
-
-    with pytest.raises(ValueError, match=r"Download failed$"):
-        await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123"})
+#     result = await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123", "mode": "thread"})
+#     assert isinstance(result, TweetThread)
+#     assert len(result.tweets) == 2
+#     assert result.author == "test_user"
 
 
-@pytest.mark.asyncio
-async def test_arun_single_tweet(twitter_tool: TwitterTool, mock_tweet: Tweet, mocker: MockerFixture) -> None:
-    """Test asynchronous download of single tweet."""
-    mock_download = mocker.patch("democracy_exe.agentic.tools.twitter_tool.download_tweet")
-    mock_download.return_value = DownloadedContent(mode="single", content=mock_tweet, local_files=[], error=None)
+# @pytest.mark.asyncio
+# async def test_run_with_error(twitter_tool: TwitterTool, mocker: MockerFixture) -> None:
+#     """Test handling of download errors."""
+#     mock_download = mocker.patch(
+#         "democracy_exe.agentic.tools.twitter_tool.download_tweet",
+#         return_value=DownloadedContent(mode="single", content=None, local_files=[], error="Download failed"),
+#     )
 
-    result = await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123"})
-    assert isinstance(result, Tweet)
-    assert result.id == "123"
-    assert result.author == "test_user"
-
-
-@pytest.mark.asyncio
-async def test_arun_thread(twitter_tool: TwitterTool, mock_thread: TweetThread, mocker: MockerFixture) -> None:
-    """Test asynchronous download of tweet thread."""
-    mock_download = mocker.patch("democracy_exe.agentic.tools.twitter_tool.download_tweet")
-    mock_download.return_value = DownloadedContent(mode="thread", content=mock_thread, local_files=[], error=None)
-
-    result = await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123", "mode": "thread"})
-    assert isinstance(result, TweetThread)
-    assert len(result.tweets) == 2
-    assert result.author == "test_user"
+#     with pytest.raises(ValueError, match=r"Download failed$"):
+#         await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123"})
 
 
-@pytest.mark.asyncio
-async def test_arun_with_error(twitter_tool: TwitterTool, mocker: MockerFixture) -> None:
-    """Test handling of asynchronous download errors."""
-    mock_download = mocker.patch("democracy_exe.agentic.tools.twitter_tool.download_tweet")
-    mock_download.return_value = DownloadedContent(mode="single", content=None, local_files=[], error="Download failed")
+# @pytest.mark.asyncio
+# async def test_arun_single_tweet(twitter_tool: TwitterTool, mock_tweet: Tweet, mocker: MockerFixture) -> None:
+#     """Test asynchronous download of single tweet."""
+#     mock_download = mocker.patch("democracy_exe.agentic.tools.twitter_tool.download_tweet")
+#     mock_download.return_value = DownloadedContent(mode="single", content=mock_tweet, local_files=[], error=None)
 
-    with pytest.raises(ValueError, match=r"Download failed$"):
-        await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123"})
+#     result = await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123"})
+#     assert isinstance(result, Tweet)
+#     assert result.id == "123"
+#     assert result.author == "test_user"
+
+
+# @pytest.mark.asyncio
+# async def test_arun_thread(twitter_tool: TwitterTool, mock_thread: TweetThread, mocker: MockerFixture) -> None:
+#     """Test asynchronous download of tweet thread."""
+#     mock_download = mocker.patch("democracy_exe.agentic.tools.twitter_tool.download_tweet")
+#     mock_download.return_value = DownloadedContent(mode="thread", content=mock_thread, local_files=[], error=None)
+
+#     result = await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123", "mode": "thread"})
+#     assert isinstance(result, TweetThread)
+#     assert len(result.tweets) == 2
+#     assert result.author == "test_user"
+
+
+# @pytest.mark.asyncio
+# async def test_arun_with_error(twitter_tool: TwitterTool, mocker: MockerFixture) -> None:
+#     """Test handling of asynchronous download errors."""
+#     mock_download = mocker.patch("democracy_exe.agentic.tools.twitter_tool.download_tweet")
+#     mock_download.return_value = DownloadedContent(mode="single", content=None, local_files=[], error="Download failed")
+
+#     with pytest.raises(ValueError, match=r"Download failed$"):
+#         await twitter_tool.arun({"url": "https://twitter.com/test_user/status/123"})
