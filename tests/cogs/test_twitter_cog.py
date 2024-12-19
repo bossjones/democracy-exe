@@ -701,16 +701,17 @@ async def test_download_tweet_success_twitter_cog(
 
             # Create info.json file
             info_json = media_path / "info.json"
-            info_data = {
-                "tweet": {
-                    "id": "123456789",
-                    "url": TEST_TWEET_URL,
-                    "text": "Test tweet with media content",
-                    "created_at": "2024-01-01",
-                    "media": [{"url": "https://test.com/video.mp4"}, {"url": "https://test.com/image.jpg"}],
-                    "user": {"name": "test_user", "screen_name": "test_user"},
-                }
-            }
+            # info_data = {
+            #     "tweet": {
+            #         "id": "123456789",
+            #         "url": TEST_TWEET_URL,
+            #         "text": "Test tweet with media content",
+            #         "created_at": "2024-01-01",
+            #         "media": [{"url": "https://test.com/video.mp4"}, {"url": "https://test.com/image.jpg"}],
+            #         "user": {"name": "test_user", "screen_name": "test_user"},
+            #     }
+            # }
+            info_data = mock_tweet_metadata
             async with aiofiles.open(info_json, mode="w", encoding="utf-8") as f:
                 await f.write(json.dumps(info_data))  # type: ignore[arg-type]
 

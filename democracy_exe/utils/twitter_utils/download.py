@@ -14,6 +14,7 @@ import traceback
 
 from typing import Any, Dict, List, Optional
 
+import aiofiles
 import aiohttp
 import rich
 
@@ -140,7 +141,8 @@ async def download_tweet(
             # bpdb.set_trace()
 
             # Parse metadata from info.json
-            metadata = _parse_tweet_metadata(work_dir, url=url)
+            # metadata = _parse_tweet_metadata(work_dir, url=url)
+            metadata = await _a_parse_tweet_metadata(work_dir, url=url)
 
             logger.info(f"metadata: {metadata}")
 
@@ -268,6 +270,98 @@ def _parse_tweet_metadata(work_dir: str, url: str | None = None) -> TweetMetadat
         # logger.error(f"exc_value: {exc_value}")
         # traceback.print_tb(exc_traceback)
 
+        return {
+            "id": "",
+            "url": "",
+            "author": "",
+            "content": "",
+            "media_urls": [],
+            "created_at": "",
+        }
+
+
+
+async def _a_find_info_json(directory: pathlib.Path) -> pathlib.Path | None:
+    """Recursively search for info.json file asynchronously.
+
+    Args:
+        directory: Starting directory for search
+
+    Returns:
+        Path to info.json if found, None otherwise
+    """
+    logger.info(f"Searching for info.json in: {directory}")
+
+    # Check if directory exists
+    if not directory.exists():
+        logger.warning(f"Directory does not exist: {directory}")
+        return None
+
+    # Walk through directory tree
+    for root, dirs, files in os.walk(directory):
+        logger.debug(f"Checking directory: {root}")
+        logger.debug(f"Found files: {files}")
+
+        if 'info.json' in files:
+            _info_path = pathlib.Path(root) / 'info.json'
+            logger.info(f"Found info.json at: {_info_path}")
+            return _info_path
+
+    logger.warning(f"No info.json found in {directory} or its subdirectories")
+    return None
+
+async def _a_parse_tweet_metadata(work_dir: str, url: str | None = None) -> TweetMetadata:
+    """Recursively search for and parse tweet metadata from gallery-dl info.json file asynchronously.
+
+    Args:
+        work_dir: Directory to start searching for info.json file
+        url: Optional URL of the tweet
+
+    Returns:
+        Dictionary containing tweet metadata
+    """
+    info_path = await _a_find_info_json(pathlib.Path(work_dir))
+
+    logger.info(f"info_path: {info_path}")
+    logger.info(f"info_path.exists(): {info_path.exists() if info_path else False}")
+    logger.info(f"info_path is None: {info_path is None}")
+
+    if info_path is None:
+        logger.warning(f"No info.json found in {work_dir} or its subdirectories")
+        return {
+            "id": "",
+            "url": "",
+            "author": "",
+            "content": "",
+            "media_urls": [],
+            "created_at": "",
+        }
+
+    try:
+        logger.info("Attempting to load info.json")
+        async with aiofiles.open(str(info_path), encoding="utf-8") as f:
+            content = await f.read()
+            data = json.loads(content)
+
+        logger.debug(f"data: {data}")
+        data_model = TweetInfo(**data)
+        media_files = _get_media_urls(work_dir)
+
+        res = TweetMetadata(
+            id=str(data_model.tweet_id),
+            url=url,
+            author=data_model.author.name,  # pylint: disable=no-member
+            content=data_model.content,
+            media_urls=media_files,
+            created_at=data_model.date,
+        )
+
+        logger.debug(f"res: {res}")
+
+        return res
+
+    except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as ex:
+        logger.exception(f"Error parsing tweet metadata: {ex}")
         return {
             "id": "",
             "url": "",
