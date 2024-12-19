@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from langchain_core.tools import ToolException
 
 import pytest
@@ -12,9 +14,20 @@ from democracy_exe.agentic.tools.twitter_tool import TwitterTool
 from democracy_exe.utils.twitter_utils.models import DownloadedContent, Tweet, TweetThread
 
 
-pytestmark = pytest.mark.vcr(
-    filter_headers=["authorization"], match_on=["method", "scheme", "host", "port", "path", "query"]
-)
+if TYPE_CHECKING:
+    from _pytest.capture import CaptureFixture
+    from _pytest.fixtures import FixtureRequest
+    from _pytest.logging import LogCaptureFixture
+    from _pytest.monkeypatch import MonkeyPatch
+    from vcr.request import Request as VCRRequest
+
+    from pytest_mock.plugin import MockerFixture
+
+
+# # Apply VCR.py configuration to all tests in this module
+# pytestmark = pytest.mark.vcr(
+#     filter_headers=["authorization"], match_on=["method", "scheme", "host", "port", "path", "query"]
+# )
 
 
 @pytest.fixture
@@ -90,17 +103,36 @@ def test_validate_mode(twitter_tool: TwitterTool) -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_single_tweet(twitter_tool: TwitterTool, mock_tweet: Tweet, mocker: MockerFixture) -> None:
+# @pytest.mark.asyncio
+# @pytest.mark.vcr(
+#     filter_headers=["authorization", "Set-Cookie"],
+#     match_on=["uri", "method", "path", "body"]
+# )
+@pytest.mark.vcronly()
+@pytest.mark.default_cassette("test_run_single_tweet.yaml")
+@pytest.mark.vcr(
+    allow_playback_repeats=True,
+    match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
+    ignore_localhost=False,
+)
+async def test_run_single_tweet(
+    twitter_tool: TwitterTool,
+    mock_tweet: Tweet,
+    mocker: MockerFixture,
+    caplog: LogCaptureFixture,
+    capsys: CaptureFixture,
+    vcr: VCRRequest,
+) -> None:
     """Test synchronous download of single tweet."""
-    mock_download = mocker.patch(
-        "democracy_exe.agentic.tools.twitter_tool.download_tweet",
-        return_value=DownloadedContent(mode="single", content=mock_tweet, local_files=[], error=None),
-    )
+    # mock_download = mocker.patch(
+    #     "democracy_exe.agentic.tools.twitter_tool.download_tweet",
+    #     return_value=DownloadedContent(mode="single", content=mock_tweet, local_files=[], error=None),
+    # )
 
-    result = await twitter_tool.run({"url": "https://twitter.com/test_user/status/123"})
+    result = await twitter_tool.run({"url": "https://x.com/Eminitybaba_/status/1868256259251863704"})
     assert isinstance(result, Tweet)
-    assert result.id == "123"
-    assert result.author == "test_user"
+    assert result.id == "1868256259251863704"
+    assert result.author == "Eminitybaba_"
 
 
 @pytest.mark.asyncio

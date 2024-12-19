@@ -897,6 +897,13 @@ generate-ai-docs:
 	/Users/malcolm/dev/dpytest/tests/test_activity.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml
 
+	uv run files-to-prompt \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/configuration.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/api.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/advanced.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/debugging.html \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml
+
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog

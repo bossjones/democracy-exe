@@ -75,6 +75,8 @@ IS_RUNNING_ON_GITHUB_ACTIONS = bool(os.environ.get("GITHUB_ACTOR"))
 HERE = os.path.abspath(os.path.dirname(__file__))
 FAKE_TIME = datetime.datetime(2020, 12, 25, 17, 5, 55)
 
+IGNORE_HOSTS: list[str] = ["api.smith.langchain.com"]
+
 
 class IgnoreOrder:
     """
@@ -232,6 +234,37 @@ def is_chroma_uri(uri: str) -> bool:
         bool: True if the URI is a Chroma URI, False otherwise.
     """
     return any(x in uri for x in ["localhost", "127.0.0.1"])
+
+
+# def _filter_request_headers(request: Any) -> Any:
+#     if IGNORE_HOSTS and any(request.url.startswith(host) for host in IGNORE_HOSTS):
+#         return None
+#     request.headers = {}
+#     return request
+
+
+def before_record_cb(request: VCRRequest) -> VCRRequest | None:
+    """Filter VCR requests before recording.
+
+    Args:
+        request: The VCR request to filter
+
+    Returns:
+        The filtered request, or None if request should be ignored
+    """
+    # Skip recording any login requests
+    if request.path == "/login":
+        return None
+
+    # Skip recording requests to ignored hosts defined in IGNORE_HOSTS
+    if IGNORE_HOSTS and any(request.url.startswith(host) for host in IGNORE_HOSTS):
+        return None
+
+    # Clear request headers to avoid recording sensitive data
+    request.headers = {}
+
+    # Return the filtered request
+    return request
 
 
 def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:

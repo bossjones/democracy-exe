@@ -1,0 +1,1482 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/configuration.html</source>
+<document_content>
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Configuration &#8212; vcrpy 6.0.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=81158f5a"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Advanced Features" href="advanced.html" />
+    <link rel="prev" title="Usage" href="usage.html" />
+
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+
+
+
+
+
+  <script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="vcrpy" /><meta name="readthedocs-version-slug" content="latest" /><meta name="readthedocs-resolver-filename" content="/configuration.html" /><meta name="readthedocs-http-status" content="200" /></head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+          <div class="body" role="main">
+
+  <section id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h1>
+<p>If you don't like VCR's defaults, you can set options by instantiating a
+<code class="docutils literal notranslate"><span class="pre">VCR</span></code> class and setting the options on it.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vcr</span>
+
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">(</span>
+    <span class="n">serializer</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span>
+    <span class="n">cassette_library_dir</span><span class="o">=</span><span class="s1">&#39;fixtures/cassettes&#39;</span><span class="p">,</span>
+    <span class="n">record_mode</span><span class="o">=</span><span class="s1">&#39;once&#39;</span><span class="p">,</span>
+    <span class="n">match_on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;uri&#39;</span><span class="p">,</span> <span class="s1">&#39;method&#39;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.json&#39;</span><span class="p">):</span>
+    <span class="c1"># your http code here</span>
+</pre></div>
+</div>
+<p>Otherwise, you can override options each time you use a cassette.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">,</span> <span class="n">serializer</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">record_mode</span><span class="o">=</span><span class="s1">&#39;once&#39;</span><span class="p">):</span>
+    <span class="c1"># your http code here</span>
+</pre></div>
+</div>
+<p>Note: Per-cassette overrides take precedence over the global config.</p>
+<section id="request-matching">
+<h2>Request matching<a class="headerlink" href="#request-matching" title="Link to this heading">¶</a></h2>
+<p>Request matching is configurable and allows you to change which requests
+VCR considers identical. The default behavior is
+<code class="docutils literal notranslate"><span class="pre">['method',</span> <span class="pre">'scheme',</span> <span class="pre">'host',</span> <span class="pre">'port',</span> <span class="pre">'path',</span> <span class="pre">'query']</span></code> which means
+that requests with both the same URL and method (ie POST or GET) are
+considered identical.</p>
+<p>This can be configured by changing the <code class="docutils literal notranslate"><span class="pre">match_on</span></code> setting.</p>
+<p>The following options are available :</p>
+<ul>
+<li><p>method (for example, POST or GET)</p></li>
+<li><p>uri (the full URI)</p></li>
+<li><p>scheme (for example, HTTP or HTTPS)</p></li>
+<li><p>host (the hostname of the server receiving the request)</p></li>
+<li><p>port (the port of the server receiving the request)</p></li>
+<li><p>path (the path of the request)</p></li>
+<li><p>query (the query string of the request)</p></li>
+<li><p>raw_body (the entire request body as is)</p></li>
+<li><p>body (the entire request body unmarshalled by content-type
+i.e. xmlrpc, json, form-urlencoded, falling back on raw_body)</p></li>
+<li><p>headers (the headers of the request)</p>
+<p>Backwards compatible matchers:</p>
+</li>
+<li><p>url (the <code class="docutils literal notranslate"><span class="pre">uri</span></code> alias)</p></li>
+</ul>
+<p>If these options don't work for you, you can also register your own
+request matcher. This is described in the Advanced section of this
+README.</p>
+</section>
+</section>
+
+
+          </div>
+
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#request-matching">Request matching</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="usage.html" title="previous chapter">Usage</a></li>
+      <li>Next: <a href="advanced.html" title="next chapter">Advanced Features</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/configuration.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2015, Kevin McCarthy.
+
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+
+      |
+      <a href="_sources/configuration.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+
+
+  </body>
+</html>
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/api.html</source>
+<document_content>
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>API &#8212; vcrpy 6.0.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=81158f5a"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Debugging" href="debugging.html" />
+    <link rel="prev" title="Advanced Features" href="advanced.html" />
+
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+
+
+
+
+
+  <script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="vcrpy" /><meta name="readthedocs-version-slug" content="latest" /><meta name="readthedocs-resolver-filename" content="/api.html" /><meta name="readthedocs-http-status" content="200" /></head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+          <div class="body" role="main">
+
+  <section id="api">
+<h1>API<a class="headerlink" href="#api" title="Link to this heading">¶</a></h1>
+<section id="module-vcr.config">
+<span id="config"></span><h2><a class="reference internal" href="#module-vcr.config" title="vcr.config"><code class="xref py py-mod docutils literal notranslate"><span class="pre">config</span></code></a><a class="headerlink" href="#module-vcr.config" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.config.VCR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.config.</span></span><span class="sig-name descname"><span class="pre">VCR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_transformer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_request</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_patches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_query_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_hosts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">RecordMode.ONCE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_localhost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_post_data_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_on</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('method',</span> <span class="pre">'scheme',</span> <span class="pre">'host',</span> <span class="pre">'port',</span> <span class="pre">'path',</span> <span class="pre">'query')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inject_cassette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'yaml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cassette_library_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_path_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_compressed_response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_on_exception</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_transformer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_request</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_patches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_query_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_hosts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">RecordMode.ONCE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_localhost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_post_data_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_on</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('method',</span> <span class="pre">'scheme',</span> <span class="pre">'host',</span> <span class="pre">'port',</span> <span class="pre">'path',</span> <span class="pre">'query')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inject_cassette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'yaml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cassette_library_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_path_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_compressed_response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_on_exception</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.ensure_suffix">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ensure_suffix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.ensure_suffix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.ensure_suffix" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.get_merged_config">
+<span class="sig-name descname"><span class="pre">get_merged_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.get_merged_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.get_merged_config" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.is_test_method">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_test_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.is_test_method"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.is_test_method" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.register_matcher">
+<span class="sig-name descname"><span class="pre">register_matcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matcher</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.register_matcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.register_matcher" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.register_persister">
+<span class="sig-name descname"><span class="pre">register_persister</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">persister</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.register_persister"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.register_persister" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.register_serializer">
+<span class="sig-name descname"><span class="pre">register_serializer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.register_serializer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.register_serializer" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.test_case">
+<span class="sig-name descname"><span class="pre">test_case</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predicate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.test_case"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.test_case" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.config.VCR.use_cassette">
+<span class="sig-name descname"><span class="pre">use_cassette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/config.html#VCR.use_cassette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.config.VCR.use_cassette" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-vcr.cassette">
+<span id="cassette"></span><h2><a class="reference internal" href="#module-vcr.cassette" title="vcr.cassette"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cassette</span></code></a><a class="headerlink" href="#module-vcr.cassette" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.cassette.</span></span><span class="sig-name descname"><span class="pre">Cassette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">persister=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_mode=RecordMode.ONCE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_on=(&lt;function</span> <span class="pre">uri&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;function</span> <span class="pre">method&gt;)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_request=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_response=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_patches=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inject=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_playback_repeats=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette" title="Link to this definition">¶</a></dt>
+<dd><p>A container for recorded requests and responses</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">persister=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_mode=RecordMode.ONCE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_on=(&lt;function</span> <span class="pre">uri&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;function</span> <span class="pre">method&gt;)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_request=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_record_response=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_patches=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inject=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_playback_repeats=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.all_played">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_played</span></span><a class="headerlink" href="#vcr.cassette.Cassette.all_played" title="Link to this definition">¶</a></dt>
+<dd><p>Returns True if all responses have been played, False otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.append" title="Link to this definition">¶</a></dt>
+<dd><p>Add a request, response pair to this cassette</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.can_play_response_for">
+<span class="sig-name descname"><span class="pre">can_play_response_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.can_play_response_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.can_play_response_for" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.filter_request">
+<span class="sig-name descname"><span class="pre">filter_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.filter_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.filter_request" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.find_requests_with_most_matches">
+<span class="sig-name descname"><span class="pre">find_requests_with_most_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.find_requests_with_most_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.find_requests_with_most_matches" title="Link to this definition">¶</a></dt>
+<dd><p>Get the most similar request(s) stored in the cassette
+of a given request as a list of tuples like this:
+- the request object
+- the successful matchers as string
+- the failed matchers and the related assertion message with the difference details as strings tuple</p>
+<p>This is useful when a request failed to be found,
+we can get the similar request(s) in order to know what have changed in the request parts.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.load" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate and load the cassette stored at the specified path.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.play_count">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">play_count</span></span><a class="headerlink" href="#vcr.cassette.Cassette.play_count" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.play_response">
+<span class="sig-name descname"><span class="pre">play_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.play_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.play_response" title="Link to this definition">¶</a></dt>
+<dd><p>Get the response corresponding to a request, but only if it
+hasn't been played back before, and mark it as played</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.requests">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">requests</span></span><a class="headerlink" href="#vcr.cassette.Cassette.requests" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.responses">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">responses</span></span><a class="headerlink" href="#vcr.cassette.Cassette.responses" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.responses_of">
+<span class="sig-name descname"><span class="pre">responses_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.responses_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.responses_of" title="Link to this definition">¶</a></dt>
+<dd><p>Find the responses corresponding to a request.
+This function isn't actually used by VCR internally, but is
+provided as an external API.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.rewind">
+<span class="sig-name descname"><span class="pre">rewind</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.rewind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.rewind" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.use">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.use"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.use" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.use_arg_getter">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use_arg_getter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg_getter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#Cassette.use_arg_getter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.Cassette.use_arg_getter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.cassette.Cassette.write_protected">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">write_protected</span></span><a class="headerlink" href="#vcr.cassette.Cassette.write_protected" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.cassette.CassetteContextDecorator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.cassette.</span></span><span class="sig-name descname"><span class="pre">CassetteContextDecorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args_getter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#CassetteContextDecorator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.CassetteContextDecorator" title="Link to this definition">¶</a></dt>
+<dd><p>Context manager/decorator that handles installing the cassette and
+removing cassettes.</p>
+<p>This class defers the creation of a new cassette instance until
+the point at which it is installed by context manager or
+decorator. The fact that a new cassette is used with each
+application prevents the state of any cassette from interfering
+with another.</p>
+<p>Instances of this class are NOT reentrant as context managers.
+However, functions that are decorated by
+<code class="docutils literal notranslate"><span class="pre">CassetteContextDecorator</span></code> instances ARE reentrant. See the
+implementation of <code class="docutils literal notranslate"><span class="pre">__call__</span></code> on this class for more details.
+There is also a guard against attempts to reenter instances of
+this class as a context manager in <code class="docutils literal notranslate"><span class="pre">__exit__</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.CassetteContextDecorator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args_getter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#CassetteContextDecorator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.CassetteContextDecorator.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.CassetteContextDecorator.from_args">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cassette_class</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#CassetteContextDecorator.from_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.CassetteContextDecorator.from_args" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.cassette.CassetteContextDecorator.get_function_name">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_function_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/cassette.html#CassetteContextDecorator.get_function_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.cassette.CassetteContextDecorator.get_function_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-vcr.matchers">
+<span id="matchers"></span><h2><a class="reference internal" href="#module-vcr.matchers" title="vcr.matchers"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matchers</span></code></a><a class="headerlink" href="#module-vcr.matchers" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.body">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#body"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.body" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.get_assertion_message">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">get_assertion_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">assertion_details</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#get_assertion_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.get_assertion_message" title="Link to this definition">¶</a></dt>
+<dd><p>Get a detailed message about the failing matcher.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.get_matchers_results">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">get_matchers_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matchers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#get_matchers_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.get_matchers_results" title="Link to this definition">¶</a></dt>
+<dd><p>Get the comparison results of two requests as two list.
+The first returned list represents the matchers names that passed.
+The second list is the failed matchers as a string with failed assertion details if any.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.headers">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">headers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#headers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.headers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.host">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">host</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#host"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.host" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.method">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#method"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.method" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.path">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.path" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.port">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">port</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#port"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.port" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.query">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#query"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.query" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.raw_body">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">raw_body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#raw_body"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.raw_body" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.requests_match">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">requests_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matchers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#requests_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.requests_match" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.scheme">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">scheme</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#scheme"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.scheme" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.matchers.uri">
+<span class="sig-prename descclassname"><span class="pre">vcr.matchers.</span></span><span class="sig-name descname"><span class="pre">uri</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/matchers.html#uri"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.matchers.uri" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-vcr.filters">
+<span id="filters"></span><h2><a class="reference internal" href="#module-vcr.filters" title="vcr.filters"><code class="xref py py-mod docutils literal notranslate"><span class="pre">filters</span></code></a><a class="headerlink" href="#module-vcr.filters" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.decode_response">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">decode_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#decode_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.decode_response" title="Link to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>If the response is compressed with gzip or deflate:</dt><dd><ol class="arabic simple">
+<li><p>decompress the response body</p></li>
+<li><p>delete the content-encoding header</p></li>
+<li><p>update content-length header to decompressed length</p></li>
+</ol>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.remove_headers">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">remove_headers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers_to_remove</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#remove_headers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.remove_headers" title="Link to this definition">¶</a></dt>
+<dd><p>Wrap replace_headers() for API backward compatibility.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.remove_post_data_parameters">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">remove_post_data_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_data_parameters_to_remove</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#remove_post_data_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.remove_post_data_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Wrap replace_post_data_parameters() for API backward compatibility.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.remove_query_parameters">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">remove_query_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_parameters_to_remove</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#remove_query_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.remove_query_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Wrap replace_query_parameters() for API backward compatibility.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.replace_headers">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">replace_headers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacements</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#replace_headers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.replace_headers" title="Link to this definition">¶</a></dt>
+<dd><p>Replace headers in request according to replacements.
+The replacements should be a list of (key, value) pairs where the value can be any of:
+1. A simple replacement string value.
+2. None to remove the given header.
+3. A callable which accepts (key, value, request) and returns a string value or None.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.replace_post_data_parameters">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">replace_post_data_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacements</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#replace_post_data_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.replace_post_data_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Replace post data in request–either form data or json–according to replacements.</p>
+<dl class="simple">
+<dt>The replacements should be a list of (key, value) pairs where the value can be any of:</dt><dd><ol class="arabic simple">
+<li><p>A simple replacement string value.</p></li>
+<li><p>None to remove the given header.</p></li>
+<li><p>A callable which accepts (key, value, request) and returns a string
+value or None.</p></li>
+</ol>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.filters.replace_query_parameters">
+<span class="sig-prename descclassname"><span class="pre">vcr.filters.</span></span><span class="sig-name descname"><span class="pre">replace_query_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacements</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/filters.html#replace_query_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.filters.replace_query_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Replace query parameters in request according to replacements.</p>
+<dl class="simple">
+<dt>The replacements should be a list of (key, value) pairs where the value can be any of:</dt><dd><ol class="arabic simple">
+<li><p>A simple replacement string value.</p></li>
+<li><p>None to remove the given header.</p></li>
+<li><p>A callable which accepts (key, value, request) and returns a string
+value or None.</p></li>
+</ol>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vcr.request">
+<span id="request"></span><h2><a class="reference internal" href="#module-vcr.request" title="vcr.request"><code class="xref py py-mod docutils literal notranslate"><span class="pre">request</span></code></a><a class="headerlink" href="#module-vcr.request" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.request.HeadersDict">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.request.</span></span><span class="sig-name descname"><span class="pre">HeadersDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/request.html#HeadersDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.request.HeadersDict" title="Link to this definition">¶</a></dt>
+<dd><p>There is a weird quirk in HTTP.  You can send the same header twice.  For
+this reason, headers are represented by a dict, with lists as the values.
+However, it appears that HTTPlib is completely incapable of sending the
+same header twice.  This puts me in a weird position: I want to be able to
+accurately represent HTTP headers in cassettes, but I don't want the extra
+step of always having to do [0] in the general case, i.e.
+request.headers['key'][0]</p>
+<p>In addition, some servers sometimes send the same header more than once,
+and httplib <em>can</em> deal with this situation.</p>
+<p>Furthermore, I wanted to keep the request and response cassette format as
+similar as possible.</p>
+<p>For this reason, in cassettes I keep a dict with lists as keys, but once
+deserialized into VCR, I keep them as plain, naked dicts.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.request.Request">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.request.</span></span><span class="sig-name descname"><span class="pre">Request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/request.html#Request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.request.Request" title="Link to this definition">¶</a></dt>
+<dd><p>VCR's representation of a request.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.request.Request.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/request.html#Request.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.request.Request.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.request.Request.add_header">
+<span class="sig-name descname"><span class="pre">add_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/request.html#Request.add_header"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.request.Request.add_header" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.body">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">body</span></span><a class="headerlink" href="#vcr.request.Request.body" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.headers">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">headers</span></span><a class="headerlink" href="#vcr.request.Request.headers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.host">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">host</span></span><a class="headerlink" href="#vcr.request.Request.host" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.path">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">path</span></span><a class="headerlink" href="#vcr.request.Request.path" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.port">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">port</span></span><a class="headerlink" href="#vcr.request.Request.port" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.protocol">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">protocol</span></span><a class="headerlink" href="#vcr.request.Request.protocol" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.query">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">query</span></span><a class="headerlink" href="#vcr.request.Request.query" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.scheme">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#vcr.request.Request.scheme" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="vcr.request.Request.url">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">url</span></span><a class="headerlink" href="#vcr.request.Request.url" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-vcr.serialize">
+<span id="serialize"></span><h2><a class="reference internal" href="#module-vcr.serialize" title="vcr.serialize"><code class="xref py py-mod docutils literal notranslate"><span class="pre">serialize</span></code></a><a class="headerlink" href="#module-vcr.serialize" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="vcr.serialize.CASSETTE_FORMAT_VERSION">
+<span class="sig-prename descclassname"><span class="pre">vcr.serialize.</span></span><span class="sig-name descname"><span class="pre">CASSETTE_FORMAT_VERSION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#vcr.serialize.CASSETTE_FORMAT_VERSION" title="Link to this definition">¶</a></dt>
+<dd><p>Just a general note on the serialization philosophy here:
+I prefer cassettes to be human-readable if possible.  Yaml serializes
+bytestrings to !!binary, which isn't readable, so I would like to serialize to
+strings and from strings, which yaml will encode as utf-8 automatically.
+All the internal HTTP stuff expects bytestrings, so this whole serialization
+process feels backwards.</p>
+<p>Serializing: bytestring -&gt; string (yaml persists to utf-8)
+Deserializing: string (yaml converts from utf-8) -&gt; bytestring</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.serialize.deserialize">
+<span class="sig-prename descclassname"><span class="pre">vcr.serialize.</span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cassette_string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/serialize.html#deserialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.serialize.deserialize" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.serialize.serialize">
+<span class="sig-prename descclassname"><span class="pre">vcr.serialize.</span></span><span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cassette_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serializer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/serialize.html#serialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.serialize.serialize" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-vcr.patch">
+<span id="patch"></span><h2><a class="reference internal" href="#module-vcr.patch" title="vcr.patch"><code class="xref py py-mod docutils literal notranslate"><span class="pre">patch</span></code></a><a class="headerlink" href="#module-vcr.patch" title="Link to this heading">¶</a></h2>
+<p>Utilities for patching in cassettes</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.patch.CassettePatcherBuilder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.patch.</span></span><span class="sig-name descname"><span class="pre">CassettePatcherBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cassette</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#CassettePatcherBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.CassettePatcherBuilder" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="vcr.patch.CassettePatcherBuilder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cassette</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#CassettePatcherBuilder.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.CassettePatcherBuilder.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.patch.CassettePatcherBuilder.build">
+<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#CassettePatcherBuilder.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.CassettePatcherBuilder.build" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="vcr.patch.ConnectionRemover">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vcr.patch.</span></span><span class="sig-name descname"><span class="pre">ConnectionRemover</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_class</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#ConnectionRemover"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.ConnectionRemover" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="vcr.patch.ConnectionRemover.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_class</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#ConnectionRemover.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.ConnectionRemover.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="vcr.patch.ConnectionRemover.add_connection_to_pool_entry">
+<span class="sig-name descname"><span class="pre">add_connection_to_pool_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#ConnectionRemover.add_connection_to_pool_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.ConnectionRemover.add_connection_to_pool_entry" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.patch.force_reset">
+<span class="sig-prename descclassname"><span class="pre">vcr.patch.</span></span><span class="sig-name descname"><span class="pre">force_reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#force_reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.force_reset" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vcr.patch.reset_patchers">
+<span class="sig-prename descclassname"><span class="pre">vcr.patch.</span></span><span class="sig-name descname"><span class="pre">reset_patchers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/vcr/patch.html#reset_patchers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vcr.patch.reset_patchers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Features</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.config"><code class="xref py py-mod docutils literal notranslate"><span class="pre">config</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.config.VCR"><code class="docutils literal notranslate"><span class="pre">VCR</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.cassette"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cassette</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.cassette.Cassette"><code class="docutils literal notranslate"><span class="pre">Cassette</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.cassette.CassetteContextDecorator"><code class="docutils literal notranslate"><span class="pre">CassetteContextDecorator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.matchers"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matchers</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.body"><code class="docutils literal notranslate"><span class="pre">body()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.get_assertion_message"><code class="docutils literal notranslate"><span class="pre">get_assertion_message()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.get_matchers_results"><code class="docutils literal notranslate"><span class="pre">get_matchers_results()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.headers"><code class="docutils literal notranslate"><span class="pre">headers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.host"><code class="docutils literal notranslate"><span class="pre">host()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.method"><code class="docutils literal notranslate"><span class="pre">method()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.path"><code class="docutils literal notranslate"><span class="pre">path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.port"><code class="docutils literal notranslate"><span class="pre">port()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.query"><code class="docutils literal notranslate"><span class="pre">query()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.raw_body"><code class="docutils literal notranslate"><span class="pre">raw_body()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.requests_match"><code class="docutils literal notranslate"><span class="pre">requests_match()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.scheme"><code class="docutils literal notranslate"><span class="pre">scheme()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.matchers.uri"><code class="docutils literal notranslate"><span class="pre">uri()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.filters"><code class="xref py py-mod docutils literal notranslate"><span class="pre">filters</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.decode_response"><code class="docutils literal notranslate"><span class="pre">decode_response()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.remove_headers"><code class="docutils literal notranslate"><span class="pre">remove_headers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.remove_post_data_parameters"><code class="docutils literal notranslate"><span class="pre">remove_post_data_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.remove_query_parameters"><code class="docutils literal notranslate"><span class="pre">remove_query_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.replace_headers"><code class="docutils literal notranslate"><span class="pre">replace_headers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.replace_post_data_parameters"><code class="docutils literal notranslate"><span class="pre">replace_post_data_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.filters.replace_query_parameters"><code class="docutils literal notranslate"><span class="pre">replace_query_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.request"><code class="xref py py-mod docutils literal notranslate"><span class="pre">request</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.request.HeadersDict"><code class="docutils literal notranslate"><span class="pre">HeadersDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.request.Request"><code class="docutils literal notranslate"><span class="pre">Request</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.serialize"><code class="xref py py-mod docutils literal notranslate"><span class="pre">serialize</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.serialize.CASSETTE_FORMAT_VERSION"><code class="docutils literal notranslate"><span class="pre">CASSETTE_FORMAT_VERSION</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.serialize.deserialize"><code class="docutils literal notranslate"><span class="pre">deserialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.serialize.serialize"><code class="docutils literal notranslate"><span class="pre">serialize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-vcr.patch"><code class="xref py py-mod docutils literal notranslate"><span class="pre">patch</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.patch.CassettePatcherBuilder"><code class="docutils literal notranslate"><span class="pre">CassettePatcherBuilder</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.patch.ConnectionRemover"><code class="docutils literal notranslate"><span class="pre">ConnectionRemover</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.patch.force_reset"><code class="docutils literal notranslate"><span class="pre">force_reset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vcr.patch.reset_patchers"><code class="docutils literal notranslate"><span class="pre">reset_patchers()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="advanced.html" title="previous chapter">Advanced Features</a></li>
+      <li>Next: <a href="debugging.html" title="next chapter">Debugging</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/api.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2015, Kevin McCarthy.
+
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+
+      |
+      <a href="_sources/api.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+
+
+  </body>
+</html>
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/advanced.html</source>
+<document_content>
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Advanced Features &#8212; vcrpy 6.0.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=81158f5a"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API" href="api.html" />
+    <link rel="prev" title="Configuration" href="configuration.html" />
+
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+
+
+
+
+
+  <script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="vcrpy" /><meta name="readthedocs-version-slug" content="latest" /><meta name="readthedocs-resolver-filename" content="/advanced.html" /><meta name="readthedocs-http-status" content="200" /></head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+          <div class="body" role="main">
+
+  <section id="advanced-features">
+<h1>Advanced Features<a class="headerlink" href="#advanced-features" title="Link to this heading">¶</a></h1>
+<p>If you want, VCR.py can return information about the cassette it is
+using to record your requests and responses. This will let you record
+your requests and responses and make assertions on them, to make sure
+that your code under test is generating the expected requests and
+responses. This feature is not present in Ruby's VCR, but I think it is
+a nice addition. Here's an example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vcr</span>
+<span class="kn">import</span> <span class="nn">urllib2</span>
+
+<span class="k">with</span> <span class="n">vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;fixtures/vcr_cassettes/synopsis.yaml&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cass</span><span class="p">:</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="s1">&#39;http://www.zombo.com/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="c1"># cass should have 1 request inside it</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cass</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="c1"># the request uri should have been http://www.zombo.com/</span>
+    <span class="k">assert</span> <span class="n">cass</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">uri</span> <span class="o">==</span> <span class="s1">&#39;http://www.zombo.com/&#39;</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">Cassette</span></code> object exposes the following properties which I
+consider part of the API. The fields are as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">requests</span></code>: A list of vcr.Request objects corresponding to the http
+requests that were made during the recording of the cassette. The
+requests appear in the order that they were originally processed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">responses</span></code>: A list of the responses made.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">play_count</span></code>: The number of times this cassette has played back a
+response.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_played</span></code>: A boolean indicating whether all the responses have
+been played back.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">responses_of(request)</span></code>: Access the responses that match a given
+request</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allow_playback_repeats</span></code>: A boolean indicating whether responses
+can be played back more than once.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">Request</span></code> object has the following properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code>: The full uri of the request. Example:
+"<a class="reference external" href="https://google.com/?q=vcrpy">https://google.com/?q=vcrpy</a>"</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scheme</span></code>: The scheme used to make the request (http or https)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code>: The host of the request, for example "www.google.com"</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code>: The port the request was made on</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code>: The path of the request. For example "/" or "/home.html"</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">query</span></code>: The parsed query string of the request. Sorted list of
+name, value pairs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">method</span></code> : The method used to make the request, for example "GET"
+or "POST"</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">body</span></code>: The body of the request, usually empty except for POST /
+PUT / etc</p></li>
+</ul>
+<p>Backwards compatible properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code>: The <code class="docutils literal notranslate"><span class="pre">uri</span></code> alias</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">protocol</span></code>: The <code class="docutils literal notranslate"><span class="pre">scheme</span></code> alias</p></li>
+</ul>
+<section id="register-your-own-serializer">
+<h2>Register your own serializer<a class="headerlink" href="#register-your-own-serializer" title="Link to this heading">¶</a></h2>
+<p>Don't like JSON or YAML? That's OK, VCR.py can serialize to any format
+you would like. Create your own module or class instance with 2 methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">deserialize(cassette_string)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">serialize(cassette_dict)</span></code></p></li>
+</ul>
+<p>Finally, register your class with VCR to use your new serializer.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vcr</span>
+
+<span class="k">class</span> <span class="nc">BogoSerializer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Must implement serialize() and deserialize() methods</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">()</span>
+<span class="n">my_vcr</span><span class="o">.</span><span class="n">register_serializer</span><span class="p">(</span><span class="s1">&#39;bogo&#39;</span><span class="p">,</span> <span class="n">BogoSerializer</span><span class="p">())</span>
+
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.bogo&#39;</span><span class="p">,</span> <span class="n">serializer</span><span class="o">=</span><span class="s1">&#39;bogo&#39;</span><span class="p">):</span>
+    <span class="c1"># your http here</span>
+
+<span class="c1"># After you register, you can set the default serializer to your new serializer</span>
+
+<span class="n">my_vcr</span><span class="o">.</span><span class="n">serializer</span> <span class="o">=</span> <span class="s1">&#39;bogo&#39;</span>
+
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.bogo&#39;</span><span class="p">):</span>
+    <span class="c1"># your http here</span>
+</pre></div>
+</div>
+</section>
+<section id="register-your-own-request-matcher">
+<h2>Register your own request matcher<a class="headerlink" href="#register-your-own-request-matcher" title="Link to this heading">¶</a></h2>
+<p>Create your own method with the following signature</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">my_matcher</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">):</span>
+</pre></div>
+</div>
+<p>Your method receives the two requests and can either:</p>
+<ul class="simple">
+<li><p>Use an <code class="docutils literal notranslate"><span class="pre">assert</span></code> statement: return None if they match and raise <code class="docutils literal notranslate"><span class="pre">AssertionError</span></code> if not.</p></li>
+<li><p>Return a boolean: <code class="docutils literal notranslate"><span class="pre">True</span></code> if they match, <code class="docutils literal notranslate"><span class="pre">False</span></code> if not.</p></li>
+</ul>
+<p>Note: in order to have good feedback when a matcher fails, we recommend using an <code class="docutils literal notranslate"><span class="pre">assert</span></code> statement with a clear error message.</p>
+<p>Finally, register your method with VCR to use your new request matcher.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vcr</span>
+
+<span class="k">def</span> <span class="nf">jurassic_matcher</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">r1</span><span class="o">.</span><span class="n">uri</span> <span class="o">==</span> <span class="n">r2</span><span class="o">.</span><span class="n">uri</span> <span class="ow">and</span> <span class="s1">&#39;JURASSIC PARK&#39;</span> <span class="ow">in</span> <span class="n">r1</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> \
+        <span class="s1">&#39;required string (JURASSIC PARK) not found in request body&#39;</span>
+
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">()</span>
+<span class="n">my_vcr</span><span class="o">.</span><span class="n">register_matcher</span><span class="p">(</span><span class="s1">&#39;jurassic&#39;</span><span class="p">,</span> <span class="n">jurassic_matcher</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">,</span> <span class="n">match_on</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;jurassic&#39;</span><span class="p">]):</span>
+    <span class="c1"># your http here</span>
+
+<span class="c1"># After you register, you can set the default match_on to use your new matcher</span>
+
+<span class="n">my_vcr</span><span class="o">.</span><span class="n">match_on</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;jurassic&#39;</span><span class="p">]</span>
+
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">):</span>
+    <span class="c1"># your http here</span>
+</pre></div>
+</div>
+</section>
+<section id="register-your-own-cassette-persister">
+<h2>Register your own cassette persister<a class="headerlink" href="#register-your-own-cassette-persister" title="Link to this heading">¶</a></h2>
+<p>Create your own persistence class, see the example below:</p>
+<p>Your custom persister must implement both <code class="docutils literal notranslate"><span class="pre">load_cassette</span></code> and <code class="docutils literal notranslate"><span class="pre">save_cassette</span></code>
+methods.  The <code class="docutils literal notranslate"><span class="pre">load_cassette</span></code> method must return a deserialized cassette or raise
+either <code class="docutils literal notranslate"><span class="pre">CassetteNotFoundError</span></code> if no cassette is found, or <code class="docutils literal notranslate"><span class="pre">CassetteDecodeError</span></code>
+if the cassette cannot be successfully deserialized.</p>
+<p>Once the persister class is defined, register with VCR like so…</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vcr</span>
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">()</span>
+
+<span class="k">class</span> <span class="nc">CustomerPersister</span><span class="p">:</span>
+    <span class="c1"># implement Persister methods...</span>
+
+<span class="n">my_vcr</span><span class="o">.</span><span class="n">register_persister</span><span class="p">(</span><span class="n">CustomPersister</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="filter-sensitive-data-from-the-request">
+<h2>Filter sensitive data from the request<a class="headerlink" href="#filter-sensitive-data-from-the-request" title="Link to this heading">¶</a></h2>
+<p>If you are checking your cassettes into source control, and are using
+some form of authentication in your tests, you can filter out that
+information so it won't appear in your cassette files. There are a few
+ways to do this:</p>
+<section id="filter-information-from-http-headers">
+<h3>Filter information from HTTP Headers<a class="headerlink" href="#filter-information-from-http-headers" title="Link to this heading">¶</a></h3>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">filter_headers</span></code> configuration option with a list of headers
+to filter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">,</span> <span class="n">filter_headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;authorization&#39;</span><span class="p">]):</span>
+    <span class="c1"># sensitive HTTP request goes here</span>
+</pre></div>
+</div>
+</section>
+<section id="filter-information-from-http-querystring">
+<h3>Filter information from HTTP querystring<a class="headerlink" href="#filter-information-from-http-querystring" title="Link to this heading">¶</a></h3>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">filter_query_parameters</span></code> configuration option with a list of
+query parameters to filter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">,</span> <span class="n">filter_query_parameters</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;api_key&#39;</span><span class="p">]):</span>
+    <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://api.com/getdata?api_key=secretstring&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="filter-information-from-http-post-data">
+<h3>Filter information from HTTP post data<a class="headerlink" href="#filter-information-from-http-post-data" title="Link to this heading">¶</a></h3>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">filter_post_data_parameters</span></code> configuration option with a list
+of post data parameters to filter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">,</span> <span class="n">filter_post_data_parameters</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;api_key&#39;</span><span class="p">]):</span>
+    <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.com/postdata&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;api_key&#39;</span><span class="p">:</span> <span class="s1">&#39;secretstring&#39;</span><span class="p">})</span>
+</pre></div>
+</div>
+</section>
+<section id="advanced-use-of-filter-headers-filter-query-parameters-and-filter-post-data-parameters">
+<h3>Advanced use of filter_headers, filter_query_parameters and filter_post_data_parameters<a class="headerlink" href="#advanced-use-of-filter-headers-filter-query-parameters-and-filter-post-data-parameters" title="Link to this heading">¶</a></h3>
+<p>In all of the above cases, it's also possible to pass a list of <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">value)</span></code>
+tuples where the value can be any of the following:</p>
+<ul class="simple">
+<li><p>A new value to replace the original value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> to remove the key/value pair. (Same as passing a simple key string.)</p></li>
+<li><p>A callable that returns a new value or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>So these two calls are the same:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># original (still works)</span>
+<span class="n">vcr</span> <span class="o">=</span> <span class="n">VCR</span><span class="p">(</span><span class="n">filter_headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;authorization&#39;</span><span class="p">])</span>
+
+<span class="c1"># new</span>
+<span class="n">vcr</span> <span class="o">=</span> <span class="n">VCR</span><span class="p">(</span><span class="n">filter_headers</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;authorization&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Here are two examples of the new functionality:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># replace with a static value (most common)</span>
+<span class="n">vcr</span> <span class="o">=</span> <span class="n">VCR</span><span class="p">(</span><span class="n">filter_headers</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;authorization&#39;</span><span class="p">,</span> <span class="s1">&#39;XXXXXX&#39;</span><span class="p">)])</span>
+
+<span class="c1"># replace with a callable, for example when testing</span>
+<span class="c1"># lots of different kinds of authorization.</span>
+<span class="k">def</span> <span class="nf">replace_auth</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">auth_type</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">auth_type</span><span class="p">,</span> <span class="s1">&#39;XXXXXX&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="custom-request-filtering">
+<h3>Custom Request filtering<a class="headerlink" href="#custom-request-filtering" title="Link to this heading">¶</a></h3>
+<p>If none of these covers your request filtering needs, you can register a
+callback with the <code class="docutils literal notranslate"><span class="pre">before_record_request</span></code> configuration option to
+manipulate the HTTP request before adding it to the cassette, or return
+<code class="docutils literal notranslate"><span class="pre">None</span></code> to ignore it entirely. Here is an example that will never record
+requests to the <code class="docutils literal notranslate"><span class="pre">'/login'</span></code> path:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">before_record_cb</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="s1">&#39;/login&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">request</span>
+
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">(</span>
+    <span class="n">before_record_request</span><span class="o">=</span><span class="n">before_record_cb</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">):</span>
+    <span class="c1"># your http code here</span>
+</pre></div>
+</div>
+<p>You can also mutate the request using this callback. For example, you
+could remove all query parameters from any requests to the <code class="docutils literal notranslate"><span class="pre">'/login'</span></code>
+path.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">scrub_login_request</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="s1">&#39;/login&#39;</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">uri</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span>  <span class="n">urllib</span><span class="o">.</span><span class="n">splitquery</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">request</span>
+
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">(</span>
+    <span class="n">before_record_request</span><span class="o">=</span><span class="n">scrub_login_request</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">):</span>
+    <span class="c1"># your http code here</span>
+</pre></div>
+</div>
+</section>
+<section id="custom-response-filtering">
+<h3>Custom Response Filtering<a class="headerlink" href="#custom-response-filtering" title="Link to this heading">¶</a></h3>
+<p>You can also do response filtering with the
+<code class="docutils literal notranslate"><span class="pre">before_record_response</span></code> configuration option. Its usage is
+similar to the above <code class="docutils literal notranslate"><span class="pre">before_record_request</span></code> - you can
+mutate the response, or return <code class="docutils literal notranslate"><span class="pre">None</span></code> to avoid recording
+the request and response altogether. For example to hide
+sensitive data from the response body:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">scrub_string</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">before_record_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">response</span><span class="p">[</span><span class="s1">&#39;body&#39;</span><span class="p">][</span><span class="s1">&#39;string&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;body&#39;</span><span class="p">][</span><span class="s1">&#39;string&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">replacement</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span>
+    <span class="k">return</span> <span class="n">before_record_response</span>
+
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">vcr</span><span class="o">.</span><span class="n">VCR</span><span class="p">(</span>
+    <span class="n">before_record_response</span><span class="o">=</span><span class="n">scrub_string</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">USERNAME</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;test.yml&#39;</span><span class="p">):</span>
+     <span class="c1"># your http code here</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="decode-compressed-response">
+<h2>Decode compressed response<a class="headerlink" href="#decode-compressed-response" title="Link to this heading">¶</a></h2>
+<p>When the <code class="docutils literal notranslate"><span class="pre">decode_compressed_response</span></code> keyword argument of a <code class="docutils literal notranslate"><span class="pre">VCR</span></code> object
+is set to True, VCR will decompress "gzip" and "deflate" response bodies
+before recording. This ensures that these interactions become readable and
+editable after being serialized.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Decompression is done before any other specified <a class="reference internal" href="#custom-response-filtering">Custom Response Filtering</a>.</p>
+</div>
+<p>This option should be avoided if the actual decompression of response bodies
+is part of the functionality of the library or app being tested.</p>
+</section>
+<section id="ignore-requests">
+<h2>Ignore requests<a class="headerlink" href="#ignore-requests" title="Link to this heading">¶</a></h2>
+<p>If you would like to completely ignore certain requests, you can do it
+in a few ways:</p>
+<ul class="simple">
+<li><p>Set the <code class="docutils literal notranslate"><span class="pre">ignore_localhost</span></code> option equal to True. This will not
+record any requests sent to (or responses from) localhost, 127.0.0.1,
+or 0.0.0.0.</p></li>
+<li><p>Set the <code class="docutils literal notranslate"><span class="pre">ignore_hosts</span></code> configuration option to a list of hosts to
+ignore</p></li>
+<li><p>Add a <code class="docutils literal notranslate"><span class="pre">before_record_request</span></code> or <code class="docutils literal notranslate"><span class="pre">before_record_response</span></code> callback
+that returns <code class="docutils literal notranslate"><span class="pre">None</span></code> for requests you want to ignore (see above).</p></li>
+</ul>
+<p>Requests that are ignored by VCR will not be saved in a cassette, nor
+played back from a cassette. VCR will completely ignore those requests
+as if it didn't notice them at all, and they will continue to hit the
+server as if VCR were not there.</p>
+</section>
+<section id="custom-patches">
+<h2>Custom Patches<a class="headerlink" href="#custom-patches" title="Link to this heading">¶</a></h2>
+<p>If you use a custom <code class="docutils literal notranslate"><span class="pre">HTTPConnection</span></code> class, or otherwise make http
+requests in a way that requires additional patching, you can use the
+<code class="docutils literal notranslate"><span class="pre">custom_patches</span></code> keyword argument of the <code class="docutils literal notranslate"><span class="pre">VCR</span></code> and <code class="docutils literal notranslate"><span class="pre">Cassette</span></code>
+objects to patch those objects whenever a cassette's context is entered.
+To patch a custom version of <code class="docutils literal notranslate"><span class="pre">HTTPConnection</span></code> you can do something
+like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">where_the_custom_https_connection_lives</span>
+<span class="kn">from</span> <span class="nn">vcr.stubs</span> <span class="kn">import</span> <span class="n">VCRHTTPSConnection</span>
+<span class="n">my_vcr</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">VCR</span><span class="p">(</span><span class="n">custom_patches</span><span class="o">=</span><span class="p">((</span><span class="n">where_the_custom_https_connection_lives</span><span class="p">,</span> <span class="s1">&#39;CustomHTTPSConnection&#39;</span><span class="p">,</span> <span class="n">VCRHTTPSConnection</span><span class="p">),))</span>
+
+<span class="nd">@my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="automatic-cassette-naming">
+<h2>Automatic Cassette Naming<a class="headerlink" href="#automatic-cassette-naming" title="Link to this heading">¶</a></h2>
+<p>VCR.py now allows the omission of the path argument to the use_cassette
+function. Both of the following are now legal/should work</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@my_vcr</span><span class="o">.</span><span class="n">use_cassette</span>
+<span class="k">def</span> <span class="nf">my_test_function</span><span class="p">():</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_test_function</span><span class="p">():</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>In both cases, VCR.py will use a path that is generated from the
+provided test function's name. If no <code class="docutils literal notranslate"><span class="pre">cassette_library_dir</span></code> has been
+set, the cassette will be in a file with the name of the test function
+in directory of the file in which the test function is declared. If a
+<code class="docutils literal notranslate"><span class="pre">cassette_library_dir</span></code> has been set, the cassette will appear in that
+directory in a file with the name of the decorated function.</p>
+<p>It is possible to control the path produced by the automatic naming
+machinery by customizing the <code class="docutils literal notranslate"><span class="pre">path_transformer</span></code> and
+<code class="docutils literal notranslate"><span class="pre">func_path_generator</span></code> vcr variables. To add an extension to all
+cassette names, use <code class="docutils literal notranslate"><span class="pre">VCR.ensure_suffix</span></code> as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">my_vcr</span> <span class="o">=</span> <span class="n">VCR</span><span class="p">(</span><span class="n">path_transformer</span><span class="o">=</span><span class="n">VCR</span><span class="o">.</span><span class="n">ensure_suffix</span><span class="p">(</span><span class="s1">&#39;.yaml&#39;</span><span class="p">))</span>
+
+<span class="nd">@my_vcr</span><span class="o">.</span><span class="n">use_cassette</span>
+<span class="k">def</span> <span class="nf">my_test_function</span><span class="p">():</span>
+</pre></div>
+</div>
+</section>
+<section id="rewind-cassette">
+<h2>Rewind Cassette<a class="headerlink" href="#rewind-cassette" title="Link to this heading">¶</a></h2>
+<p>VCR.py allows to rewind a cassette in order to replay it inside the same function/test.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;fixtures/vcr_cassettes/synopsis.yaml&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cass</span><span class="p">:</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="s1">&#39;http://www.zombo.com/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">cass</span><span class="o">.</span><span class="n">all_played</span>
+    <span class="n">cass</span><span class="o">.</span><span class="n">rewind</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">cass</span><span class="o">.</span><span class="n">all_played</span>
+</pre></div>
+</div>
+</section>
+<section id="playback-repeats">
+<h2>Playback Repeats<a class="headerlink" href="#playback-repeats" title="Link to this heading">¶</a></h2>
+<p>By default, each response in a cassette can only be matched and played back
+once while the cassette is in use, unless the cassette is rewound.</p>
+<p>If you want to allow playback repeats without rewinding the cassette, use
+the Cassette <code class="docutils literal notranslate"><span class="pre">allow_playback_repeats</span></code> option.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;fixtures/vcr_cassettes/synopsis.yaml&#39;</span><span class="p">,</span> <span class="n">allow_playback_repeats</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">cass</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="s1">&#39;http://www.zombo.com/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">cass</span><span class="o">.</span><span class="n">all_played</span>
+</pre></div>
+</div>
+</section>
+<section id="discards-cassette-on-errors">
+<h2>Discards Cassette on Errors<a class="headerlink" href="#discards-cassette-on-errors" title="Link to this heading">¶</a></h2>
+<p>By default VCR will save the cassette file even when there is any error inside
+the enclosing context/test.</p>
+<p>If you want to save the cassette only when the test succeeds, set the Cassette
+<code class="docutils literal notranslate"><span class="pre">record_on_exception</span></code> option to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">my_vcr</span> <span class="o">=</span> <span class="n">VCR</span><span class="p">(</span><span class="n">record_on_exception</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">my_vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;fixtures/vcr_cassettes/synopsis.yaml&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cass</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="s1">&#39;http://www.zombo.com/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Oops, something happened&quot;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="c1"># Since there was an exception, the cassette file hasn&#39;t been created.</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">&#39;fixtures/vcr_cassettes/synopsis.yaml&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced Features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#register-your-own-serializer">Register your own serializer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#register-your-own-request-matcher">Register your own request matcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#register-your-own-cassette-persister">Register your own cassette persister</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#filter-sensitive-data-from-the-request">Filter sensitive data from the request</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#filter-information-from-http-headers">Filter information from HTTP Headers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#filter-information-from-http-querystring">Filter information from HTTP querystring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#filter-information-from-http-post-data">Filter information from HTTP post data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#advanced-use-of-filter-headers-filter-query-parameters-and-filter-post-data-parameters">Advanced use of filter_headers, filter_query_parameters and filter_post_data_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#custom-request-filtering">Custom Request filtering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#custom-response-filtering">Custom Response Filtering</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#decode-compressed-response">Decode compressed response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ignore-requests">Ignore requests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-patches">Custom Patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-cassette-naming">Automatic Cassette Naming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rewind-cassette">Rewind Cassette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#playback-repeats">Playback Repeats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#discards-cassette-on-errors">Discards Cassette on Errors</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="configuration.html" title="previous chapter">Configuration</a></li>
+      <li>Next: <a href="api.html" title="next chapter">API</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/advanced.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2015, Kevin McCarthy.
+
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+
+      |
+      <a href="_sources/advanced.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+
+
+  </body>
+</html>
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/debugging.html</source>
+<document_content>
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Debugging &#8212; vcrpy 6.0.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=81158f5a"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Contributing" href="contributing.html" />
+    <link rel="prev" title="API" href="api.html" />
+
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+
+
+
+
+
+  <script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="vcrpy" /><meta name="readthedocs-version-slug" content="latest" /><meta name="readthedocs-resolver-filename" content="/debugging.html" /><meta name="readthedocs-http-status" content="200" /></head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+          <div class="body" role="main">
+
+  <section id="debugging">
+<h1>Debugging<a class="headerlink" href="#debugging" title="Link to this heading">¶</a></h1>
+<p>VCR.py has a few log messages you can turn on to help you figure out if
+HTTP requests are hitting a real server or not. You can turn them on
+like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vcr</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">()</span> <span class="c1"># you need to initialize logging, otherwise you will not see anything from vcrpy</span>
+<span class="n">vcr_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;vcr&quot;</span><span class="p">)</span>
+<span class="n">vcr_log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">vcr</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">&#39;headers.yml&#39;</span><span class="p">):</span>
+    <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://httpbin.org/headers&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The first time you run this, you will see:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span><span class="p">:</span><span class="n">vcr</span><span class="o">.</span><span class="n">stubs</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Request</span> <span class="p">(</span><span class="n">GET</span><span class="p">)</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">httpbin</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">headers</span><span class="o">&gt;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cassette</span><span class="p">,</span> <span class="n">sending</span> <span class="n">to</span> <span class="n">real</span> <span class="n">server</span>
+</pre></div>
+</div>
+<p>The second time, you will see:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span><span class="p">:</span><span class="n">vcr</span><span class="o">.</span><span class="n">stubs</span><span class="p">:</span><span class="n">Playing</span> <span class="n">response</span> <span class="k">for</span> <span class="o">&lt;</span><span class="n">Request</span> <span class="p">(</span><span class="n">GET</span><span class="p">)</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">httpbin</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">headers</span><span class="o">&gt;</span> <span class="kn">from</span> <span class="nn">cassette</span>
+</pre></div>
+</div>
+<p>If you set the loglevel to DEBUG, you will also get information about
+which matchers didn't match. This can help you with debugging custom
+matchers.</p>
+<section id="cannotoverwriteexistingcassetteexception">
+<h2>CannotOverwriteExistingCassetteException<a class="headerlink" href="#cannotoverwriteexistingcassetteexception" title="Link to this heading">¶</a></h2>
+<p>When a request failed to be found in an existing cassette,
+VCR.py tries to get the request(s) that may be similar to the one being searched.
+The goal is to see which matcher(s) failed and understand what part of the failed request may have changed.
+It can return multiple similar requests with :</p>
+<ul class="simple">
+<li><p>the matchers that have succeeded</p></li>
+<li><p>the matchers that have failed</p></li>
+<li><p>for each failed matchers, why it has failed with an assertion message</p></li>
+</ul>
+<p>CannotOverwriteExistingCassetteException message example :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>CannotOverwriteExistingCassetteException: Can&#39;t overwrite existing cassette (&#39;cassette.yaml&#39;) in your current record mode (&#39;once&#39;).
+No match for the request (&lt;Request (GET) https://www.googleapis.com/?alt=json&amp;maxResults=200&gt;) was found.
+Found 1 similar requests with 1 different matchers :
+
+1 - (&lt;Request (GET) https://www.googleapis.com/?alt=json&amp;maxResults=500&gt;).
+Matchers succeeded : [&#39;method&#39;, &#39;scheme&#39;, &#39;host&#39;, &#39;port&#39;, &#39;path&#39;]
+Matchers failed :
+query - assertion failure :
+[(&#39;alt&#39;, &#39;json&#39;), (&#39;maxResults&#39;, &#39;200&#39;)] != [(&#39;alt&#39;, &#39;json&#39;), (&#39;maxResults&#39;, &#39;500&#39;)]
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Debugging</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#cannotoverwriteexistingcassetteexception">CannotOverwriteExistingCassetteException</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="api.html" title="previous chapter">API</a></li>
+      <li>Next: <a href="contributing.html" title="next chapter">Contributing</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/debugging.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2015, Kevin McCarthy.
+
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+
+      |
+      <a href="_sources/debugging.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+
+
+  </body>
+</html>
+</document_content>
+</document>
+</documents>
