@@ -10,7 +10,9 @@ import subprocess
 import sys
 import time
 
+from asyncio import Lock, Semaphore
 from asyncio.subprocess import Process
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -236,6 +238,9 @@ def _popen_stdout(cmd_arg: str, cwd: str | None = None) -> None:
         # subprocess.CompletedProcess(args=cmd_arg, returncode=0)
 
 
+# Global lock for synchronous operations
+_SYNC_LOCK = asyncio.Lock()
+
 def _popen_stdout_lock(cmd_arg: str, cwd: str | None = None) -> None:
     """
     Run a command using subprocess.Popen with a lock and print the stdout output line by line.
@@ -265,9 +270,22 @@ def _popen_stdout_lock(cmd_arg: str, cwd: str | None = None) -> None:
         subprocess.CompletedProcess(args=cmd_arg, returncode=0)
 
 
+# Global synchronization primitives
+_SHELL_SEMAPHORE = Semaphore(1)
+_SHELL_LOCK = Lock()
+
+@asynccontextmanager
+async def _acquire_shell_lock():
+    """Context manager that acquires both semaphore and lock for shell operations."""
+    async with _SHELL_SEMAPHORE:
+        async with _SHELL_LOCK:
+            yield
+
 async def run_coroutine_subprocess(cmd: str, uri: str, working_dir: str | None = None) -> str:
     """
     Run a command as a coroutine subprocess using asyncio.create_subprocess_shell.
+
+    Uses a semaphore to prevent concurrent executions of fast commands.
 
     Args:
         cmd (str): The command to run as a string.
@@ -277,10 +295,12 @@ async def run_coroutine_subprocess(cmd: str, uri: str, working_dir: str | None =
     Returns:
         str: The decoded stdout output of the command.
     """
-    if working_dir is None:
-        working_dir = f"{pathlib.Path('./').absolute()}"
+    async with _acquire_shell_lock():
+        if working_dir is None:
+            working_dir = f"{pathlib.Path('./').absolute()}"
 
-    await asyncio.sleep(0.05)
+        # Sleep moved inside the protected section
+        await asyncio.sleep(0.05)
 
     timer = Timer(text=f"Task {__name__} elapsed time: {{:.1f}}")
 

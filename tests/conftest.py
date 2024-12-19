@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import datetime
 import functools
@@ -31,9 +32,11 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union
 
 import discord
 import discord.ext.test as dpytest  # type: ignore
+import pytest_asyncio
 
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
+from discord.client import _LoopSentinel
 from discord.ext import commands
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
@@ -467,16 +470,16 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """
     # dat files are created when using attachments
     print("\n-------------------------\nClean dpytest_*.dat files")
-    filelist = glob.glob("./dpytest_*.dat")
+    filelist: list[str] = glob.glob("./dpytest_*.dat")
     for filepath in filelist:
         try:
-            os.remove(filepath)
-        except Exception:
-            print("Error while deleting file : ", filepath)
+            os.remove(filepath)  # Use sync version since this is cleanup
+        except OSError as e:
+            print(f"Error while deleting file {filepath}: {e}")
 
 
-@pytest.fixture()
-def mock_ebook_txt_file(tmp_path: Path) -> Path:
+@pytest_asyncio.fixture()
+async def mock_ebook_txt_file(tmp_path: Path) -> Path:
     """
     Fixture to create a mock text file for testing purposes.
 
@@ -495,7 +498,7 @@ def mock_ebook_txt_file(tmp_path: Path) -> Path:
     test_ebook_txt_path: Path = (
         tmp_path / "The Project Gutenberg eBook of A Christmas Carol in Prose; Being a Ghost Story of Christmas.txt"
     )
-    shutil.copy(
+    shutil.copy2(
         "democracy_exe/data/chroma/documents/The Project Gutenberg eBook of A Christmas Carol in Prose; Being a Ghost Story of Christmas.txt",
         test_ebook_txt_path,
     )
@@ -517,9 +520,50 @@ def mock_text_documents(mock_ebook_txt_file: FixtureRequest) -> list[Document]:
     return docs
 
 
-@pytest.fixture
+# @pytest.fixture
+# async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
+#     """Create a DemocracyBot instance for testing.
+
+#     Args:
+#         event_loop: The event loop fixture
+
+#     Returns:
+#         AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
+#     """
+#     # Configure intents
+#     intents = discord.Intents.default()
+#     intents.members = True
+#     intents.message_content = True
+#     intents.messages = True
+#     intents.guilds = True
+
+#     # set up the loop
+#     if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
+#         await test_bot._async_setup_hook()  # type: ignore
+
+#     # Create DemocracyBot with test configuration
+#     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance", loop=event_loop)
+
+#     # Add test-specific error handling
+#     @bot.event
+#     async def on_command_error(ctx: commands.Context, error: Exception) -> None:  # type: ignore
+#         """Handle command errors in test environment."""
+#         raise error  # Re-raise for pytest to catch
+
+#     # Setup and cleanup
+#     await bot._async_setup_hook()  # Required for proper initialization
+#     dpytest.configure(bot)
+#     yield bot
+#     await dpytest.empty_queue()
+
+
+# @pytest.fixture
+@pytest_asyncio.fixture
 async def bot() -> AsyncGenerator[DemocracyBot, None]:
     """Create a DemocracyBot instance for testing.
+
+    Args:
+        event_loop: The event loop fixture
 
     Returns:
         AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
@@ -534,33 +578,79 @@ async def bot() -> AsyncGenerator[DemocracyBot, None]:
     # Create DemocracyBot with test configuration
     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
 
+    # set up the loop
+    if isinstance(bot.loop, _LoopSentinel):  # type: ignore
+        await bot._async_setup_hook()  # type: ignore
+
     # Add test-specific error handling
     @bot.event
     async def on_command_error(ctx: commands.Context, error: Exception) -> None:  # type: ignore
         """Handle command errors in test environment."""
         raise error  # Re-raise for pytest to catch
 
-    # Create a mock user for the bot
-    mock_user = discord.ClientUser(
-        state=bot._connection,
-        data={
-            "id": 123456789,
-            "username": "TestBot",
-            "discriminator": "0000",
-            "global_name": "TestBot",
-            "bot": True,
-            "avatar": None,  # Add this required field
-        },
-    )
-    bot._connection.user = mock_user
-    bot.user = mock_user
-
     # Setup and cleanup
-    await bot._async_setup_hook()  # Required for proper initialization
+    # await bot._async_setup_hook()  # Required for proper initialization
+    # await dpytest.empty_queue()
     dpytest.configure(bot)
     yield bot
-    await dpytest.empty_queue()
-    await bot.close()
+    # await dpytest.empty_queue()
+
+    try:
+        # Teardown
+        await dpytest.empty_queue()  # empty the global message queue as test teardown
+    finally:
+        pass
+
+
+@pytest_asyncio.fixture
+async def mockbot(request: FixtureRequest) -> AsyncGenerator[DemocracyBot, None]:
+    """
+    Fixture to create a mock DemocracyBot for testing.
+
+    This fixture sets up a DemocracyBot instance, configures it for testing,
+    and yields it for use in tests. After the test, it performs cleanup.
+
+    Args:
+    ----
+        request (FixtureRequest): The pytest request object.
+
+    Yields:
+    ------
+        AsyncGenerator[DemocracyBot, None]: An instance of DemocracyBot configured for testing.
+
+    """
+    # Configure intents
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.message_content = True
+    intents.messages = True
+    intents.guilds = True
+
+    test_bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
+
+    # set up the loop
+    if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
+        await test_bot._async_setup_hook()  # type: ignore
+
+    marks = request.function.pytestmark
+    mark = None
+    for mark in marks:
+        if mark.name == "cogs":
+            break
+
+    if mark is not None:
+        for extension in mark.args:
+            await test_bot.load_extension("tests.internal." + extension)
+
+    dpytest.configure(test_bot)
+
+    yield test_bot
+
+    try:
+        # Teardown
+        await dpytest.empty_queue()  # empty the global message queue as test teardown
+    finally:
+        pass
 
 
 @pytest.fixture
@@ -573,8 +663,9 @@ async def test_guild(bot: DemocracyBot) -> AsyncGenerator[discord.Guild, None]:
     Yields:
         Test guild instance
     """
-    guild = await dpytest.driver.create_guild()
-    await dpytest.driver.configure_guild(guild)
+    # guild = await dpytest.driver.create_guild()
+    guild: discord.Guild = dpytest.get_config().guilds[0]
+    # await dpytest.driver.configure_guild(guild)
     yield guild
     await dpytest.empty_queue()
 
@@ -612,29 +703,42 @@ def test_data() -> dict[str, Any]:
     }
 
 
-@pytest.fixture(autouse=True)
-def setup_logging(caplog: LogCaptureFixture) -> None:
-    """Configure logging for test environment.
+# @pytest.fixture(autouse=True)
+# def setup_logging(caplog: LogCaptureFixture) -> None:
+#     """Configure logging for test environment.
 
-    Args:
-        caplog: Pytest log capture fixture
-    """
-    import logging
+#     Args:
+#         caplog: Pytest log capture fixture
+#     """
+#     import logging
 
-    caplog.set_level(logging.DEBUG)
+#     caplog.set_level(logging.DEBUG)
 
-    # Add test-specific logging format
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    for handler in logging.getLogger().handlers:
-        handler.setFormatter(formatter)
+#     # Add test-specific logging format
+#     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+#     for handler in logging.getLogger().handlers:
+#         handler.setFormatter(formatter)
 
 
-@pytest.fixture(autouse=True)
-def setup_test_state() -> Generator[None, None, None]:
-    """Setup test state for all tests."""
-    global is_dpytest, is_test_environment
-    is_dpytest = True
-    is_test_environment = True
-    yield
-    is_dpytest = False
-    is_test_environment = False
+# @pytest.fixture(autouse=True)
+# def setup_test_state() -> Generator[None, None, None]:
+#     """Setup test state for all tests."""
+#     global is_dpytest, is_test_environment
+#     is_dpytest = True
+#     is_test_environment = True
+#     yield
+#     is_dpytest = False
+#     is_test_environment = False
+
+
+# @pytest.fixture
+# def event_loop():
+#     """Create an event loop for testing.
+
+#     Returns:
+#         AbstractEventLoop: The event loop
+#     """
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     yield loop
+#     loop.close()

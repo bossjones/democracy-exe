@@ -840,10 +840,21 @@ generate-ai-docs:
 	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
 	/Users/malcolm/dev/KoalaBot/tests/test_koalabot.py \
 	/Users/malcolm/dev/KoalaBot/tests/test_utils.py \
-	/Users/malcolm/dev/KoalaBot/koala/cogs \
+	/Users/malcolm/dev/KoalaBot/tests/tests_utils \
+	/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter \
 	/Users/malcolm/dev/KoalaBot/koalabot.py \
 	/Users/malcolm/dev/KoalaBot/koala/utils.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_cog_testing.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
+	/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/tests/tests_utils \
+	/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koalabot.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_cog_testing.xml
 
 
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/movienightbot.xml"
@@ -862,3 +873,32 @@ generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml"
 	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/docs.aiohttp.org/en/stable/testing.html \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml"
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/sandbox_agent/tests/test_bot.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/tests/conftest.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/bot.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/cogs \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/dpytest/tests/test_edit.py \
+	/Users/malcolm/dev/dpytest/tests/test_fetch_message.py \
+	/Users/malcolm/dev/dpytest/tests/test_configure.py \
+	/Users/malcolm/dev/dpytest/tests/test_send.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_embed.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_file.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_message.py \
+	/Users/malcolm/dev/dpytest/tests/test_activity.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml
+
+# Run unit tests in debug mode with extended output
+test-twitter-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
+
+# {{UV_RUN}} pytest -s --verbose  --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
+# {{UV_RUN}} pytest -k  test_download_tweet_success_twitter_cog
+
+test-twitter-cog:
+	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog

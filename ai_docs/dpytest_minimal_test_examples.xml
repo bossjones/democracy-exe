@@ -1,0 +1,383 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/dpytest/tests/test_edit.py</source>
+<document_content>
+
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_edit(bot):
+    guild = bot.guilds[0]
+    channel = guild.channels[0]
+
+    mes = await channel.send("Test Message")
+    persisted_mes1 = await channel.fetch_message(mes.id)
+    edited_mes = await mes.edit(content="New Message")
+    persisted_mes2 = await channel.fetch_message(mes.id)
+
+    assert edited_mes.content == "New Message"
+    assert persisted_mes1.content == "Test Message"
+    assert persisted_mes2.content == "New Message"
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/dpytest/tests/test_fetch_message.py</source>
+<document_content>
+import pytest
+import discord
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_get_message(bot):
+    guild = bot.guilds[0]
+    channel = guild.channels[0]
+
+    message = await channel.send("Test Message")
+    message2 = await channel.fetch_message(message.id)
+
+    assert message.id == message2.id
+
+    with pytest.raises(discord.NotFound):
+        await channel.fetch_message(0xBADBEEF)
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/dpytest/tests/test_configure.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_configure_guilds(bot):
+    dpytest.configure(bot, guilds=2)
+    assert len(bot.guilds) == 2
+    assert bot.guilds[0].name == "Test Guild 0"
+    assert bot.guilds[1].name == "Test Guild 1"
+
+    dpytest.configure(bot, guilds=["Apples", "Bananas", "Oranges"])
+    assert len(bot.guilds) == 3
+    assert bot.guilds[0].name == "Apples"
+    assert bot.guilds[1].name == "Bananas"
+    assert bot.guilds[2].name == "Oranges"
+
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+    await channel.send("Test Message")
+    assert dpytest.verify().message().content("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_configure_text_channels(bot):
+    dpytest.configure(bot, text_channels=3)
+    guild = bot.guilds[0]
+    assert len(guild.text_channels) == 3
+    for num, channel in enumerate(guild.text_channels):
+        assert channel.name == f"TextChannel_{num}"
+
+    dpytest.configure(bot, text_channels=["Fruits", "Videogames", "Coding", "Fun"])
+    guild = bot.guilds[0]
+    assert len(guild.text_channels) == 4
+    assert guild.text_channels[0].name == "Fruits"
+    assert guild.text_channels[1].name == "Videogames"
+    assert guild.text_channels[2].name == "Coding"
+    assert guild.text_channels[3].name == "Fun"
+
+    # we can even use discord.utils.get
+    channel = discord.utils.get(guild.text_channels, name='Videogames')
+    assert channel.name == "Videogames"
+    await channel.send("Test Message")
+    assert dpytest.verify().message().content("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_configure_voice_channels(bot):
+    dpytest.configure(bot, voice_channels=3)
+    guild = bot.guilds[0]
+    assert len(guild.voice_channels) == 3
+    for num, channel in enumerate(guild.voice_channels):
+        assert channel.name == f"VoiceChannel_{num}"
+
+    dpytest.configure(bot, voice_channels=["Fruits", "Videogames", "Coding", "Fun"])
+    guild = bot.guilds[0]
+    assert len(guild.voice_channels) == 4
+    assert guild.voice_channels[0].name == "Fruits"
+    assert guild.voice_channels[1].name == "Videogames"
+    assert guild.voice_channels[2].name == "Coding"
+    assert guild.voice_channels[3].name == "Fun"
+
+    # we can even use discord.utils.get
+    channel = discord.utils.get(guild.voice_channels, name='Videogames')
+    assert channel.name == "Videogames"
+
+
+@pytest.mark.asyncio
+async def test_configure_members(bot):
+    dpytest.configure(bot, members=3)
+    guild = bot.guilds[0]
+    assert len(guild.members) == 3 + 1  # because the bot is a member too
+    for num, member in enumerate(guild.members[:3]):
+        assert member.name == f"TestUser{str(num)}"
+
+    dpytest.configure(bot, members=["Joe", "Jack", "William", "Averell"])
+    guild = bot.guilds[0]
+    assert len(guild.members) == 4 + 1  # because the bot is a member too
+    assert guild.members[0].name == "Joe"
+    assert guild.members[1].name == "Jack"
+    assert guild.members[2].name == "William"
+    assert guild.members[3].name == "Averell"
+
+    # we can even use discord.utils.get
+    william_member = discord.utils.get(guild.members, name='William')
+    assert william_member.name == "William"
+
+
+@pytest.mark.asyncio
+@pytest.mark.cogs("cogs.echo")
+async def test_configure_all(bot):
+    dpytest.configure(bot,
+                      guilds=["CoolGuild", "LameGuild"],
+                      text_channels=["Fruits", "Videogames"], voice_channels=["Apples", "Bananas"],
+                      members=["Joe", "Jack", "William", "Averell"])
+    guild = bot.guilds[1]
+    channel: discord.TextChannel = discord.utils.get(guild.text_channels, name='Videogames')
+    jack: discord.Member = discord.utils.get(guild.members, name="Jack")
+    mess = await dpytest.message("!echo Hello, my name is Jack", channel=channel, member=jack)
+    assert mess.author.name == "Jack"
+    assert mess.channel.name == "Videogames"
+    assert dpytest.verify().message().content("Hello, my name is Jack")
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/dpytest/tests/test_send.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_message(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_embed(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/dpytest/tests/test_verify_embed.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_embed(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    embed2 = embed = discord.Embed(title="Test Embed")
+    embed2.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+    assert dpytest.verify().message().embed(embed2)
+
+
+@pytest.mark.asyncio
+async def test_embed_KO(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    embed2 = discord.Embed(title="Test Embed KO")
+    embed2.add_field(name="Field 35", value="Foo Bar")
+
+    await channel.send(embed=embed)
+    assert not dpytest.verify().message().embed(embed2)
+
+
+@pytest.mark.asyncio
+async def test_embed_assert_nothing(bot):
+    assert dpytest.verify().message().nothing()
+
+
+@pytest.mark.asyncio
+async def test_embed_peek(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    embed2 = embed = discord.Embed(title="Test Embed")
+    embed2.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+
+    # peek option doesn't remove the message fro the queue
+    assert dpytest.verify().message().peek().embed(embed2)
+    # verify_embed (without peek) WILL remove emebd from the queue
+    assert dpytest.verify().message().embed(embed2)
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/dpytest/tests/test_verify_file.py</source>
+<document_content>
+from pathlib import Path
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_verify_file_text(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path_ = Path(__file__).resolve().parent / 'data/loremimpsum.txt'
+    file_ = discord.File(path_)
+    await channel.send(file=file_)
+    assert dpytest.verify().message().attachment(path_)
+
+
+@pytest.mark.asyncio
+async def test_verify_file_jpg(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path_ = Path(__file__).resolve().parent / 'data/unit-tests.jpg'
+    file_ = discord.File(path_)
+    await channel.send(file=file_)
+    assert dpytest.verify().message().attachment(path_)
+
+
+@pytest.mark.asyncio
+async def test_verify_file_KO(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path_ = Path(__file__).resolve().parent / 'data/unit-tests.jpg'
+    file_ = discord.File(path_)
+    await channel.send(file=file_)
+    path2 = Path(__file__).resolve().parent / 'data/loremimpsum.txt'
+    assert not dpytest.verify().message().attachment(path2)
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/dpytest/tests/test_verify_message.py</source>
+<document_content>
+import discord  # noqa: F401
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_message_equals(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Test Message")
+    assert dpytest.verify().message().content("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_message_not_equals(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("You shall pass !!")
+    assert not dpytest.verify().message().content("You shall not pass !!")
+
+
+@pytest.mark.asyncio
+async def test_message_contains_true(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Very long message talking about Foobar")
+    assert dpytest.verify().message().contains().content("Foobar")
+
+
+@pytest.mark.asyncio
+async def test_message_contains_false(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Very long message talking about Foobar")
+    assert not dpytest.verify().message().contains().content("Barfoo")
+
+
+@pytest.mark.asyncio
+async def test_message_assert_nothing(bot):
+    assert dpytest.verify().message().nothing()
+
+
+@pytest.mark.asyncio
+async def test_message_peek(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Hello, world !")
+    # peek option doesn't remove the message fro the queue
+    assert dpytest.verify().message().peek().content("Hello, world !")
+    # verify_message (without peek) WILL remove message from the queue
+    assert dpytest.verify().message().content("Hello, world !")
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/dpytest/tests/test_activity.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_verify_activity_matches(bot):
+    fake_act = discord.Activity(name="Streaming",
+                                url="http://mystreamingfeed.xyz",
+                                type=discord.ActivityType.streaming)
+    await bot.change_presence(activity=fake_act)
+    assert dpytest.verify().activity().matches(fake_act)
+
+    other_act = discord.Activity(name="Playing Around", type=discord.ActivityType.playing)
+    await bot.change_presence(activity=other_act)
+    assert not dpytest.verify().activity().matches(fake_act)
+
+
+@pytest.mark.asyncio
+async def test_verify_no_activity(bot):
+    await bot.change_presence(activity=None)
+    assert dpytest.verify().activity().matches(None)
+
+</document_content>
+</document>
+</documents>

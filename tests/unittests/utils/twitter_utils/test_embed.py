@@ -297,7 +297,7 @@ class TestProgressEmbed:
 
         assert isinstance(embed, discord.Embed)
         assert embed.color == GOLD
-        assert embed.title == "Tweet Download"
+        assert embed.title == "Download in Progress"
         assert TEST_URL in embed.description
         assert mode in embed.description
         assert embed.footer.text == "Please wait..."

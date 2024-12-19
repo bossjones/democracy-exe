@@ -1,0 +1,1963 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/KoalaBot/tests/conftest.py</source>
+<document_content>
+"""
+A configuration file for methods useful in all testing with pytest
+"""
+# Futures
+
+# Built-in/Generic Imports
+import shutil
+
+import discord
+import discord.ext.test as dpytest
+# Libs
+import pytest
+import pytest_asyncio
+
+import koala.db as db
+# Own modules
+import koalabot
+from koala.db import session_manager
+from tests.log import logger
+
+# Constants
+
+pytest_plugins = 'aiohttp.pytest_plugin'
+
+
+@pytest.fixture(scope='session', autouse=True)
+def teardown_config():
+
+    # yield, to let all tests within the scope run
+    yield
+
+    # tear_down: then clear table at the end of the scope
+    logger.info("Tearing down session")
+
+    from koala.env import CONFIG_PATH
+
+    shutil.rmtree(CONFIG_PATH, ignore_errors=True)
+
+
+@pytest_asyncio.fixture
+async def bot():
+    import koalabot
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.guilds = True
+    intents.messages = True
+    intents.message_content = True
+    b = koalabot.KoalaBot(koalabot.COMMAND_PREFIX, intents=intents)
+    await b._async_setup_hook()
+    await dpytest.empty_queue()
+    dpytest.configure(b)
+    return b
+
+
+@pytest.fixture(autouse=True)
+def setup_is_dpytest():
+    db.__create_sqlite_tables()
+    koalabot.is_dpytest = True
+    yield
+    koalabot.is_dpytest = False
+
+
+@pytest_asyncio.fixture
+async def session():
+    with session_manager() as session:
+        yield session
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter/__init__.py</source>
+<document_content>
+from . import utils, db, models
+from .cog import TextFilter, setup
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter/cog.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Text Filter Code
+Created by: Stefan Cooper
+"""
+
+# Built-in/Generic Imports
+import re
+
+import discord
+# Libs
+from discord.ext import commands
+
+# Own modules
+import koalabot
+from koala.colours import KOALA_GREEN
+from koala.db import insert_extension
+from koala.utils import extract_id
+from .db import TextFilterDBManager
+from .utils import type_exists, build_word_list_embed, build_moderation_channel_embed, \
+    create_default_embed, build_moderation_deleted_embed
+
+
+def text_filter_is_enabled(ctx):
+    """
+    A command used to check if the guild has enabled TextFilter
+    e.g. @commands.check(koalabot.is_admin)
+
+    :param ctx: The context of the message
+    :return: True if admin or test, False otherwise
+    """
+    try:
+        result = koalabot.check_guild_has_ext(ctx, "TextFilter")
+    except PermissionError:
+        result = False
+
+    return result or (str(ctx.author) == koalabot.TEST_USER and koalabot.is_dpytest)
+
+
+class TextFilter(commands.Cog, name="TextFilter"):
+    """
+    A discord.py cog with commands pertaining to the a Text Filter for admins to monitor their server
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
+        insert_extension("TextFilter", 0, True, True)
+        self.tf_database_manager = TextFilterDBManager(bot)
+
+    @commands.command(name="filter", aliases=["filter_word"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def filter_new_word(self, ctx, word, filter_type="banned", too_many_arguments=None):
+        """
+        Adds a new word to the filtered text list
+
+        :param ctx: The discord context
+        :param word: The first argument and word to be filtered
+        :param filter_type: The filter type (banned or risky)
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = """Something has gone wrong, your word may already be filtered or you have entered the
+                command incorrectly. Try again with: `k!filter [filtered_text] [[risky] or [banned]]`"""
+        if too_many_arguments is None and type_exists(filter_type):
+            await self.filter_text(ctx, word, filter_type, False)
+            await ctx.channel.send("*" + word + "* has been filtered as **" + filter_type + "**.")
+            return
+        raise Exception(error)
+
+    @commands.command(name="filterRegex", aliases=["filter_regex"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def filter_new_regex(self, ctx, regex, filter_type="banned", too_many_arguments=None):
+        """
+        Adds a new regex to the filtered text list
+
+        :param ctx: The discord context
+        :param regex: The first argument and regex to be filtered
+        :param filter_type: The filter type (banned or risky)
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = r"""Something has gone wrong, your regex may be invalid, this regex may already be filtered
+                or you have entered the command incorrectly. Try again with: `k!filterRegex
+                [filtered_regex] [[risky] or [banned]]`. One example for a regex could be to block emails
+                with: [a-zA-Z0-9\._]+@herts\.ac\.uk where EMAIL is the university type (e.g herts)"""
+        if too_many_arguments is None and type_exists(filter_type):
+            try:
+                re.compile(regex)
+                await self.filter_text(ctx, regex, filter_type, True)
+                await ctx.channel.send("*" + regex + "* has been filtered as **" + filter_type + "**.")
+                return
+            except:
+                raise Exception(error)
+        raise Exception(error)
+
+    @commands.command(name="unfilter", aliases=["unfilter_word"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def unfilter_word(self, ctx, word, too_many_arguments=None):
+        """
+        Remove an existing word/test from the filter list
+
+        :param ctx: The discord context
+        :param word: The first argument and word to be filtered
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = "Too many arguments, please try again using the following arguments: `k!unfilter [filtered_word]`"
+        if too_many_arguments is None:
+            await self.unfilter_text(ctx, word)
+            await ctx.channel.send("*" + word + "* has been unfiltered.")
+            return
+        raise Exception(error)
+
+    @commands.command(name="filterList", aliases=["check_filtered_words", "checkFilteredWords"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def check_filtered_words(self, ctx):
+        """
+        Get a list of filtered words on the current guild.
+
+        :param ctx: The discord context
+        :return:
+        """
+        all_words_and_types = self.get_list_of_words(ctx)
+        await ctx.channel.send(embed=build_word_list_embed(ctx, all_words_and_types[0], all_words_and_types[1],
+                                                           all_words_and_types[2]))
+
+    @commands.command(name="modChannelAdd", aliases=["setup_mod_channel", "setupModChannel",
+                                                     "add_mod_channel", "addModChannel"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def setup_mod_channel(self, ctx, channel_id, too_many_arguments=None):
+        """
+        Add a mod channel to the current guild
+
+        :param ctx: The discord context
+        :param channel_id: The designated channel id for message details
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = "Channel not found or too many arguments, please try again: `k!setupModChannel [channel_id]`"
+        channel = self.bot.get_channel(int(extract_id(channel_id)))
+        if channel is not None and too_many_arguments is None:
+            self.tf_database_manager.new_mod_channel(ctx.guild.id, channel.id)
+            await ctx.channel.send(embed=build_moderation_channel_embed(ctx, channel, "Added"))
+            return
+        raise (Exception(error))
+
+    @commands.command(name="modChannelRemove", aliases=["remove_mod_channel", "deleteModChannel", "removeModChannel"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def remove_mod_channel(self, ctx, channel_id, too_many_arguments=None):
+        """
+        Remove a mod channel from the guild
+
+        :param ctx: The discord context
+        :param channel_id: The designated channel id to be removed
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = """Missing Channel ID or too many arguments remove a mod channel. If you don't know your Channel ID,
+                use `k!listModChannels` to get information on your mod channels."""
+        channel = self.bot.get_channel(int(extract_id(channel_id)))
+        if channel is not None and too_many_arguments is None:
+            self.tf_database_manager.remove_mod_channel(ctx.guild.id, channel.id)
+            await ctx.channel.send(embed=build_moderation_channel_embed(ctx, channel, "Removed"))
+            return
+        raise Exception(error)
+
+    @commands.command(name="modChannelList", aliases=["list_mod_channels", "listModChannels"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def list_mod_channels(self, ctx):
+        """
+        Get a list of filtered mod channels in the guild
+
+        :param ctx: The discord context
+        :return:
+        """
+        channels = self.tf_database_manager.get_mod_channel(ctx.guild.id)
+        await ctx.channel.send(embed=self.build_channel_list_embed(ctx, channels))
+
+    @commands.command(name="ignoreUser")
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def ignore_user(self, ctx, user, too_many_arguments=None):
+        """
+        Add a new ignored user to the database
+
+        :param ctx: The discord context
+        :param user: The discord mention of the User
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = """Missing Ignore ID or too many arguments remove a mod channel. If you don't know your Channel ID,
+                use `k!listModChannels` to get information on your mod channels."""
+        ignore_id = ctx.message.mentions[0].id
+        ignore_exists = self.bot.get_user(int(ignore_id))
+        if ignore_exists is not None:
+            self.tf_database_manager.new_ignore(ctx.guild.id, 'user', ignore_id)
+            await ctx.channel.send("New ignore added: " + user)
+            return
+        raise (Exception(error))
+
+    @commands.command(name="ignoreChannel")
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def ignore_channel(self, ctx, channel: discord.TextChannel, too_many_arguments=None):
+        """
+        Add a new ignored channel to the database
+
+        :param ctx: The discord context
+        :param channel: The discord mention of the Channel
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        error = """Missing Ignore ID or too many arguments remove a mod channel. If you don't know your Channel ID,
+                use `k!listModChannels` to get information on your mod channels."""
+        ignore_id = channel.id
+        ignore_exists = self.bot.get_channel(int(ignore_id))
+        if ignore_exists is not None:
+            self.tf_database_manager.new_ignore(ctx.guild.id, 'channel', ignore_id)
+            await ctx.channel.send(f"New ignore added: {channel.mention}")
+            return
+        raise (Exception(error))
+
+    @commands.command(name="unignore", aliases=["remove_ignore", "removeIgnore"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def remove_ignore(self, ctx, ignore, too_many_arguments=None):
+        """
+        Remove an ignore from the guild
+
+        :param ctx: The discord context
+        :param ignore: the ignoreId to be removed
+        :param too_many_arguments: Used to check if too many arguments have been given
+        :return:
+        """
+        if len(ctx.message.mentions) > 0:
+            ignore_id = ctx.message.mentions[0].id
+        elif len(ctx.message.channel_mentions) > 0:
+            ignore_id = ctx.message.channel_mentions[0].id
+        else:
+            raise Exception("No ignore mention found")
+        self.tf_database_manager.remove_ignore(ctx.guild.id, ignore_id)
+        await ctx.channel.send("Ignore removed: " + str(ignore))
+        return
+
+    @commands.command(name="ignoreList", aliases=["list_ignored", "listIgnored"])
+    @commands.check(koalabot.is_admin)
+    @commands.check(text_filter_is_enabled)
+    async def list_ignored(self, ctx):
+        """
+        Get a list all ignored users/channels
+
+        :param ctx: The discord context
+        :return:
+        """
+        ignored = self.tf_database_manager.get_all_ignored(ctx.guild.id)
+        await ctx.channel.send(embed=self.build_ignore_list_embed(ctx, ignored))
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """
+        Upon receiving a message, it is checked for filtered text and is deleted.
+
+        :param message: The newly received message
+        :return:
+        """
+        if message.author.bot:
+            return
+        if message.content.startswith(koalabot.COMMAND_PREFIX + "filter") or \
+                message.content.startswith(koalabot.COMMAND_PREFIX + "unfilter") or \
+                message.content.startswith(koalabot.OPT_COMMAND_PREFIX + "filter") or \
+                message.content.startswith(koalabot.OPT_COMMAND_PREFIX + "unfilter"):
+            return
+        elif str(message.channel.type) == 'text' and message.channel.guild is not None:
+            censor_list = self.tf_database_manager.get_filtered_text_for_guild(message.channel.guild.id)
+            for word, filter_type, is_regex in censor_list:
+                if (word in message.content or (
+                        is_regex == '1' and re.search(word, message.content))) and not self.is_ignored(message):
+                    if filter_type == "risky":
+                        await message.author.send("Watch your language! Your message: '*" + message.content + "*' in " +
+                                                  message.channel.mention + " contains a 'risky' word. "
+                                                                            "This is a warning.")
+                        return
+                    elif filter_type == "banned":
+                        await message.author.send("Watch your language! Your message: '*" + message.content + "*' in " +
+                                                  message.channel.mention + " has been deleted by KoalaBot.")
+                        await self.send_to_moderation_channels(message)
+                        await message.delete()
+                        return
+
+    def build_channel_list(self, channels, embed):
+        """
+        Builds a list of mod channels and adds them to the embed
+
+        :param channels: list of mod channels
+        :param embed: The pre-existing embed to add the channel list fields to
+        :return embed: the updated embed with the list of channels appended to
+        """
+        for channel in channels:
+            details = self.bot.get_channel(int(channel[0]))
+            if details is not None:
+                embed.add_field(name="Name & Channel ID", value=details.mention + " " + str(details.id), inline=False)
+            else:
+                embed.add_field(name="Channel ID", value=channel[0], inline=False)
+        return embed
+
+    def build_channel_list_embed(self, ctx, channels):
+        """
+        Builds the embed that is sent to list all the mod channels
+
+        :param ctx: The discord context
+        :param channels: List of channels in the guild
+        :return embed with list of mod channels:
+        """
+        embed = create_default_embed(ctx)
+        embed.colour = KOALA_GREEN
+        embed.set_footer(text=f"Guild ID: {ctx.guild.id}")
+        embed.title = "Koala Moderation - Mod Channels"
+        embed = self.build_channel_list(channels, embed)
+        return embed
+
+    def is_ignored(self, message):
+        """
+        Checks if the user/channel should be ignored
+
+        :param message: The newly received message
+        :return boolean if should be ignored or not:
+        """
+        ignore_list_users = self.tf_database_manager.get_ignore_list_users(message.guild.id)
+        ignore_list_channels = self.tf_database_manager.get_ignore_list_channels(message.guild.id)
+        return message.channel.id in ignore_list_channels or message.author.id in ignore_list_users
+
+    async def filter_text(self, ctx, text, filter_type, is_regex):
+        """
+        Calls to the datbase to filter a word
+
+        :param ctx: the discord context
+        :param text: the word to be filtered
+        :param filter_type: the filter_type of the word to be added
+        :param is_regex: boolean of if the text is regex
+        """
+        self.tf_database_manager.new_filtered_text(ctx.guild.id, text, filter_type, is_regex)
+
+    async def unfilter_text(self, ctx, word):
+        """
+        Calls to the database to unfilter a word
+
+        :param ctx: The discord context
+        :param word: The word to be unfiltered
+        """
+        self.tf_database_manager.remove_filter_text(ctx.guild.id, word)
+
+    def is_moderation_channel_available(self, guild_id):
+        """
+        Checks if any mod channels exist to be sent to
+
+        :param guild_id: The guild to retrieve mod channels from
+        :return: boolean true if mod channel exists, false otherwise
+        """
+        channels = self.tf_database_manager.get_mod_channel(guild_id)
+        return len(channels) > 0
+
+    async def send_to_moderation_channels(self, message):
+        """
+        Send details about deleted message to mod channels
+
+        :param message: The message in question which is being deleted
+        """
+        if self.is_moderation_channel_available(message.guild.id):
+            channels = self.tf_database_manager.get_mod_channel(message.guild.id)
+            for each_channel in channels:
+                channel = self.bot.get_channel(int(each_channel[0]))
+                await channel.send(embed=build_moderation_deleted_embed(message))
+
+    def get_list_of_words(self, ctx):
+        """
+        Gets a list of filtered words and corresponding types in a guild
+
+        :param ctx: the discord context
+        :return [all_words, all_types]: a list containing two lists of filtered words and types
+        """
+        all_words, all_types, all_regex = "", "", ""
+        for word, filter_type, regex in self.tf_database_manager.get_filtered_text_for_guild(ctx.guild.id):
+            all_words += word + "\n"
+            all_types += filter_type + "\n"
+            all_regex += regex + "\n"
+        return [all_words, all_types, all_regex]
+
+    def build_ignore_list(self, ignored, embed):
+        """
+        Builds a formatted list of ignored users/channels
+
+        :param ignored: list of ignored users/channels
+        :param embed: The pre-existing embed to add the channel list fields to
+        :return embed: the updated embed with the list of channels appended to
+        """
+        for ig in ignored:
+            if ig[2] == 'channel':
+                details = self.bot.get_channel(int(ig[3]))
+            else:
+                details = self.bot.get_user(int(ig[3]))
+            if details is not None:
+                embed.add_field(name="Name & ID", value=details.mention + " " + str(details.id), inline=False)
+            else:
+                embed.add_field(name="ID", value=ig[3], inline=False)
+        return embed
+
+    def build_ignore_list_embed(self, ctx, channels):
+        """
+        Builds the embed to list all ignored
+
+        :param ctx: The discord context
+        :param channels: List of ignored users/channels
+        :return embed with list of mod channels:
+        """
+        embed = create_default_embed(ctx)
+        embed.colour = KOALA_GREEN
+        embed.set_footer(text=f"Guild ID: {ctx.guild.id}")
+        embed.title = "Koala Moderation - Ignored Users/Channels"
+        embed = self.build_ignore_list(channels, embed)
+        return embed
+
+
+async def setup(bot: koalabot) -> None:
+    """
+    Loads this cog into the selected bot
+
+    :param  bot: The client of the KoalaBot
+    """
+    await bot.add_cog(TextFilter(bot))
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter/db.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Text Filter Code
+Created by: Stefan Cooper
+"""
+
+# Built-in/Generic Imports
+
+# Libs
+import discord
+from sqlalchemy import select, delete
+
+# Own modules
+from koala.db import session_manager
+from .models import TextFilter, TextFilterModeration, TextFilterIgnoreList
+
+
+class TextFilterDBManager:
+    """
+    A class for interacting with the Koala text filter database
+    """
+
+    def __init__(self, bot_client: discord.client):
+        """
+        Initialises local variables
+
+        :param bot_client:
+        """
+        self.bot = bot_client
+
+
+    def new_mod_channel(self, guild_id, channel_id):
+        """
+        Adds new filtered word for a guild
+
+        :param guild_id: Guild ID to retrieve filtered words from
+        :param channel_id: The new channel for moderation
+        :return:
+        """
+        with session_manager() as session:
+            session.add(TextFilterModeration(channel_id=channel_id, guild_id=guild_id))
+            session.commit()
+
+    def new_filtered_text(self, guild_id, filtered_text, filter_type, is_regex):
+        """
+        Adds new filtered word for a guild
+
+        :param guild_id: Guild ID to retrieve filtered words from
+        :param filtered_text: The new word to be filtered
+        :param filter_type: The filter type (banned or risky)
+        :param is_regex: Boolean if filtered text is regex
+        :return:
+        """
+        with session_manager() as session:
+            ft_id = str(guild_id) + filtered_text
+            if not self.does_word_exist(ft_id):
+                session.add(TextFilter(filtered_text_id=ft_id,
+                                       guild_id=guild_id,
+                                       filtered_text=filtered_text,
+                                       filter_type=filter_type,
+                                       is_regex=is_regex))
+                session.commit()
+                return
+            raise Exception("Filtered word already exists")
+
+    def remove_filter_text(self, guild_id, filtered_text):
+        """
+        Remove filtered word from a guild
+
+        :param guild_id: Guild ID to retrieve filtered words from
+        :param filtered_text: The new word to be filtered
+        :return:
+        """
+        with session_manager() as session:
+            ft_id = str(guild_id) + filtered_text
+            if self.does_word_exist(ft_id):
+                session.execute(delete(TextFilter).filter_by(filtered_text_id=ft_id))
+                session.commit()
+                return
+            raise Exception("Filtered word does not exist")
+
+    def new_ignore(self, guild_id, ignore_type, ignore):
+        """
+        Add new ignore to database
+
+        :param guild_id: Guild ID to associate ignore to
+        :param ignore_type: The type of ignore to add
+        :param ignore: Ignore ID to be added
+        """
+        with session_manager() as session:
+            ignore_id = str(guild_id) + str(ignore)
+            if not self.does_ignore_exist(ignore_id):
+                session.add(TextFilterIgnoreList(ignore_id=ignore_id, guild_id=guild_id,
+                                                 ignore_type=ignore_type, ignore=ignore))
+                session.commit()
+                return
+            raise Exception("Ignore already exists")
+
+    def remove_ignore(self, guild_id, ignore):
+        """
+        Remove ignore from database
+
+        :param guild_id: The guild_id to delete the ignore from
+        :param ignore: the ignore id to be deleted
+        """
+        with session_manager() as session:
+            ignore_id = str(guild_id) + str(ignore)
+            if self.does_ignore_exist(ignore_id):
+                session.execute(delete(TextFilterIgnoreList).filter_by(ignore_id=ignore_id))
+                session.commit()
+                return
+            raise Exception("Ignore does not exist")
+
+    def get_filtered_text_for_guild(self, guild_id):
+        """
+        Retrieves all filtered words for a specific guild and formats into a nice list of words
+
+        :param guild_id: Guild ID to retrieve filtered words from:
+        :return: list of filtered words
+        """
+        with session_manager() as session:
+            rows = session.execute(select(TextFilter).filter_by(guild_id=guild_id)).scalars()
+            return [(row.filtered_text, row.filter_type, str(int(row.is_regex))) for row in rows]
+
+    def get_ignore_list_channels(self, guild_id):
+        """
+        Get lists of ignored channels
+
+        :param guild_id: The guild id to get the list from
+        :return: list of ignored channels
+        """
+        with session_manager() as session:
+            rows = session.execute(select(TextFilterIgnoreList.ignore)
+                                   .filter_by(guild_id=guild_id, ignore_type="channel")).all()
+            return [row[0] for row in rows]
+
+    def get_ignore_list_users(self, guild_id):
+        """
+        Get lists of ignored users
+
+        :param guild_id: The guild id to get the list from
+        :return: list of ignored users
+        """
+        with session_manager() as session:
+            rows = session.execute(select(TextFilterIgnoreList.ignore)
+                                   .filter_by(guild_id=guild_id, ignore_type="user")).all()
+            return [row[0] for row in rows]
+
+    def get_all_ignored(self, guild_id):
+        with session_manager() as session:
+            rows = session.execute(select(TextFilterIgnoreList.ignore_id, TextFilterIgnoreList.guild_id,
+                                          TextFilterIgnoreList.ignore_type, TextFilterIgnoreList.ignore)
+                                   .filter_by(guild_id=guild_id, ignore_type="channel")).all()
+            rows += session.execute(select(TextFilterIgnoreList.ignore_id, TextFilterIgnoreList.guild_id,
+                                          TextFilterIgnoreList.ignore_type, TextFilterIgnoreList.ignore)
+                                   .filter_by(guild_id=guild_id, ignore_type="user")).all()
+            return rows
+
+    def get_mod_channel(self, guild_id):
+        """
+        Gets specific mod channels given a guild id
+
+        :param guild_id: Guild ID to retrieve mod channel from
+        :return: list of mod channels
+        """
+        with session_manager() as session:
+            rows = session.execute(select(TextFilterModeration.channel_id)
+                                   .filter_by(guild_id=guild_id)).all()
+            return rows
+
+    def remove_mod_channel(self, guild_id, channel_id):
+        """
+        Removes a specific mod channel in a guild
+
+        :param guild_id: Guild ID to remove mod channel from
+        :param channel_id: Mod channel to be removed
+        :return:
+        """
+        with session_manager() as session:
+            session.execute(delete(TextFilterModeration)
+                            .filter_by(guild_id=guild_id, channel_id=channel_id))
+            session.commit()
+
+    def does_word_exist(self, ft_id):
+        """
+        Checks if word exists in database given an ID
+
+        :param ft_id: filtered text id of word to be removed
+        :return boolean of whether the word exists or not:
+        """
+        with session_manager() as session:
+            return len(session.execute(select(TextFilter)
+                                       .filter_by(filtered_text_id=ft_id)).all()) > 0
+
+    def does_ignore_exist(self, ignore_id):
+        """
+        Checks if ignore exists in database given an ID
+
+        :param ignore_id: ignore id of ignore to be removed
+        :return boolean of whether the ignore exists or not:
+        """
+        with session_manager() as session:
+            return len(session.execute(select(TextFilterIgnoreList)
+                                       .filter_by(ignore_id=ignore_id)).all()) > 0
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter/log.py</source>
+<document_content>
+from koala.log import get_logger
+
+logger = get_logger(__name__)
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter/models.py</source>
+<document_content>
+from sqlalchemy import Column, VARCHAR, BOOLEAN
+
+from koala.models import mapper_registry, DiscordSnowflake
+
+
+@mapper_registry.mapped
+class TextFilter:
+    __tablename__ = 'TextFilter'
+    filtered_text_id = Column(VARCHAR(100, collation="utf8mb4_unicode_520_ci"), primary_key=True)
+    guild_id = Column(DiscordSnowflake)
+    filtered_text = Column(VARCHAR(100, collation="utf8mb4_unicode_520_ci"))
+    filter_type = Column(VARCHAR(10))
+    is_regex = Column(BOOLEAN)
+
+    def __repr__(self):
+        return "<TextFilter(%s, %s, %s, %s, %s)>" % \
+               (self.filtered_text_id, self.guild_id, self.filtered_text, self.filter_type, self.is_regex)
+
+
+@mapper_registry.mapped
+class TextFilterModeration:
+    __tablename__ = 'TextFilterModeration'
+    channel_id = Column(DiscordSnowflake, primary_key=True)
+    guild_id = Column(DiscordSnowflake)
+
+    def __repr__(self):
+        return "<TextFilterModeration(%s, %s)>" % \
+               (self.channel_id, self.guild_id)
+
+
+@mapper_registry.mapped
+class TextFilterIgnoreList:
+    __tablename__ = 'TextFilterIgnoreList'
+    ignore_id = Column(VARCHAR(40), primary_key=True)
+    guild_id = Column(DiscordSnowflake)
+    ignore_type = Column(VARCHAR(10))
+    ignore = Column(DiscordSnowflake)
+
+    def __repr__(self):
+        return "<TextFilterIgnoreList(%s, %s, %s, %s)>" % \
+               (self.ignore_id, self.guild_id, self.ignore_type, self.ignore)
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter/utils.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Text Filter Code
+Created by: Stefan Cooper
+"""
+
+# Built-in/Generic Imports
+
+# Libs
+import discord
+
+# Own modules
+from koala.colours import KOALA_GREEN
+
+
+def type_exists(filter_type):
+    """
+    Validates the inputted filter_type
+
+    :param filter_type: The filter type to be checked
+    :return: boolean checking if the filter type can be handled by the system, checks for risky, banned or email
+    """
+    return filter_type == "risky" or filter_type == "banned"
+
+
+def build_moderation_channel_embed(ctx, channel, action):
+    """
+    Builds a moderation embed which display some information about the mod channel being created/removed
+
+    :param ctx: The discord context
+    :param channel: The channel to be created/removed
+    :param action: either "Added" or "Removed" to tell the user what happened to the mod channel
+    :return embed: The moderation embed to be sent to the user
+    """
+    embed = create_default_embed(ctx)
+    embed.title = "Koala Moderation - Mod Channel " + action
+    embed.add_field(name="Channel Name", value=channel.mention)
+    embed.add_field(name="Channel ID", value=channel.id)
+    return embed
+
+
+def build_word_list_embed(ctx, all_words, all_types, all_regex):
+    """
+    Builds the embed that is sent to list all the filtered words
+
+    :param ctx: The discord context
+    :param all_words: List of all the filtered words in the guild
+    :param all_types: List of all the corresponding filter types for the words in the guild
+    :param all_regex: List of all regex in the guild
+    :return embed with information about the deleted message:
+    """
+    embed = create_default_embed(ctx)
+    embed.title = "Koala Moderation - Filtered Words"
+    if not all_words and not all_types and not all_regex:
+        embed.add_field(name="No words found", value="For more help with using the Text Filter try k!help TextFilter")
+    else:
+        embed.add_field(name="Banned Words", value=all_words)
+        embed.add_field(name="Filter Types", value=all_types)
+        embed.add_field(name="Is Regex?", value=all_regex)
+    return embed
+
+
+def create_default_embed(ctx):
+    """
+    Creates a default embed that all embeds share
+
+    :param ctx: The discord context
+    :return embed with basic information which should be built upon:
+    """
+    embed = discord.Embed()
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {ctx.guild.id}")
+    return embed
+
+
+def build_moderation_deleted_embed(message):
+    """
+    Builds the embed that is sent after a message is deleted for containing a banned word
+
+    :param message: the message object to be deleted
+    :return embed with information about the deleted message:
+    """
+    embed = create_default_embed(message)
+    embed.title = "Koala Moderation - Message Deleted"
+    embed.add_field(name="Reason", value="Contained banned word")
+    embed.add_field(name="User", value=message.author.mention)
+    embed.add_field(name="Channel", value=message.channel.mention)
+    embed.add_field(name="Message", value=message.content)
+    embed.add_field(name="Timestamp", value=message.created_at)
+    return embed
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/KoalaBot/tests/tests_utils/__init__.py</source>
+<document_content>
+from . import fake_load_all_cogs, last_ctx_cog, utils
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/KoalaBot/tests/tests_utils/last_ctx_cog.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Testing utilities Cog for KoalaBot tests
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+
+# Libs
+from discord.ext import commands
+
+# Own modules
+import koalabot
+
+
+# Constants
+
+# Variables
+
+
+class LastCtxCog(commands.Cog):
+    """
+    A discord cog that can be used when testing
+    """
+
+    def __init__(self, bot):
+        """
+        Initialises the class variables of this cog
+        :param bot: The client of the bot being used
+        """
+        self.bot = bot
+        self._last_member = None
+        self.last_ctx = None
+
+    @commands.command()
+    async def store_ctx(self, ctx):
+        """
+        Takes the context when this command is used and stores it in this object
+        :param ctx: the discord context of the command
+        """
+        self.last_ctx = ctx
+
+    def get_last_ctx(self):
+        """
+        A getter for the last ctx got from store_ctx
+        :return: last_ctx
+        """
+        return self.last_ctx
+
+
+async def setup(bot: koalabot) -> None:
+    """
+    Load this cog to the KoalaBot.
+    :param bot: the bot client for KoalaBot
+    """
+    await bot.add_cog(LastCtxCog(bot))
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/KoalaBot/tests/tests_utils/utils.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Testing utilities for KoalaBot tests
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+import random
+from string import ascii_letters
+
+# Libs
+import discord
+import emoji
+from discord.ext.test import factories as dpyfactory
+
+# Own modules
+
+# Constants
+unicode_emojis = list(dict(emoji.UNICODE_EMOJI.get('en')).values())
+flag_emojis = list([":regional_indicator_a:", ":regional_indicator_b:", ":regional_indicator_c:"])
+emoji_unicodes = list(dict(emoji.EMOJI_UNICODE.get('en')).values())
+
+
+# Variables
+
+
+def assert_activity(activity: discord.Activity, application_id=None, name=None, url=None,
+                    type=None, state=None, details=None, emoji=None, start=None, end=None,
+                    large_image_url=None, small_image_url=None, large_image_text=None, small_image_text=None):
+    """
+    A method that asserts all activity properties of the given activity are as provided
+
+    :param activity: The outcome to be tested against
+    :param application_id: assert the application ID of the activity is the same as this
+    :param name: assert the name of the activity is the same as this
+    :param url: assert the url of the activity is the same as this
+    :param type: assert the type of the activity is the same as this
+    :param state: assert the state of the activity is the same as this
+    :param details: assert the details of the activity is the same as this
+    :param emoji: assert the emoji of the activity is the same as this
+    :param start: assert the start of the activity is the same as this
+    :param end: assert the end of the activity is the same as this
+    :param large_image_url: assert the large_image_url of the activity is the same as this
+    :param small_image_url: assert the small_image_url of the activity is the same as this
+    :param large_image_text: assert the large_image_text of the activity is the same as this
+    :param small_image_text: assert the small_image_text of the activity is the same as this
+    """
+    # TODO: Add timestamps, assets, party
+    assert activity.application_id == application_id \
+           and activity.name == name \
+           and activity.url == url \
+           and activity.type == type \
+           and activity.state == state \
+           and activity.details == details \
+           and activity.emoji == emoji \
+           and activity.start == start \
+           and activity.end == end \
+           and activity.large_image_url == large_image_url \
+           and activity.small_image_url == small_image_url \
+           and activity.large_image_text == large_image_text \
+           and activity.small_image_text == small_image_text
+
+
+def fake_guild_emoji(guild: discord.Guild) -> discord.Emoji:
+    fake_emoji = discord.Emoji(guild=guild, state=None,
+                               data={'require_colons': True, 'managed': False, 'animated': False,
+                                     'name': fake_custom_emoji_name_str(), 'id': fake_id_str(), 'available': True})
+    return fake_emoji
+
+
+def fake_partial_emoji() -> discord.PartialEmoji:
+    if random.choice([True, False]):
+        fake_emoji = discord.PartialEmoji(name=fake_custom_emoji_name_str(), animated=random.choice([True, False]),
+                                          id=dpyfactory.make_id)
+    else:
+        fake_emoji = discord.PartialEmoji(name=fake_unicode_emoji())
+    return fake_emoji
+
+
+def fake_guild_role(guild: discord.Guild) -> discord.Role:
+    fake_role = discord.Role(guild=guild, state=None,
+                             data={'id': dpyfactory.make_id(), 'name': fake_custom_emoji_name_str(),
+                                   'mentionable': True, 'hoist': True, 'managed': False,
+                                   'colour': random.randint(0, 16777215), 'permissions': 8})
+    guild._add_role(fake_role)
+    return fake_role
+
+
+def fake_custom_emoji_str_rep() -> str:
+    """
+    Creates a fake string representation of a discord custom emoji.
+    :return:
+    """
+    emoji_str = ""
+    emoji_str += random.choice(["<a:", "<:"])
+    emoji_str += ''.join(random.choice(ascii_letters) for i in range(random.randint(4, 12)))
+    emoji_str += f":{dpyfactory.make_id()}>"
+    return emoji_str
+
+
+def fake_custom_emoji_name_str() -> str:
+    return ''.join(random.choice(ascii_letters) for i in range(random.randint(4, 12)))
+
+
+def fake_unicode_emoji() -> str:
+    """
+    Creates a fake unicode emoji (the string representation with colons)
+    :return:
+    """
+    return random.choice(unicode_emojis)
+
+
+def fake_flag_emoji() -> str:
+    """
+    Creates a fake unicode emoji (the string representation with colons)
+    :return:
+    """
+    return random.choice(flag_emojis)
+
+
+def fake_emoji_unicode() -> str:
+    """
+    Returns a random unicode emoji's unicode codepoint
+    """
+    return random.choice(emoji_unicodes)
+
+
+def fake_role_mention() -> str:
+    """
+    Creates a fake role mention string.
+    :return:
+    """
+    return "<@&" + str(dpyfactory.make_id()) + ">"
+
+
+def fake_id_str() -> str:
+    """
+    Creates a fake id string, e.g. message ID, role ID, etc.
+    :return:
+    """
+    return str(dpyfactory.make_id())
+
+
+class FakeAuthor:
+    """
+    A class that acts as a discord.Member to replace the ctx.author on a context (ctx)
+    """
+
+    def __init__(self, name="FakeUser#0001", id=-1, all_permissions=False):
+        """
+        Initialises class variables and creates a random id if not specified
+        :param name: the name of the user including identifier (e.g. KoalaBotUK#1075)
+        :param id: The discord ID of the user
+        :param all_permissions: If the user should be given all permissions (admin etc) or none
+        :param roles: The role IDs of the user's roles
+        """
+        self.name = name
+        if id == -1:
+            self.id = dpyfactory.make_id()
+        else:
+            self.id = id
+        self.allPermissions = all_permissions
+
+    def __str__(self):
+        """
+        The string of this class is the name
+        :return: name
+        """
+        return self.name
+
+    @property
+    def guild_permissions(self):
+        """
+        Imitates discord.Member.guild_permissions and redirects according to allPermissions
+        :return: discord permissions (all or none)
+        """
+        if self.allPermissions:
+            return discord.Permissions.all()
+        else:
+            return discord.Permissions.none()
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/KoalaBot/tests/tests_utils/fake_load_all_cogs/__init__.py</source>
+<document_content>
+from . import greetings_cog
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/KoalaBot/tests/tests_utils/fake_load_all_cogs/greetings_cog.py</source>
+<document_content>
+"""
+A test Cog to only be used for testing koalabot.load_all_cogs
+
+Commented using reStructuredText (reST)
+"""
+# Futures
+
+# Built-in/Generic Imports
+
+# Libs
+import discord
+from discord.ext import commands
+
+# Own modules
+import koalabot
+from koala.db import insert_extension
+
+
+# Constants
+
+# Variables
+
+
+class Greetings(commands.Cog):
+    """
+    A cog used for tests that greets the user
+    """
+
+    def __init__(self, bot):
+        """
+        Initialises class variables
+        :param bot: The client of the bot being used
+        """
+        self.bot = bot
+        self._last_member = None
+        insert_extension("Greetings", 0, True, True)
+
+    @commands.command()
+    async def hello(self, ctx, *, member: discord.Member = None):
+        """
+        Says hello to the user
+        :param ctx: context
+        :param member: the member who sent the message
+        """
+        member = member or ctx.author
+        if self._last_member is None or self._last_member.id != member.id:
+            await ctx.send('Hello {0.name}~'.format(member))
+        else:
+            await ctx.send('Hello {0.name}... This feels familiar.'.format(member))
+        self._last_member = member
+
+    @commands.command()
+    async def hi(self, ctx):
+        """
+        Says hi to the user
+        :param ctx: The context of the message
+        """
+        await ctx.send(f'Hi {ctx.author}')
+
+
+async def setup(bot: koalabot) -> None:
+    """
+    Loads this cog into the selected bot
+    :param bot: The client of the KoalaBot
+    """
+    await bot.add_cog(Greetings(bot))
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter/test_cog.py</source>
+<document_content>
+#!/usr/bin/env python
+"""
+Testing KoalaBot TextFilter
+"""
+
+# Libs
+import discord
+import discord.ext.test as dpytest
+import pytest
+import pytest_asyncio
+from sqlalchemy import select, delete
+
+# Own modules
+import koalabot
+from koala.cogs import BaseCog
+from koala.cogs import TextFilter as TextFilterCog
+from koala.cogs.text_filter.db import TextFilterDBManager
+from koala.cogs.text_filter.models import TextFilter, TextFilterModeration
+from koala.colours import KOALA_GREEN
+from koala.db import session_manager
+from koala.utils import is_int
+from tests.log import logger
+from tests.tests_utils.last_ctx_cog import LastCtxCog
+
+
+# Variables
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def utils_cog(bot: discord.ext.commands.Bot):
+    utils_cog = LastCtxCog(bot)
+    await bot.add_cog(utils_cog)
+    dpytest.configure(bot)
+    logger.info("Tests starting")
+    return utils_cog
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def base_cog(bot: discord.ext.commands.Bot):
+    base_cog = BaseCog(bot)
+    await bot.add_cog(base_cog)
+    dpytest.configure(bot)
+    logger.info("Tests starting")
+    return base_cog
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def tf_cog(bot: discord.ext.commands.Bot):
+    tf_cog = TextFilterCog(bot)
+    await bot.add_cog(tf_cog)
+    dpytest.configure(bot)
+    logger.info("Tests starting")
+    return tf_cog
+
+
+def assert_banned_warning(word):
+    assert dpytest.verify().message().content(
+        "Watch your language! Your message: '*" + word + "*' in " + dpytest.get_config().guilds[0].channels[
+            0].mention + " has been deleted by KoalaBot.")
+
+
+def assert_risky_warning(word):
+    assert dpytest.verify().message().content(
+        "Watch your language! Your message: '*" + word + "*' in " + dpytest.get_config().guilds[0].channels[
+            0].mention + " contains a 'risky' word. This is a warning.")
+
+
+def assert_email_warning(word):
+    assert dpytest.verify().message().content(
+        "Be careful! Your message: '*" + word + "*' in " + dpytest.get_config().guilds[0].channels[
+            0].mention + " includes personal information and has been deleted by KoalaBot.")
+
+
+def assert_filtered_confirmation(word, type):
+    assert dpytest.verify().message().content("*" + word + "* has been filtered as **" + type + "**.")
+
+
+def assert_new_ignore(id):
+    assert dpytest.verify().message().content("New ignore added: " + id)
+
+
+def assert_remove_ignore(id):
+    assert dpytest.verify().message().content("Ignore removed: " + id)
+
+
+def create_new_mod_channel_embed(channel):
+    embed = discord.Embed()
+    embed.title = "Koala Moderation - Mod Channel Added"
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    embed.add_field(name="Channel Name", value=channel.mention)
+    embed.add_field(name="Channel ID", value=str(channel.id))
+    return embed
+
+
+def list_mod_channel_embed(channels):
+    embed = discord.Embed()
+    embed.title = "Koala Moderation - Mod Channels"
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    for channel in channels:
+        embed.add_field(name="Name & Channel ID", value=channel.mention + " " + str(channel.id), inline=False)
+    return embed
+
+
+def list_ignored_embed(ignored):
+    embed = discord.Embed()
+    embed.title = "Koala Moderation - Ignored Users/Channels"
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    for ig in ignored:
+        embed.add_field(name="Name & ID", value=ig.mention + " " + str(ig.id))
+    return embed
+
+
+def remove_mod_channel_embed(channel):
+    embed = discord.Embed()
+    embed.title = "Koala Moderation - Mod Channel Removed"
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    embed.add_field(name="Channel Name", value=channel.mention)
+    embed.add_field(name="Channel ID", value=str(channel.id))
+    return embed
+
+
+def create_filtered_string(text):
+    create_text_string = ""
+    for current in text:
+        create_text_string += current + "\n"
+    return create_text_string
+
+
+def filtered_words_embed(words, filter, regex):
+    word_string = create_filtered_string(words)
+    filter_string = create_filtered_string(filter)
+    regex_string = create_filtered_string(regex)
+    embed = discord.Embed()
+    embed.title = "Koala Moderation - Filtered Words"
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    embed.add_field(name="Banned Words", value=word_string)
+    embed.add_field(name="Filter Types", value=filter_string)
+    embed.add_field(name="Is Regex?", value=regex_string)
+    return embed
+
+def no_filtered_words_embed():
+    embed = discord.Embed()
+    embed.title = "Koala Moderation - Filtered Words"
+    embed.colour = KOALA_GREEN
+    embed.set_footer(text=f"Guild ID: {dpytest.get_config().guilds[0].id}")
+    embed.add_field(name="No words found", value="For more help with using the Text Filter try k!help TextFilter")
+    return embed
+
+
+def cleanup(guild_id, tf_cog, session):
+    session.execute(delete(TextFilter).filter_by(guild_id=guild_id))
+
+
+@pytest.mark.asyncio()
+async def test_filter_new_word_correct_database(tf_cog):
+    with session_manager() as session:
+        old = len(session.execute(select(TextFilter.filtered_text).filter_by(filtered_text="no")).all())
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word no",
+                              channel=dpytest.get_config().guilds[0].channels[0])
+        assert_filtered_confirmation("no", "banned")
+        assert len(session.execute(select(TextFilter.filtered_text).filter_by(filtered_text="no")).all()) == old + 1
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_filter_empty_word():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word")
+
+
+@pytest.mark.asyncio()
+async def test_filter_too_many_arguments():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word a b c d e f g")
+
+
+@pytest.mark.asyncio()
+async def test_filter_risky_word(tf_cog):
+    with session_manager() as session:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word yup risky")
+        assert_filtered_confirmation("yup", "risky")
+
+        await dpytest.message("yup test")
+        assert_risky_warning("yup test")
+
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_unrecognised_filter_type():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word testy unknown")
+
+
+@pytest.mark.asyncio()
+async def test_filter_email_regex(tf_cog):
+    with session_manager() as session:
+        await dpytest.message(koalabot.COMMAND_PREFIX + r"filter_regex [a-z0-9]+[\._]?[a-z0-9]+[@]+[herts]+[.ac.uk]")
+        assert_filtered_confirmation(r"[a-z0-9]+[\._]?[a-z0-9]+[@]+[herts]+[.ac.uk]", "banned")
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_invalid_regex(tf_cog):
+    with session_manager() as session:
+        with pytest.raises(Exception):
+            await dpytest.message(koalabot.COMMAND_PREFIX + "filter_regex [")
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_normal_filter_does_not_recognise_regex():
+    await dpytest.message(koalabot.COMMAND_PREFIX + "filter \"^verify [a-zA-Z0-9]+@soton.ac.uk$\"")
+    assert_filtered_confirmation("^verify [a-zA-Z0-9]+@soton.ac.uk$", "banned")
+
+    await dpytest.message("verify abc@soton.ac.uk")
+    assert dpytest.verify().message().nothing()
+
+
+@pytest.mark.asyncio()
+async def test_filter_various_emails_with_regex(tf_cog):
+    with session_manager() as session:
+        await dpytest.message(koalabot.COMMAND_PREFIX + r"filter_regex [a-z0-9]+[\._]?[a-z0-9]+[@]+[herts]+[.ac.uk]")
+        assert_filtered_confirmation(r"[a-z0-9]+[\._]?[a-z0-9]+[@]+[herts]+[.ac.uk]", "banned")
+
+        # Should delete and warn
+        await dpytest.message("hey stefan@herts.ac.uk")
+        assert_banned_warning("hey stefan@herts.ac.uk")
+
+        # Should delete and warn
+        await dpytest.message("hey stefan.c.27.abc@herts.ac.uk")
+        assert_banned_warning("hey stefan.c.27.abc@herts.ac.uk")
+
+        # Should not warn
+        await dpytest.message("hey herts.ac.uk")
+        assert dpytest.verify().message().nothing()
+
+        # Should not warn
+        await dpytest.message("hey stefan@herts")
+        assert dpytest.verify().message().nothing()
+
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_unfilter_word_correct_database(tf_cog):
+    with session_manager() as session:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word unfilterboi")
+        assert_filtered_confirmation("unfilterboi", "banned")
+
+        old = len(session.execute(select(TextFilter.filtered_text).filter_by(filtered_text='unfilterboi')).all())
+        await dpytest.message(koalabot.COMMAND_PREFIX + "unfilter_word unfilterboi")
+
+        assert len(session.execute(select(TextFilter.filtered_text)
+                                   .filter_by(filtered_text='unfilterboi')).all()) == old - 1
+        assert dpytest.verify().message().content("*unfilterboi* has been unfiltered.")
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_unfilter_empty():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "unfilter_word")
+
+
+@pytest.mark.asyncio()
+async def test_unfilter_too_many_arguments():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "unfilter_word a b c d e")
+
+
+@pytest.mark.asyncio()
+async def test_list_filtered_words(tf_cog):
+    with session_manager() as session:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word listing1")
+        assert_filtered_confirmation("listing1", "banned")
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word listing2 risky")
+        assert_filtered_confirmation("listing2", "risky")
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "check_filtered_words")
+        assert_embed = filtered_words_embed(['listing1', 'listing2'], ['banned', 'risky'], ['0', '0'])
+        assert dpytest.verify().message().embed(embed=assert_embed)
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_list_filtered_words_empty(tf_cog):
+    with session_manager() as session:
+        await dpytest.message(koalabot.COMMAND_PREFIX + "check_filtered_words")
+        assert_embed = no_filtered_words_embed()
+        assert dpytest.verify().message().embed(embed=assert_embed)
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_add_mod_channel(tf_cog):
+    with session_manager() as session:
+        channel = dpytest.backend.make_text_channel(name="TestChannel", guild=dpytest.get_config().guilds[0])
+        dpytest.get_config().channels.append(channel)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel " + str(channel.id))
+        assert_embed = create_new_mod_channel_embed(channel)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.fixture
+def text_filter_db_manager():
+    return TextFilterDBManager(dpytest.get_config())
+
+
+@pytest.mark.asyncio()
+async def test_add_mod_channel_tag(text_filter_db_manager, tf_cog):
+    with session_manager() as session:
+        channel = dpytest.backend.make_text_channel(name="TestChannel", guild=dpytest.get_config().guilds[0])
+        dpytest.get_config().channels.append(channel)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel <#" + str(channel.id) + ">")
+        assert_embed = create_new_mod_channel_embed(channel)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+
+        result = session.execute(select(TextFilterModeration.channel_id).filter_by(guild_id=channel.guild.id)).all()
+        assert is_int(result[0][0])
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_add_mod_channel_empty():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel")
+
+
+@pytest.mark.asyncio()
+async def test_add_mod_channel_unrecognised_channel():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel 123")
+
+
+@pytest.mark.asyncio()
+async def test_add_mod_channel_too_many_arguments():
+    channel = dpytest.backend.make_text_channel(name="TestChannel", guild=dpytest.get_config().guilds[0])
+    dpytest.get_config().channels.append(channel)
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel " + str(channel.id) + " a b c d e")
+
+
+@pytest.mark.asyncio()
+async def test_remove_mod_channel(tf_cog):
+    with session_manager() as session:
+        channel = dpytest.backend.make_text_channel(name="TestChannel", guild=dpytest.get_config().guilds[0])
+        channel_id = str(channel.id)
+        dpytest.get_config().channels.append(channel)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel " + channel_id)
+        assert_embed = create_new_mod_channel_embed(channel)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "removeModChannel " + channel_id)
+        assert_embed = remove_mod_channel_embed(channel)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_remove_mod_channel_empty():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "removeModChannel")
+
+
+@pytest.mark.asyncio()
+async def test_remove_mod_channel_too_many_arguments():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "removeModChannel 123 a b c d e")
+
+
+@pytest.mark.asyncio()
+async def test_remove_mod_channel_unrecognised_channel():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "removeModChannel 123 a b c d e")
+
+
+@pytest.mark.asyncio()
+async def test_list_channels(tf_cog):
+    with session_manager() as session:
+        channel = dpytest.backend.make_text_channel(name="TestChannel", guild=dpytest.get_config().guilds[0])
+        dpytest.get_config().channels.append(channel)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel " + str(channel.id))
+        assert_embed = create_new_mod_channel_embed(channel)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "listModChannels")
+        assert_embed = list_mod_channel_embed([channel])
+        assert dpytest.verify().message().embed(embed=assert_embed)
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_list_multiple_channels(tf_cog):
+    with session_manager() as session:
+        channel1 = dpytest.backend.make_text_channel(name="TestChannel1", guild=dpytest.get_config().guilds[0])
+        channel2 = dpytest.backend.make_text_channel(name="TestChannel2", guild=dpytest.get_config().guilds[0])
+        dpytest.get_config().channels.append(channel1)
+        dpytest.get_config().channels.append(channel2)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel " + str(channel1.id))
+        assert_embed = create_new_mod_channel_embed(channel1)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "setupModChannel " + str(channel2.id))
+        assert_embed = create_new_mod_channel_embed(channel2)
+        assert dpytest.verify().message().embed(embed=assert_embed)
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "listModChannels")
+        assert_embed = list_mod_channel_embed([channel1, channel2])
+        assert dpytest.verify().message().embed(embed=assert_embed)
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_ignore_channel(tf_cog):
+    with session_manager() as session:
+        channel1 = dpytest.backend.make_text_channel(name="TestChannel1", guild=dpytest.get_config().guilds[0])
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word ignoreme")
+        assert_filtered_confirmation("ignoreme", "banned")
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "ignoreChannel " + channel1.mention)
+        assert_new_ignore(channel1.mention)
+
+        # Should be ignored
+        await dpytest.message("ignoreme", channel=channel1)
+
+        # Should be deleted and warned
+        await dpytest.message("ignoreme")
+        assert_banned_warning("ignoreme")
+
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_ignore_user(tf_cog):
+    with session_manager() as session:
+        message = await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word ignoreuser")
+        assert_filtered_confirmation("ignoreuser", "banned")
+
+        # Should be deleted and warned
+        await dpytest.message("ignoreuser")
+        assert_banned_warning("ignoreuser")
+
+        await dpytest.message(koalabot.COMMAND_PREFIX + "ignoreUser " + message.author.mention)
+        assert_new_ignore(message.author.mention)
+
+        # Should be ignored
+        await dpytest.message("ignoreuser")
+        cleanup(dpytest.get_config().guilds[0].id, tf_cog, session)
+
+
+@pytest.mark.asyncio()
+async def test_ignore_empty_user():
+    with pytest.raises(Exception):
+        await dpytest.message(koalabot.COMMAND_PREFIX + "ignoreUser")
+
+
+@pytest.mark.asyncio()
+async def test_unignore_channel():
+    await dpytest.message(koalabot.COMMAND_PREFIX + "filter_word ignoreuser")
+    assert_filtered_confirmation("ignoreuser", "banned")
+
+    await dpytest.message(
+        koalabot.COMMAND_PREFIX + "ignoreChannel " + dpytest.get_config().guilds[0].channels[0].mention)
+    assert_new_ignore(dpytest.get_config().guilds[0].channels[0].mention)
+
+    # Should be ignored
+    await dpytest.message("ignoreuser")
+
+    await dpytest.message(koalabot.COMMAND_PREFIX + "unignore " + dpytest.get_config().guilds[0].channels[0].mention)
+    assert_remove_ignore(dpytest.get_config().guilds[0].channels[0].mention)
+
+    # Should be deleted and warned
+    await dpytest.message("ignoreuser")
+    assert_banned_warning("ignoreuser")
+
+
+@pytest.mark.asyncio()
+async def test_list_ignored():
+    mes = await dpytest.message(
+        koalabot.COMMAND_PREFIX + "ignoreChannel " + dpytest.get_config().guilds[0].channels[0].mention)
+    assert_new_ignore(dpytest.get_config().guilds[0].channels[0].mention)
+
+    await dpytest.message(koalabot.COMMAND_PREFIX + "ignoreUser " + mes.author.mention)
+    assert_new_ignore(mes.author.mention)
+
+    await dpytest.message(koalabot.COMMAND_PREFIX + "listIgnored")
+    assert list_ignored_embed([dpytest.get_config().guilds[0].channels[0], mes.author])
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/KoalaBot/koalabot.py</source>
+<document_content>
+#!/usr/bin/env python
+
+"""
+Koala Bot Base Code
+Run this to start the Bot
+
+Commented using reStructuredText (reST)
+"""
+__author__ = "KoalaBotUK"
+__copyright__ = "Copyright (c) 2020 KoalaBotUK"
+__credits__ = ["See full list of developers at: https://koalabot.uk/"]
+__license__ = "MIT License"
+__version__ = "1.0.0"
+__maintainer__ = "Jack Draper"
+__status__ = "Production"  # "Prototype", "Development", or "Production"
+
+# Futures
+# Built-in/Generic Imports
+import asyncio
+import time
+
+import discord
+# Libs
+from aiohttp import web
+import aiohttp_cors
+from discord.ext import commands
+
+from koala import env
+# Own modules
+from koala.db import extension_enabled
+from koala.env import BOT_TOKEN, BOT_OWNER, API_PORT
+from koala.errors import KoalaException
+from koala.log import logger
+from koala.utils import error_embed
+
+# Constants
+COMMAND_PREFIX = "k!"
+OPT_COMMAND_PREFIX = "K!"
+STREAMING_URL = "https://twitch.tv/thenuel"
+COGS_PACKAGE = "koala.cogs"
+TEST_USER = "TestUser#0001"  # Test user for dpytest
+TEST_BOT_USER = "FakeApp#0001"  # Test bot user for dpytest
+KOALA_GREEN = discord.Colour.from_rgb(0, 170, 110)
+PERMISSION_ERROR_TEXT = "This guild does not have this extension enabled, go to http://koalabot.uk, " \
+                        "or use `k!help enableExt` to enable it"
+KOALA_IMAGE_URL = "https://cdn.discordapp.com/attachments/737280260541907015/752024535985029240/discord1.png"
+ENABLED_COGS = ["base", "announce", "colour_role", "insights", "intro_cog", "react_for_role", "text_filter",
+                "twitch_alert", "verification", "voting"]
+
+# Variables
+intent = discord.Intents.default()
+intent.guilds = True        # on_guild_join, on_guild_remove
+intent.members = True       # on_member_join
+intent.reactions = True     # on_raw_reaction_add
+intent.messages = True      # on_message
+intent.message_content = True
+is_dpytest = False
+
+
+class KoalaBot(commands.Bot):
+    """
+    The commands.Bot subclass for Koala
+    """
+    async def setup_hook(self) -> None:
+        """
+        To perform asynchronous setup after the bot is logged in but before it has connected to the Websocket.
+        """
+        logger.debug("hook setup")
+        await self.tree.sync()
+
+    async def on_command_error(self, ctx, error: Exception):
+        if ctx.guild is None:
+            guild_id = "UNKNOWN"
+            logger.warn("Unknown guild ID threw exception", exc_info=error)
+        else:
+            guild_id = ctx.guild.id
+
+        if error.__class__ in [KoalaException,
+                               commands.MissingRequiredArgument,
+                               commands.CommandNotFound]:
+            await ctx.send(embed=error_embed(description=error))
+        if error.__class__ in [commands.CheckFailure]:
+            await ctx.send(embed=error_embed(error_type=str(type(error).__name__),
+                                             description=str(
+                                                 error) + "\nPlease ensure you have administrator permissions, "
+                                                          "and have enabled this extension."))
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(embed=error_embed(description=f"{ctx.author.mention}, this command is still on cooldown for "
+                                                         f"{str(error.retry_after)}s."))
+        elif isinstance(error, commands.errors.ChannelNotFound):
+            await ctx.send(
+                embed=error_embed(description=f"The channel ID provided is either invalid, or not in this server."))
+        elif isinstance(error, commands.CommandInvokeError):
+            logger.error("CommandInvokeError(%s), guild_id: %s, message: %s", error.original, guild_id, ctx.message,
+                         exc_info=error)
+            await ctx.send(embed=error_embed(description=error.original))
+        else:
+            logger.error(f"Unexpected Error in guild %s : %s", guild_id, error, exc_info=error)
+            await ctx.send(embed=error_embed(
+                description=f"An unexpected error occurred, please contact an administrator Timestamp: {time.time()}"))  # FIXME: better timestamp
+            raise error
+
+
+def is_owner(ctx: commands.Context):
+    """
+    A command used to check if the user of a command is the owner, or the testing bot.
+    The command also allows Senior Devs of KoalaBot to use owner only commands (as given by Admin role in the dev portal)
+    e.g. @commands.check(koalabot.is_owner)
+    :param ctx: The context of the message
+    :return: True if owner or test, False otherwise
+    """
+    if is_dm_channel(ctx):
+        return False
+    elif BOT_OWNER is not None:
+        return ctx.author.id in BOT_OWNER or is_dpytest
+    else:
+        return ctx.bot.is_owner(ctx.author) or is_dpytest
+
+
+def is_admin(ctx):
+    """
+    A command used to check if the user of a command is the admin, or the testing bot
+    e.g. @commands.check(koalabot.is_admin)
+    :param ctx: The context of the message
+    :return: True if admin or test, False otherwise
+    """
+    if is_dm_channel(ctx):
+        return False
+    else:
+        return ctx.author.guild_permissions.administrator or is_dpytest
+
+
+def is_dm_channel(ctx):
+    return isinstance(ctx.channel, discord.channel.DMChannel)
+
+
+def is_guild_channel(ctx):
+    return ctx.guild is not None
+
+
+async def load_all_cogs(bot):
+    """
+    Loads all cogs in ENABLED_COGS into the client
+    """
+
+    for cog in ENABLED_COGS:
+        try:
+            await bot.load_extension("."+cog, package=COGS_PACKAGE)
+        except commands.errors.ExtensionAlreadyLoaded:
+            await bot.reload_extension("."+cog, package=COGS_PACKAGE)
+
+    logger.info("All cogs loaded")
+
+
+async def dm_group_message(members: [discord.Member], message: str):
+    """
+    DMs members in a list of members
+    :param members: list of members to DM
+    :param message: The message to send to the group
+    :return: how many were dm'ed successfully.
+    """
+    count = 0
+    for member in members:
+        try:
+            await member.send(message)
+            count = count + 1
+        except Exception:  # In case of user dms being closed
+            pass
+    return count
+
+
+def check_guild_has_ext(ctx, extension_id):
+    """
+    A check for if a guild has a given koala extension
+    :param ctx: A discord context
+    :param extension_id: The koala extension ID
+    :return: True if has ext
+    """
+    if is_dm_channel(ctx):
+        return False
+    if (not extension_enabled(ctx.message.guild.id, extension_id)) and (not is_dpytest):
+        raise PermissionError(PERMISSION_ERROR_TEXT)
+    return True
+
+
+async def run_bot():
+    app = web.Application()
+
+    bot = KoalaBot(command_prefix=[COMMAND_PREFIX, OPT_COMMAND_PREFIX], intents=intent)
+    setattr(bot, "koala_web_app", app)
+    await load_all_cogs(bot)
+
+    cors = aiohttp_cors.setup(app, defaults={
+        env.FRONTEND_URL: aiohttp_cors.ResourceOptions(
+                expose_headers="*", allow_headers="*")
+    })
+    for route in list(app.router.routes()):
+        cors.add(route)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', API_PORT)
+    await site.start()
+
+    try:
+        async with bot:
+            await bot.start(BOT_TOKEN)
+
+    except Exception:
+        bot.close(),
+        raise
+
+    finally:
+        await runner.cleanup()
+
+if __name__ == '__main__': # pragma: no cover
+    # loop = asyncio.get_event_loop()
+    asyncio.run(run_bot())
+
+</document_content>
+</document>
+</documents>
