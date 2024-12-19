@@ -410,7 +410,17 @@ async def test_twitter_cog_on_guild_join(bot_with_twitter_cog: DemocracyBot, cap
     assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
 
 
-# NOTE: to get this to to pass after the refactor, you might need to incorporate things like which channel this is being said in etc.
+# NOTE: to get this to to pass after the refactor, you might need to incorporate things like which channel this is being said in etc. (via aider)
+#  # Create channel with specific ID
+#  channel = await dpytest.driver.create_text_channel(
+#      guild,
+#      channel_id=1240294186201124929
+#  )
+
+#  # Send message in that specific channel
+#  await dpytest.message("?tweet", channel=channel)
+
+
 @pytest.mark.asyncio
 async def test_tweet_help_command(bot_with_twitter_cog: DemocracyBot) -> None:
     """Test tweet help command shows help message.
