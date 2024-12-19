@@ -236,6 +236,138 @@ def is_chroma_uri(uri: str) -> bool:
     return any(x in uri for x in ["localhost", "127.0.0.1"])
 
 
+def is_twitter(uri: str) -> bool:
+    """Check if a URI is a Twitter URI.
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is a Twitter URI, False otherwise.
+    """
+    pattern = (
+        r"(?:https?://)?(?:www\.|mobile\.)?"
+        r"(?:(?:[fv]x)?twitter|(?:fix(?:up|v))?x)\.com"
+    )
+    return bool(re.search(pattern, uri))
+
+
+def is_instagram(uri: str) -> bool:
+    """Check if a URI is an Instagram URI.
+
+    This function checks both general Instagram URLs and specific user profile URLs.
+    It excludes URLs for posts (/p/), TV (/tv/), reels (/reel/), explore (/explore/),
+    and stories (/stories/).
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is an Instagram URI, False otherwise.
+    """
+    base_pattern = r"(?:https?://)?(?:www\.)?instagram\.com"
+    user_pattern = base_pattern + r"/(?!(?:p|tv|reel|explore|stories)/)([^/?#]+)"
+
+    # Check if it matches either the base pattern or user pattern
+    return bool(re.search(base_pattern, uri)) or bool(re.search(user_pattern, uri))
+
+
+def is_reddit(uri: str) -> bool:
+    """Check if a URI is a Reddit URI.
+
+    This function checks various Reddit URL patterns including:
+    - Subreddit URLs (/r/subreddit/)
+    - User URLs (/u/username/ or /user/username/)
+    - Submission URLs (/comments/id/ or /gallery/id/)
+    - Reddit-hosted images (i.redd.it, preview.redd.it, i.reddituploads.com)
+    - Share URLs (/r/subreddit/s/shareid)
+    - Home feed URLs
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is a Reddit URI, False otherwise.
+    """
+    patterns = [
+        # Subreddit pattern
+        r"(?:https?://)?(?:\w+\.)?reddit\.com(/r/[^/?#]+(?:/([a-z]+))?)/?(?:\?([^#]*))?(?:$|#)",
+        # Home pattern
+        r"(?:https?://)?(?:\w+\.)?reddit\.com((?:/([a-z]+))?)/?(?:\?([^#]*))?(?:$|#)",
+        # User pattern
+        r"(?:https?://)?(?:\w+\.)?reddit\.com/u(?:ser)?/([^/?#]+(?:/([a-z]+))?)/?(?:\?([^#]*))?$",
+        # Submission pattern
+        r"(?:https?://)?(?:(?:\w+\.)?reddit\.com/(?:(?:r|u|user)/[^/?#]+/comments|gallery)|redd\.it)/([a-z0-9]+)",
+        # Image pattern
+        r"(?:https?://)?((?:i|preview)\.redd\.it|i\.reddituploads\.com)/([^/?#]+)(\?[^#]*)?",
+        # Redirect/Share pattern
+        r"(?:https?://)?(?:(?:\w+\.)?reddit\.com/(?:(?:r)/([^/?#]+)))/s/([a-zA-Z0-9]{10})",
+    ]
+
+    return any(bool(re.search(pattern, uri)) for pattern in patterns)
+
+
+def is_youtube(uri: str) -> bool:
+    """Check if a URI is a YouTube URI.
+
+    This function checks various YouTube URL patterns including:
+    - Standard youtube.com URLs (with various subdomains)
+    - Short youtu.be URLs
+    - YouTube handle URLs
+    - YouTube channel URLs
+    - YouTube embed URLs
+    - YouTube shorts URLs
+    - Alternative YouTube frontends (invidious, hooktube, etc.)
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is a YouTube URI, False otherwise.
+    """
+    patterns = [
+        # Main YouTube pattern for videos
+        r"""(?x)^
+            (?:https?://|//)
+            (?:(?:(?:(?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids)?\.com|
+               (?:www\.)?deturl\.com/www\.youtube\.com|
+               (?:www\.)?pwnyoutube\.com|
+               (?:www\.)?hooktube\.com|
+               (?:www\.)?yourepeat\.com|
+               tube\.majestyc\.net|
+               youtube\.googleapis\.com)/
+            (?:.*?\#/)?
+            (?:
+                (?:(?:v|embed|e|shorts|live)/(?!videoseries|live_stream))
+                |(?:
+                    (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?
+                    (?:\?|\#!?)
+                    (?:.*?[&;])??
+                    v=
+                )
+            ))
+            |(?:
+               youtu\.be|
+               vid\.plus|
+               zwearz\.com/watch
+            )/
+            |(?:www\.)?cleanvideosearch\.com/media/action/yt/watch\?videoId=
+            )?
+            [0-9A-Za-z_-]{11}
+            (?:\#|$)""",
+        # YouTube handle pattern
+        r"^(?:https?://(?:www\.)?youtube\.com)?/(@[a-zA-Z0-9_-]+)",
+        # YouTube channel pattern
+        r"^(?:https?://(?:www\.)?youtube\.com)?/(UC[a-zA-Z0-9_-]{22})",
+        # YouTube embed pattern
+        r"(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/(?:embed|v|p)/[0-9A-Za-z_-]{11}",
+        # YouTube shorts pattern
+        r"(?:https?://)?(?:www\.)?youtube\.com/shorts/[0-9A-Za-z_-]{11}",
+    ]
+
+    return any(bool(re.search(pattern, uri, re.VERBOSE)) for pattern in patterns)
+
+
 def filter_response(response: VCRRequest) -> VCRRequest:
     """
     Filter the response before recording.
@@ -286,6 +418,7 @@ def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
         directly as the chunk boundary is generated randomly
     - For opensearch requests, we just match the body
     - For openai, allow llm-proxy
+    - For social media (YouTube, Instagram, Twitter, Reddit), match based on domain patterns
     - For others, we match both uri and body
 
     Args:
@@ -312,9 +445,21 @@ def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
         # Case 3: Both requests are to Chroma endpoints (localhost/127.0.0.1)
         or is_chroma_uri(r1.uri)
         and is_chroma_uri(r2.uri)
+        # Case 4: Both requests are to YouTube endpoints
+        or is_youtube(r1.uri)
+        and is_youtube(r2.uri)
+        # Case 5: Both requests are to Instagram endpoints
+        or is_instagram(r1.uri)
+        and is_instagram(r2.uri)
+        # Case 6: Both requests are to Twitter endpoints
+        or is_twitter(r1.uri)
+        and is_twitter(r2.uri)
+        # Case 7: Both requests are to Reddit endpoints
+        or is_reddit(r1.uri)
+        and is_reddit(r2.uri)
     ):
         # For these special cases, we only compare the body content
-        # The URIs might be different but functionally equivalent (e.g. openai vs llm-proxy)
+        # The URIs might be different but functionally equivalent
         return r1.body == r2.body
 
     # If none of the above conditions match, the requests are considered different
