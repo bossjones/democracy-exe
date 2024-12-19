@@ -536,6 +536,12 @@ async def test_download_tweet_success_twitter_cog(
             # Verify shell command was mocked
             mock_shell.assert_called()
 
+            try:
+                # Teardown
+                await dpytest.empty_queue()  # empty the global message queue as test teardown
+            finally:
+                pass
+
 
 # @pytest.mark.skip_until(
 #     deadline=datetime.datetime(2024, 12, 25), strict=True, msg="Alert is suppressed. Make progress till then"

@@ -13,7 +13,7 @@ from loguru import logger
 import pytest
 
 from democracy_exe.utils.twitter_utils.download import _parse_tweet_metadata, download_tweet
-from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
+from democracy_exe.utils.twitter_utils.types import DownloadResult, TweetDownloadMode
 
 
 if TYPE_CHECKING:
@@ -105,7 +105,7 @@ class TestDownloadTweet:
             mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
 
             # Test download with error
-            result = await download_tweet("https://twitter.com/user/status/123456789", mode="single")
+            result: DownloadResult = await download_tweet("https://twitter.com/user/status/123456789", mode="single")
 
             # Verify AsyncMock was called
             mock_shell.assert_awaited_once()
@@ -184,9 +184,9 @@ class TestParseMetadata:
         info_path = tmp_path / "info.json"
         info_path.write_text("invalid json")
 
-        metadata = _parse_tweet_metadata(str(tmp_path))
+        # with pytest.raises((json.decoder.JSONDecodeError, ValueError,FileNotFoundError, KeyError), match="Expecting value") as exc_info:
+        res = _parse_tweet_metadata(str(tmp_path))
 
-        assert metadata["id"] == ""
-        assert metadata["author"] == ""
-        assert not metadata["media_urls"]
-        # assert "Error parsing tweet metadata" in caplog.text
+        assert res["id"] == ""
+        assert res["author"] == ""
+        assert not res["media_urls"]

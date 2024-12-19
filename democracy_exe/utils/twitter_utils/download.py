@@ -224,7 +224,7 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
             "created_at": tweet_data.get("created_at", ""),
         }
 
-    except Exception as e:
+    except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
         logger.exception(f"Error parsing tweet metadata: {e}")
         return {
             "id": "",
