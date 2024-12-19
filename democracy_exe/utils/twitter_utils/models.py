@@ -7,6 +7,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict, Union
 
+from pydantic import BaseModel, Field, validator
+from pydantic.datetime_parse import parse_datetime
+
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
 
 
@@ -354,3 +357,82 @@ class DownloadedContent:
             result["metadata"] = self.content.to_dict()
 
         return result
+
+
+
+
+class TwitterUser(BaseModel):
+    """Model representing a Twitter user's profile data."""
+    id: int | Any = Field(description="The unique identifier for the user")
+    name: str = Field(description="The user's screen name/handle")
+    nick: str = Field(description="The user's display name")
+    location: str | None = Field(None, description="The user's location")
+    date: datetime | str | Any = Field(description="The date the user's account was created")
+    verified: bool = Field(False, description="Whether the user is verified")
+    protected: bool = Field(False, description="Whether the user's tweets are protected")
+    profile_banner: str | None = Field(None, description="URL to the user's profile banner image")
+    profile_image: str = Field(description="URL to the user's profile image")
+    favourites_count: int | Any = Field(description="Number of tweets the user has liked")
+    followers_count: int | Any = Field(description="Number of followers the user has")
+    friends_count: int | Any = Field(description="Number of users the user is following")
+    listed_count: int | Any = Field(description="Number of lists the user is a member of")
+    media_count: int | Any = Field(description="Number of media items the user has posted")
+    statuses_count: int | Any = Field(description="Total number of tweets by the user")
+    description: str = Field(description="The user's profile description/bio")
+    url: str | None = Field(None, description="The user's website URL")
+
+    @validator('date', pre=True)
+    def parse_date(cls, v):
+        """Parse date strings that start with 'dt:' prefix."""
+        if isinstance(v, str) and v.startswith('dt:'):
+            return parse_datetime(v[3:])
+        return v
+
+
+class TwitterMention(BaseModel):
+    """Model representing a user mention in a tweet."""
+    id: int | Any = Field(description="The unique identifier of the mentioned user")
+    name: str = Field(description="The screen name of the mentioned user")
+    nick: str = Field(description="The display name of the mentioned user")
+
+
+class TweetInfo(BaseModel):
+    """Model representing a Twitter tweet info.json file ."""
+    tweet_id: int | range | Any = Field(description="The unique identifier of the tweet")
+    retweet_id: int | Any = Field(0, description="The ID of the original tweet if this is a retweet")
+    quote_id: int | Any = Field(0, description="The ID of the quoted tweet if this is a quote tweet")
+    reply_id: int | Any | None = Field(None, description="The ID of the tweet this is replying to")
+    conversation_id: int | range | Any = Field(description="The ID of the conversation thread")
+    date: datetime | str | Any = Field(description="The timestamp when the tweet was created")
+    author: TwitterUser = Field(description="The user who authored the tweet")
+    user: TwitterUser = Field(description="The user in whose timeline this tweet appears")
+    lang: str = Field(description="The language code of the tweet")
+    source: str = Field(description="The application used to post the tweet")
+    sensitive: bool = Field(False, description="Whether the tweet contains sensitive content")
+    favorite_count: int | Any = Field(0, description="Number of likes the tweet has received")
+    quote_count: int | Any = Field(0, description="Number of times the tweet has been quoted")
+    reply_count: int | Any = Field(0, description="Number of replies to the tweet")
+    retweet_count: int | Any = Field(0, description="Number of times the tweet has been retweeted")
+    bookmark_count: int | Any = Field(0, description="Number of times the tweet has been bookmarked")
+    view_count: int | Any = Field(0, description="Number of times the tweet has been viewed")
+    mentions: list[TwitterMention] | None = Field(None, description="List of users mentioned in the tweet")
+    content: str = Field(description="The text content of the tweet")
+    reply_to: str | None = Field(None, description="The screen name of the user being replied to")
+    count: int | range | Any | None = Field(None, description="Number of media items in the tweet")
+    category: str = Field("twitter", description="The category identifier for the tweet")
+    subcategory: str = Field(description="The subcategory identifier for the tweet")
+    type: str | None = Field(None, description="Type of media in the tweet")
+    date_original: datetime | str | None = Field(None, description="Original tweet date for retweets")
+    birdwatch: str | None = Field(None, description="Birdwatch note content if present")
+    description: str | None = Field(None, description="Media description/alt text")
+
+    @validator('date', 'date_original', pre=True)
+    def parse_dates(cls, v):
+        """Parse date strings that start with 'dt:' prefix."""
+        if isinstance(v, str) and v.startswith('dt:'):
+            return parse_datetime(v[3:])
+        return v
+
+    class Config:
+        """Pydantic config."""
+        extra = "allow"  # Allow extra fields that might be present in test data

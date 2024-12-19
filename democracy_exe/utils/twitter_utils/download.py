@@ -24,6 +24,7 @@ from democracy_exe import shell
 from democracy_exe.constants import DL_SAFE_TWITTER_COMMAND, DL_TWITTER_CARD_COMMAND, DL_TWITTER_THREAD_COMMAND
 from democracy_exe.utils.file_functions import filter_media, tree
 
+from .models import TweetInfo
 from .types import DownloadResult, TweetDownloadMode, TweetMetadata
 
 
@@ -184,16 +185,21 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
             logger.debug(f"Found files: {files}")
 
             if 'info.json' in files:
-                info_path = pathlib.Path(root) / 'info.json'
-                logger.info(f"Found info.json at: {info_path}")
-                return info_path
+                _info_path = pathlib.Path(root) / 'info.json'
+                logger.info(f"Found info.json at: {_info_path}")
+                return _info_path
 
         logger.warning(f"No info.json found in {directory} or its subdirectories")
         return None
 
     info_path = find_info_json(pathlib.Path(work_dir))
 
-    if info_path is None or not info_path.exists():
+    logger.info(f"info_path: {info_path}")
+    logger.info(f"info_path.exists(): {info_path.exists()}")
+    logger.info(f"info_path is None: {info_path is None}")
+
+    # if info_path is None or not info_path.exists():
+    if info_path is None:
         logger.warning(f"No info.json found in {work_dir} or its subdirectories")
         return {
             "id": "",
@@ -205,15 +211,25 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
         }
 
     try:
+        logger.info("Attempting to load info.json")
         import json
-        with open(info_path) as f:
+        with open(f"{info_path}", encoding="utf-8") as f:
             data = json.load(f)
+
+        logger.debug(f"data: {data}")
+
+        import bpdb
+        bpdb.set_trace()
 
         # Extract metadata from gallery-dl json format
         tweet_data = data.get("tweet", {})
         user_data = tweet_data.get("user", {})
 
         media_urls = [media["url"] for media in tweet_data.get("media", []) if "url" in media]
+
+        logger.info(f"tweet_data: {tweet_data}")
+        logger.info(f"user_data: {user_data}")
+        logger.info(f"media_urls: {media_urls}")
 
         return {
             "id": str(tweet_data.get("id", "")),
@@ -224,8 +240,17 @@ def _parse_tweet_metadata(work_dir: str) -> TweetMetadata:
             "created_at": tweet_data.get("created_at", ""),
         }
 
-    except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as e:
-        logger.exception(f"Error parsing tweet metadata: {e}")
+    except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as ex:
+        logger.exception(f"Error parsing tweet metadata: {ex}")
+        print(ex)
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        logger.error(f"Error Class: {ex.__class__!s}")
+        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        logger.warning(output)
+        logger.error(f"exc_type: {exc_type}")
+        logger.error(f"exc_value: {exc_value}")
+        traceback.print_tb(exc_traceback)
+
         return {
             "id": "",
             "url": "",

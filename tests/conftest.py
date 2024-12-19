@@ -236,84 +236,6 @@ def is_chroma_uri(uri: str) -> bool:
     return any(x in uri for x in ["localhost", "127.0.0.1"])
 
 
-# def _filter_request_headers(request: Any) -> Any:
-#     if IGNORE_HOSTS and any(request.url.startswith(host) for host in IGNORE_HOSTS):
-#         return None
-#     request.headers = {}
-#     return request
-
-
-def before_record_cb(request: VCRRequest) -> VCRRequest | None:
-    """Filter VCR requests before recording.
-
-    Args:
-        request: The VCR request to filter
-
-    Returns:
-        The filtered request, or None if request should be ignored
-    """
-    # Skip recording any login requests
-    if request.path == "/login":
-        return None
-
-    # Skip recording requests to ignored hosts defined in IGNORE_HOSTS
-    if IGNORE_HOSTS and any(request.url.startswith(host) for host in IGNORE_HOSTS):
-        return None
-
-    # Clear request headers to avoid recording sensitive data
-    request.headers = {}
-
-    # Return the filtered request
-    return request
-
-
-def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
-    """
-    Custom matcher to determine if the requests are the same.
-
-    - For internal adobe requests, we match the parts of the multipart request. This is needed as we can't compare the body
-        directly as the chunk boundary is generated randomly
-    - For opensearch requests, we just match the body
-    - For openai, allow llm-proxy
-    - For others, we match both uri and body
-
-    Args:
-        r1 (VCRRequest): The first request.
-        r2 (VCRRequest): The second request.
-
-    Returns:
-        bool: True if the requests match, False otherwise.
-    """
-
-    if r1.uri == r2.uri:
-        if r1.body == r2.body:
-            return True
-    elif (
-        is_opensearch_uri(r1.uri)
-        and is_opensearch_uri(r2.uri)
-        or is_llm_uri(r1.uri)
-        and is_llm_uri(r2.uri)
-        or is_chroma_uri(r1.uri)
-        and is_chroma_uri(r2.uri)
-    ):
-        return r1.body == r2.body
-
-    return False
-
-
-# SOURCE: https://github.com/kiwicom/pytest-recording/tree/master
-def pytest_recording_configure(config: PytestConfig, vcr: VCR) -> None:
-    """
-    Configure VCR for pytest-recording.
-
-    Args:
-        config (PytestConfig): The pytest config object.
-        vcr (VCR): The VCR object.
-    """
-    vcr.register_matcher("request_matcher", request_matcher)
-    vcr.match_on = ["request_matcher"]
-
-
 def filter_response(response: VCRRequest) -> VCRRequest:
     """
     Filter the response before recording.
@@ -356,15 +278,70 @@ def filter_response(response: VCRRequest) -> VCRRequest:
     return response
 
 
+def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
+    """
+    Custom matcher to determine if the requests are the same.
+
+    - For internal adobe requests, we match the parts of the multipart request. This is needed as we can't compare the body
+        directly as the chunk boundary is generated randomly
+    - For opensearch requests, we just match the body
+    - For openai, allow llm-proxy
+    - For others, we match both uri and body
+
+    Args:
+        r1 (VCRRequest): The first request.
+        r2 (VCRRequest): The second request.
+
+    Returns:
+        bool: True if the requests match, False otherwise.
+    """
+    # First check: If URIs are identical, compare the bodies
+    # This is the simplest case where both requests are to the same endpoint
+    if r1.uri == r2.uri:
+        if r1.body == r2.body:
+            return True
+    # Second check: Handle special cases for different types of URIs
+    # This allows matching requests to equivalent services (e.g. openai and llm-proxy)
+    elif (
+        # Case 1: Both requests are to OpenSearch endpoints (e.g. opensearch or es.amazonaws.com)
+        is_opensearch_uri(r1.uri)
+        and is_opensearch_uri(r2.uri)
+        # Case 2: Both requests are to LLM endpoints (e.g. openai, anthropic, llm-proxy)
+        or is_llm_uri(r1.uri)
+        and is_llm_uri(r2.uri)
+        # Case 3: Both requests are to Chroma endpoints (localhost/127.0.0.1)
+        or is_chroma_uri(r1.uri)
+        and is_chroma_uri(r2.uri)
+    ):
+        # For these special cases, we only compare the body content
+        # The URIs might be different but functionally equivalent (e.g. openai vs llm-proxy)
+        return r1.body == r2.body
+
+    # If none of the above conditions match, the requests are considered different
+    return False
+
+
+# SOURCE: https://github.com/kiwicom/pytest-recording/tree/master
+def pytest_recording_configure(config: PytestConfig, vcr: VCR) -> None:
+    """
+    Configure VCR for pytest-recording.
+
+    Args:
+        config (PytestConfig): The pytest config object.
+        vcr (VCR): The VCR object.
+    """
+    vcr.register_matcher("request_matcher", request_matcher)
+    vcr.match_on = ["request_matcher"]
+
+
 def filter_request(request: VCRRequest) -> VCRRequest | None:
     """
     Filter the request before recording.
 
-    If the request is of type multipart/form-data we don't filter anything, else we perform two additional filterings -
-    1. Processes the request body text, replacing today's date with a placeholder.This is necessary to ensure
-        consistency in recorded VCR requests. Without this modification, requests would contain varying body text
-        with older dates, leading to failures in request body text comparison when executed with new dates.
-    2. Filter out specific fields from post data fields
+    If the request is of type multipart/form-data we don't filter anything, else we perform additional filterings:
+    1. Skip recording login requests and requests to ignored hosts
+    2. Processes the request body text, replacing today's date with a placeholder
+    3. Filter out specific fields from post data fields
 
     Args:
         request (VCRRequest): The request to filter.
@@ -372,12 +349,21 @@ def filter_request(request: VCRRequest) -> VCRRequest | None:
     Returns:
         Optional[VCRRequest]: The filtered request, or None if the request should be ignored.
     """
+    # Skip recording login requests
+    if request.path == "/login":
+        return None
+
+    # Skip recording requests to ignored hosts defined in IGNORE_HOSTS
+    if IGNORE_HOSTS and any(request.url.startswith(host) for host in IGNORE_HOSTS):
+        return None
 
     # vcr does not handle multipart/form-data correctly as reported on https://github.com/kevin1024/vcrpy/issues/521
     # so let it pass through as is
     if ctype := request.headers.get("Content-Type"):
         ctype = ctype.decode("utf-8") if isinstance(ctype, bytes) else ctype
         if "multipart/form-data" in ctype:
+            # Clear request headers to avoid recording sensitive data
+            request.headers = {}
             return request
 
     request = copy.deepcopy(request)
@@ -386,6 +372,9 @@ def filter_request(request: VCRRequest) -> VCRRequest | None:
         # request to https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken
         # can be made by ChatLLMInvoker of venice-gentech
         return None
+
+    # Clear request headers to avoid recording sensitive data
+    request.headers = {}
 
     # filter dates
     if request.body is not None:
