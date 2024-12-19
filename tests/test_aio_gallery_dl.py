@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
     from _pytest.logging import LogCaptureFixture
     from _pytest.monkeypatch import MonkeyPatch
+    from pytest_recording.vcr import VCRRequest
 
     from pytest_mock.plugin import MockerFixture
 
@@ -335,3 +336,35 @@ async def test_download_error(mock_gallery_dl: Any, caplog: LogCaptureFixture, c
         # Verify error was logged
         # assert "Error in gallery-dl download" in caplog.text
         assert "" in caplog.text
+
+
+@pytest.mark.vcronly()
+@pytest.mark.default_cassette("test_run_single_tweet.yaml")
+@pytest.mark.vcr(
+    allow_playback_repeats=True,
+    match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
+    ignore_localhost=False,
+)
+async def test_run_single_tweet(
+    mocker: MockerFixture,
+    caplog: LogCaptureFixture,
+    capsys: CaptureFixture,
+    vcr: VCRRequest,
+) -> None:
+    """Test extracting metadata from a single tweet.
+
+    Args:
+        mocker: Pytest mocker fixture
+        caplog: Log capture fixture
+        capsys: Capture sys output fixture
+        vcr: VCR request fixture
+    """
+    url = "https://x.com/Eminitybaba_/status/1868256259251863704"
+
+    async with AsyncGalleryDL() as client:
+        async for item in client.extract_from_url(url):
+            assert item is not None
+            assert "url" in item
+            assert "filename" in item
+            assert "extension" in item
+            break
