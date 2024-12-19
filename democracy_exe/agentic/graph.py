@@ -21,20 +21,21 @@ import logging
 import uuid
 
 from datetime import UTC, datetime, timezone
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple, Union
 
 import langsmith
 import rich
 import tiktoken
 
-from langchain.chat_models import init_chat_model
+from langchain_anthropic import ChatAnthropic
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages.utils import get_buffer_string
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig, ensure_config, get_executor_for_config
 from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from langgraph.graph.state import CompiledStateGraph
+from langgraph.graph.state import CompiledStateGraph  # type: ignore
 from langgraph.prebuilt import ToolNode
 from loguru import logger
 
@@ -43,6 +44,9 @@ from democracy_exe.agentic import _schemas as schemas
 from democracy_exe.agentic import _utils as agentic_utils
 from democracy_exe.aio_settings import aiosettings
 
+
+# Type alias for chat models
+ChatModelLike = Union[ChatOpenAI, ChatAnthropic]
 
 _EMPTY_VEC = [0.0] * 768
 
@@ -263,8 +267,12 @@ async def agent(state: schemas.State, config: RunnableConfig) -> schemas.State:
     Returns:
         schemas.State: The updated state with the agent's response.
     """
-    configurable = agentic_utils.ensure_configurable(config)
-    llm = init_chat_model(configurable["model"], model_provider=aiosettings.llm_provider, temperature=0.0) # pyright: ignore[reportUndefinedVariable]
+    configurable: schemas.GraphConfig = agentic_utils.ensure_configurable(config)
+    llm: ChatModelLike = agentic_utils.get_chat_model(
+        model_name=configurable["model"], # type: ignore
+        model_provider=aiosettings.llm_provider,
+        temperature=0.0
+    )
     bound = prompt | llm.bind_tools(all_tools)
     core_str = (
         "<core_memory>\n" + "\n".join(state["core_memories"]) + "\n</core_memory>"
