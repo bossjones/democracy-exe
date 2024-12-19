@@ -1,3 +1,12 @@
+I'll revise the plan based on the existing code. Let me analyze the current implementation first.
+
+Read file: democracy_exe/chatbot/cogs/twitter.py
+
+
+I'll update the PLAN.md to focus on what's actually needed.
+
+```markdown:PLAN.md
+```markdown
 # DemocracyExe POC Development Plan (Revised)
 
 ## Overview
@@ -127,3 +136,34 @@ async def test_twitter_tool_basic():
 - [ ] Edge cases properly handled
 - [ ] LangGraph tool processes Twitter URLs
 - [ ] Basic test coverage for new modules
+```
+```
+
+
+I've updated the plan to focus on three main areas:
+
+1. **Twitter Cog Edge Cases (2 hours)**
+   - Adding proper URL validation
+   - Handling rate limiting and timeouts
+   - Improving temp file cleanup
+   - Better error handling
+
+2. **LangGraph/LangChain Integration (4 hours)**
+   - Creating the TwitterTool for LangChain
+   - Integrating with the existing LangGraph pipeline
+   - Handling media downloads through AI
+   - Error handling and logging
+
+3. **Basic Test Coverage (2 hours)**
+   - Setting up basic test structure
+   - Testing critical paths
+   - Testing error handling
+   - Aiming for 10-20% coverage on new modules
+
+The plan is now more focused on what's actually needed since you already have the core Twitter cog and bot functionality implemented.
+
+Would you like me to start implementing any of these components? I'd suggest starting with either:
+1. The edge case handling in the Twitter cog
+2. The LangChain TwitterTool implementation
+
+Which would you prefer to tackle first?
