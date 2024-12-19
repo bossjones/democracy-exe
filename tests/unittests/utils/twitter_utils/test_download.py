@@ -36,14 +36,15 @@ def mock_info_json(tmp_path: pathlib.Path) -> pathlib.Path:
         Path to mock info.json file
     """
     info_data = {
-        "tweet": {
-            "id": "123456789",
-            "url": "https://twitter.com/user/status/123456789",
-            "text": "Test tweet content",
-            "created_at": "2024-03-10T12:00:00Z",
-            "user": {"name": "Test User"},
-            "media": [{"url": "https://example.com/image1.jpg"}, {"url": "https://example.com/image2.jpg"}],
-        }
+        "tweet_id": 123456789,
+        "conversation_id": 123456789,
+        "date": "2024-03-10T12:00:00Z",
+        "author": {"name": "Test User"},
+        "user": {"name": "Test User"},
+        "lang": "en",
+        "source": "Twitter Web App",
+        "content": "Test tweet content",
+        "subcategory": "tweet",
     }
 
     info_path = tmp_path / "info.json"

@@ -4,7 +4,7 @@ import json
 import os
 import pathlib
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Awaitable, Iterator
 from typing import List, cast
 
 import aiofiles
@@ -96,7 +96,7 @@ def test_get_all_media_files_to_upload(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio()
-async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> None:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -107,7 +107,7 @@ async def test_aio_read_jsonfile(tmp_path: pathlib.PosixPath) -> Iterator[Future
 
 
 @pytest.mark.asyncio()
-async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> None:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -118,7 +118,7 @@ async def test_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
 
 
 @pytest.mark.asyncio()
-async def test_run_aio_json_loads(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_run_aio_json_loads(tmp_path: pathlib.PosixPath) -> None:
     test_data = {"key": "value"}
     json_file = tmp_path / "test.json"
     with open(json_file, "w") as f:
@@ -169,7 +169,7 @@ def test_rich_format_followers():
 
 
 @pytest.mark.asyncio()
-async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> None:
     test_data = "Test content"
     test_file = tmp_path / "test.txt"
     await aiowrite_file(test_data, str(tmp_path), "test", "txt")
@@ -177,7 +177,7 @@ async def test_aiowrite_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
 
 
 @pytest.mark.asyncio()
-async def test_aioread_file(tmp_path: pathlib.PosixPath) -> Iterator[Future]:
+async def test_aioread_file(tmp_path: pathlib.PosixPath) -> None:
     test_data = "Test content"
     test_file = tmp_path / "test.txt"
     test_file.write_text(test_data)

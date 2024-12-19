@@ -220,11 +220,10 @@ def _parse_tweet_metadata(work_dir: str, url: str | None = None) -> TweetMetadat
     info_path = find_info_json(pathlib.Path(work_dir))
 
     logger.info(f"info_path: {info_path}")
-    logger.info(f"info_path.exists(): {info_path.exists()}")
+    logger.info(f"info_path.exists(): {info_path.exists() if info_path else False}")
     logger.info(f"info_path is None: {info_path is None}")
 
-    # if info_path is None or not info_path.exists():
-    if info_path is None:
+    if info_path is None or not info_path.exists():
         logger.warning(f"No info.json found in {work_dir} or its subdirectories")
         return {
             "id": "",
