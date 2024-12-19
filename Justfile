@@ -906,3 +906,24 @@ test-twitter-cog-debug:
 
 test-twitter-cog:
 	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
+
+
+
+# In order to properly create new cassette files, you must first delete the existing cassette files and directories. This will regenerate all cassette files and rerun tests.
+delete-existing-cassettes:
+	./scripts/delete-existing-cassettes.sh
+
+# delete all cassette files and directories, regenerate all cassette files and rerun tests
+local-regenerate-cassettes:
+	@echo -e "\nDelete all cassette files and directories\n"
+	just delete-existing-cassettes
+	@echo -e "\nRegenerate all cassette files using --record-mode=all\n"
+	@echo -e "\nNOTE: This is expected to FAIL the first time when it is recording the cassette files!\n"
+	just uv_unittests_vcr_record_final || true
+	@echo -e "\nrun regulate tests to verify that the cassettes are working\n"
+	just test-debug
+
+# (alias) delete all cassette files and directories, regenerate all cassette files and rerun tests
+local-regenerate-vcr: local-regenerate-cassettes
+
+regenerate-cassettes: local-regenerate-cassettes

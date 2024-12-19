@@ -38,6 +38,19 @@ class TwitterTool(BaseTool):
     args_schema: type[BaseModel] = TwitterToolInput
     return_direct: bool = True
 
+    def _validate_mode(self, mode: str) -> None:
+        """Validate the download mode.
+
+        Args:
+            mode: Download mode to validate
+
+        Raises:
+            ValueError: If mode is invalid
+        """
+        valid_modes = {"single", "thread"}
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid mode: {mode}. Must be one of {valid_modes}")
+
     def _run(
         self,
         url: str,
@@ -56,11 +69,18 @@ class TwitterTool(BaseTool):
 
         Raises:
             ToolException: If download fails or content is invalid
+            ValueError: If mode is invalid
         """
-        result = download_tweet(url, mode=TweetDownloadMode(mode))
-        if isinstance(result, DownloadedContent):
-            return result.content
-        return result
+        self._validate_mode(mode)
+        try:
+            result = download_tweet(url, mode=mode)
+            if isinstance(result, DownloadedContent):
+                if result.error:
+                    raise ValueError(f"Download failed: {result.error}")
+                return result.content
+            return result
+        except Exception as e:
+            raise ValueError(f"Failed to process Twitter content: {e!s}") from e
 
     async def _arun(
         self,
@@ -80,8 +100,15 @@ class TwitterTool(BaseTool):
 
         Raises:
             ToolException: If download fails or content is invalid
+            ValueError: If mode is invalid
         """
-        result = await download_tweet(url, mode=TweetDownloadMode(mode))
-        if isinstance(result, DownloadedContent):
-            return result.content
-        return result
+        self._validate_mode(mode)
+        try:
+            result = await download_tweet(url, mode=mode)
+            if isinstance(result, DownloadedContent):
+                if result.error:
+                    raise ValueError(f"Download failed: {result.error}")
+                return result.content
+            return result
+        except Exception as e:
+            raise ValueError(f"Failed to process Twitter content: {e!s}") from e
