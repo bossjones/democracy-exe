@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Twitter tool for LangChain/LangGraph integration."""
 from __future__ import annotations
 
@@ -7,8 +8,9 @@ from langchain_core.callbacks import AsyncCallbackManagerForToolRun, CallbackMan
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from democracy_exe.utils.twitter_utils.download import TweetDownloadMode, download_tweet
+from democracy_exe.utils.twitter_utils.download import TweetDownloadMode, adownload_tweet, download_tweet
 from democracy_exe.utils.twitter_utils.models import DownloadedContent, Tweet, TweetThread
+from democracy_exe.utils.twitter_utils.types import DownloadResult
 
 
 class TwitterToolInput(BaseModel):
@@ -104,7 +106,7 @@ class TwitterTool(BaseTool):
         """
         self._validate_mode(mode)
         try:
-            result = await download_tweet(url, mode=mode)
+            result: DownloadResult = await adownload_tweet(url, mode=mode)
             if isinstance(result, DownloadedContent):
                 if result.error:
                     raise ValueError(f"Download failed: {result.error}")
@@ -112,3 +114,15 @@ class TwitterTool(BaseTool):
             return result
         except Exception as e:
             raise ValueError(f"Failed to process Twitter content: {e!s}") from e
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main() -> None:
+        """Run the Twitter tool asynchronously."""
+        tool = TwitterTool()
+        result = await tool.arun({"url": "https://x.com/Eminitybaba_/status/1868256259251863704"})
+        print(f"Result: {result}")
+
+    asyncio.run(main())

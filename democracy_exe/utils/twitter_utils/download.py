@@ -176,6 +176,94 @@ async def download_tweet(
                 local_files=[],
                 error=str(e)
             )
+async def adownload_tweet(
+    url: str,
+    mode: TweetDownloadMode = "single",
+    working_dir: str | None = None,
+) -> DownloadResult:
+    """Download content from a tweet URL.
+
+    Args:
+        url: The tweet URL to download from
+        mode: The download mode - single tweet, thread, or card
+        working_dir: Optional working directory for downloads
+
+    Returns:
+        DownloadResult containing success status, metadata and local files
+    """
+    # Use temporary dir if none provided
+    with tempfile.TemporaryDirectory(delete=False) as tmpdirname:
+        work_dir = working_dir or tmpdirname
+        logger.info(f"work_dir: {work_dir}")
+
+        try:
+            # Select command based on mode
+            cmd = {
+                "single": DL_SAFE_TWITTER_COMMAND,
+                "thread": DL_TWITTER_THREAD_COMMAND,
+                "card": DL_TWITTER_CARD_COMMAND,
+            }[mode]
+
+            logger.info(f"cmd: {cmd}")
+            logger.info(f"url: {url}")
+            logger.info(f"work_dir: {work_dir}")
+
+            # Execute download command
+            await shell._aio_run_process_and_communicate(
+                cmd.format(dl_uri=url).split(),
+                cwd=work_dir
+            )
+
+            # Get downloaded files
+            tree_list = tree(pathlib.Path(work_dir))
+            # import bpdb
+            # bpdb.set_trace()
+            files = [str(p) for p in tree_list]
+            media_files = filter_media(files)
+
+            logger.info(f"tree_list: {tree_list}")
+            logger.info(f"files: {files}")
+            logger.info(f"media_files: {media_files}")
+
+            # import bpdb
+            # bpdb.set_trace()
+
+            # Parse metadata from info.json
+            # metadata = _parse_tweet_metadata(work_dir, url=url)
+            metadata = await _a_parse_tweet_metadata(work_dir, url=url)
+
+            logger.info(f"metadata: {metadata}")
+
+            return DownloadResult(
+                success=True,
+                metadata=metadata,
+                local_files=media_files,
+                error=None
+            )
+
+        except Exception as e:
+            logger.exception(f"Error downloading tweet: {e}")
+            print(f"{e}")
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print(f"Error Class: {e.__class__}")
+            output = f"[UNEXPECTED] {type(e).__name__}: {e}"
+            print(output)
+            print(f"exc_type: {exc_type}")
+            print(f"exc_value: {exc_value}")
+            traceback.print_tb(exc_traceback)
+            return DownloadResult(
+                success=False,
+                metadata={
+                    "id": "",
+                    "url": url,
+                    "author": "",
+                    "content": "",
+                    "media_urls": [],
+                    "created_at": "",
+                },
+                local_files=[],
+                error=str(e)
+            )
 
 
 def _parse_tweet_metadata(work_dir: str, url: str | None = None) -> TweetMetadata:
