@@ -33,6 +33,7 @@ from langchain_core.messages.utils import get_buffer_string
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig, ensure_config, get_executor_for_config
 from langchain_core.tools import tool
+from langchain_core.tools.base import BaseTool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph  # type: ignore
@@ -65,8 +66,8 @@ async def save_recall_memory(memory: str) -> str:
     Returns:
         str: The saved memory.
     """
-    config = ensure_config()
-    configurable = agentic_utils.ensure_configurable(config)
+    config: RunnableConfig = ensure_config()
+    configurable: schemas.GraphConfig = agentic_utils.ensure_configurable(config)
     embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = await embeddings.aembed_query(memory)
     current_time = datetime.now(tz=UTC)
@@ -113,8 +114,8 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     Returns:
         list[str]: A list of relevant memories.
     """
-    config = ensure_config()
-    configurable = agentic_utils.ensure_configurable(config)
+    config: RunnableConfig = ensure_config()
+    configurable: schemas.GraphConfig = agentic_utils.ensure_configurable(config)
     embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = embeddings.embed_query(query)
     with langsmith.trace("query", inputs={"query": query, "top_k": top_k}) as rt:
@@ -145,7 +146,7 @@ def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
     Returns:
         Tuple[str, list[str]]: The path and list of core memories.
     """
-    path = constants.PATCH_PATH.format(user_id=user_id)
+    path: str = constants.PATCH_PATH.format(user_id=user_id)
     logger.error(f"path: {path}")
     response = agentic_utils.get_index().fetch(
         ids=[path], namespace=aiosettings.pinecone_namespace
@@ -169,8 +170,8 @@ def store_core_memory(memory: str, index: int | None = None) -> str:
     Returns:
         str: A confirmation message.
     """
-    config = ensure_config()
-    configurable = agentic_utils.ensure_configurable(config)
+    config: RunnableConfig = ensure_config()
+    configurable: schemas.GraphConfig = agentic_utils.ensure_configurable(config)
     path, memories = fetch_core_memories(configurable["user_id"]) # pyright: ignore[reportUndefinedVariable]
     if index is not None:
         if index < 0 or index >= len(memories):
@@ -199,7 +200,7 @@ def store_core_memory(memory: str, index: int | None = None) -> str:
 
 
 # Combine all tools
-all_tools = tools + [save_recall_memory, search_memory, store_core_memory]
+all_tools: list[BaseTool | TavilySearchResults] = tools + [save_recall_memory, search_memory, store_core_memory]
 
 # Define the prompt template for the agent
 prompt = ChatPromptTemplate.from_messages(
@@ -257,19 +258,37 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 
-async def agent(state: schemas.State, config: RunnableConfig) -> schemas.State:
+@langsmith.traceable
+async def agent(
+    state: schemas.State,
+    config: RunnableConfig,
+) -> schemas.State:
     """Process the current state and generate a response using the LLM.
 
+    This function is a core component of the memory-enabled agent that:
+    1. Retrieves the appropriate LLM model based on configuration
+    2. Binds available tools to the model
+    3. Formats core and recall memories for context
+    4. Generates a response using the LLM with full context
+    5. Logs key information for debugging
+
     Args:
-        state (schemas.State): The current state of the conversation.
-        config (RunnableConfig): The runtime configuration for the agent.
+        state: The current conversation state containing messages and memories.
+               Expected keys: "messages", "core_memories", "recall_memories"
+        config: Runtime configuration for the agent execution.
+                Must contain "model" and "user_id" in its configurable dict.
 
     Returns:
-        schemas.State: The updated state with the agent's response.
+        Updated state dictionary containing the LLM's response in the "messages" key.
+
+    Raises:
+        KeyError: If required state keys are missing
+        ValueError: If model configuration is invalid
+        RuntimeError: If LLM invocation fails
     """
     configurable: schemas.GraphConfig = agentic_utils.ensure_configurable(config)
     llm: ChatModelLike = agentic_utils.get_chat_model(
-        model_name=configurable["model"], # type: ignore
+        model_name=configurable["model"],  # type: ignore
         model_provider=aiosettings.llm_provider,
         temperature=0.0
     )
@@ -308,8 +327,8 @@ def load_memories(state: schemas.State, config: RunnableConfig) -> schemas.State
     Returns:
         schemas.State: The updated state with loaded memories.
     """
-    configurable = agentic_utils.ensure_configurable(config)
-    user_id = configurable["user_id"]
+    configurable: schemas.GraphConfig = agentic_utils.ensure_configurable(config)
+    user_id: str | int = configurable["user_id"]
     tokenizer = tiktoken.encoding_for_model("gpt-4o")
     convo_str = get_buffer_string(state["messages"])
     convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:2048])
