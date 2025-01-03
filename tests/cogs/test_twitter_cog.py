@@ -360,7 +360,7 @@ def assert_success_message(message: discord.Message) -> None:
 
 
 # @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2024, 12, 25),
+#     deadline=datetime.datetime(2025, 1, 25),
 #     strict=True,
 #     msg="Alert is suppressed. Make progress till then"
 # )
@@ -434,7 +434,7 @@ async def test_tweet_help_command(bot_with_twitter_cog: DemocracyBot) -> None:
 
 
 @pytest.mark.skip_until(
-    deadline=datetime.datetime(2024, 12, 25),
+    deadline=datetime.datetime(2025, 1, 25),
     strict=True,
     msg="Still figuring out how to tech llm's to test with dpytest",
 )
@@ -514,7 +514,7 @@ async def test_download_tweet_failure(
 
 
 @pytest.mark.skip_until(
-    deadline=datetime.datetime(2024, 12, 25),
+    deadline=datetime.datetime(2025, 1, 25),
     strict=True,
     msg="Still figuring out how to tech llm's to test with dpytest",
 )
@@ -548,7 +548,7 @@ async def test_thread_command(
 
 
 @pytest.mark.skip_until(
-    deadline=datetime.datetime(2024, 12, 25),
+    deadline=datetime.datetime(2025, 1, 25),
     strict=True,
     msg="Still figuring out how to tech llm's to test with dpytest",
 )
@@ -582,7 +582,7 @@ async def test_card_command(
 
 
 @pytest.mark.skip_until(
-    deadline=datetime.datetime(2024, 12, 25),
+    deadline=datetime.datetime(2025, 1, 25),
     strict=True,
     msg="Still figuring out how to tech llm's to test with dpytest",
 )

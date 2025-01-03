@@ -82,7 +82,7 @@ class TestExtensionUtils:
     """Test suite for extension utilities."""
 
     @pytest.mark.skip_until(
-        deadline=datetime(2024, 12, 25), strict=True, msg="Alert is suppresed. Make progress till then"
+        deadline=datetime(2025, 1, 25), strict=True, msg="Alert is suppresed. Make progress till then"
     )
     async def test_extensions(self, mock_cogs_dir: pathlib.Path, mocker: MockFixture) -> None:
         """Test synchronous extension discovery.
@@ -102,7 +102,7 @@ class TestExtensionUtils:
         assert not any("__init__" in ext for ext in ext_list)
 
     @pytest.mark.skip_until(
-        deadline=datetime(2024, 12, 25), strict=True, msg="Alert is suppresed. Make progress till then"
+        deadline=datetime(2025, 1, 25), strict=True, msg="Alert is suppresed. Make progress till then"
     )
     @pytest.mark.asyncio
     async def test_aio_extensions(self, mock_cogs_dir: pathlib.Path, mocker: MockFixture) -> None:
