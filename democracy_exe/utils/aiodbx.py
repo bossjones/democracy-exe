@@ -13,9 +13,10 @@ import os
 import pathlib
 import sys
 import traceback
+import uuid
 
-from collections.abc import AsyncGenerator, Callable, Generator
-from typing import Any, Dict, List, Optional, Union
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import aiofiles
 import aiohttp
@@ -25,646 +26,960 @@ from loguru import logger
 from democracy_exe.aio_settings import aiosettings
 
 
-class DropboxAPIError(Exception):
-    """Exception for errors thrown by the API.
-
-    Contains the HTTP status code and the returned error message.
+async def aio_path_exists(path: str | pathlib.Path) -> bool:
+    """Async wrapper for path existence check.
 
     Args:
-        status: HTTP status code
-        message: Error message from API response
+        path: Path to check
 
-    Attributes:
+    Returns:
+        bool: True if path exists
+    """
+    return await asyncio.to_thread(os.path.exists, path)
+
+async def aio_path_basename(path: str | pathlib.Path) -> str:
+    """Async wrapper for path basename.
+
+    Args:
+        path: Path to get basename from
+
+    Returns:
+        str: Basename of path
+    """
+    return await asyncio.to_thread(os.path.basename, path)
+
+async def aio_path_getsize(path: str | pathlib.Path) -> int:
+    """Async wrapper for getting file size.
+
+    Args:
+        path: Path to get size of
+
+    Returns:
+        int: Size of file in bytes
+    """
+    return await asyncio.to_thread(os.path.getsize, path)
+
+
+class DropboxAPIError(Exception):
+    """Exception raised for Dropbox API errors.
+
+    Args:
         status: HTTP status code
         message: Error message
     """
 
-    def __init__(self, status: int, message: str | dict[str, Any]) -> None:
+    def __init__(self, status: int, message: str) -> None:
         self.status = status
-        self.message = message
-        super().__init__(self.message)
-
-    def __str__(self) -> str:
-        if not isinstance(self.message, str):
-            return f"{self.status} {self.message}"
-        try:
-            self.message = json.loads(self.message)
-            return f'{self.status} {self.message["error_summary"]}'
-        except Exception:
-            return f"{self.status} {self.message}"
+        super().__init__(message)
 
 
 class Request:
-    """Wrapper for a ClientResponse object that allows automatic retries for certain statuses.
+    """Wrapper for HTTP requests with retry logic.
 
     Args:
-        request: Session method to call that returns a ClientResponse (e.g. session.post)
-        url: URL to request
-        ok_statuses: List of statuses that will return without an error (default is [200])
-        retry_count: Number of times that the request will be retried (default is 5)
-        retry_statuses: List of statuses that will cause automatic retry (default is [429])
-        **kwargs: Arbitrary keyword arguments passed to request callable
-
-    Attributes:
-        request: The request callable
-        url: Target URL
-        ok_statuses: List of acceptable status codes
-        retry_count: Maximum retry attempts
-        retry_statuses: Status codes that trigger retry
-        kwargs: Additional request parameters
-        current_attempt: Current retry attempt number
-        resp: The current response object
+        request_func: Async request function to call
+        url: Request URL
+        headers: Request headers
+        data: Request data
+        retry_count: Number of retries
     """
 
     def __init__(
         self,
-        request: Callable[..., Any],
+        request_func: Callable[..., Awaitable[aiohttp.ClientResponse]],
         url: str,
-        ok_statuses: list[int] | None = None,
-        retry_count: int = 5,
-        retry_statuses: list[int] | None = None,
-        **kwargs: Any,
+        headers: dict[str, str],
+        data: str | bytes | dict[str, Any] | None = None,
+        retry_count: int = 5
     ) -> None:
-        if ok_statuses is None:
-            ok_statuses = [200]
-        if retry_statuses is None:
-            retry_statuses = [429]
-        self.request = request
+        self.request_func = request_func
         self.url = url
-        self.ok_statuses = ok_statuses
+        self.headers = headers
+        self.data = data
         self.retry_count = retry_count
-        self.retry_statuses = retry_statuses
-        self.kwargs = kwargs
-        self.trace_request_ctx = kwargs.pop("trace_request_ctx", {})
-
-        self.current_attempt = 0
-        self.resp: aiohttp.ClientResponse | None = None
+        self.response: aiohttp.ClientResponse | None = None
 
     async def _do_request(self) -> aiohttp.ClientResponse:
-        """Performs a request with automatic retries for specific return statuses.
-
-        This internal method handles the actual HTTP request execution and implements
-        the retry logic. It will automatically retry requests that return status codes
-        specified in retry_statuses, up to retry_count times.
-
-        Should not be called directly. Instead, use an `async with` block with a Request
-        object to manage the response context properly.
+        """Execute the request with retry logic.
 
         Returns:
-            aiohttp.ClientResponse: The response from the request. If a retry occurs,
-                returns the response from the last successful attempt.
+            aiohttp.ClientResponse: The response from the request
 
         Raises:
-            DropboxAPIError: If response status is >= 400 and not in ok_statuses.
-                The error will contain the HTTP status code and response text.
-
-        Note:
-            If a retry-able status code is received and Retry-After header is present,
-            the retry will wait for the specified duration. Otherwise, it defaults to
-            1 second between retries.
+            DropboxAPIError: If request fails after retries
         """
-        self.current_attempt += 1
-        if self.current_attempt > 1:
-            logger.debug(f"Attempt {self.current_attempt} out of {self.retry_count}")
+        last_exception = None
+        for attempt in range(self.retry_count):
+            try:
+                response = await self.request_func(
+                    self.url,
+                    headers=self.headers,
+                    data=self.data
+                )
+                if response.status == 429:  # Rate limit
+                    await asyncio.sleep(1 * (2 ** attempt))
+                    continue
+                if response.status >= 400:
+                    error_data = await response.text()
+                    try:
+                        error_json = json.loads(error_data)
+                        error_message = error_json.get("error_summary", error_data)
+                    except json.JSONDecodeError:
+                        error_message = error_data
+                    raise DropboxAPIError(response.status, str(error_message))
+                return response
+            except DropboxAPIError:
+                raise
+            except Exception as e:
+                last_exception = e
+                if attempt < self.retry_count - 1:
+                    await asyncio.sleep(1 * (2 ** attempt))
+                    continue
+                break
 
-        resp: aiohttp.ClientResponse = await self.request(
-            self.url,
-            **self.kwargs,
-            trace_request_ctx={
-                "current_attempt": self.current_attempt,
-                **self.trace_request_ctx,
-            },
+        raise DropboxAPIError(
+            500,
+            f"Request failed after {self.retry_count} retries: {last_exception!s}"
         )
 
-        if resp.status not in self.ok_statuses and resp.status >= 400:
-            raise DropboxAPIError(resp.status, await resp.text())
-
-        endpoint_name = self.url[self.url.index("2") + 1 :]
-        logger.debug(f"Request OK: {endpoint_name} returned {resp.status}")
-        if self.current_attempt < self.retry_count and resp.status in self.retry_statuses:
-            if "Retry-After" in resp.headers:
-                sleep_time = int(resp.headers["Retry-After"])
-            else:
-                sleep_time = 1
-            await asyncio.sleep(sleep_time)
-            return await self._do_request()
-
-        self.resp = resp
-        await logger.complete()
-        return resp
-
     def __await__(self) -> Generator[Any, None, aiohttp.ClientResponse]:
-        """Makes the Request class awaitable.
-
-        This allows the Request object to be used with the await keyword directly,
-        which will execute the request and return the response.
+        """Make the class awaitable.
 
         Returns:
-            Generator[Any, None, aiohttp.ClientResponse]: A generator that yields the
-                ClientResponse when awaited.
-
-        Example:
-            response = await Request(session.post, "https://api.example.com")
+            Generator yielding the response
         """
-        return self.__aenter__().__await__()
+        return self._do_request().__await__()
 
     async def __aenter__(self) -> aiohttp.ClientResponse:
-        """Async context manager entry point.
-
-        This method is called when entering an async context manager block using
-        'async with'. It executes the request and returns the response.
+        """Enter async context manager.
 
         Returns:
-            aiohttp.ClientResponse: The response from the executed request.
-
-        Example:
-            async with Request(session.post, "https://api.example.com") as response:
-                data = await response.json()
+            aiohttp.ClientResponse: The response from the request
         """
-        result = await self._do_request()
-        await logger.complete()
-        return result
+        self.response = await self._do_request()
+        return self.response
 
-    async def __aexit__(self, *excinfo: Any) -> None:
-        """Async context manager exit point.
-
-        This method is called when exiting an async context manager block. It ensures
-        proper cleanup of resources by closing the response if it exists and hasn't
-        been closed already.
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit async context manager.
 
         Args:
-            *excinfo: Exception information if an error occurred in the context manager
-                block. Contains (exc_type, exc_value, traceback) or None if no exception.
-
-        Note:
-            This method is automatically called when exiting an 'async with' block
-            and handles cleanup even if an exception occurred in the block.
+            exc_type: Exception type if an error occurred
+            exc_val: Exception value if an error occurred
+            exc_tb: Exception traceback if an error occurred
         """
-        if self.resp is not None and not self.resp.closed:
-            self.resp.close()
-        await logger.complete()
+        if self.response:
+            await self.response.release()
+
+
+async def retry_with_backoff(
+    func: Callable[..., Any],
+    *args: Any,
+    max_retries: int = 3,
+    initial_delay: float = 1.0,
+    max_delay: float = 10.0,
+    backoff_factor: float = 2.0,
+    **kwargs: Any
+) -> Any:
+    """Execute a function with exponential backoff retry logic.
+
+    Args:
+        func: Function to execute
+        *args: Positional arguments for the function
+        max_retries: Maximum number of retry attempts
+        initial_delay: Initial delay between retries in seconds
+        max_delay: Maximum delay between retries in seconds
+        backoff_factor: Factor to multiply delay by after each retry
+        **kwargs: Keyword arguments for the function
+
+    Returns:
+        Result from the function
+
+    Raises:
+        Exception: The last exception encountered after all retries
+    """
+    delay = initial_delay
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            last_exception = e
+            if attempt == max_retries:
+                raise
+
+            logger.warning(f"Operation failed (attempt {attempt + 1}/{max_retries + 1}): {e!s}")
+            await asyncio.sleep(delay)
+            delay = min(delay * backoff_factor, max_delay)
+
+    raise last_exception if last_exception else RuntimeError("Unexpected retry failure")
+
+class SafeFileHandler:
+    """Safe file handler with proper error handling and cleanup.
+
+    Args:
+        path: Path to the file
+        mode: File mode
+        cleanup_on_error: Whether to delete file on error in write mode
+        **kwargs: Additional arguments for aiofiles.open
+    """
+
+    def __init__(
+        self,
+        path: str | pathlib.Path,
+        mode: str = "r",
+        cleanup_on_error: bool = True,
+        **kwargs: Any
+    ) -> None:
+        self.path = path
+        self.mode = mode
+        self.cleanup_on_error = cleanup_on_error
+        self.kwargs = kwargs
+        self.file = None
+
+    async def __aenter__(self) -> Any:
+        """Enter the async context manager.
+
+        Returns:
+            The opened file object
+
+        Raises:
+            OSError: If file operations fail
+        """
+        try:
+            self.file = await aiofiles.open(self.path, self.mode, **self.kwargs)
+            return self.file
+        except Exception as e:
+            if self.cleanup_on_error and "w" in self.mode:
+                try:
+                    await asyncio.to_thread(os.remove, self.path)
+                except:
+                    pass
+            raise OSError(f"File operation failed: {e!s}") from e
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit the async context manager.
+
+        Ensures proper cleanup of resources.
+
+        Args:
+            exc_type: Exception type if an error occurred
+            exc_val: Exception value if an error occurred
+            exc_tb: Exception traceback if an error occurred
+        """
+        if self.file:
+            try:
+                await self.file.close()
+            except:
+                pass
+
+            if exc_type and self.cleanup_on_error and "w" in self.mode:
+                try:
+                    await asyncio.to_thread(os.remove, self.path)
+                except:
+                    pass
+
+def safe_aiofiles_open(
+    path: str | pathlib.Path,
+    mode: str = "r",
+    cleanup_on_error: bool = True,
+    **kwargs: Any
+) -> SafeFileHandler:
+    """Create a safe file handler with proper error handling and cleanup.
+
+    Args:
+        path: Path to the file
+        mode: File mode
+        cleanup_on_error: Whether to delete file on error in write mode
+        **kwargs: Additional arguments for aiofiles.open
+
+    Returns:
+        SafeFileHandler: A context manager for safe file operations
+    """
+    return SafeFileHandler(path, mode, cleanup_on_error, **kwargs)
 
 
 class AsyncDropboxAPI:
-    """Dropbox API client using asynchronous HTTP requests.
+    """Async Dropbox API client.
 
     Args:
-        token: Dropbox API access token
-        retry_statuses: List of statuses that will automatically be retried (default is [429])
-
-    Attributes:
-        token: The API access token
-        retry_statuses: Status codes that trigger retry
-        client_session: Aiohttp client session
-        upload_session: List of upload session entries
+        access_token: Dropbox access token
+        max_retries: Maximum number of retries for failed requests
+        retry_delay: Delay between retries in seconds
     """
 
-    def __init__(self, token: str, retry_statuses: list[int] | None = None) -> None:
-        if retry_statuses is None:
-            retry_statuses = [429]
-        self.token = token
-        self.retry_statuses = retry_statuses
-        self.client_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit_per_host=50))
+    def __init__(
+        self,
+        access_token: str,
+        max_retries: int = 3,
+        retry_delay: float = 1.0
+    ) -> None:
+        self.access_token = access_token
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
+        self.client_session: aiohttp.ClientSession | None = None
         self.upload_session: list[dict[str, Any]] = []
+        self._request_semaphore = asyncio.Semaphore(10)  # Limit concurrent requests
+        self._upload_session_lock = asyncio.Lock()
+        self._cleanup_lock = asyncio.Lock()
+        self._closed = False
 
-    async def validate(self) -> bool:
-        """Validates the user authentication token.
+    async def _cleanup(self) -> None:
+        """Clean up resources and close connections."""
+        if self._closed:
+            return
 
-        See: https://www.dropbox.com/developers/documentation/http/documentation#check-user
+        async with self._cleanup_lock:
+            if self._closed:
+                return
+
+            try:
+                # Clear upload session
+                async with self._upload_session_lock:
+                    self.upload_session.clear()
+
+                # Close client session
+                if self.client_session and not self.client_session.closed:
+                    await self.client_session.close()
+
+                self._closed = True
+                logger.debug("Cleanup completed successfully")
+
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e!s}")
+                raise DropboxAPIError(500, f"Cleanup failed: {e!s}")
+
+    async def __aenter__(self) -> AsyncDropboxAPI:
+        """Enter async context manager.
 
         Returns:
-            True if the API returns the same string (token is valid)
+            Self instance
+        """
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit async context manager.
+
+        Args:
+            exc_type: Exception type if an error occurred
+            exc_val: Exception value if an error occurred
+            exc_tb: Exception traceback if an error occurred
+        """
+        await self._cleanup()
+
+    async def _do_request(
+        self,
+        method: str,
+        url: str,
+        headers: dict[str, str] | None = None,
+        data: str | bytes | dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        retry_count: int = 0
+    ) -> Any:
+        """Make an HTTP request to the Dropbox API.
+
+        Args:
+            method: HTTP method
+            url: Request URL
+            headers: Optional request headers
+            data: Optional request data
+            json_data: Optional JSON data
+            retry_count: Current retry attempt
+
+        Returns:
+            Response data as JSON
 
         Raises:
-            DropboxAPIError: If the token is invalid
+            DropboxAPIError: If request fails after retries
         """
-        logger.debug("Validating token")
+        if not self.client_session:
+            self.client_session = aiohttp.ClientSession()
 
-        nonce = base64.b64encode(os.urandom(8), altchars=b"-_").decode("utf-8")
+        headers = headers or {}
+        if "Authorization" not in headers:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+
+        try:
+            async with self._request_semaphore:
+                async with self.client_session.request(
+                    method,
+                    url,
+                    headers=headers,
+                    data=data,
+                    json=json_data
+                ) as response:
+                    if response.status == 429:  # Rate limit
+                        if retry_count < self.max_retries:
+                            await asyncio.sleep(self.retry_delay * (2 ** retry_count))
+                            return await self._do_request(
+                                method, url, headers, data,
+                                json_data, retry_count + 1
+                            )
+                        raise DropboxAPIError(429, "Rate limit exceeded")
+
+                    if not response.ok:
+                        error_data = await response.text()
+                        raise DropboxAPIError(
+                            response.status,
+                            f"Request failed: {response.status} - {error_data}"
+                        )
+
+                    if response.content_type == "application/json":
+                        return await response.json()
+                    return await response.text()
+
+        except aiohttp.ClientError as e:
+            if retry_count < self.max_retries:
+                await asyncio.sleep(self.retry_delay * (2 ** retry_count))
+                return await self._do_request(
+                    method, url, headers, data,
+                    json_data, retry_count + 1
+                )
+            raise DropboxAPIError(500, f"Request failed: {e!s}")
+
+        except Exception as e:
+            raise DropboxAPIError(500, f"Unexpected error: {e!s}")
+
+    async def validate(self) -> bool:
+        """Validate the API token.
+
+        Returns:
+            bool: True if token is valid
+
+        Raises:
+            DropboxAPIError: If validation fails
+        """
+        logger.info("Validating Dropbox API token...")
+        nonce = str(uuid.uuid4())
         url = "https://api.dropboxapi.com/2/check/user"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
         data = json.dumps({"query": nonce})
 
-        async with Request(self.client_session.post, url, headers=headers, data=data) as resp:
-            resp_data = await resp.json()
-            if resp_data["result"] != nonce:
-                raise DropboxAPIError(resp.status, "Token is invalid")
-            logger.debug("Token is valid")
-            await logger.complete()
+        try:
+            response = await self._do_request("POST", url, headers=headers, data=data)
+            if response["result"] != nonce:
+                logger.error("API token validation failed: Invalid response")
+                raise DropboxAPIError(401, "Invalid API token")
+            logger.info("API token validated successfully")
             return True
+        except Exception as e:
+            logger.error(f"API token validation failed: {e!s}")
+            raise DropboxAPIError(401, f"Token validation failed: {e!s}")
 
     async def download_file(self, dropbox_path: str, local_path: str | None = None) -> str:
-        """Downloads a single file.
-
-        See: https://www.dropbox.com/developers/documentation/http/documentation#files-download
+        """Download a file from Dropbox.
 
         Args:
-            dropbox_path: File path on Dropbox to download from
-            local_path: Path on local disk to download to (defaults to current directory)
+            dropbox_path: Path to file in Dropbox
+            local_path: Optional local path to save file to
 
         Returns:
-            Local path where file was downloaded to
+            str: Path to downloaded file
+
+        Raises:
+            DropboxAPIError: If download fails
+            OSError: If file operations fail
         """
-        # default to current directory
-        if local_path is None:
+        if not local_path:
             local_path = os.path.basename(dropbox_path)
 
-        logger.info(f"Downloading {os.path.basename(local_path)}")
-        logger.debug(f"from {dropbox_path}")
+        logger.info(f"Downloading file from Dropbox: {dropbox_path}")
+        logger.debug(f"Saving to local path: {local_path}")
 
         url = "https://content.dropboxapi.com/2/files/download"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Dropbox-API-Arg": json.dumps({"path": dropbox_path}),
         }
 
-        async with Request(self.client_session.post, url, headers=headers) as resp:
-            async with aiofiles.open(local_path, "wb") as f:
-                async for chunk, _ in resp.content.iter_chunks():
-                    await f.write(chunk)
-
-                await logger.complete()
-                return local_path
+        try:
+            response = await self._do_request("POST", url, headers=headers)
+            async with safe_aiofiles_open(local_path, "wb") as f:
+                if isinstance(response, str):
+                    await f.write(response.encode())
+                else:
+                    await f.write(response)
+            logger.info(f"File downloaded successfully: {local_path}")
+            return local_path
+        except Exception as e:
+            logger.error(f"File download failed: {e!s}")
+            raise DropboxAPIError(500, f"Download failed: {e!s}")
 
     async def download_folder(self, dropbox_path: str, local_path: str | None = None) -> str:
-        """Downloads a folder as a zip file.
-
-        See: https://www.dropbox.com/developers/documentation/http/documentation#files-download_zip
+        """Download a folder from Dropbox as a zip file.
 
         Args:
-            dropbox_path: Folder path on Dropbox to download from
-            local_path: Path on local disk to download to (defaults to current directory)
+            dropbox_path: Path to folder in Dropbox
+            local_path: Optional local path to save zip file to
 
         Returns:
-            Local path where zip file was downloaded to
-        """
-        # default to current directory
-        if local_path is None:
-            local_path = os.path.basename(dropbox_path)
+            str: Path to downloaded zip file
 
-        logger.info(f"Downloading {os.path.basename(local_path)}")
-        logger.debug(f"from {dropbox_path}")
+        Raises:
+            DropboxAPIError: If download fails
+            OSError: If file operations fail
+        """
+        if not local_path:
+            local_path = os.path.basename(dropbox_path) + ".zip"
+
+        logger.info(f"Downloading folder from Dropbox: {dropbox_path}")
+        logger.debug(f"Saving to local path: {local_path}")
 
         url = "https://content.dropboxapi.com/2/files/download_zip"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Dropbox-API-Arg": json.dumps({"path": dropbox_path}),
         }
 
-        async with Request(self.client_session.post, url, headers=headers) as resp:
-            async with aiofiles.open(local_path, "wb") as f:
-                async for chunk, _ in resp.content.iter_chunks():
-                    await f.write(chunk)
-
-                await logger.complete()
-                return local_path
+        try:
+            response = await self._do_request("POST", url, headers=headers)
+            async with safe_aiofiles_open(local_path, "wb") as f:
+                if isinstance(response, str):
+                    await f.write(response.encode())
+                else:
+                    await f.write(response)
+            logger.info(f"Folder downloaded successfully: {local_path}")
+            return local_path
+        except Exception as e:
+            logger.error(f"Folder download failed: {e!s}")
+            raise DropboxAPIError(500, f"Download failed: {e!s}")
 
     async def download_shared_link(self, shared_link: str, local_path: str | None = None) -> str:
-        """Downloads a file from a shared link.
-
-        See: https://www.dropbox.com/developers/documentation/http/documentation#sharing-get_shared_link_file
+        """Download a file from a shared link.
 
         Args:
-            shared_link: Shared link to download from
-            local_path: Path on local disk to download to (defaults to current directory)
+            shared_link: Shared link URL
+            local_path: Optional local path to save file to
 
         Returns:
-            Local path where file was downloaded to
-        """
-        # default to current directory, with the path in the shared link
-        if local_path is None:
-            local_path = os.path.basename(shared_link[: shared_link.index("?")])
+            str: Path to downloaded file
 
-        logger.info(f"Downloading {os.path.basename(local_path)}")
-        logger.debug(f"from {shared_link}")
+        Raises:
+            DropboxAPIError: If download fails
+            OSError: If file operations fail
+        """
+        if not local_path:
+            local_path = str(uuid.uuid4())
 
         url = "https://content.dropboxapi.com/2/sharing/get_shared_link_file"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Dropbox-API-Arg": json.dumps({"url": shared_link}),
         }
 
-        async with Request(self.client_session.post, url, headers=headers) as resp:
-            async with aiofiles.open(local_path, "wb") as f:
-                async for chunk, _ in resp.content.iter_chunks():
-                    await f.write(chunk)
-
-                await logger.complete()
-                return local_path
+        try:
+            response = await self._do_request("POST", url, headers=headers)
+            async with safe_aiofiles_open(local_path, "wb") as f:
+                if isinstance(response, str):
+                    await f.write(response.encode())
+                else:
+                    await f.write(response)
+            return local_path
+        except Exception as e:
+            raise DropboxAPIError(500, f"Download failed: {e!s}")
 
     async def upload_start(self, local_path: str, dropbox_path: str) -> dict[str, Any]:
-        """Uploads a single file to an upload session.
-
-        This should be used when uploading large quantities of files.
-        See: https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-start
+        """Start an upload session.
 
         Args:
-            local_path: Local path to upload from
-            dropbox_path: Dropbox path to upload to
+            local_path: Path to local file
+            dropbox_path: Destination path in Dropbox
 
         Returns:
-            UploadSessionFinishArg dict with upload information.
-            This dict is automatically stored in `self.upload_session` to be committed later.
+            Dict containing upload session information
 
         Raises:
-            ValueError: If local_path does not exist
-            RuntimeError: If current upload session is larger than 1000 files
+            DropboxAPIError: If upload fails
+            OSError: If file operations fail
         """
-        if not os.path.exists(local_path):
-            raise ValueError(f"local_path {local_path} does not exist")
-        if len(self.upload_session) >= 1000:
-            raise RuntimeError("upload_session is too large, you must call upload_finish to commit the batch")
-
-        logger.info(f"Uploading {os.path.basename(local_path)}")
-        logger.debug(f"to {dropbox_path}")
+        logger.info(f"Starting upload session for file: {local_path}")
+        logger.debug(f"Destination path: {dropbox_path}")
 
         url = "https://content.dropboxapi.com/2/files/upload_session/start"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Dropbox-API-Arg": json.dumps({"close": True}),
             "Content-Type": "application/octet-stream",
         }
 
-        async with aiofiles.open(local_path, "rb") as f:
-            data = await f.read()
-            async with Request(self.client_session.post, url, headers=headers, data=data) as resp:
-                resp_data = await resp.json()
+        try:
+            async with safe_aiofiles_open(local_path, "rb") as f:
+                data = await f.read()
+                response = await self._do_request("POST", url, headers=headers, data=data)
+                logger.info("Upload session started successfully")
+                return response
+        except Exception as e:
+            logger.error(f"Failed to start upload session: {e!s}")
+            raise DropboxAPIError(500, f"Upload failed: {e!s}")
 
-                # construct commit entry for finishing batch later
-                commit = {
-                    "cursor": {
-                        "session_id": resp_data["session_id"],
-                        "offset": os.path.getsize(local_path),
-                    },
-                    "commit": {
-                        "path": dropbox_path,
-                        "mode": "add",
-                        "autorename": False,
-                        "mute": False,
-                    },
-                }
-                self.upload_session.append(commit)
-                await logger.complete()
-                return commit
-
-    async def upload_finish(self, check_interval: float = 3) -> list[dict[str, Any]]:
-        """Finishes an upload batch.
-
-        See: https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-finish_batch
-
-        Args:
-            check_interval: How often to check upload completion status (default is 3)
+    async def upload_finish(self) -> dict[str, Any]:
+        """Finish the upload session.
 
         Returns:
-            List of FileMetadata dicts containing metadata on each uploaded file
+            Dict containing upload completion information
 
         Raises:
-            RuntimeError: If upload_session is empty
-            DropboxAPIError: If unknown response is returned from API
+            DropboxAPIError: If upload fails
         """
-        if len(self.upload_session) == 0:
-            raise RuntimeError("upload_session is empty, have you uploaded any files yet?")
+        if not self.upload_session:
+            logger.error("No active upload session to finish")
+            raise DropboxAPIError(400, "No active upload session")
 
-        logger.info("Finishing upload batch")
-        logger.debug(f"Batch size is {len(self.upload_session)}")
+        logger.info("Finishing upload session...")
+        logger.debug(f"Number of files in session: {len(self.upload_session)}")
 
         url = "https://api.dropboxapi.com/2/files/upload_session/finish_batch"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
         data = json.dumps({"entries": self.upload_session})
 
-        async with Request(self.client_session.post, url, headers=headers, data=data) as resp:
-            resp_data = await resp.json()
-            self.upload_session = []  # empty the local upload session
+        try:
+            response = await self._do_request("POST", url, headers=headers, data=data)
+            session_id = response.get("async_job_id")
+            if not session_id:
+                logger.error("No async job ID received in response")
+                raise DropboxAPIError(500, "No async job ID in response")
 
-            await logger.complete()
+            logger.info("Waiting for upload completion...")
+            # Poll for completion
+            url = "https://api.dropboxapi.com/2/files/upload_session/finish_batch/check"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json",
+            }
+            data = json.dumps({"async_job_id": session_id})
 
-            if resp_data[".tag"] == "async_job_id":
-                # check regularly for job completion
-                return await self._upload_finish_check(resp_data["async_job_id"], check_interval=check_interval)
-            elif resp_data[".tag"] == "complete":
-                logger.info("Upload batch finished")
-                return resp_data["entries"]
-            else:
-                err = await resp.text()
-                raise DropboxAPIError(resp.status, f"Unknown upload_finish response: {err}")
+            while True:
+                response = await self._do_request("POST", url, headers=headers, data=data)
+                if response[".tag"] != "in_progress":
+                    break
+                logger.debug("Upload still in progress, checking again...")
+                await asyncio.sleep(1)
 
-    async def _upload_finish_check(self, job_id: str, check_interval: float = 5) -> list[dict[str, Any]]:
-        """Checks on an upload_finish async job periodically.
-
-        Should not be called directly, this is automatically called from upload_finish.
-        See: https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-finish_batch-check
-
-        Args:
-            job_id: Job ID to check status of
-            check_interval: How often in seconds to check status
-
-        Returns:
-            List of FileMetadata dicts containing metadata on each uploaded file
-        """
-        logger.debug(f"Batch not finished, checking every {check_interval} seconds")
-
-        url = "https://api.dropboxapi.com/2/files/upload_session/finish_batch/check"
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-        }
-        data = json.dumps({"async_job_id": job_id})
-
-        while True:
-            await asyncio.sleep(check_interval)
-            async with Request(self.client_session.post, url, headers=headers, data=data) as resp:
-                resp_data = await resp.json()
-
-                if resp_data[".tag"] == "complete":
-                    logger.info("Upload batch finished")
-                    return resp_data["entries"]
-                elif resp_data[".tag"] == "in_progress":
-                    logger.debug(f"Checking again in {check_interval} seconds")
-                    continue
+            logger.info("Upload session completed successfully")
+            return response
+        except Exception as e:
+            logger.error(f"Upload session failed: {e!s}")
+            raise DropboxAPIError(500, f"Upload finish failed: {e!s}")
+        finally:
+            self.upload_session = []
 
     async def upload_single(
-        self, local_path: str, dropbox_path: str, args: dict[str, Any] | None = None
+        self,
+        local_path: str,
+        dropbox_path: str,
+        mode: str = "add",
+        autorename: bool = False,
+        mute: bool = False
     ) -> dict[str, Any]:
-        """Uploads a single file.
-
-        This should only be used for small quantities of files.
-        For larger quantities use upload_start and upload_finish.
-        See: https://www.dropbox.com/developers/documentation/http/documentation#files-upload
+        """Upload a single file to Dropbox.
 
         Args:
-            local_path: Local path to upload from
-            dropbox_path: Dropbox path to upload to
-            args: Dictionary of arguments to pass to API
+            local_path: Path to local file
+            dropbox_path: Destination path in Dropbox
+            mode: Upload mode (add, overwrite)
+            autorename: Whether to rename file if it exists
+            mute: Whether to mute notifications
 
         Returns:
-            FileMetadata of the uploaded file
+            Dict containing upload metadata
 
         Raises:
-            ValueError: If local_path does not exist
+            DropboxAPIError: If upload fails
+            OSError: If file operations fail
         """
-        if args is None:
-            args = {"mode": "add", "autorename": False, "mute": False}
-        if not os.path.exists(local_path):
-            raise ValueError(f"local_path {local_path} does not exist")
-        args["path"] = dropbox_path
+        logger.info(f"Uploading file to Dropbox: {local_path}")
+        logger.debug(f"Destination path: {dropbox_path} (mode: {mode})")
 
-        logger.info(f"Uploading {os.path.basename(local_path)}")
-        logger.debug(f"to {dropbox_path}")
+        args = {
+            "path": dropbox_path,
+            "mode": mode,
+            "autorename": autorename,
+            "mute": mute,
+        }
 
         url = "https://content.dropboxapi.com/2/files/upload"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Dropbox-API-Arg": json.dumps(args),
             "Content-Type": "application/octet-stream",
         }
 
-        async with aiofiles.open(local_path, "rb") as f:
-            data = await f.read()
-            async with Request(self.client_session.post, url, headers=headers, data=data) as resp:
-                return await resp.json()
+        try:
+            async with safe_aiofiles_open(local_path, "rb") as f:
+                data = await f.read()
+                response = await self._do_request("POST", url, headers=headers, data=data)
+                logger.info(f"File uploaded successfully: {dropbox_path}")
+                return response
+        except Exception as e:
+            logger.error(f"File upload failed: {e!s}")
+            raise DropboxAPIError(500, f"Upload failed: {e!s}")
 
     async def create_shared_link(self, dropbox_path: str) -> str:
-        """Create a shared link for a file in Dropbox.
-
-        See: https://www.dropbox.com/developers/documentation/http/documentation#sharing-create_shared_link_with_settings
+        """Create a shared link for a file.
 
         Args:
-            dropbox_path: Path of file on Dropbox to create shared link for
+            dropbox_path: Path to file in Dropbox
 
         Returns:
-            Shared link for the given file.
-            If shared link exists, returns existing one, otherwise creates new one.
+            str: Shared link URL
 
         Raises:
-            DropboxAPIError: If dropbox_path doesn't exist or unknown status returned
+            DropboxAPIError: If request fails
         """
-        logger.info(f"Creating shared link for file {os.path.basename(dropbox_path)}")
-        logger.debug(f"Full path is {dropbox_path}")
+        logger.info(f"Creating shared link for: {dropbox_path}")
 
         url = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
         data = json.dumps({"path": dropbox_path})
 
-        # accept 409 status to check for existing shared link
-        async with Request(
-            self.client_session.post,
-            url,
-            headers=headers,
-            data=data,
-            ok_statuses=[200, 409],
-        ) as resp:
-            resp_data = await resp.json()
-
-            if resp.status == 200:
-                return resp_data["url"]
-            if "shared_link_already_exists" in resp_data["error_summary"]:
-                logger.warning(
-                    f"Shared link already exists for {os.path.basename(dropbox_path)}, using existing link"
-                )
-                return resp_data["error"]["shared_link_already_exists"]["metadata"]["url"]
-            elif "not_found" in resp_data["error_summary"]:
-                raise DropboxAPIError(resp.status, f"Path {dropbox_path} does not exist")
-            else:
-                err = await resp.text()
-                raise DropboxAPIError(resp.status, f"Unknown Dropbox error: {err}")
+        try:
+            response = await self._do_request("POST", url, headers=headers, data=data)
+            logger.info("Shared link created successfully")
+            return response["url"]
+        except DropboxAPIError as e:
+            if e.status == 409:  # Link already exists
+                logger.info("Shared link already exists, retrieving existing link")
+                url = "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata"
+                response = await self._do_request("POST", url, headers=headers, data=data)
+                return response["url"]
+            logger.error(f"Failed to create shared link: {e!s}")
+            raise
 
     async def get_shared_link_metadata(self, shared_link: str) -> dict[str, Any]:
-        """Gets metadata for file/folder behind a shared link.
-
-        See: https://www.dropbox.com/developers/documentation/http/documentation#sharing-get_shared_link_metadata
+        """Get metadata for a shared link.
 
         Args:
-            shared_link: Shared link pointing to file/folder to get metadata from
+            shared_link: Path to file in Dropbox
 
         Returns:
-            FileMetadata or FolderMetadata for the file/folder
-        """
-        logger.info(f"Getting metadata from shared link {shared_link}")
+            Dict containing shared link metadata
 
-        url = "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata"
+        Raises:
+            DropboxAPIError: If request fails
+        """
+        logger.info(f"Getting metadata for shared link: {shared_link}")
+
+        url = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
-        data = json.dumps({"url": shared_link})
+        data = json.dumps({"path": shared_link})
 
-        async with Request(self.client_session.post, url, headers=headers, data=data) as resp:
-            result = await resp.json()
-            await logger.complete()
-            return result
+        try:
+            response = await self._do_request("POST", url, headers=headers, data=data)
+            logger.info("Retrieved shared link metadata successfully")
+            return response
+        except DropboxAPIError as e:
+            if e.status == 409:  # Link already exists
+                logger.info("Using existing shared link metadata")
+                url = "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata"
+                response = await self._do_request("POST", url, headers=headers, data=data)
+                return response
+            logger.error(f"Failed to get shared link metadata: {e!s}")
+            raise
 
-    async def __aenter__(self) -> AsyncDropboxAPI:
-        await logger.complete()
-        return self
+    async def get_connection_metrics(self) -> dict[str, Any]:
+        """Get current connection pooling metrics.
 
-    async def __aexit__(self, *excinfo: Any) -> None:
-        await self.client_session.close()
-        await logger.complete()
+        Returns:
+            Dictionary containing connection metrics:
+                - active_connections: Number of currently active connections
+                - acquired_connections: Number of connections currently in use
+                - connection_limit: Maximum allowed connections
+                - connection_timeouts: Number of connection timeouts
+        """
+        logger.debug("Getting connection pooling metrics")
 
+        if not self.client_session or self.client_session.closed:
+            logger.debug("No active client session")
+            return {
+                "active_connections": 0,
+                "acquired_connections": 0,
+                "connection_limit": 0,
+                "connection_timeouts": 0
+            }
 
-async def run_upload_to_dropbox(dbx: AsyncDropboxAPI, path_to_file: pathlib.PosixPath) -> dict[str, Any]:
-    """Upload a file to Dropbox using an upload session.
+        connector = self.client_session.connector
+        if not connector:
+            logger.debug("No active connector")
+            return {
+                "active_connections": 0,
+                "acquired_connections": 0,
+                "connection_limit": 0,
+                "connection_timeouts": 0
+            }
 
-    Args:
-        dbx: AsyncDropboxAPI instance
-        path_to_file: Path to file to upload
+        metrics = {
+            "active_connections": len(connector._conns),  # type: ignore
+            "acquired_connections": len(connector._acquired),  # type: ignore
+            "connection_limit": connector._limit,  # type: ignore
+            "connection_timeouts": getattr(connector, "_timeouts_count", 0)  # type: ignore
+        }
+        logger.debug(f"Connection metrics: {metrics}")
+        return metrics
 
-    Returns:
-        Dict containing the commit information for the upload
-    """
-    # upload the new file to an upload session
-    # this returns a "commit" dict, which will be passed to upload_finish later
-    # the commit is saved in the AsyncDropboxAPI object already, so unless you need
-    # information from it you can discard the return value
-    result = await dbx.upload_start(path_to_file, f"/{pathlib.Path(path_to_file).name}")
-    await logger.complete()
-    return result
+    async def _recover_upload_session(self) -> None:
+        """Attempt to recover a failed upload session.
 
+        This method tries to salvage any valid uploads from a failed session
+        and cleans up any incomplete uploads.
 
-async def dropbox_upload(list_of_files_to_upload: list[str]) -> None:
-    """Async upload function for dropbox.
+        Raises:
+            DropboxAPIError: If session recovery fails
+        """
+        if not self.upload_session:
+            return
 
-    Call this to kick off a dbx.upload_start.
-
-    Args:
-        list_of_files_to_upload: List of file paths to upload
-    """
-    async with AsyncDropboxAPI(aiosettings.dropbox_cerebro_token.get_secret_value()) as dbx:  # pylint: disable=no-member
-        await dbx.validate()
-
-        coroutines = [run_upload_to_dropbox(dbx, _file) for _file in list_of_files_to_upload]
-        for coro in asyncio.as_completed(coroutines):
+        async with self._upload_session_lock:
             try:
-                res = await coro
-            except Exception as ex:
-                print(ex)
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                logger.error(f"Error Class: {ex.__class__!s}")
-                output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-                logger.warning(output)
-                logger.error(f"exc_type: {exc_type}")
-                logger.error(f"exc_value: {exc_value}")
-                traceback.print_tb(exc_traceback)
-                raise
-            else:
-                logger.info(f"Processed {res}")
+                # Get list of valid session IDs
+                valid_sessions = []
+                for entry in self.upload_session:
+                    try:
+                        session_id = entry["cursor"]["session_id"]
+                        # Try to verify session is still valid
+                        url = "https://api.dropboxapi.com/2/files/upload_session/finish_batch/check"
+                        headers = {
+                            "Authorization": f"Bearer {self.access_token}",
+                            "Content-Type": "application/json",
+                        }
+                        data = json.dumps({"async_job_id": session_id})
+                        response = await self._do_request("POST", url, headers=headers, data=data)
+                        if response[".tag"] != "in_progress":
+                            continue
+                        valid_sessions.append(entry)
+                    except:
+                        continue
 
-        # once everything is uploaded, finish the upload batch
-        # this returns the metadata of all of the uploaded files
-        await dbx.upload_finish()
+                # Update upload session with only valid entries
+                self.upload_session = valid_sessions
 
-        # print out some info
-        logger.info("\nThe files we just uploaded are:")
-        for meme in list_of_files_to_upload:
-            logger.info(f"{meme}")
+                if len(valid_sessions) > 0:
+                    logger.info(f"Recovered {len(valid_sessions)} valid upload sessions")
+                else:
+                    logger.warning("No valid upload sessions could be recovered")
 
-        await logger.complete()
+            except Exception as e:
+                logger.error(f"Failed to recover upload session: {e!s}")
+                # Clear the session if recovery fails
+                self.upload_session.clear()
+                raise DropboxAPIError(500, f"Failed to recover upload session: {e!s}")
+
+    async def dropbox_upload(
+        self,
+        file_path: str | pathlib.Path,
+        dropbox_path: str,
+        chunk_size: int = 4 * 1024 * 1024,  # 4MB chunks
+        overwrite: bool = True,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+    ) -> str:
+        """Upload a file to Dropbox.
+
+        Args:
+            file_path: Local path to file
+            dropbox_path: Dropbox destination path
+            chunk_size: Size of upload chunks in bytes
+            overwrite: Whether to overwrite existing file
+            progress_callback: Optional callback for upload progress
+
+        Returns:
+            str: Shared link to uploaded file
+
+        Raises:
+            DropboxAPIError: If upload fails
+            OSError: If file operations fail
+        """
+        logger.info(f"Starting chunked upload to Dropbox: {file_path}")
+        logger.debug(f"Destination path: {dropbox_path} (chunk size: {chunk_size/1024/1024:.1f}MB)")
+
+        try:
+            async with safe_aiofiles_open(file_path, "rb") as f:
+                file_size = await asyncio.to_thread(os.path.getsize, file_path)
+                uploaded = 0
+
+                # Start upload session
+                logger.info("Initializing upload session...")
+                upload_session_start_result = await self._do_request(
+                    "POST",
+                    "https://content.dropboxapi.com/2/files/upload_session/start",
+                    headers={"Content-Type": "application/octet-stream"},
+                    data=b"",
+                )
+                session_id = upload_session_start_result["session_id"]
+                logger.debug(f"Upload session initialized with ID: {session_id}")
+
+                # Upload file chunks
+                while True:
+                    chunk = await f.read(chunk_size)
+                    if not chunk:
+                        break
+
+                    if uploaded + len(chunk) < file_size:
+                        # Append to upload session
+                        logger.debug(f"Uploading chunk: {uploaded/1024/1024:.1f}MB / {file_size/1024/1024:.1f}MB")
+                        await self._do_request(
+                            "POST",
+                            "https://content.dropboxapi.com/2/files/upload_session/append_v2",
+                            headers={
+                                "Content-Type": "application/octet-stream",
+                                "Dropbox-API-Arg": json.dumps({
+                                    "cursor": {
+                                        "session_id": session_id,
+                                        "offset": uploaded
+                                    }
+                                })
+                            },
+                            data=chunk,
+                        )
+                    else:
+                        # Finish upload session
+                        logger.info("Finalizing upload...")
+                        mode = "overwrite" if overwrite else "add"
+                        finish_args = {
+                            "cursor": {
+                                "session_id": session_id,
+                                "offset": uploaded
+                            },
+                            "commit": {
+                                "path": dropbox_path,
+                                "mode": mode
+                            }
+                        }
+
+                        await self._do_request(
+                            "POST",
+                            "https://content.dropboxapi.com/2/files/upload_session/finish",
+                            headers={
+                                "Content-Type": "application/octet-stream",
+                                "Dropbox-API-Arg": json.dumps(finish_args)
+                            },
+                            data=chunk,
+                        )
+
+                    uploaded += len(chunk)
+                    if progress_callback:
+                        await progress_callback(uploaded, file_size)
+
+                # Get shared link
+                logger.info("Upload completed, creating shared link...")
+                shared_link = await self.get_shared_link_metadata(dropbox_path)
+                logger.info("File uploaded and shared successfully")
+                return shared_link["url"]
+
+        except DropboxAPIError:
+            logger.error("Upload failed due to Dropbox API error")
+            raise
+        except Exception as e:
+            error_msg = f"Upload failed: {e!s}"
+            logger.error(error_msg)
+            raise DropboxAPIError(500, error_msg) from e
