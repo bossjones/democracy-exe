@@ -2,45 +2,13 @@ interactions:
 - request:
     body: null
     headers: {}
-    method: GET
-    uri: https://x.com/i/api/graphql/MWY3AO9_I3rcP_L2A4FR4A/TweetResultByRestId?features=%7B%22responsive_web_graphql_exclude_directive_enabled%22%3Atrue%2C%22verified_phone_label_enabled%22%3Afalse%2C%22creator_subscriptions_tweet_preview_api_enabled%22%3Atrue%2C%22responsive_web_graphql_timeline_navigation_enabled%22%3Atrue%2C%22responsive_web_graphql_skip_user_profile_image_extensions_enabled%22%3Afalse%2C%22c9s_tweet_anatomy_moderator_badge_enabled%22%3Atrue%2C%22tweetypie_unmention_optimization_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Atrue%2C%22view_counts_everywhere_api_enabled%22%3Atrue%2C%22longform_notetweets_consumption_enabled%22%3Atrue%2C%22responsive_web_twitter_article_tweet_consumption_enabled%22%3Atrue%2C%22tweet_awards_web_tipping_enabled%22%3Afalse%2C%22freedom_of_speech_not_reach_fetch_enabled%22%3Atrue%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Atrue%2C%22rweb_video_timestamps_enabled%22%3Atrue%2C%22longform_notetweets_rich_text_read_enabled%22%3Atrue%2C%22longform_notetweets_inline_media_enabled%22%3Atrue%2C%22responsive_web_media_download_video_enabled%22%3Atrue%2C%22responsive_web_enhance_cards_enabled%22%3Afalse%7D&variables=%7B%22tweetId%22%3A%221868256259251863704%22%2C%22withCommunity%22%3Afalse%2C%22includePromotedContent%22%3Afalse%2C%22withVoice%22%3Afalse%7D
+    method: POST
+    uri: https://api.x.com/1.1/guest/activate.json
   response:
     body:
       string: !!binary |
-        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
+        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
+        /YMlAAAA
     headers:
       cache-control:
       - no-cache, no-store, must-revalidate, pre-check=0, post-check=0
@@ -49,15 +17,15 @@ interactions:
       content-encoding:
       - gzip
       content-length:
-      - '1936'
+      - '63'
       content-type:
       - application/json; charset=utf-8
       date:
-      - Thu, 19 Dec 2024 19:58:36 GMT
+      - Fri, 03 Jan 2025 23:14:22 GMT
       expires:
       - Tue, 31 Mar 1981 05:00:00 GMT
       last-modified:
-      - Thu, 19 Dec 2024 19:58:37 GMT
+      - Fri, 03 Jan 2025 23:14:22 GMT
       perf:
       - '7402827104'
       pragma:
@@ -75,10 +43,94 @@ interactions:
         GMT; Path=/; Domain=.x.com; Secure; SameSite=None
       strict-transport-security:
       - max-age=631138519
+      x-connection-hash:
+      - 19b073fc4ced720df1f80bcbafdf5afc6e9a9896f6552dcfb4a14db4c3c80f6c
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-response-time:
+      - '11'
+      x-transaction-id:
+      - 2ed67ded0b78d787
+      x-twitter-response-tags:
+      - BouncerCompliant
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers: {}
+    method: GET
+    uri: https://x.com/i/api/graphql/MWY3AO9_I3rcP_L2A4FR4A/TweetResultByRestId?features=%7B%22responsive_web_graphql_exclude_directive_enabled%22%3Atrue%2C%22verified_phone_label_enabled%22%3Afalse%2C%22creator_subscriptions_tweet_preview_api_enabled%22%3Atrue%2C%22responsive_web_graphql_timeline_navigation_enabled%22%3Atrue%2C%22responsive_web_graphql_skip_user_profile_image_extensions_enabled%22%3Afalse%2C%22c9s_tweet_anatomy_moderator_badge_enabled%22%3Atrue%2C%22tweetypie_unmention_optimization_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Atrue%2C%22view_counts_everywhere_api_enabled%22%3Atrue%2C%22longform_notetweets_consumption_enabled%22%3Atrue%2C%22responsive_web_twitter_article_tweet_consumption_enabled%22%3Atrue%2C%22tweet_awards_web_tipping_enabled%22%3Afalse%2C%22freedom_of_speech_not_reach_fetch_enabled%22%3Atrue%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Atrue%2C%22rweb_video_timestamps_enabled%22%3Atrue%2C%22longform_notetweets_rich_text_read_enabled%22%3Atrue%2C%22longform_notetweets_inline_media_enabled%22%3Atrue%2C%22responsive_web_media_download_video_enabled%22%3Atrue%2C%22responsive_web_enhance_cards_enabled%22%3Afalse%7D&variables=%7B%22tweetId%22%3A%221868256259251863704%22%2C%22withCommunity%22%3Afalse%2C%22includePromotedContent%22%3Afalse%2C%22withVoice%22%3Afalse%7D
+  response:
+    body:
+      string: !!binary |
+        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
+    headers:
+      cache-control:
+      - no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+      content-disposition:
+      - attachment; filename=json.json
+      content-encoding:
+      - gzip
+      content-length:
+      - '1936'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Fri, 03 Jan 2025 23:14:22 GMT
+      expires:
+      - Tue, 31 Mar 1981 05:00:00 GMT
+      last-modified:
+      - Fri, 03 Jan 2025 23:14:23 GMT
+      perf:
+      - '7402827104'
+      pragma:
+      - no-cache
+      server:
+      - tsa_b
+      strict-transport-security:
+      - max-age=631138519
       vary:
       - Origin
       x-connection-hash:
-      - a2baef66bc389c564ed4506d6afb314a81e9b36c12781080a1b0756799947ebc
+      - 53345f4ef00c7ecb06c48d7f8ecdf9ea2db9d0cc7f9708282cb51c64cf8b2298
       x-content-type-options:
       - nosniff
       x-frame-options:
@@ -86,15 +138,15 @@ interactions:
       x-rate-limit-limit:
       - '50'
       x-rate-limit-remaining:
-      - '48'
+      - '49'
       x-rate-limit-reset:
-      - '1734638840'
+      - '1735946963'
       x-response-time:
-      - '147'
+      - '79'
       x-tfe-preserve-body:
       - 'true'
       x-transaction-id:
-      - 4eeeae34a1d9fdf5
+      - 05f490bf19e08e2f
       x-twitter-response-tags:
       - BouncerCompliant
       x-xss-protection:
