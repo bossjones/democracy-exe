@@ -66,9 +66,9 @@ def _value_from_env_or_die(env_name: str) -> str:
 
 
 @pytest.fixture()
-def dbx_from_env() -> dropbox.Dropbox:
+async def dbx_from_env() -> dropbox.Dropbox:
     oauth2_token = _value_from_env_or_die(format_env_name())
-    return dropbox_.get_dropbox_client(oauth2_access_token=oauth2_token)
+    return await dropbox_.get_dropbox_client(oauth2_access_token=oauth2_token)
 
 
 MALFORMED_TOKEN = "asdf"
@@ -123,7 +123,7 @@ class TestDropboxIntegration:
     #     assert isinstance(cm.value.error, ListFolderError)
 
     @pytest.mark.flaky(reruns=5, reruns_delay=2)
-    def test_upload_download(self, dbx_from_env: FixtureRequest) -> None:
+    async def test_upload_download(self, dbx_from_env: dropbox.Dropbox) -> None:
         # Upload file
         random_filename = "".join(RANDOM_FOLDER)
         random_path = f"/Test/{TIMESTAMP}/{random_filename}"
@@ -137,16 +137,16 @@ class TestDropboxIntegration:
         # Cleanup folder
         dbx_from_env.files_delete_v2(f"/Test/{TIMESTAMP}")
 
-    def test_bad_upload_types(self, dbx_from_env: FixtureRequest) -> None:
+    async def test_bad_upload_types(self, dbx_from_env: dropbox.Dropbox) -> None:
         with pytest.raises(TypeError):
             dbx_from_env.files_upload(BytesIO(b"test"), "/Test")  # type: ignore
 
-    def test_clone_when_user_linked(self, dbx_from_env: FixtureRequest) -> None:
+    async def test_clone_when_user_linked(self, dbx_from_env: dropbox.Dropbox) -> None:
         new_dbx = dbx_from_env.clone()  # type: ignore
         assert dbx_from_env is not new_dbx
         assert isinstance(new_dbx, dbx_from_env.__class__)
 
-    def test_versioned_route(self, dbx_from_env: FixtureRequest) -> None:
+    async def test_versioned_route(self, dbx_from_env: dropbox.Dropbox) -> None:
         # Upload a test file
         dbx_from_env.files_upload(DUMMY_PAYLOAD, STATIC_FILE)  # type: ignore
 
