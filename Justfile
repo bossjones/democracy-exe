@@ -961,4 +961,12 @@ test-gallery-dl-debug:
 test-gallery-dl:
 	uv run pytest --capture=tee-sys -k test_run_single_tweet
 
+test-dropbox:
+	uv run pytest --showlocals --tb=short --capture=tee-sys -m dropboxonly
+
+test-dropbox-debug:
+	uv run pytest --showlocals --tb=short --capture=tee-sys --pdb --pdbcls bpdb:BPdb -m dropboxonly
+
+
+
 # /Users/malcolm/dev/gallery-dl/gallery_dl

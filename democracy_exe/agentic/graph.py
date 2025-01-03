@@ -47,7 +47,7 @@ from democracy_exe.aio_settings import aiosettings
 
 
 # Type alias for chat models
-ChatModelLike = agentic_utils.ChatModelLike
+ChatModelLike = Union[ChatOpenAI, ChatAnthropic]
 
 _EMPTY_VEC = [0.0] * 768
 

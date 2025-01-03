@@ -1,4 +1,8 @@
-#!/usr/bin/env python
+# pyright: reportUninitializedInstanceVariable=false
+# pyright: reportUndefinedVariable=false
+# pyright: reportAttributeAccessIssue=false
+
+
 from __future__ import annotations
 
 import warnings
@@ -31,7 +35,8 @@ ACCESS_TOKEN_KEY = "TOKEN"
 CLIENT_ID_KEY = "APP_KEY"
 CLIENT_SECRET_KEY = "APP_SECRET"
 # App Types
-SCOPED_KEY = "DROPBOX"
+# SCOPED_KEY = "DROPBOX"
+SCOPED_KEY = "DEMOCRACY_EXE_CONFIG_DROPBOX"
 LEGACY_KEY = "LEGACY"
 # User Types
 USER_KEY = "CEREBRO"
@@ -45,6 +50,7 @@ def format_env_name(
     user_type: str = USER_KEY,
     key_type: str = ACCESS_TOKEN_KEY,
 ) -> str:
+    # 'DROPBOX_CEREBRO_TOKEN'
     return f"{app_type}_{user_type}_{key_type}"
 
 
@@ -62,7 +68,7 @@ def _value_from_env_or_die(env_name: str) -> str:
 @pytest.fixture()
 def dbx_from_env() -> dropbox.Dropbox:
     oauth2_token = _value_from_env_or_die(format_env_name())
-    return dropbox_.get_dropbox_client(token=oauth2_token)
+    return dropbox_.get_dropbox_client(oauth2_access_token=oauth2_token)
 
 
 MALFORMED_TOKEN = "asdf"
@@ -79,7 +85,7 @@ STATIC_FILE = "/test.txt"
 @pytest.fixture(scope="module", autouse=True)
 def pytest_setup() -> None:
     print("Setup")
-    dbx = dropbox_.get_dropbox_client(token=_value_from_env_or_die(format_env_name()))
+    dbx = dropbox_.get_dropbox_client(oauth2_access_token=_value_from_env_or_die(format_env_name()))
 
     try:
         dbx.files_delete_v2(STATIC_FILE)  # type: ignore

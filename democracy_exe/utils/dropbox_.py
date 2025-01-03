@@ -37,17 +37,20 @@ from pydantic import Field, SecretStr
 from democracy_exe.aio_settings import aiosettings
 
 
-def get_dropbox_session() -> requests.Session:
-    """Get a new Dropbox session.
+async def get_dropbox_session() -> requests.Session:
+    """Get a new Dropbox session asynchronously.
 
     Returns:
         requests.Session: A configured session for Dropbox API requests.
     """
-    return create_session()
+    return await asyncio.to_thread(create_session)
 
 
-async def get_dropbox_client() -> dropbox.Dropbox | None:  # pylint: disable=no-member
-    """Create and initialize a Dropbox client asynchronously.
+async def get_dropbox_client(oauth2_access_token: str | None = None) -> dropbox.Dropbox | None:  # pylint: disable=no-member
+    """Create and initialize a Dropbox client.
+
+    Args:
+        oauth2_access_token: Optional OAuth2 access token. If not provided, uses token from settings.
 
     Returns:
         dropbox.Dropbox | None: An authenticated Dropbox client or None if initialization fails.
@@ -59,9 +62,10 @@ async def get_dropbox_client() -> dropbox.Dropbox | None:  # pylint: disable=no-
     """
     dbx = None
     try:
-        token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
-        token: str = token_secret.get_secret_value()
-        dbx = dropbox.Dropbox(oauth2_access_token=token)
+        if oauth2_access_token is None:
+            token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+            oauth2_access_token = token_secret.get_secret_value()
+        dbx = dropbox.Dropbox(oauth2_access_token=oauth2_access_token)
         # Run potentially blocking operation in thread pool
         await asyncio.to_thread(dbx.users_get_current_account)
         logger.info("Connected to Dropbox successfully")
@@ -90,6 +94,7 @@ async def list_files_in_remote_folder(dbx: dropbox.Dropbox) -> None:
     Raises:
         Exception: If listing files fails.
     """
+    logger.info("Listing files in remote folder")
     try:
         folder_path = aiosettings.default_dropbox_folder
         # Run potentially blocking operation in thread pool
@@ -100,6 +105,8 @@ async def list_files_in_remote_folder(dbx: dropbox.Dropbox) -> None:
 
         for file in files:
             rich.print(file.name)
+        logger.info("Successfully listed files")
+        await logger.complete()
 
     except Exception as ex:
         logger.error(f"Error Class: {ex.__class__!s}")
@@ -108,6 +115,7 @@ async def list_files_in_remote_folder(dbx: dropbox.Dropbox) -> None:
         logger.error(f"exc_type: {sys.exc_info()[0]}")
         logger.error(f"exc_value: {sys.exc_info()[1]}")
         traceback.print_tb(sys.exc_info()[2])
+        await logger.complete()
         raise
 
 
@@ -159,8 +167,8 @@ def stopwatch(message: str) -> Generator[None, None, None]:
         print(f"Total elapsed time for {message}: {t1 - t0:.3f}")
 
 
-def list_folder(dbx: dropbox.Dropbox, folder: str, subfolder: str) -> dict[str, FileMetadata | FolderMetadata]:
-    """List a folder.
+async def list_folder(dbx: dropbox.Dropbox, folder: str, subfolder: str) -> dict[str, FileMetadata | FolderMetadata]:
+    """List a folder asynchronously.
 
     Args:
         dbx: An authenticated Dropbox client.
@@ -173,27 +181,30 @@ def list_folder(dbx: dropbox.Dropbox, folder: str, subfolder: str) -> dict[str, 
     Raises:
         dropbox.exceptions.ApiError: If folder listing fails.
     """
+    logger.info(f"Listing folder: /{folder}/{subfolder}")
     path = f'/{folder}/{subfolder.replace(os.path.sep, "/")}'
     while "//" in path:
         path = path.replace("//", "/")
     path = path.rstrip("/")
     try:
         with stopwatch("list_folder"):
-            res = dbx.files_list_folder(path)
-    except dropbox.exceptions.ApiError as err:
-        print("Folder listing failed for", path, "-- assumed empty:", err)
-        return {}
-    else:
+            res = await asyncio.to_thread(dbx.files_list_folder, path)
+        logger.info("Successfully listed folder contents")
+        await logger.complete()
         return {entry.name: entry for entry in res.entries}
+    except dropbox.exceptions.ApiError as err:
+        logger.error(f"Folder listing failed for {path}: {err}")
+        await logger.complete()
+        return {}
 
 
-def download(
+async def download(
     dbx: dropbox.Dropbox,
     folder: str,
     subfolder: str,
     name: str
 ) -> bytes | None:
-    """Download a file.
+    """Download a file asynchronously.
 
     Args:
         dbx: An authenticated Dropbox client.
@@ -207,18 +218,21 @@ def download(
     Raises:
         dropbox.exceptions.HttpError: If HTTP request fails.
     """
+    logger.info(f"Downloading file: {name} from /{folder}/{subfolder}")
     path = f'/{folder}/{subfolder.replace(os.path.sep, "/")}/{name}'
     while "//" in path:
         path = path.replace("//", "/")
     with stopwatch("download"):
         try:
-            md, res = dbx.files_download(path)
+            md, res = await asyncio.to_thread(dbx.files_download, path)
+            data = res.content
+            logger.info(f"Successfully downloaded {len(data)} bytes")
+            await logger.complete()
+            return data
         except dropbox.exceptions.HttpError as err:
-            print("*** HTTP error", err)
+            logger.error(f"HTTP error during download: {err}")
+            await logger.complete()
             return None
-    data = res.content
-    print(len(data), "bytes; md:", md)
-    return data
 
 
 async def upload(

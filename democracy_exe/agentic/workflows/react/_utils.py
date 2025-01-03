@@ -150,13 +150,14 @@ def ensure_configurable(config: RunnableConfig) -> schemas.GraphConfig:
 
 
 @lru_cache
-def get_embeddings(model_name: str = "nomic-ai/nomic-embed-text-v1.5") -> Embeddings|OpenAIEmbeddings:
+def get_embeddings(model_name: str = "nomic-ai/nomic-embed-text-v1.5") -> Embeddings:
     if model_name == "nomic-ai/nomic-embed-text-v1.5":
         from langchain_fireworks import FireworksEmbeddings
         return FireworksEmbeddings(model="nomic-ai/nomic-embed-text-v1.5")
     elif model_name == "text-embedding-3-large":
         from langchain_openai import OpenAIEmbeddings
         return OpenAIEmbeddings(model="text-embedding-3-large")
+    from langchain_fireworks import FireworksEmbeddings
     return FireworksEmbeddings(model=model_name)
 
 

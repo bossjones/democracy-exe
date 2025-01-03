@@ -1458,6 +1458,7 @@ markers = [
     "aidergenerated: marks tests that are aider generated (deselect with '-m \"not aidergenerated\"')",
     "asynciotyper: marks tests that are asyncio typer generated (deselect with '-m \"not asynciotyper\"')",
     "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
+    "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
 ]
 
 
