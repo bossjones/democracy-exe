@@ -8,6 +8,7 @@ import time
 import uuid
 
 from functools import lru_cache
+from typing import TYPE_CHECKING, Union
 
 import langsmith
 
@@ -22,6 +23,13 @@ import democracy_exe.agentic._schemas as schemas
 
 from democracy_exe.aio_settings import aiosettings
 
+
+if TYPE_CHECKING:
+    from langchain_anthropic import ChatAnthropic
+    from langchain_openai import ChatOpenAI
+
+    # Type alias for chat models
+    ChatModelLike = Union[ChatOpenAI, ChatAnthropic]
 
 _DEFAULT_DELAY = 60  # seconds
 
