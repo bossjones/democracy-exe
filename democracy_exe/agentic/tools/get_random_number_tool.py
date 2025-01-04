@@ -88,7 +88,7 @@ class GetRandomNumberTool(BaseTool):
         """
         if max_value <= min_value:
             logger.error("Invalid range for random number generation")
-            raise ValueError(f"max_value ({max_value}) must be greater than min_value ({min_value})")
+            raise ValueError("Maximum value must be greater than minimum value")
 
     def _generate_number(
         self,
@@ -109,6 +109,9 @@ class GetRandomNumberTool(BaseTool):
         Raises:
             ValueError: If range is invalid
         """
+        # Validate range first
+        self._validate_range(min_value, max_value)
+
         try:
             if seed is not None:
                 logger.debug("Generating random number with seed")
