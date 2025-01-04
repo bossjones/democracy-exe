@@ -229,11 +229,12 @@ dev-dependencies = [
     "pytest-aioresponses>=0.2.0",
     "pytest-loguru>=0.4.0",
     "pytest-skipuntil>=0.2.0",
-    "pytest-freezegun>=0.4.2",
+    "pytest-freezegun",
 ]
 
 [tool.uv.sources]
 changelogs = {git = "https://github.com/bossjones/changelogs"}
+pytest-freezegun = { git = "https://github.com/parafoxia/pytest-freezegun" }
 
 [build-system]
 requires = ["setuptools >= 61.0"]

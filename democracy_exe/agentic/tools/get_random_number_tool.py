@@ -33,25 +33,6 @@ class GetRandomNumberInput(BaseModel):
         description="Random seed for reproducibility"
     )
 
-    @field_validator("max_value", mode="before")
-    @classmethod
-    def validate_max_value(cls, v: int, info: Any) -> int:
-        """Validate that max_value is greater than min_value.
-
-        Args:
-            v: Maximum value to validate
-            info: Validation context information
-
-        Returns:
-            int: Validated maximum value
-
-        Raises:
-            ValueError: If max_value is not greater than min_value
-        """
-        min_value = info.data.get("min_value")
-        if min_value is not None and v <= min_value:
-            raise ValueError(f"max_value ({v}) must be greater than min_value ({min_value})")
-        return v
 
 
 class GetRandomNumberResponse(BaseModel):
@@ -95,6 +76,20 @@ class GetRandomNumberTool(BaseTool):
     args_schema: type[BaseModel] = GetRandomNumberInput
     return_direct: bool = True
 
+    def _validate_range(self, min_value: int, max_value: int) -> None:
+        """Validate the input range.
+
+        Args:
+            min_value: Minimum value to validate
+            max_value: Maximum value to validate
+
+        Raises:
+            ValueError: If range is invalid
+        """
+        if max_value <= min_value:
+            logger.error("Invalid range for random number generation")
+            raise ValueError(f"max_value ({max_value}) must be greater than min_value ({min_value})")
+
     def _generate_number(
         self,
         min_value: int = 1,
@@ -114,9 +109,6 @@ class GetRandomNumberTool(BaseTool):
         Raises:
             ValueError: If range is invalid
         """
-        if max_value <= min_value:
-            raise ValueError("Maximum value must be greater than minimum value")
-
         try:
             if seed is not None:
                 logger.debug("Generating random number with seed")
@@ -154,13 +146,14 @@ class GetRandomNumberTool(BaseTool):
         """
         logger.info("Generating random number synchronously")
         try:
+            self._validate_range(min_value, max_value)
             number = self._generate_number(min_value, max_value, seed)
             response = GetRandomNumberResponse(
                 random_number=number,
                 min_value=min_value,
                 max_value=max_value,
                 seed=seed
-            ).dict()
+            ).model_dump()
             logger.info(f"Successfully generated random number: {number}")
             return response
         except Exception as e:
@@ -171,7 +164,7 @@ class GetRandomNumberTool(BaseTool):
                 max_value=max_value,
                 seed=seed,
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 
@@ -198,13 +191,14 @@ class GetRandomNumberTool(BaseTool):
         """
         logger.info("Generating random number asynchronously")
         try:
+            self._validate_range(min_value, max_value)
             number = self._generate_number(min_value, max_value, seed)
             response = GetRandomNumberResponse(
                 random_number=number,
                 min_value=min_value,
                 max_value=max_value,
                 seed=seed
-            ).dict()
+            ).model_dump()
             logger.info(f"Successfully generated random number: {number}")
             return response
         except Exception as e:
@@ -215,7 +209,7 @@ class GetRandomNumberTool(BaseTool):
                 max_value=max_value,
                 seed=seed,
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 
