@@ -63,8 +63,8 @@ async def get_dropbox_client(oauth2_access_token: str | None = None) -> dropbox.
     dbx = None
     try:
         if oauth2_access_token is None:
-            token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
-            oauth2_access_token = token_secret.get_secret_value()
+            # token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+            oauth2_access_token = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
         dbx = dropbox.Dropbox(oauth2_access_token=oauth2_access_token)
         # Run potentially blocking operation in thread pool
         await asyncio.to_thread(dbx.users_get_current_account)
@@ -405,12 +405,12 @@ def cli_oauth() -> None:
     Raises:
         SystemExit: If OAuth flow fails.
     """
-    app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
-    app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
+    # app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
+    # app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
 
     auth_flow = DropboxOAuth2FlowNoRedirect(
-        app_key_secret.get_secret_value(),
-        app_secret_secret.get_secret_value()
+        aiosettings.dropbox_cerebro_app_key.get_secret_value(),
+        aiosettings.dropbox_cerebro_app_secret.get_secret_value()
     )
 
     authorize_url = auth_flow.start()
@@ -435,15 +435,26 @@ class AsyncDropBox:
 
     def __init__(self) -> None:
         """Initialize AsyncDropBox with credentials from settings."""
-        token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
-        app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
-        app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
-        refresh_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+        # DISABLED: This gets around pyright/pylance but exposes the secret values to the global namespace.
+        # token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+        # app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
+        # app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
+        # refresh_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
 
-        self.dropbox_access_token: str = token_secret.get_secret_value()
-        self.app_key: str = app_key_secret.get_secret_value()
-        self.app_secret: str = app_secret_secret.get_secret_value()
-        self.dropbox_refresh_token: str = refresh_token_secret.get_secret_value()
+        # self.dropbox_access_token: str = token_secret.get_secret_value()
+        # self.app_key: str = app_key_secret.get_secret_value()
+        # self.app_secret: str = app_secret_secret.get_secret_value()
+        # self.dropbox_refresh_token: str = refresh_token_secret.get_secret_value()
+
+        # token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+        # app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
+        # app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
+        # refresh_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+
+        self.dropbox_access_token: str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
+        self.app_key: str = aiosettings.dropbox_cerebro_app_key.get_secret_value()  # pylint: disable=no-member
+        self.app_secret: str = aiosettings.dropbox_cerebro_app_secret.get_secret_value()  # pylint: disable=no-member
+        self.dropbox_refresh_token: str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
 
         self.client = self.auth()
 

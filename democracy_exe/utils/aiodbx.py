@@ -311,15 +311,16 @@ class AsyncDropboxAPI:
 
     def __init__(
         self,
-        access_token: str | None = None,
+        access_token: str | None | SecretStr = None,
         max_retries: int = 3,
         retry_delay: float = 1.0
     ) -> None:
         if access_token is None:
-            self.access_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
-            self.access_token: str = self.access_token_secret.get_secret_value()
+            logger.debug("Using aiosettings.dropbox_cerebro_token")
+            # self.access_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+            self.access_token: str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
         else:
-            self.access_token: str = access_token
+            self.access_token: str | SecretStr = access_token
 
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -399,14 +400,24 @@ class AsyncDropboxAPI:
             DropboxAPIError: If request fails after retries
         """
         if not self.client_session:
+            logger.debug("Creating new client session")
             self.client_session = aiohttp.ClientSession()
 
         headers = headers or {}
         if "Authorization" not in headers:
+            logger.debug("Adding authorization header")
             headers["Authorization"] = f"Bearer {self.access_token}"
+
+        logger.debug(f"Making {method} request to {url} (retry {retry_count}/{self.max_retries})")
+        logger.debug(f"Request headers: {headers}")
+        if data:
+            logger.debug(f"Request data length: {len(data) if isinstance(data, (str, bytes)) else len(str(data))} bytes")
+        if json_data:
+            logger.debug(f"Request JSON data: {json_data}")
 
         try:
             async with self._request_semaphore:
+                logger.debug("Acquired request semaphore")
                 async with self.client_session.request(
                     method,
                     url,
@@ -414,29 +425,43 @@ class AsyncDropboxAPI:
                     data=data,
                     json=json_data
                 ) as response:
+                    logger.debug(f"Response status: {response.status}")
+                    logger.debug(f"Response headers: {response.headers}")
+
                     if response.status == 429:  # Rate limit
                         if retry_count < self.max_retries:
-                            await asyncio.sleep(self.retry_delay * (2 ** retry_count))
+                            delay = self.retry_delay * (2 ** retry_count)
+                            logger.debug(f"Rate limited, retrying in {delay} seconds")
+                            await asyncio.sleep(delay)
                             return await self._do_request(
                                 method, url, headers, data,
                                 json_data, retry_count + 1
                             )
+                        logger.error("Rate limit exceeded after max retries")
                         raise DropboxAPIError(429, "Rate limit exceeded")
 
                     if not response.ok:
                         error_data = await response.text()
+                        logger.error(f"Request failed with status {response.status}: {error_data}")
                         raise DropboxAPIError(
                             response.status,
                             f"Request failed: {response.status} - {error_data}"
                         )
 
                     if response.content_type == "application/json":
-                        return await response.json()
-                    return await response.text()
+                        response_data = await response.json()
+                        logger.debug(f"Received JSON response: {response_data}")
+                        return response_data
+                    response_text = await response.text()
+                    logger.debug(f"Received text response length: {len(response_text)} bytes")
+                    return response_text
 
         except aiohttp.ClientError as e:
+            logger.error(f"Client error occurred: {e!s}")
             if retry_count < self.max_retries:
-                await asyncio.sleep(self.retry_delay * (2 ** retry_count))
+                delay = self.retry_delay * (2 ** retry_count)
+                logger.debug(f"Retrying request in {delay} seconds")
+                await asyncio.sleep(delay)
                 return await self._do_request(
                     method, url, headers, data,
                     json_data, retry_count + 1
@@ -444,6 +469,8 @@ class AsyncDropboxAPI:
             raise DropboxAPIError(500, f"Request failed: {e!s}")
 
         except Exception as e:
+            logger.error(f"Unexpected error occurred: {e!s}")
+            logger.error(f"Traceback: {''.join(traceback.format_exception(type(e), e, e.__traceback__))}")
             raise DropboxAPIError(500, f"Unexpected error: {e!s}")
 
     async def validate(self) -> bool:

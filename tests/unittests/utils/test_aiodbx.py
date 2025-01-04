@@ -223,17 +223,18 @@ async def test_dropbox_api_validate(
     with tracing_context(enabled=False):
         # Create client with real token from env
         # token = os.getenv("DROPBOX_TOKEN")
-        token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+        # token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
         # app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
         # app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
         # refresh_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
 
-        token: str = token_secret.get_secret_value()
+        # token: str = token_secret.get_secret_value()
+        token: str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
 
         if not token:
-            pytest.skip("DROPBOX_TOKEN environment variable not set")
+            pytest.skip("aiosettings.dropbox_cerebro_token environment variable not set")
 
-        async with AsyncDropboxAPI(token) as client:
+        async with AsyncDropboxAPI(access_token=token) as client:
             try:
                 assert await client.validate() is True
             except Exception as e:
