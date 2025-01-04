@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 
 import aiofiles
 import aiohttp
+import bpdb
 
 from loguru import logger
 from pydantic import SecretStr
@@ -318,9 +319,12 @@ class AsyncDropboxAPI:
         if access_token is None:
             logger.debug("Using aiosettings.dropbox_cerebro_token")
             # self.access_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
-            self.access_token: str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
+            self.access_token: SecretStr | str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
         else:
-            self.access_token: str | SecretStr = access_token
+            if isinstance(access_token, str):
+                self.access_token: str | SecretStr = SecretStr(access_token)
+            else:
+                self.access_token: SecretStr | str = access_token
 
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -406,7 +410,7 @@ class AsyncDropboxAPI:
         headers = headers or {}
         if "Authorization" not in headers:
             logger.debug("Adding authorization header")
-            headers["Authorization"] = f"Bearer {self.access_token}"
+            headers["Authorization"] = f"Bearer {aiosettings.dropbox_cerebro_token.get_secret_value()}" # pylint: disable=no-member
 
         logger.debug(f"Making {method} request to {url} (retry {retry_count}/{self.max_retries})")
         logger.debug(f"Request headers: {headers}")
@@ -499,10 +503,31 @@ class AsyncDropboxAPI:
             logger.info("API token validated successfully")
             await logger.complete()
             return True
-        except Exception as e:
-            logger.error(f"API token validation failed: {e!s}")
+
+        except Exception as ex:
+            import bpdb
+            import rich
+            logger.error(f"API token validation failed: {ex}")
+            print(f"{ex}")
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print(f"Error Class: {ex.__class__}")
+            output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+            print(output)
+            print(f"exc_type: {exc_type}")
+            print(f"exc_value: {exc_value}")
+            traceback.print_tb(exc_traceback)
             await logger.complete()
-            raise DropboxAPIError(401, f"Token validation failed: {e!s}")
+            rich.print(f"aiosettings.dev_mode: {aiosettings.dev_mode}")
+            if aiosettings.dev_mode:
+                bpdb.pm()
+
+            await logger.complete()
+            raise DropboxAPIError(401, f"Token validation failed: {ex}")
+
+        # except Exception as e:
+        #     logger.error(f"API token validation failed: {e!s}")
+        #     await logger.complete()
+        #     raise DropboxAPIError(401, f"Token validation failed: {e!s}")
 
     async def download_file(self, dropbox_path: str, local_path: str | None = None) -> str:
         """Download a file from Dropbox.

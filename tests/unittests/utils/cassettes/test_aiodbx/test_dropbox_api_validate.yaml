@@ -1,12 +1,12 @@
 interactions:
 - request:
-    body: '{"query": "cba87a62-a71d-48f4-bc0c-23d7f9e56d29"}'
+    body: '{"query": "5dd2ae70-3eb2-4ec6-b04b-9a43049ff89f"}'
     headers: {}
     method: POST
     uri: https://api.dropboxapi.com/2/check/user
   response:
     body:
-      string: '{"result":"cba87a62-a71d-48f4-bc0c-23d7f9e56d29"}'
+      string: '{"result":"5dd2ae70-3eb2-4ec6-b04b-9a43049ff89f"}'
     headers:
       Cache-Control:
       - no-cache
@@ -19,7 +19,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sat, 04 Jan 2025 00:25:37 GMT
+      - Sat, 04 Jan 2025 03:07:13 GMT
       Pragma:
       - no-cache
       Server:
@@ -29,13 +29,13 @@ interactions:
       X-Content-Type-Options:
       - nosniff
       X-Dropbox-Request-Id:
-      - a435d9bd79fc49c0b959cef3821a119a
+      - f62cc72ae6304cb1b630dbb3fb19220e
       X-Dropbox-Response-Origin:
       - far_remote
       X-Frame-Options:
       - sameorigin
       X-Server-Response-Time:
-      - '13'
+      - '15'
       X-Webkit-Csp:
       - sandbox
     status:

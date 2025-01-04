@@ -28,6 +28,15 @@ if TYPE_CHECKING:
     from _pytest.logging import LogCaptureFixture
     from vcr.request import Request as VCRRequest
 
+import datetime
+import random
+import string
+import sys
+
+
+# from datetime import datetime
+from io import BytesIO
+
 import aiofiles
 import aiohttp
 
@@ -50,6 +59,17 @@ from democracy_exe.utils.aiodbx import (
     retry_with_backoff,
     safe_aiofiles_open,
 )
+
+
+MALFORMED_TOKEN = "asdf"
+INVALID_TOKEN = "z" * 62
+
+# Need bytes type for Python3
+DUMMY_PAYLOAD = string.ascii_letters.encode("ascii")
+
+RANDOM_FOLDER = random.sample(string.ascii_letters, 15)
+TIMESTAMP = str(datetime.datetime.now(datetime.UTC))
+STATIC_FILE = "/test.txt"
 
 
 @pytest.fixture
@@ -90,7 +110,7 @@ async def dbx_client(mock_session: MockerFixture) -> AsyncGenerator[AsyncDropbox
     Yields:
         AsyncDropboxAPI: Test client instance
     """
-    client = AsyncDropboxAPI(access_token="test_token")  # noqa: S106
+    client = AsyncDropboxAPI()
     yield client
     await client._cleanup()
 
@@ -143,17 +163,66 @@ def _filter_request_headers(request: VCRRequest) -> Any:
     return request
 
 
+# def _filter_response(response: VCRRequest) -> VCRRequest:
+#     """Filter response before recording.
+
+#     Args:
+#         response: The response to filter
+
+#     Returns:
+#         The filtered response
+#     """
+#     if "retry-after" in response["headers"]:
+#         response["headers"]["retry-after"] = "0"  # type: ignore
+#     return response
+
+
 def _filter_response(response: VCRRequest) -> VCRRequest:
-    """Filter response before recording.
+    """
+    Filter the response before recording.
+
+    If the response has a 'retry-after' header, we set it to 0 to avoid waiting for the retry time.
 
     Args:
-        response: The response to filter
+        response (VCRRequest): The response to filter.
 
     Returns:
-        The filtered response
+        VCRRequest: The filtered response.
     """
+
     if "retry-after" in response["headers"]:
         response["headers"]["retry-after"] = "0"  # type: ignore
+    if "x-stainless-arch" in response["headers"]:
+        response["headers"]["x-stainless-arch"] = "arm64"  # type: ignore
+
+    if "apim-request-id" in response["headers"]:
+        response["headers"]["apim-request-id"] = ["9a705e27-2f04-4bd6-abd8-01848165ebbf"]  # type: ignore
+
+    if "azureml-model-session" in response["headers"]:
+        response["headers"]["azureml-model-session"] = ["d089-20240815073451"]  # type: ignore
+
+    if "x-ms-client-request-id" in response["headers"]:
+        response["headers"]["x-ms-client-request-id"] = ["9a705e27-2f04-4bd6-abd8-01848165ebbf"]  # type: ignore
+
+    if "x-ratelimit-remaining-requests" in response["headers"]:
+        response["headers"]["x-ratelimit-remaining-requests"] = ["144"]  # type: ignore
+    if "x-ratelimit-remaining-tokens" in response["headers"]:
+        response["headers"]["x-ratelimit-remaining-tokens"] = ["143324"]  # type: ignore
+    if "x-request-id" in response["headers"]:
+        response["headers"]["x-request-id"] = ["143324"]  # type: ignore
+    if "Set-Cookie" in response["headers"]:
+        response["headers"]["Set-Cookie"] = [  # type: ignore
+            "__cf_bm=fake;path=/; expires=Tue, 15-Oct-24 23:22:45 GMT; domain=.api.openai.com; HttpOnly;Secure; SameSite=None",
+            "_cfuvid=fake;path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None",
+        ]  # type: ignore
+    if "set-cookie" in response["headers"]:
+        response["headers"]["set-cookie"] = [  # type: ignore
+            "guest_id_marketing=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+            "guest_id_ads=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+            "personalization_id=v1_SUPERFAKE; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+            "guest_id=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None",
+        ]  # type: ignore
+
     return response
 
 
@@ -204,6 +273,11 @@ async def test_retry_with_backoff(mocker: MockerFixture) -> None:
     before_record_response=_filter_response,
     before_record_request=_filter_request_headers,
 )
+# @pytest.mark.skip_until(
+#     deadline=datetime.datetime(2025, 1, 25),
+#     strict=True,
+#     msg="Need to find a good url to test this with, will do later",
+# )
 async def test_dropbox_api_validate(
     vcr: VCRRequest,
     caplog: LogCaptureFixture,
@@ -234,7 +308,8 @@ async def test_dropbox_api_validate(
         if not token:
             pytest.skip("aiosettings.dropbox_cerebro_token environment variable not set")
 
-        async with AsyncDropboxAPI(access_token=token) as client:
+        # async with AsyncDropboxAPI(access_token=token) as client:
+        async with AsyncDropboxAPI() as client:
             try:
                 assert await client.validate() is True
             except Exception as e:
@@ -245,6 +320,8 @@ async def test_dropbox_api_validate(
 
 @pytest.mark.vcr()
 @pytest.mark.asyncio
+@pytest.mark.dropboxonly()
+@pytest.mark.default_cassette("test_dropbox_api_download_file.yaml")
 async def test_dropbox_api_download_file(
     dbx_client: AsyncDropboxAPI,
     mock_response: MockerFixture,
@@ -262,6 +339,56 @@ async def test_dropbox_api_download_file(
     mock_response.text = mocker.AsyncMock(return_value=test_content)
     mock_response.content_type = "application/octet-stream"
     local_path = tmp_path / "downloaded.txt"
+
+    result = await dbx_client.download_file("/test.txt", str(local_path))
+    assert result == str(local_path)
+    assert local_path.read_bytes() == test_content
+
+
+@pytest.mark.vcr()
+@pytest.mark.asyncio
+@pytest.mark.dropboxonly()
+@pytest.mark.default_cassette("test_dropbox_api_download_file.yaml")
+async def test_dropbox_api_download_file_improved(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Test file download from Dropbox.
+
+    Args:
+
+        tmp_path: Pytest temporary path fixture
+    """
+
+    # @pytest_asyncio.fixture
+    # async def mock_tweet_data_with_media(mock_tweet_data: dict[str, Any], tmp_path: pathlib.Path) -> dict[str, Any]:
+    #     """Create mock tweet data with media files for testing.
+
+    #     Args:
+    #         mock_tweet_data: Base mock tweet data
+    #         tmp_path: Temporary directory path
+
+    #     Returns:
+    #         Mock tweet data with media files
+    #     """
+
+    random_filename = "".join(RANDOM_FOLDER)
+    random_path = f"/Test/{TIMESTAMP}/{random_filename}"
+    test_contents = DUMMY_PAYLOAD
+    # Create a temporary file
+    local_path = tmp_path / RANDOM_FOLDER / "downloaded.txt"
+    async with aiofiles.open(local_path, mode="w", encoding="utf-8") as f:
+        await f.write("test file content")  # type: ignore[arg-type]
+
+    # data = mock_tweet_data.copy()
+    # data["local_files"] = [str(test_file)]
+    # data["metadata"]["media_urls"] = ["https://test.com/media.mp4"]
+    # return data
+
+    # #####
+    # test_content = b"test file content"
+    # mock_response.text = mocker.AsyncMock(return_value=test_content)
+    # mock_response.content_type = "application/octet-stream"
+    # local_path = tmp_path / "downloaded.txt"
 
     result = await dbx_client.download_file("/test.txt", str(local_path))
     assert result == str(local_path)

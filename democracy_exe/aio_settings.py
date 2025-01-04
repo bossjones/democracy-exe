@@ -386,9 +386,26 @@ class AioSettings(BaseSettings):
     discord_admin_user_invited: bool = False
 
     default_dropbox_folder: str = "/cerebro_downloads"
-    dropbox_cerebro_app_key: SecretStr = ""
-    dropbox_cerebro_app_secret: SecretStr = ""
-    dropbox_cerebro_token: SecretStr = ""
+    dropbox_cerebro_app_key: SecretStr = Field(
+        env="DROPBOX_CEREBRO_APP_KEY",
+        description="Dropbox Cerebro App Key",
+        default=""
+    )
+    dropbox_cerebro_app_secret: SecretStr = Field(
+        env="DROPBOX_CEREBRO_APP_SECRET",
+        description="Dropbox Cerebro App Secret",
+        default=""
+    )
+    dropbox_cerebro_token: SecretStr = Field(
+        env="DROPBOX_CEREBRO_TOKEN",
+        description="Dropbox Cerebro Token",
+        default=""
+    )
+    dropbox_cerebro_oauth_access_token: SecretStr = Field(
+        env="DROPBOX_CEREBRO_OAUTH_ACCESS_TOKEN",
+        description="Dropbox Cerebro OAuth Access Token",
+        default=""
+    )
 
     debug: bool = True
     log_pii: bool = True

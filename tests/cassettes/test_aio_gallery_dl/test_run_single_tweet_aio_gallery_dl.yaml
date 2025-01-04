@@ -1,0 +1,105 @@
+interactions:
+- request:
+    body: null
+    headers: {}
+    method: GET
+    uri: https://x.com/i/api/graphql/MWY3AO9_I3rcP_L2A4FR4A/TweetResultByRestId?features=%7B%22responsive_web_graphql_exclude_directive_enabled%22%3Atrue%2C%22verified_phone_label_enabled%22%3Afalse%2C%22creator_subscriptions_tweet_preview_api_enabled%22%3Atrue%2C%22responsive_web_graphql_timeline_navigation_enabled%22%3Atrue%2C%22responsive_web_graphql_skip_user_profile_image_extensions_enabled%22%3Afalse%2C%22c9s_tweet_anatomy_moderator_badge_enabled%22%3Atrue%2C%22tweetypie_unmention_optimization_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Atrue%2C%22view_counts_everywhere_api_enabled%22%3Atrue%2C%22longform_notetweets_consumption_enabled%22%3Atrue%2C%22responsive_web_twitter_article_tweet_consumption_enabled%22%3Atrue%2C%22tweet_awards_web_tipping_enabled%22%3Afalse%2C%22freedom_of_speech_not_reach_fetch_enabled%22%3Atrue%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Atrue%2C%22rweb_video_timestamps_enabled%22%3Atrue%2C%22longform_notetweets_rich_text_read_enabled%22%3Atrue%2C%22longform_notetweets_inline_media_enabled%22%3Atrue%2C%22responsive_web_media_download_video_enabled%22%3Atrue%2C%22responsive_web_enhance_cards_enabled%22%3Afalse%7D&variables=%7B%22tweetId%22%3A%221868256259251863704%22%2C%22withCommunity%22%3Afalse%2C%22includePromotedContent%22%3Afalse%2C%22withVoice%22%3Afalse%7D
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAOxYXXLbOBK+CouvqzH/f+SazMaxnUomieOxEmdqExcLIiERNkkwBGhZyfpt3+cO
+        c4o9z15gr7AfQFISbWeyD1tT++CUI1FAo7vR/fXXIL6aGZHE3P9qyhWl8oyKtpDqZ7N5ShK5rmlF
+        Smrum++UlDlR0zJhGUacOIzdIHSDqRvg2YtsH/Mpb6ha3AraJJ0u8Qdq30MMq7TC819PivSSr0/e
+        Ha/eHv3inBy9eTKyCDt27Ae+h1GyWLCCEUlFkrNlXuC/pFlSkDktYOUWOkUyL1qaXNOGLRiFAtm0
+        dGLWDcdSmrCSLGkiclIrRw5ZkxYUigu6JOlaOZo2lCidBG6bMyKN53RuOC7+9u1o3/GMv9j4Z7i2
+        42BdRhcEO0x69eb+ghSC3hvvzO7MirRhtWS8gpHnROa0Mf5uvGjFnFQZnt48ezZTX6cv8HlQsZLi
+        +4xL0jBS4fGcF20lKVY9nR0ePE9O2BL7JZhJc5peGeXa2MRHYPSwWdeSG7SSeSsYESqn+MEkozpP
+        I4eQxqbA8MeLWwR0AelkwYuCr2gjkpTDsLlvq4lr3jZM5aIfdJ04UBN3hSPPtl2MN4xW2WbUQRiD
+        iZkTjLRC8jKR2GfBKuVSlzQkUzakEgWRvNlEr2BCJahXE0YY4Snpg/mKVzwn2F5JM0Y2tiI7cCZm
+        D79DXpZMCCxAABe8MY54xv/1j9///c/fsLDiTUmK+1vud1GzqoJ1XT8AqEiEhGsfTSeKo8Bzw8if
+        xthZ7KIwLiDOYWherBNBK4F4X29RMGADOYcjCYIO33Ipa7FvWfVc7MkVK5d7KS+tsaiwNjVhOaHn
+        ur4dOpF5F+RQmGh131Wr5YXlxF4Uu64bxFFkR1Foh771IX3+ZV2zLOnCsndZL3cNAYSNUDhCxFSB
+        wxSmASZKq6QP93HJKibXczIniZqURIInNnH1XX/qIrDbTA+aKiQIC7al3AduxWSe0yKD+U5Jo2EM
+        vHaeUZ1bUvQMNDCXHzqxE/jTyI9iexpPQ88cyw92DxUFcMVQgBVd8gbE8PGrpqup529gNOMptm28
+        UUAzXlYL0E6VdsSW8s3uX+L5GRxcpETQmWz4FTVvUVmqttqqVFUI4Z6WMQZtErvCprjegP69QZtG
+        2gMUfNEtJHMkBQFhRVIKmqrMO5Hnu2EQIKW2beqa0ipRaUsAcwtHNSpA3iVBuqollgbm7agGya74
+        NaMrzR19Gs3Yd90+vTrrlRLPPiBXh1oCugQII1WTPxIjb+jiyScNTOASmJSAkkZlxldVwUlmsToH
+        Aj6ZRkMLiFa8q8lP5k/vOnFdvOxUSf1okZ9GPD7n/KokzdWGnLzJZmwHS2O6byvjiKaGExiOs++G
+        4I0N3btdn6uARqHJBunoal8lJEIJxkEUhE4YRdNprFoDE3VB1omkNzJBBBX/f/TtSWhfjMkXDJhL
+        stQI7nlL421Q0BFDzdK9Gx2fF6dz+yBNxanyiN7UaBnYwJg+OsndyrO6urMeQI91zTLKLUe35O2e
+        tBiYzAmDyPdDZY1VGUt1rYXOJPYHd5MrulZrvOThZZ3Q9/mIlHXBFutE+5OgV5Vz6wGNFuQt503i
+        +r5zMH9Vf87q5rxnpr6EtQb8HEdFwso4fCQD6rvi75xk1YKrpJTAlGRfdiCvahOZ7MTINWE4deAw
+        IjXauuDC1EE3gVUK7+xLl+KCNEt9QMrRi0Dd4DA0FNfW5xwIYeGC6RJR6tvyvxIV4OOilwxjWwv6
+        vntfUAdyUBl0gvp7I5g2vDYVI/EGrKCiMcQhp+oMsXGFZTLv3VlwtG3wRSoH7iWqOpOhfJMhJl/v
+        THTd/XbSJWljiYgaulApyAcUOtiRG0WAWNY2XcGVrEDvVy1/Cl+u9WFIG1ckhE5UyYHBSQ0gdWcC
+        6+aHsqbL92ev78FB2/8W/B4EXl1Yy7fn09fR+azNm/Dz1eHbvdJr47+ifp84IYIN4mHgS0WB6Myg
+        jsld3zrtZe3/D/zBjEWuU8eCqRu0Uet1GszOGnn+6w+Xf0uuZq/3YOdB56aB/ac558f2TeTF1vuX
+        LK6Jk9TSP3tZ/px80znXweHjz/IOYL5R6LZWq1/4K/Zi1obUPvWO65F76NiAoliXc170TK2Oq8B4
+        Wfe/h1PzpHsN6lu76M8OA6+G3jQIfHXMQkcOeoIcDqYU3agwXgHn+hwxPkc9a4visq2uZjVvAPtd
+        NrYnTnChQrixg4OcPZ36QbDV/qk9ir1jfB7F03vKLxEo8aUaaXXCieuP1TqOE3hh5E3trd4Tlqa8
+        4MbPzd49tZjjTpzxdlmQsctuMPGmF7cXHa1S3cN2u+JjH3zsg4998LEPPvbB/7s+eNtd/qi7n80F
+        i2tvB7dvVwu0LP0CBBefjvuX8bRvOcbTUZMwPuS0MnJqCEqFIXMmDN24jvB5bLu7z8a3+YxVqMi6
+        wNsXT77bRXdEdamO3+xC10dY/MAOXHzeVa5b/Xe6O16hP7ccwRqYYLjIIvo1m6qu+0f3RPemkuFd
+        f7go69QPuVCEptzb3tU1tLtBGO7MNiM7uRrvZPfW9V4z3L15UDcZt/8BAAD//wMAUi5AulgWAAA=
+    headers:
+      cache-control:
+      - no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+      content-disposition:
+      - attachment; filename=json.json
+      content-encoding:
+      - gzip
+      content-length:
+      - '1937'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sat, 04 Jan 2025 03:06:56 GMT
+      expires:
+      - Tue, 31 Mar 1981 05:00:00 GMT
+      last-modified:
+      - Sat, 04 Jan 2025 03:06:57 GMT
+      perf:
+      - '7402827104'
+      pragma:
+      - no-cache
+      server:
+      - tsa_b
+      set-cookie:
+      - guest_id_marketing=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec
+        2026 19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None
+      - guest_id_ads=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20
+        GMT; Path=/; Domain=.x.com; Secure; SameSite=None
+      - personalization_id=v1_SUPERFAKE; Max-Age=63072000; Expires=Sat, 19 Dec 2026
+        19:52:20 GMT; Path=/; Domain=.x.com; Secure; SameSite=None
+      - guest_id=v1%3FAKEBROTHER; Max-Age=63072000; Expires=Sat, 19 Dec 2026 19:52:20
+        GMT; Path=/; Domain=.x.com; Secure; SameSite=None
+      strict-transport-security:
+      - max-age=631138519
+      vary:
+      - Origin
+      x-connection-hash:
+      - c1ced8c0256894114550dbf3117ee611821a7a13c852627b2cfb1364fb9c1007
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-rate-limit-limit:
+      - '50'
+      x-rate-limit-remaining:
+      - '49'
+      x-rate-limit-reset:
+      - '1735960916'
+      x-response-time:
+      - '118'
+      x-tfe-preserve-body:
+      - 'true'
+      x-transaction-id:
+      - 17f21f378e8f5785
+      x-twitter-response-tags:
+      - BouncerCompliant
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+version: 1

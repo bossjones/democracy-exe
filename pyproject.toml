@@ -1459,6 +1459,7 @@ markers = [
     "asynciotyper: marks tests that are asyncio typer generated (deselect with '-m \"not asynciotyper\"')",
     "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
     "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
+    "gallerydlonly: marks tests that run code that utilizes the gallery-dl module (deselect with '-m \"not gallerydlonly\"')",
 ]
 
 

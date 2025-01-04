@@ -1,7 +1,7 @@
 # pyright: reportUninitializedInstanceVariable=false
 # pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
-
+# pylint: disable=protected-access
 
 from __future__ import annotations
 
@@ -97,8 +97,6 @@ def pytest_setup() -> None:
     except Exception:
         print(f"File not found in dropbox remote -> /Test/{TIMESTAMP}")
 
-
-# pylint: disable=protected-access
 
 if os.environ.get("GITHUB_ACTOR"):
     is_running_in_github = True
