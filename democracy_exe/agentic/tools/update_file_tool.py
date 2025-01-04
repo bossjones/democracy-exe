@@ -157,7 +157,7 @@ class UpdateFileTool(BaseTool):
                 file_path="",
                 status="error",
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 
@@ -207,7 +207,7 @@ class UpdateFileTool(BaseTool):
             response = UpdateFileResponse(
                 file_path=file_path,
                 status="success"
-            ).dict()
+            ).model_dump()
             logger.info("Asynchronous file update completed successfully")
             return response
         except Exception as e:
@@ -216,7 +216,7 @@ class UpdateFileTool(BaseTool):
                 file_path="",
                 status="error",
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 

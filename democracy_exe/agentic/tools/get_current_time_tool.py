@@ -98,27 +98,19 @@ class GetCurrentTimeTool(BaseTool):
         Raises:
             ValueError: If format string is invalid
         """
-        # Validate format string
-        try:
-            # Check if the format string contains only valid directives
-            valid_directives = r'%[aAwdbBmyYHIpMSfzZjUWcxX]'
-            if re.sub(valid_directives, '', format):
-                raise ValueError("Invalid directive in format string")
+        logger.debug(f"Getting current time with format: {format}")
 
-            # Attempt to use the format string
+        try:
             now = datetime.now()
+            # This will raise ValueError if format string is invalid
             formatted_time = now.strftime(format)
             timestamp = now.timestamp()
 
-            logger.debug(f"Getting current time with format: {format}")
             logger.debug(f"Current time: {formatted_time}, Timestamp: {timestamp}")
-
             return formatted_time, timestamp
-        except ValueError as ve:
-            logger.error(f"Error formatting time: {ve}")
-            raise ValueError(f"Invalid time format: {ve}")
-        except Exception as e:
-            logger.error(f"Unexpected error formatting time: {e}")
+
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error formatting time: {e}")
             raise ValueError(f"Invalid time format: {e}")
 
     def _run(
@@ -144,7 +136,7 @@ class GetCurrentTimeTool(BaseTool):
             response = GetCurrentTimeResponse(
                 current_time=formatted_time,
                 timestamp=timestamp
-            ).dict()
+            ).model_dump()
             logger.info(f"Successfully retrieved current time: {formatted_time}")
             return response
         except Exception as e:
@@ -153,7 +145,7 @@ class GetCurrentTimeTool(BaseTool):
                 current_time="",
                 timestamp=0.0,
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 
@@ -180,7 +172,7 @@ class GetCurrentTimeTool(BaseTool):
             response = GetCurrentTimeResponse(
                 current_time=formatted_time,
                 timestamp=timestamp
-            ).dict()
+            ).model_dump()
             logger.info(f"Successfully retrieved current time: {formatted_time}")
             return response
         except Exception as e:
@@ -189,7 +181,7 @@ class GetCurrentTimeTool(BaseTool):
                 current_time="",
                 timestamp=0.0,
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 

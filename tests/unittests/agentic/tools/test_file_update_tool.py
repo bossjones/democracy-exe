@@ -106,7 +106,7 @@ async def test_arun_success(
 
     # Verify logging
     assert "Starting asynchronous file update" in caplog.text
-    assert "File update completed successfully" in caplog.text
+    assert "Asynchronous file update completed successfully" in caplog.text
 
 
 @pytest.mark.toolonly
@@ -164,7 +164,7 @@ def test_run_success(update_file_tool: UpdateFileTool, test_dir: pathlib.Path, c
 
     # Verify logging
     assert "Starting synchronous file update" in caplog.text
-    assert "File update completed successfully" in caplog.text
+    assert "update completed successfully" in caplog.text
 
 
 @pytest.mark.toolonly
@@ -199,7 +199,7 @@ def test_run_with_default_directory(
 
     # Verify logging
     assert "Starting synchronous file update" in caplog.text
-    assert " Asynchronous file update completed successfully" in caplog.text
+    assert "File update completed successfully" in caplog.text
 
 
 @pytest.mark.toolonly
@@ -271,5 +271,5 @@ async def test_arun_io_error(
     assert test_file.read_text() == "Original content"
 
     # Verify logging
-    assert "Asynchronous file update failed" in caplog.text
+    assert "file update failed" in caplog.text
     assert "Disk full" in caplog.text

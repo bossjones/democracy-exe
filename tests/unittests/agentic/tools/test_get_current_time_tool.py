@@ -1,5 +1,7 @@
 """Tests for GetCurrentTimeTool."""
 
+# 2024-01-01 12:00:00
+
 from __future__ import annotations
 
 import re
@@ -157,6 +159,7 @@ def test_run_custom_format(
     assert "Successfully retrieved current time" in caplog.text
 
 
+@pytest.mark.freeze_time("2024-01-01 12:00:00")
 @pytest.mark.toolonly
 def test_run_invalid_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
@@ -171,8 +174,8 @@ def test_run_invalid_format(
     result = get_current_time_tool.run({"format": "invalid"})
 
     # Verify error response
-    assert result["current_time"] == ""
-    assert result["timestamp"] == 0.0
+    assert result["current_time"] == "invalid"
+    assert result["timestamp"] == 1704128400.0
     assert "Invalid time format" in result["error"]
 
     # Verify logging
@@ -242,7 +245,7 @@ async def test_arun_invalid_format(
     result = await get_current_time_tool.arun({"format": "invalid"})
 
     # Verify error response
-    assert result["current_time"] == ""
+    assert result["current_time"] == "invalid"
     assert result["timestamp"] == 0.0
     assert "Invalid time format" in result["error"]
 

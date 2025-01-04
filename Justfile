@@ -985,7 +985,7 @@ test-toolsonly-cog:
 
 # use this with aider to fix tests incrementally
 test-fix:
-	uv run pytest --capture=tee-sys tests/unittests/agentic/tools/test_file_creation_tool.py
+	uv run pytest --capture=tee-sys tests/unittests/agentic/tools/test_get_current_time_tool.py
 
 # /Users/malcolm/dev/gallery-dl/gallery_dl
 
