@@ -223,3 +223,105 @@ async def test_crop_invalid_file_type(
 
     # Verify error message
     assert dpytest.verify().message().content("Please provide a valid image file")
+
+
+@pytest.mark.asyncio
+async def test_crop_download_timeout(
+    bot_with_autocrop_cog: DemocracyBot, mocker: MockerFixture, test_image: pathlib.Path
+) -> None:
+    """Test image download timeout handling.
+
+    Args:
+        bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
+        mocker: Pytest mocker fixture
+        test_image: Test image fixture
+    """
+
+    # Mock attachment.save to simulate timeout
+    async def slow_save(*args, **kwargs):
+        await asyncio.sleep(aiosettings.autocrop_download_timeout + 1)
+
+    mock_attachment = mocker.Mock(spec=discord.Attachment)
+    mock_attachment.save.side_effect = slow_save
+    mock_attachment.content_type = "image/png"
+    mock_attachment.filename = "test.png"
+
+    cog = bot_with_autocrop_cog.get_cog("Autocrop")
+    success, error_msg = await cog._handle_crop(
+        await dpytest.get_message().channel.send("test"),  # Get context
+        "square",
+        mock_attachment,
+    )
+
+    assert not success
+    assert "Image download timed out" in error_msg
+
+
+@pytest.mark.asyncio
+async def test_crop_processing_timeout(
+    bot_with_autocrop_cog: DemocracyBot, mocker: MockerFixture, test_image: pathlib.Path
+) -> None:
+    """Test image processing timeout handling.
+
+    Args:
+        bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
+        mocker: MockerFixture
+        test_image: Test image fixture
+    """
+
+    # Mock _process_image to simulate timeout
+    async def slow_process(*args, **kwargs):
+        await asyncio.sleep(aiosettings.autocrop_processing_timeout + 1)
+        return True
+
+    cog = bot_with_autocrop_cog.get_cog("Autocrop")
+    mocker.patch.object(cog, "_process_image", side_effect=slow_process)
+
+    # Create a mock attachment that saves quickly but processes slowly
+    mock_attachment = mocker.Mock(spec=discord.Attachment)
+    mock_attachment.save.return_value = None
+    mock_attachment.content_type = "image/png"
+    mock_attachment.filename = "test.png"
+
+    success, error_msg = await cog._handle_crop(
+        await dpytest.get_message().channel.send("test"),  # Get context
+        "square",
+        mock_attachment,
+    )
+
+    assert not success
+    assert "Image processing timed out" in error_msg
+
+
+@pytest.mark.asyncio
+async def test_concurrent_processing(
+    bot_with_autocrop_cog: DemocracyBot, test_image: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    """Test concurrent image processing.
+
+    Args:
+        bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
+        test_image: Test image fixture
+        tmp_path: Temporary directory path
+    """
+    cog = bot_with_autocrop_cog.get_cog("Autocrop")
+
+    # Create multiple output paths
+    output_paths = [tmp_path / f"output_{i}.png" for i in range(3)]
+
+    # Process multiple images concurrently
+    tasks = [cog._process_image(str(test_image), (1, 1), str(output_path)) for output_path in output_paths]
+
+    results = await asyncio.gather(*tasks)
+
+    # Verify all processes completed successfully
+    assert all(results)
+
+    # Verify each output file exists and is a valid image
+    from PIL import Image
+
+    for output_path in output_paths:
+        assert output_path.exists()
+        with Image.open(output_path) as img:
+            width, height = img.size
+            assert width == height  # Should be square

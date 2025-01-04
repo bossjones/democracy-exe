@@ -507,6 +507,18 @@ class AioSettings(BaseSettings):
     retry_wait_exponential_min: int | float = 1
     retry_wait_fixed: int | float = 15
 
+    # Autocrop timeouts
+    autocrop_download_timeout: int = Field(
+        env="AUTOCROP_DOWNLOAD_TIMEOUT",
+        description="Timeout in seconds for downloading images in autocrop",
+        default=30
+    )
+    autocrop_processing_timeout: int = Field(
+        env="AUTOCROP_PROCESSING_TIMEOUT",
+        description="Timeout in seconds for processing images in autocrop",
+        default=60
+    )
+
     pinecone_api_key: SecretStr = Field(env="PINECONE_API_KEY", description="pinecone api key", default="")
     pinecone_env: str = Field(env="PINECONE_ENV", description="pinecone env", default="local")
     pinecone_index: str = Field(env="PINECONE_INDEX", description="pinecone index", default="")
