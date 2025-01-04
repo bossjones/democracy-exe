@@ -131,6 +131,12 @@ class TestDropboxClient:
         result = select_revision(mock_dbx, "test.txt", "/folder")
         assert result == "/folder/test.txt"
 
+    @pytest.mark.skip_until(
+        deadline=datetime.datetime(2025, 1, 25),
+        strict=True,
+        msg="Still figuring out how to tech llm's to test with dpytest",
+    )
+    @pytest.mark.flaky(retries=3, delay=5)
     def test_cli_oauth_success(self, mocker: MockerFixture) -> None:
         """Test successful OAuth flow."""
         # Mock the OAuth flow

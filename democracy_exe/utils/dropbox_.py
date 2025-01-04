@@ -423,7 +423,6 @@ def cli_oauth() -> None:
         oauth_result = auth_flow.finish(auth_code)
     except Exception as e:
         print(f"Error: {e}")
-        exit(1)
 
     with dropbox.Dropbox(oauth2_access_token=oauth_result.access_token) as dbx:
         dbx.users_get_current_account()
@@ -651,10 +650,9 @@ async def co_upload_to_dropbox2(path_to_local_file: str, path_to_remote_dir: str
             await drop.upload_file(file_from=_localfile, file_to=_backuppath)
     except ApiError as err:
         if err.error.is_path() and err.error.get_path().reason.is_insufficient_space():
-            sys.exit("ERROR: Cannot back up; insufficient space.")
+            logger.error("ERROR: Cannot back up; insufficient space.")
         elif err.user_message_text:
             rich.print(err.user_message_text)
-            sys.exit()
+
         else:
             rich.print(err)
-            sys.exit()
