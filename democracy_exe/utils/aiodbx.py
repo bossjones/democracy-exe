@@ -16,12 +16,13 @@ import traceback
 import uuid
 
 from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 
 import aiofiles
 import aiohttp
 
 from loguru import logger
+from pydantic import SecretStr
 
 from democracy_exe.aio_settings import aiosettings
 
@@ -310,11 +311,16 @@ class AsyncDropboxAPI:
 
     def __init__(
         self,
-        access_token: str,
+        access_token: str | None = None,
         max_retries: int = 3,
         retry_delay: float = 1.0
     ) -> None:
-        self.access_token = access_token
+        if access_token is None:
+            self.access_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+            self.access_token: str = self.access_token_secret.get_secret_value()
+        else:
+            self.access_token: str = access_token
+
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.client_session: aiohttp.ClientSession | None = None

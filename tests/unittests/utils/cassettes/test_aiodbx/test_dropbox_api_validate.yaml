@@ -1,0 +1,46 @@
+interactions:
+- request:
+    body: '{"query": "d4b97408-3b57-4faf-9c4a-512e07bb6025"}'
+    headers: {}
+    method: POST
+    uri: https://api.dropboxapi.com/2/check/user
+  response:
+    body:
+      string: '{"result":"d4b97408-3b57-4faf-9c4a-512e07bb6025"}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Disposition:
+      - attachment
+      Content-Length:
+      - '49'
+      Content-Security-Policy:
+      - sandbox
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 04 Jan 2025 00:02:19 GMT
+      Pragma:
+      - no-cache
+      Server:
+      - envoy
+      X-Content-Security-Policy:
+      - sandbox
+      X-Content-Type-Options:
+      - nosniff
+      X-Dropbox-Request-Id:
+      - db9be8338a814a52987c2d997fad04b9
+      X-Dropbox-Response-Origin:
+      - far_remote
+      X-Dropbox-Trace-Id:
+      - db9be8338a814a52987c2d997fad04b9
+      X-Frame-Options:
+      - sameorigin
+      X-Server-Response-Time:
+      - '15'
+      X-Webkit-Csp:
+      - sandbox
+    status:
+      code: 200
+      message: OK
+version: 1
