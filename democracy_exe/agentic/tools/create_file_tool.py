@@ -89,6 +89,11 @@ class CreateFileTool(BaseTool):
             file_path = dir_path / file_name
             logger.debug(f"Full file path: {file_path}")
 
+            # Validate directory exists
+            if not dir_path.exists():
+                logger.warning(f"Directory does not exist: {dir_path}")
+                raise ValueError(f"Directory does not exist: {dir_path}")
+
             # Validate file doesn't exist
             if is_file(str(file_path)):
                 logger.warning(f"File already exists: {file_path}")
@@ -122,15 +127,16 @@ class CreateFileTool(BaseTool):
         """
         logger.info(f"Starting synchronous file creation for {file_name} in {directory}")
         try:
-            # Validate paths
-            logger.debug("Validating paths...")
-            dir_path, file_path = self._validate_path(directory, file_name)
-            logger.debug(f"Path validation successful. Directory: {dir_path}, File: {file_path}")
-
             # Ensure directory exists
+            dir_path = pathlib.Path(fix_path(directory)).resolve()
             logger.debug(f"Creating directory if not exists: {dir_path}")
             os.makedirs(dir_path, exist_ok=True)
-            logger.debug("Directory creation/verification complete")
+            logger.debug("Directory creation complete")
+
+            # Validate paths
+            logger.debug("Validating paths...")
+            dir_path, file_path = self._validate_path(str(dir_path), file_name)
+            logger.debug(f"Path validation successful. Directory: {dir_path}, File: {file_path}")
 
             # Write file content
             logger.debug(f"Writing content to file: {file_path}")
@@ -145,7 +151,7 @@ class CreateFileTool(BaseTool):
                 file_path=file_path,
                 status="success"
             ).model_dump()
-            logger.info("File creation completed successfully")
+            logger.info("Synchronous file creation completed successfully")
             return response
         except Exception as e:
             logger.exception(f"File creation failed: {e!s}")
@@ -153,7 +159,7 @@ class CreateFileTool(BaseTool):
                 file_path="",
                 status="error",
                 error=str(e)
-            ).dict()
+            ).model_dump()
             logger.error(f"Returning error response: {error_response}")
             return error_response
 
@@ -202,8 +208,8 @@ class CreateFileTool(BaseTool):
             response = CreateFileResponse(
                 file_path=file_path,
                 status="success"
-            ).dict()
-            logger.info("Asynchronous file creation completed successfully")
+            ).model_dump()
+            logger.info("File creation completed successfully")
             return response
         except Exception as e:
             logger.exception(f"Asynchronous file creation failed: {e!s}")
