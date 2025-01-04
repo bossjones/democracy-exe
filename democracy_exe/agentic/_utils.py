@@ -8,12 +8,14 @@ import time
 import uuid
 
 from functools import lru_cache
+from typing import TYPE_CHECKING, Union
 
 import langsmith
 
+from langchain_anthropic import ChatAnthropic
 from langchain_core.runnables import RunnableConfig
 from langchain_fireworks import FireworksEmbeddings
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from loguru import logger
 from pinecone import Pinecone, ServerlessSpec
 
@@ -21,6 +23,13 @@ import democracy_exe.agentic._schemas as schemas
 
 from democracy_exe.aio_settings import aiosettings
 
+
+if TYPE_CHECKING:
+    from langchain_anthropic import ChatAnthropic
+    from langchain_openai import ChatOpenAI
+
+    # Type alias for chat models
+    ChatModelLike = Union[ChatOpenAI, ChatAnthropic]
 
 _DEFAULT_DELAY = 60  # seconds
 
@@ -40,13 +49,29 @@ def get_fake_thread_id(user_id: int = 1) -> str:
 
     Returns:
         str: A UUID v5 string generated from the user ID.
+
+    Note:
+        Uses UUID v5 which generates a deterministic UUID based on a namespace and name,
+        ensuring the same user_id always generates the same thread_id.
     """
+    # Use DNS namespace as a stable namespace for UUID generation
+    # UUID v5 requires a namespace UUID and a name to generate a deterministic UUID
     namespace: uuid.UUID = uuid.NAMESPACE_DNS  # You can choose a different namespace if appropriate
+
+    # Create a unique name string by prefixing the user_id with "USER:"
+    # This helps avoid potential collisions with other UUID generation in the system
     name: str = f"USER:{user_id}"
+
+    # Generate a UUID v5 using the namespace and name
+    # UUID v5 uses SHA-1 hashing to create a deterministic UUID
     generated_uuid: uuid.UUID = uuid.uuid5(namespace, name)
+
+    # Log the components and result for debugging purposes
     logger.info(f"namespace: {namespace}")
     logger.info(f"name: {name}")
     logger.info(f"Generated fake thread ID: {generated_uuid}")
+
+    # Convert the UUID to a string and return it
     return str(generated_uuid)
 
 def get_index() -> Pinecone.Index:
@@ -97,7 +122,7 @@ def get_or_create_index() -> Pinecone.Index:
 
 
 
-@langsmith.traceable
+@langsmith.traceable  # Decorator to enable tracing of this function in LangSmith
 def ensure_configurable(config: RunnableConfig) -> schemas.GraphConfig:
     """Merge the user-provided config with default values.
 
@@ -111,34 +136,95 @@ def ensure_configurable(config: RunnableConfig) -> schemas.GraphConfig:
         If chatbot_type is "terminal", it will generate a fake thread_id and user_id.
         Otherwise, it will use the provided discord configuration.
     """
+    # Check if we're running in terminal mode vs discord mode
     if aiosettings.chatbot_type == "terminal":
+        # For terminal mode, use a default user ID of 1
         user_id: int = 1
+        # Generate a deterministic thread ID based on the user ID
         thread_id: str = get_fake_thread_id(user_id=user_id)
 
+        # Create a configurable dict with the fake thread_id and user_id, or use existing config if provided
         configurable: dict[str, str | int] = config.get("configurable", {"thread_id": thread_id, "user_id": user_id})
+        # Log the terminal configuration for debugging
         logger.info(f"Using terminal config: {configurable}")
     else:
+        # For discord mode, get the configurable dict from the config, or use empty dict if not provided
         configurable: dict = config.get("configurable", {})
+        # Log the discord configuration for debugging
         logger.info(f"Using discord config: {configurable}")
 
+    # Return a merged dictionary containing:
+    # 1. All key/values from the configurable dict
+    # 2. A new GraphConfig with:
+    #    - delay: use value from configurable or default to _DEFAULT_DELAY
+    #    - model: use value from configurable or default to "gpt-4o"
+    #    - thread_id: required value from configurable
+    #    - user_id: required value from configurable
     return {
-        **configurable,
-        **schemas.GraphConfig(
-            delay=configurable.get("delay", _DEFAULT_DELAY),
-            model=configurable.get("model", "gpt-4o"),
-            thread_id=configurable["thread_id"],
-            user_id=configurable["user_id"],
+        **configurable,  # Spread all existing configurable key/values
+        **schemas.GraphConfig(  # Create and spread a new GraphConfig with defaults
+            delay=configurable.get("delay", _DEFAULT_DELAY),  # Get delay or use default
+            model=configurable.get("model", "gpt-4o"),  # Get model or use default
+            thread_id=configurable["thread_id"],  # Required field
+            user_id=configurable["user_id"],  # Required field
         ),
     }
 
 
-@lru_cache
+@lru_cache(maxsize=32)  # Cache the results of this function to avoid recreating embedding models unnecessarily
 def get_embeddings(model_name: str = "nomic-ai/nomic-embed-text-v1.5") -> FireworksEmbeddings:
+    """Get an embedding model instance based on the model name.
+
+    Args:
+        model_name (str): Name of the embedding model to use. Defaults to "nomic-ai/nomic-embed-text-v1.5".
+
+    Returns:
+        FireworksEmbeddings | OpenAIEmbeddings: An instance of the specified embedding model.
+
+    Note:
+        The function is cached using @lru_cache to avoid recreating the same model multiple times.
+        Currently supports:
+        - nomic-ai/nomic-embed-text-v1.5 (default, uses FireworksEmbeddings)
+        - text-embedding-3-large (uses OpenAIEmbeddings)
+        - Any other model name will use FireworksEmbeddings
+    """
+    # If using the default Nomic AI model
     if model_name == "nomic-ai/nomic-embed-text-v1.5":
+        # Return a FireworksEmbeddings instance configured for the Nomic AI model
         return FireworksEmbeddings(model="nomic-ai/nomic-embed-text-v1.5")
+    # If using OpenAI's text-embedding-3-large model
     elif model_name == "text-embedding-3-large":
+        # Return an OpenAIEmbeddings instance configured for the text-embedding-3-large model
         return OpenAIEmbeddings(model="text-embedding-3-large")
-    return FireworksEmbeddings(model=model_name)
+    # For any other model name
+    return FireworksEmbeddings(model=model_name)  # Use FireworksEmbeddings with the specified model name
 
 
-__all__ = ["ensure_configurable"]
+@lru_cache(maxsize=32)
+def get_chat_model(
+    model_name: str,
+    model_provider: str = "openai",
+    temperature: float = 0.0
+) -> ChatModelLike:
+    """Get a chat model instance based on the model name and provider.
+
+    Args:
+        model_name (str): Name of the model to use
+        model_provider (str): Provider of the model ('openai' or 'anthropic'). Defaults to 'openai'.
+        temperature (float): Temperature for model generation. Defaults to 0.0.
+
+    Returns:
+        ChatModelLike: An instance of either ChatOpenAI or ChatAnthropic.
+
+    Note:
+        The function is cached using @lru_cache to avoid recreating the same model multiple times.
+        Currently supports:
+        - OpenAI models (using ChatOpenAI)
+        - Anthropic models (using ChatAnthropic)
+    """
+    if model_provider == "anthropic":
+        return ChatAnthropic(model=model_name, temperature=temperature)
+    return ChatOpenAI(model=model_name, temperature=temperature)
+
+
+__all__ = ["ensure_configurable", "get_embeddings", "get_chat_model"]

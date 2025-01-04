@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated, List
 
 from langchain_core.messages import AnyMessage
-from langgraph.graph import add_messages
+from langgraph.graph.message import add_messages  # type: ignore
 from typing_extensions import TypedDict
 
 
