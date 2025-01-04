@@ -1,0 +1,624 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/universityofprofessorex/cerebro-bot/cerebro_bot/cogs/autoresize.py</source>
+<document_content>
+# pylint: disable=no-member
+"""cerebro_bot.cogs.autoresize"""
+from __future__ import annotations
+
+import asyncio
+import concurrent.futures
+from enum import IntEnum
+import functools
+import logging
+import os
+import os.path
+import pathlib
+import sys
+import tempfile
+import time
+from timeit import default_timer as timer
+import traceback
+import typing
+from typing import Dict, List, NewType, Optional
+
+from PIL import Image
+from codetiming import Timer
+import cv2
+import discord
+from discord.ext import commands
+from discord.message import Message
+from discord.user import User
+import numpy as np
+import rich
+import torch
+from torch import nn
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as FT
+import torchvision.transforms.functional as pytorch_transforms_functional
+from tqdm.auto import tqdm
+
+from cerebro_bot import shell
+from cerebro_bot.bot_logger import get_logger
+from cerebro_bot.factories import guild_factory
+from cerebro_bot.utils import file_functions
+from cerebro_bot.utils.arch.ScreenCropNet import (
+    ObjLocModel as ScreenCropNet_ObjLocModel,
+)
+
+if typing.TYPE_CHECKING:
+    from cerebro_bot.bot import Cerebro
+
+DISCORD_GUILD = os.environ.get("DISCORD_SERVER_ID")
+
+LOGGER = get_logger(__name__, provider="AutoResize", level=logging.DEBUG)
+
+IMG_SIZE_CUTOFF = 1080
+
+TYPE_IMAGE_ARRAY = typing.Union[np.ndarray, typing.Any]
+
+TYPE_SCALE = typing.Union[str, int]
+
+CUDA_AVAILABLE = torch.cuda.is_available()  # True
+
+
+# os.environ['TZ'] = 'US/Eastern'
+# time.tzset()
+# time.tzname
+
+
+async def details_from_file(path_to_media_from_cli: str, cwd: typing.Union[str, None] = None):
+    """Take a file path and return the input and output file paths and the timestamp of the input file.
+
+    Args:
+        path_to_media_from_cli (str): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    p = pathlib.Path(path_to_media_from_cli)
+    full_path_input_file = f"{p.stem}{p.suffix}"
+    full_path_output_file = f"{p.stem}_smaller.mp4"
+    rich.print(full_path_input_file)
+    rich.print(full_path_output_file)
+    if sys.platform == "darwin":
+        get_timestamp = await shell._aio_run_process_and_communicate(
+            ["gstat", "-c", "%y", f"{p.stem}{p.suffix}"], cwd=cwd
+        )
+    elif sys.platform == "linux":
+        get_timestamp = await shell._aio_run_process_and_communicate(
+            ["stat", "-c", "%y", f"{p.stem}{p.suffix}"], cwd=cwd
+        )
+
+    return full_path_input_file, full_path_output_file, get_timestamp
+
+
+def unlink_orig_file(a_filepath: str):
+    """_summary_
+
+    Args:
+        a_filepath (str): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    # for orig_to_rm in media_filepaths:
+    rich.print(f"deleting ... {a_filepath}")
+    os.unlink(f"{a_filepath}")
+    return a_filepath
+
+
+# https://github.com/discord-math/bot/blob/babb41b71a68b4b099684b3e1ed583f84083f971/plugins/log.py#L63
+def path_for(attm: discord.Attachment, basedir: str = "./") -> pathlib.Path:
+    p = pathlib.Path(basedir, str(attm.filename))
+    LOGGER.debug(f"path_for: p -> {p}")
+    return p
+
+
+# https://github.com/discord-math/bot/blob/babb41b71a68b4b099684b3e1ed583f84083f971/plugins/log.py#L63
+async def save_attachment(attm: discord.Attachment, basedir: str = "./") -> None:
+    path = path_for(attm, basedir=basedir)
+    LOGGER.debug(f"save_attachment: path -> {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        ret_code = await attm.save(path, use_cached=True)
+        await asyncio.sleep(5)
+    except discord.HTTPException:
+        await attm.save(path)
+
+
+# TODO: Remove this when we eventually upgrade to 2.0 discord.py
+def attachment_to_dict(attm: discord.Attachment):
+    """Converts a discord.Attachment object to a dictionary.
+
+    Args:
+        attm (discord.Attachment): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    result = {
+        "filename": attm.filename,
+        "id": attm.id,
+        "proxy_url": attm.proxy_url,
+        "size": attm.size,
+        "url": attm.url,
+        "spoiler": attm.is_spoiler(),
+    }
+    if attm.height:
+        result["height"] = attm.height
+    if attm.width:
+        result["width"] = attm.width
+    if attm.content_type:
+        result["content_type"] = attm.content_type
+
+    result["attachment_obj"] = attm
+
+    return result
+
+
+def file_to_local_data_dict(fname: str, dir_root: str):
+    """Convert a file to a dictionary.
+
+    Args:
+        fname (str): _description_
+        dir_root (str): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    file_api = pathlib.Path(fname)
+    return {
+        "filename": f"{dir_root}/{file_api.stem}{file_api.suffix}",
+        "size": file_api.stat().st_size,
+        "ext": f"{file_api.suffix}",
+        "api": file_api,
+    }
+
+
+async def handle_save_attachment_locally(attm_data_dict, dir_root):
+    """Save an attachment locally.
+
+    Args:
+        attm_data_dict (_type_): _description_
+        dir_root (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    fname = f"{dir_root}/orig_{attm_data_dict['id']}_{attm_data_dict['filename']}"
+    rich.print(f"Saving to ... {fname}")
+    await attm_data_dict["attachment_obj"].save(fname, use_cached=True)
+    await asyncio.sleep(1)
+    return fname
+
+
+# SOURCE: https://github.com/makupi/cookiecutter-discord.py-postgres/blob/133702ceb8682ec3927530ac35ad28d47a42802e/%7B%7Bcookiecutter.bot_slug%7D%7D/bot/cogs/settings.py
+class AutoResize(commands.Cog):
+    def __init__(self, cerebro: Cerebro):
+        self.bot = cerebro
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        print(f"{type(self).__name__} Cog ready.")
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: guild_factory.Guild) -> None:
+        """Add new guilds to the database"""
+        _ = await guild_factory.Guild(id=guild.id)
+
+    @commands.command(aliases=["ars"])
+    async def autoresizesmall(self, ctx: commands.context.Context, *args) -> None:  # type:ignore
+        """Autoresize videos to 1080x1080.
+
+        Args:
+            ctx (commands.context.Context): _description_
+        """
+
+        LOGGER.info(f"{type(self).__name__} -> ctx = {ctx}, args = {args}")
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            LOGGER.debug(f"{type(self).__name__} -> recieved via DM")
+            recipient_user: Optional[User]
+            recipient_user = ctx.channel.recipient
+            LOGGER.debug(f"{type(self).__name__} -> recipient_user = {recipient_user}")
+            LOGGER.debug(f"{type(self).__name__} -> type(recipient_user) = {type(recipient_user)}")
+
+        message = ctx.message
+        args = list(args)
+
+        attachment_data_list_dicts = []
+        local_attachment_file_list = []
+        local_attachment_data_list_dicts = []
+        media_filepaths = []
+
+        for attm in message.attachments:
+            data = attachment_to_dict(attm)
+            attachment_data_list_dicts.append(data)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            print("created temporary directory", tmpdirname)
+            with Timer(text="\nTotal elapsed time: {:.1f}"):
+                # return a list of strings pointing to the downloaded files
+                for an_attachment_dict in attachment_data_list_dicts:
+                    local_attachment_path = await handle_save_attachment_locally(an_attachment_dict, tmpdirname)
+                    local_attachment_file_list.append(local_attachment_path)
+
+                # create new list of dicts including info about the local files
+                for some_file in local_attachment_file_list:
+                    local_data_dict = file_to_local_data_dict(some_file, tmpdirname)
+                    local_attachment_data_list_dicts.append(local_data_dict)
+                    path_to_image = file_functions.fix_path(local_data_dict["filename"])
+                    media_filepaths.append(path_to_image)
+
+                print("hello")
+
+                rich.print("media_filepaths -> ")
+                rich.print(media_filepaths)
+
+                print("standy")
+
+                await ctx.send(
+                    embed=discord.Embed(description=f"AutoResizing {media_filepaths}...."),
+                    delete_after=30.0,
+                )
+
+                try:
+
+                    for count, media_fpaths in enumerate(media_filepaths):
+                        # compute all predictions first
+                        full_path_input_file, full_path_output_file, get_timestamp = await details_from_file(
+                            media_fpaths, cwd=f"{tmpdirname}"
+                        )
+
+                        ffmpeg_command = [
+                            "ffmpeg",
+                            "-y",
+                            "-hide_banner",
+                            "-loglevel",
+                            "warning",
+                            "-i",
+                            f"{tmpdirname}/{full_path_input_file}",
+                            "-c:v",
+                            # "h264_videotoolbox",
+                            "libx264",
+                            "-bufsize",
+                            "5200K",
+                            "-b:v",
+                            "5200K",
+                            "-maxrate",
+                            "5200K",
+                            "-level",
+                            "42",
+                            "-bf",
+                            "2",
+                            "-g",
+                            "63",
+                            "-refs",
+                            "4",
+                            "-threads",
+                            "16",
+                            "-preset:v",
+                            "fast",
+                            "-vf",
+                            "scale=1080:1080:force_original_aspect_ratio=decrease,pad=width=1080:height=1080:x=-1:y=-1:color=0x16202A",
+                            "-c:a",
+                            "aac",
+                            "-ar",
+                            "44100",
+                            "-ac",
+                            "2",
+                            f"{tmpdirname}/{full_path_output_file}",
+                        ]
+
+                        _ = await shell._aio_run_process_and_communicate(ffmpeg_command, cwd=f"{tmpdirname}")
+
+                        # nuke the originals
+                        unlink_func = functools.partial(unlink_orig_file, media_fpaths)
+
+                        # 2. Run in a custom thread pool:
+                        with concurrent.futures.ThreadPoolExecutor() as pool:
+                            unlink_result = await self.bot.loop.run_in_executor(pool, unlink_func)
+                            rich.print(f"count: {count} - Unlink", unlink_result)
+                        # await asyncio.sleep(1)
+
+                        ######################################################
+                        # compress the file if it is too large
+                        ######################################################
+                        compress_command = [
+                            "compress-discord.sh",
+                            f"{tmpdirname}/{full_path_output_file}",
+                        ]
+
+                        _ = await shell._aio_run_process_and_communicate(compress_command, cwd=f"{tmpdirname}")
+
+                        ######################################################
+                        # nuke the uncompressed version
+                        ######################################################
+
+                        LOGGER.info(f"nuking uncompressed: {tmpdirname}/{full_path_output_file}")
+
+                        # nuke the originals
+                        unlink_func = functools.partial(unlink_orig_file, f"{tmpdirname}/{full_path_output_file}")
+
+                        # 2. Run in a custom thread pool:
+                        with concurrent.futures.ThreadPoolExecutor() as pool:
+                            unlink_result = await self.bot.loop.run_in_executor(pool, unlink_func)
+                            rich.print(f"count: {count} - Unlink", unlink_result)
+
+                except Exception as ex:
+                    await ctx.send(embed=discord.Embed(description="Could not download story...."))
+                    print(ex)
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    LOGGER.error(f"Error Class: {str(ex.__class__)}")
+                    output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                    LOGGER.warning(output)
+                    await ctx.send(embed=discord.Embed(description=output))
+                    LOGGER.error(f"exc_type: {exc_type}")
+                    LOGGER.error(f"exc_value: {exc_value}")
+                    traceback.print_tb(exc_traceback)
+
+                # Now that we are finished processing, we can upload the files to discord
+
+                tree_list = file_functions.tree(pathlib.Path(f"{tmpdirname}"))
+                rich.print("tree_list ->")
+                rich.print(tree_list)
+
+                file_to_upload_list = [f"{p}" for p in tree_list]
+                LOGGER.debug(f"{type(self).__name__} -> file_to_upload_list = {file_to_upload_list}")
+                rich.print(file_to_upload_list)
+
+                file_to_upload = file_functions.filter_media(file_to_upload_list)
+
+                # ---------------------------------------------------------
+                # chunked_lists = list(misc.divide_chunks(file_to_upload, n=10))
+                # discord has a limit of 10 media uploads per api call. break them up.
+                # SOURCE: https://www.geeksforgeeks.org/break-list-chunks-size-n-python/
+                n = 2
+                final = [file_to_upload[i * n : (i + 1) * n] for i in range((len(file_to_upload) + n - 1) // n)]
+
+                for count, chunk in enumerate(final):
+                    await ctx.send(
+                        embed=discord.Embed(description=f"Uploading batch {count}...."),
+                        delete_after=30.0,
+                    )
+
+                    my_files = []
+
+                    for f in chunk:
+                        rich.print(f)
+                        my_files.append(discord.File(f"{f}"))
+
+                    LOGGER.debug(f"{type(self).__name__} -> my_files = {my_files}")
+                    rich.print(my_files)
+
+                    try:
+                        # msg: Message
+                        _ = await ctx.send(files=my_files)
+                    except Exception as ex:
+                        await ctx.send(embed=discord.Embed(description="Could not upload story to discord...."))
+                        print(ex)
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        LOGGER.error(f"Error Class: {str(ex.__class__)}")
+                        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                        LOGGER.warning(output)
+                        await ctx.send(embed=discord.Embed(description=output))
+                        LOGGER.error(f"exc_type: {exc_type}")
+                        LOGGER.error(f"exc_value: {exc_value}")
+                        traceback.print_tb(exc_traceback)
+
+        await message.delete(delay=10)
+
+        LOGGER.info(f"{type(self).__name__} -> ctx = {ctx}, args = {args}")
+
+    @commands.command(aliases=["arl"])
+    async def autoresizelarge(self, ctx: commands.context.Context, *args) -> None:  # type:ignore
+        """Autoresize videos to 1080x1080.
+
+        Args:
+            ctx (commands.context.Context): _description_
+        """
+
+        LOGGER.info(f"{type(self).__name__} -> ctx = {ctx}, args = {args}")
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            LOGGER.debug(f"{type(self).__name__} -> recieved via DM")
+            recipient_user: Optional[User]
+            recipient_user = ctx.channel.recipient
+            LOGGER.debug(f"{type(self).__name__} -> recipient_user = {recipient_user}")
+            LOGGER.debug(f"{type(self).__name__} -> type(recipient_user) = {type(recipient_user)}")
+
+        message = ctx.message
+        args = list(args)
+
+        attachment_data_list_dicts = []
+        local_attachment_file_list = []
+        local_attachment_data_list_dicts = []
+        media_filepaths = []
+
+        for attm in message.attachments:
+            data = attachment_to_dict(attm)
+            attachment_data_list_dicts.append(data)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            print("created temporary directory", tmpdirname)
+            with Timer(text="\nTotal elapsed time: {:.1f}"):
+                # return a list of strings pointing to the downloaded files
+                for an_attachment_dict in attachment_data_list_dicts:
+                    local_attachment_path = await handle_save_attachment_locally(an_attachment_dict, tmpdirname)
+                    local_attachment_file_list.append(local_attachment_path)
+
+                # create new list of dicts including info about the local files
+                for some_file in local_attachment_file_list:
+                    local_data_dict = file_to_local_data_dict(some_file, tmpdirname)
+                    local_attachment_data_list_dicts.append(local_data_dict)
+                    path_to_image = file_functions.fix_path(local_data_dict["filename"])
+                    media_filepaths.append(path_to_image)
+
+                print("hello")
+
+                rich.print("media_filepaths -> ")
+                rich.print(media_filepaths)
+
+                print("standy")
+
+                await ctx.send(
+                    embed=discord.Embed(description=f"AutoResizing {media_filepaths}...."),
+                    delete_after=30.0,
+                )
+
+                try:
+
+                    for count, media_fpaths in enumerate(media_filepaths):
+                        # compute all predictions first
+                        full_path_input_file, full_path_output_file, get_timestamp = await details_from_file(
+                            media_fpaths, cwd=f"{tmpdirname}"
+                        )
+
+                        ffmpeg_command = [
+                            "ffmpeg",
+                            "-y",
+                            "-hide_banner",
+                            "-loglevel",
+                            "warning",
+                            "-i",
+                            f"{tmpdirname}/{full_path_input_file}",
+                            "-c:v",
+                            # "h264_videotoolbox",
+                            "libx264",
+                            "-bufsize",
+                            "5200K",
+                            "-b:v",
+                            "5200K",
+                            "-maxrate",
+                            "5200K",
+                            "-level",
+                            "42",
+                            "-bf",
+                            "2",
+                            "-g",
+                            "63",
+                            "-refs",
+                            "4",
+                            "-threads",
+                            "16",
+                            "-preset:v",
+                            "fast",
+                            "-vf",
+                            "scale=1080:1350:force_original_aspect_ratio=decrease,pad=width=1080:height=1350:x=-1:y=-1:color=0x16202A",
+                            "-c:a",
+                            "aac",
+                            "-ar",
+                            "44100",
+                            "-ac",
+                            "2",
+                            f"{tmpdirname}/{full_path_output_file}",
+                        ]
+
+                        _ = await shell._aio_run_process_and_communicate(ffmpeg_command, cwd=f"{tmpdirname}")
+
+                        # nuke the originals
+                        unlink_func = functools.partial(unlink_orig_file, media_fpaths)
+
+                        # 2. Run in a custom thread pool:
+                        with concurrent.futures.ThreadPoolExecutor() as pool:
+                            unlink_result = await self.bot.loop.run_in_executor(pool, unlink_func)
+                            rich.print(f"count: {count} - Unlink", unlink_result)
+                        # await asyncio.sleep(1)
+
+                        ######################################################
+                        # compress the file if it is too large
+                        ######################################################
+                        compress_command = [
+                            "compress-discord.sh",
+                            f"{tmpdirname}/{full_path_output_file}",
+                        ]
+
+                        _ = await shell._aio_run_process_and_communicate(compress_command, cwd=f"{tmpdirname}")
+
+                        ######################################################
+                        # nuke the uncompressed version
+                        ######################################################
+
+                        LOGGER.info(f"nuking uncompressed: {tmpdirname}/{full_path_output_file}")
+
+                        # nuke the originals
+                        unlink_func = functools.partial(unlink_orig_file, f"{tmpdirname}/{full_path_output_file}")
+
+                        # 2. Run in a custom thread pool:
+                        with concurrent.futures.ThreadPoolExecutor() as pool:
+                            unlink_result = await self.bot.loop.run_in_executor(pool, unlink_func)
+                            rich.print(f"count: {count} - Unlink", unlink_result)
+
+                except Exception as ex:
+                    await ctx.send(embed=discord.Embed(description="Could not download story...."))
+                    print(ex)
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    LOGGER.error(f"Error Class: {str(ex.__class__)}")
+                    output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                    LOGGER.warning(output)
+                    await ctx.send(embed=discord.Embed(description=output))
+                    LOGGER.error(f"exc_type: {exc_type}")
+                    LOGGER.error(f"exc_value: {exc_value}")
+                    traceback.print_tb(exc_traceback)
+
+                # Now that we are finished processing, we can upload the files to discord
+
+                tree_list = file_functions.tree(pathlib.Path(f"{tmpdirname}"))
+                rich.print("tree_list ->")
+                rich.print(tree_list)
+
+                file_to_upload_list = [f"{p}" for p in tree_list]
+                LOGGER.debug(f"{type(self).__name__} -> file_to_upload_list = {file_to_upload_list}")
+                rich.print(file_to_upload_list)
+
+                file_to_upload = file_functions.filter_media(file_to_upload_list)
+
+                # ---------------------------------------------------------
+                # chunked_lists = list(misc.divide_chunks(file_to_upload, n=10))
+                # discord has a limit of 10 media uploads per api call. break them up.
+                # SOURCE: https://www.geeksforgeeks.org/break-list-chunks-size-n-python/
+                n = 2
+                final = [file_to_upload[i * n : (i + 1) * n] for i in range((len(file_to_upload) + n - 1) // n)]
+
+                for count, chunk in enumerate(final):
+                    await ctx.send(
+                        embed=discord.Embed(description=f"Uploading batch {count}...."),
+                        delete_after=30.0,
+                    )
+
+                    my_files = []
+
+                    for f in chunk:
+                        rich.print(f)
+                        my_files.append(discord.File(f"{f}"))
+
+                    LOGGER.debug(f"{type(self).__name__} -> my_files = {my_files}")
+                    rich.print(my_files)
+
+                    try:
+                        # msg: Message
+                        _ = await ctx.send(files=my_files)
+                    except Exception as ex:
+                        await ctx.send(embed=discord.Embed(description="Could not upload story to discord...."))
+                        print(ex)
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        LOGGER.error(f"Error Class: {str(ex.__class__)}")
+                        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                        LOGGER.warning(output)
+                        await ctx.send(embed=discord.Embed(description=output))
+                        LOGGER.error(f"exc_type: {exc_type}")
+                        LOGGER.error(f"exc_value: {exc_value}")
+                        traceback.print_tb(exc_traceback)
+
+        await message.delete(delay=10)
+
+        LOGGER.info(f"{type(self).__name__} -> ctx = {ctx}, args = {args}")
+
+
+async def setup(cerebro: Cerebro) -> None:
+    await cerebro.add_cog(AutoResize(cerebro))
+
+</document_content>
+</document>
+</documents>

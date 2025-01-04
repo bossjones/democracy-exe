@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 from collections.abc import AsyncGenerator, Generator
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -54,7 +54,7 @@ USER_ID = "dummy_user_id"
 ADMIN_ID = "dummy_admin_id"
 TEAM_MEMBER_ID = "dummy_team_member_id"
 SCOPE_LIST = ["files.metadata.read", "files.metadata.write"]
-EXPIRATION = datetime.now(datetime.timezone.utc) + timedelta(seconds=EXPIRES_IN)
+EXPIRATION = datetime.now(UTC) + timedelta(seconds=EXPIRES_IN)
 
 EXPIRATION_BUFFER = timedelta(minutes=5)
 

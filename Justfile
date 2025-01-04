@@ -924,6 +924,9 @@ generate-ai-docs:
 	/Users/malcolm/dev/gallery-dl/test/test_ytdl.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/cerebro.xml"
+	uv run files-to-prompt /Users/malcolm/dev/universityofprofessorex/cerebro-bot/cerebro_bot/cogs/autoresize.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/cerebro_bot/autoresize_cog.xml
+
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
@@ -970,6 +973,8 @@ test-dropbox:
 test-dropbox-debug:
 	uv run pytest --showlocals --tb=short --capture=tee-sys --pdb --pdbcls bpdb:BPdb -m dropboxonly
 
-
+# Run unit tests in debug mode with extended output
+test-autocrop-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace tests/unittests/chatbot/cogs/test_autocrop.py
 
 # /Users/malcolm/dev/gallery-dl/gallery_dl
