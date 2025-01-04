@@ -413,7 +413,7 @@ class AsyncDropboxAPI:
             headers["Authorization"] = f"Bearer {aiosettings.dropbox_cerebro_token.get_secret_value()}" # pylint: disable=no-member
 
         logger.debug(f"Making {method} request to {url} (retry {retry_count}/{self.max_retries})")
-        logger.debug(f"Request headers: {headers}")
+        # logger.debug(f"Request headers: {headers}")
         if data:
             logger.debug(f"Request data length: {len(data) if isinstance(data, (str, bytes)) else len(str(data))} bytes")
         if json_data:
@@ -430,7 +430,7 @@ class AsyncDropboxAPI:
                     json=json_data
                 ) as response:
                     logger.debug(f"Response status: {response.status}")
-                    logger.debug(f"Response headers: {response.headers}")
+                    # logger.debug(f"Response headers: {response.headers}")
 
                     if response.status == 429:  # Rate limit
                         if retry_count < self.max_retries:

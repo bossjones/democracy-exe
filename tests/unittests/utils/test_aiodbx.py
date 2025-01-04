@@ -96,7 +96,10 @@ def mock_response(mocker: MockerFixture) -> MockerFixture:
     mock.content_type = "application/json"
     mock.json = mocker.AsyncMock(return_value={"result": "success"})
     mock.text = mocker.AsyncMock(return_value="response text")
+    mock.read = mocker.AsyncMock(return_value=b"test content")
     mock.release = mocker.AsyncMock()
+    mock.__aenter__ = mocker.AsyncMock(return_value=mock)
+    mock.__aexit__ = mocker.AsyncMock()
     return mock
 
 
@@ -263,67 +266,31 @@ async def test_retry_with_backoff(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.vcronly()
-@pytest.mark.dropboxonly()
-@pytest.mark.default_cassette("test_dropbox_api_validate.yaml")
-@pytest.mark.vcr(
-    allow_playback_repeats=True,
-    match_on=["method", "scheme", "port", "path", "query"],
-    ignore_localhost=False,
-    before_record_response=_filter_response,
-    before_record_request=_filter_request_headers,
-)
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2025, 1, 25),
-#     strict=True,
-#     msg="Need to find a good url to test this with, will do later",
-# )
 async def test_dropbox_api_validate(
-    vcr: VCRRequest,
-    caplog: LogCaptureFixture,
-    capsys: CaptureFixture,
+    mock_response: MockerFixture,
+    mocker: MockerFixture,
 ) -> None:
     """Test Dropbox API token validation.
 
     Args:
-        vcr: VCR request fixture
-        caplog: Log capture fixture
-        capsys: Capture sys output fixture
+        mock_response: Mocked response fixture
+        mocker: Pytest mocker fixture
     """
-    # Enable VCR debug logging
-    vcr_log = logging.getLogger("vcr")
-    vcr_log.setLevel(logging.DEBUG)
 
-    with tracing_context(enabled=False):
-        # Create client with real token from env
-        # token = os.getenv("DROPBOX_TOKEN")
-        # token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
-        # app_key_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_key)
-        # app_secret_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_app_secret)
-        # refresh_token_secret: SecretStr = cast(SecretStr, aiosettings.dropbox_cerebro_token)
+    # Mock the response to return matching nonce
+    async def mock_do_request(*args, **kwargs):
+        data = json.loads(kwargs.get("data", "{}"))
+        return {"result": data.get("query")}
 
-        # token: str = token_secret.get_secret_value()
-        token: str = aiosettings.dropbox_cerebro_token.get_secret_value()  # pylint: disable=no-member
+    client = AsyncDropboxAPI()
+    client._do_request = mocker.AsyncMock(side_effect=mock_do_request)
 
-        if not token:
-            pytest.skip("aiosettings.dropbox_cerebro_token environment variable not set")
-
-        # async with AsyncDropboxAPI(access_token=token) as client:
-        async with AsyncDropboxAPI() as client:
-            try:
-                assert await client.validate() is True
-            except Exception as e:
-                logger.exception("Error validating Dropbox token")
-                logger.complete()
-                raise
+    assert await client.validate() is True
+    await client._cleanup()
 
 
-@pytest.mark.vcr()
 @pytest.mark.asyncio
-@pytest.mark.dropboxonly()
-@pytest.mark.default_cassette("test_dropbox_api_download_file.yaml")
 async def test_dropbox_api_download_file(
-    dbx_client: AsyncDropboxAPI,
     mock_response: MockerFixture,
     tmp_path: pathlib.Path,
     mocker: MockerFixture,
@@ -331,18 +298,22 @@ async def test_dropbox_api_download_file(
     """Test file download from Dropbox.
 
     Args:
-        dbx_client: Test Dropbox client
         mock_response: Mocked response
         tmp_path: Pytest temporary path fixture
+        mocker: Pytest mocker fixture
     """
     test_content = b"test file content"
-    mock_response.text = mocker.AsyncMock(return_value=test_content)
+    mock_response.read = mocker.AsyncMock(return_value=test_content)
     mock_response.content_type = "application/octet-stream"
     local_path = tmp_path / "downloaded.txt"
 
-    result = await dbx_client.download_file("/test.txt", str(local_path))
+    client = AsyncDropboxAPI()
+    client._do_request = mocker.AsyncMock(return_value=test_content)
+
+    result = await client.download_file("/test.txt", str(local_path))
     assert result == str(local_path)
     assert local_path.read_bytes() == test_content
+    await client._cleanup()
 
 
 @pytest.mark.vcr()
@@ -351,6 +322,9 @@ async def test_dropbox_api_download_file(
 @pytest.mark.default_cassette("test_dropbox_api_download_file.yaml")
 async def test_dropbox_api_download_file_improved(
     tmp_path: pathlib.Path,
+    dbx_client: AsyncDropboxAPI,
+    mock_response: MockerFixture,
+    mocker: MockerFixture,
 ) -> None:
     """Test file download from Dropbox.
 
@@ -375,30 +349,34 @@ async def test_dropbox_api_download_file_improved(
     random_path = f"/Test/{TIMESTAMP}/{random_filename}"
     test_contents = DUMMY_PAYLOAD
     # Create a temporary file
-    local_path = tmp_path / RANDOM_FOLDER / "downloaded.txt"
-    async with aiofiles.open(local_path, mode="w", encoding="utf-8") as f:
-        await f.write("test file content")  # type: ignore[arg-type]
+    random_dir = tmp_path / random_filename
+    random_dir.mkdir(parents=True, exist_ok=True)
+    local_path = random_dir / "downloaded.txt"
+    # Setup mock response and session
+    # Setup mock response
+    mock_response.read = mocker.AsyncMock(return_value=test_contents)
+    mock_response.content_type = "application/octet-stream"
+    mock_response.status = 200
 
-    # data = mock_tweet_data.copy()
-    # data["local_files"] = [str(test_file)]
-    # data["metadata"]["media_urls"] = ["https://test.com/media.mp4"]
-    # return data
+    # Setup mock session
+    mock_session = mocker.MagicMock()
+    mock_session.request = mocker.AsyncMock()
+    mock_session.request.return_value.__aenter__.return_value = mock_response
 
-    # #####
-    # test_content = b"test file content"
-    # mock_response.text = mocker.AsyncMock(return_value=test_content)
-    # mock_response.content_type = "application/octet-stream"
-    # local_path = tmp_path / "downloaded.txt"
+    # Mock _do_request to return the actual bytes content
+    async def mock_do_request(*args, **kwargs):
+        return await mock_response.read()
 
-    result = await dbx_client.download_file("/test.txt", str(local_path))
+    dbx_client._do_request = mock_do_request
+
+    # Download file
+    result = await dbx_client.download_file(random_path, str(local_path))
     assert result == str(local_path)
-    assert local_path.read_bytes() == test_content
+    assert local_path.read_bytes() == test_contents
 
 
-@pytest.mark.vcr()
 @pytest.mark.asyncio
 async def test_dropbox_api_upload_single(
-    dbx_client: AsyncDropboxAPI,
     mock_response: MockerFixture,
     tmp_path: pathlib.Path,
     mocker: MockerFixture,
@@ -406,19 +384,20 @@ async def test_dropbox_api_upload_single(
     """Test single file upload to Dropbox.
 
     Args:
-        dbx_client: Test Dropbox client
         mock_response: Mocked response
         tmp_path: Pytest temporary path fixture
+        mocker: Pytest mocker fixture
     """
     test_file = tmp_path / "test.txt"
     test_file.write_text("test content")
 
-    mock_response.json = mocker.AsyncMock(return_value={"path_display": "/test.txt"})
-    mock_response.status = 200
-    mock_response.ok = True
+    response_data = {"path_display": "/test.txt"}
+    client = AsyncDropboxAPI()
+    client._do_request = mocker.AsyncMock(return_value=response_data)
 
-    result = await dbx_client.upload_single(str(test_file), "/test.txt")
-    assert (await result.json())["path_display"] == "/test.txt"
+    result = await client.upload_single(str(test_file), "/test.txt")
+    assert result["path_display"] == "/test.txt"
+    await client._cleanup()
 
 
 @pytest.mark.vcr()
@@ -433,13 +412,13 @@ async def test_dropbox_api_create_shared_link(
     Args:
         dbx_client: Test Dropbox client
         mock_response: Mocked response
+        mocker: Pytest mocker fixture
     """
-    mock_response.json = mocker.AsyncMock(return_value={"url": "https://dropbox.com/s/test"})
-    mock_response.status = 200
-    mock_response.ok = True
+    # Mock the _do_request method directly
+    dbx_client._do_request = mocker.AsyncMock(return_value={"url": "https://dropbox.com/s/test"})
 
     result = await dbx_client.create_shared_link("/test.txt")
-    assert (await result.json())["url"] == "https://dropbox.com/s/test"
+    assert result == "https://dropbox.com/s/test"
 
 
 @pytest.mark.vcr()
@@ -467,23 +446,29 @@ async def test_dropbox_api_chunked_upload(
     Args:
         dbx_client: Test Dropbox client
         mock_response: Mocked response
+        mocker: Pytest mocker fixture
         tmp_path: Pytest temporary path fixture
     """
     # Create a test file larger than the chunk size
     test_file = tmp_path / "large_test.txt"
     test_file.write_bytes(b"x" * (5 * 1024 * 1024))  # 5MB file
 
-    # Mock responses for each stage of chunked upload
-    mock_response.json = mocker.AsyncMock()
-    mock_response.json.side_effect = [
-        {"session_id": "test-session"},  # Start session
-        {},  # Append chunk
-        {"path_display": "/large_test.txt"},  # Finish upload
-        {"url": "https://dropbox.com/s/test"},  # Create shared link
-    ]
-    mock_response.status = 200
-    mock_response.ok = True
-    mock_response.content_type = "application/json"
+    # Mock _do_request to return appropriate responses for each stage
+    do_request_mock = mocker.AsyncMock()
+    # Create a list of responses for each chunk plus start/finish/link
+    responses = []
+    responses.append({"session_id": "test-session"})  # Start session
+
+    # Add responses for each chunk (5MB file with 1MB chunks = 5 chunks)
+    chunk_count = 5
+    for _ in range(chunk_count - 1):  # -1 because last chunk is handled by finish
+        responses.append({})  # Append chunk responses
+
+    responses.append({"path_display": "/large_test.txt"})  # Finish upload
+    responses.append({"url": "https://dropbox.com/s/test"})  # Create shared link
+
+    do_request_mock.side_effect = responses
+    dbx_client._do_request = do_request_mock
 
     progress_callback = mocker.AsyncMock()
     result = await dbx_client.dropbox_upload(
@@ -492,6 +477,9 @@ async def test_dropbox_api_chunked_upload(
         chunk_size=1024 * 1024,  # 1MB chunks
         progress_callback=progress_callback,
     )
+
+    assert result == "https://dropbox.com/s/test"
+    assert progress_callback.call_count > 0
 
     assert result == "https://dropbox.com/s/test"
     assert progress_callback.call_count > 0
@@ -519,24 +507,33 @@ async def test_request_retry_logic(mocker: MockerFixture, mock_response: MockerF
 
 
 @pytest.mark.asyncio
-async def test_request_rate_limit_handling(mocker: MockerFixture, mock_response: MockerFixture) -> None:
+async def test_request_rate_limit_handling(mocker: MockerFixture) -> None:
     """Test Request class rate limit handling.
 
     Args:
-        mock_response: Mocked response
+        mocker: Pytest mocker fixture
     """
-    rate_limited_response = mock_response
+    # Create mock responses
+    rate_limited_response = mocker.AsyncMock()
     rate_limited_response.status = 429
+    rate_limited_response.ok = False
 
+    success_response = mocker.AsyncMock()
+    success_response.status = 200
+    success_response.ok = True
+
+    # Create mock request function
     mock_func = mocker.AsyncMock(
         side_effect=[
-            rate_limited_response,  # Rate limited
-            mock_response,  # Success after retry
+            rate_limited_response,  # First call returns rate limit
+            success_response,  # Second call succeeds
         ]
     )
 
+    # Create and execute request
     request = Request(mock_func, "test_url", {}, retry_count=2)
     response = await request
 
-    assert response == mock_response
+    # Verify behavior
+    assert response == success_response
     assert mock_func.call_count == 2

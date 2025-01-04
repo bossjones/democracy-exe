@@ -246,7 +246,7 @@ def is_twitter(uri: str) -> bool:
         bool: True if the URI is a Twitter URI, False otherwise.
     """
     pattern = (
-        r"(?:https?://)?(?:www\.|mobile\.)?"
+        r"(?:https?://)?(?:www\.|mobile\.|api\.)?"
         r"(?:(?:[fv]x)?twitter|(?:fix(?:up|v))?x)\.com"
     )
     return bool(re.search(pattern, uri))
@@ -270,6 +270,28 @@ def is_instagram(uri: str) -> bool:
 
     # Check if it matches either the base pattern or user pattern
     return bool(re.search(base_pattern, uri)) or bool(re.search(user_pattern, uri))
+
+
+def is_dropbox(uri: str) -> bool:
+    """Check if a URI is a Dropbox API URI.
+
+    This function checks for various Dropbox API endpoints including:
+    - content.dropboxapi.com
+    - api.dropboxapi.com
+    - www.dropbox.com
+    - dropbox.com
+
+    Args:
+        uri (str): The URI to check.
+
+    Returns:
+        bool: True if the URI is a Dropbox URI, False otherwise.
+    """
+    pattern = (
+        r"(?:https?://)?"
+        r"(?:(?:content|api|www)\.)?dropbox(?:api)?\.com"
+    )
+    return bool(re.search(pattern, uri))
 
 
 def is_reddit(uri: str) -> bool:
@@ -419,6 +441,7 @@ def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
     - For opensearch requests, we just match the body
     - For openai, allow llm-proxy
     - For social media (YouTube, Instagram, Twitter, Reddit), match based on domain patterns
+    - For Dropbox API requests, match based on domain patterns
     - For others, we match both uri and body
 
     Args:
@@ -457,6 +480,9 @@ def request_matcher(r1: VCRRequest, r2: VCRRequest) -> bool:
         # Case 7: Both requests are to Reddit endpoints
         or is_reddit(r1.uri)
         and is_reddit(r2.uri)
+        # Case 8: Both requests are to Dropbox endpoints
+        or is_dropbox(r1.uri)
+        and is_dropbox(r2.uri)
     ):
         # For these special cases, we only compare the body content
         # The URIs might be different but functionally equivalent

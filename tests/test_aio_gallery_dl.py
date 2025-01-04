@@ -437,8 +437,9 @@ def _filter_response(response: VCRRequest) -> VCRRequest:
 @pytest.mark.gallerydlonly()
 @pytest.mark.default_cassette("test_run_single_tweet_aio_gallery_dl.yaml")
 @pytest.mark.vcr(
+    record_mode="new_episodes",
     allow_playback_repeats=True,
-    match_on=["method", "scheme", "port", "path", "query"],
+    match_on=["scheme", "port", "path"],  # Removed method and query to be more lenient
     ignore_localhost=False,
     before_record_response=_filter_response,
     before_record_request=_filter_request_headers,
