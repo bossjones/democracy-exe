@@ -154,7 +154,7 @@ class DeleteFileTool(BaseTool):
             response = DeleteFileResponse(
                 file_path=file_path,
                 status="success"
-            ).dict()
+            ).model_dump()
             logger.info("File deletion completed successfully")
             return response
         except Exception as e:

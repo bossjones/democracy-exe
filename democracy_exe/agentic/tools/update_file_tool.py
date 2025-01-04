@@ -148,7 +148,7 @@ class UpdateFileTool(BaseTool):
             response = UpdateFileResponse(
                 file_path=file_path,
                 status="success"
-            ).dict()
+            ).model_dump()
             logger.info("File update completed successfully")
             return response
         except Exception as e:

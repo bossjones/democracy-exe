@@ -976,5 +976,11 @@ test-dropbox-debug:
 # Run unit tests in debug mode with extended output
 test-autocrop-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace tests/unittests/chatbot/cogs/test_autocrop.py
+# Run unit tests in debug mode with extended output
+test-toolsonly-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
+
+test-toolsonly-cog:
+	uv run pytest --showlocals --tb=short --capture=tee-sys tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
 # /Users/malcolm/dev/gallery-dl/gallery_dl

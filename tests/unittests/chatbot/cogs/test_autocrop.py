@@ -20,6 +20,7 @@ from loguru import logger
 
 import pytest
 
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.cogs.autocrop import HELP_MESSAGE, AutocropError
 from democracy_exe.chatbot.cogs.autocrop import Autocrop as AutocropCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
@@ -35,10 +36,16 @@ if TYPE_CHECKING:
 
 @pytest_asyncio.fixture(autouse=True)
 async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
-    """Create a DemocracyBot instance for testing.
+    """Create a DemocracyBot instance with Autocrop cog for testing.
 
-    Returns:
-        AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
+    This fixture sets up a Discord bot instance with all required intents and
+    the Autocrop cog installed. It handles proper initialization and cleanup.
+
+    Yields:
+        DemocracyBot: Configured bot instance with Autocrop cog
+
+    Note:
+        This fixture is automatically used in all tests in this module.
     """
     intents = discord.Intents.all()
     intents.message_content = True
@@ -67,7 +74,14 @@ async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
 
 @pytest_asyncio.fixture(autouse=True)
 async def cleanup_global_message_queue() -> AsyncGenerator[None, None]:
-    """Clean up the global message queue after each test."""
+    """Clean up the global message queue after each test.
+
+    This fixture ensures that no messages from previous tests remain in the queue,
+    preventing test interference.
+
+    Yields:
+        None
+    """
     yield
     try:
         await dpytest.empty_queue()
@@ -77,13 +91,16 @@ async def cleanup_global_message_queue() -> AsyncGenerator[None, None]:
 
 @pytest.fixture
 def test_image(tmp_path: pathlib.Path) -> pathlib.Path:
-    """Create a test image file.
+    """Create a test image file for testing.
+
+    This fixture generates a random RGB image using numpy and saves it to a
+    temporary file for testing image processing operations.
 
     Args:
-        tmp_path: Temporary directory path
+        tmp_path: Pytest-provided temporary directory path
 
     Returns:
-        pathlib.Path: Path to test image
+        pathlib.Path: Path to the generated test image file
     """
     import numpy as np
 
@@ -157,13 +174,20 @@ async def test_process_image(
     tmp_path: pathlib.Path,
     caplog: LogCaptureFixture,
 ) -> None:
-    """Test image processing functionality.
+    """Test the core image processing functionality.
+
+    This test verifies that the _process_image method correctly processes
+    an image to the specified aspect ratio while maintaining proper dimensions.
 
     Args:
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
-        test_image: Test image fixture
-        tmp_path: Temporary directory path
-        caplog: Pytest log capture fixture
+        test_image: Path to test image file
+        tmp_path: Temporary directory for output
+        caplog: Pytest logging capture fixture
+
+    Note:
+        This test specifically checks square cropping (1:1 aspect ratio)
+        and verifies the output dimensions.
     """
     cog = bot_with_autocrop_cog.get_cog("Autocrop")
     output_path = tmp_path / "output.png"
@@ -193,15 +217,17 @@ async def test_crop_invalid_attachment(bot_with_autocrop_cog: DemocracyBot) -> N
 
 @pytest.fixture
 def invalid_file(tmp_path: pathlib.Path) -> pathlib.Path:
-    """Create an invalid file for testing.
+    """Create an invalid file for testing error handling.
+
+    This fixture creates a text file that appears to be an image file,
+    used to test the cog's handling of invalid file types.
 
     Args:
-        tmp_path: Temporary directory path
+        tmp_path: Pytest-provided temporary directory path
 
     Returns:
-        pathlib.Path: Path to invalid test file
+        pathlib.Path: Path to the invalid test file
     """
-    # Create a text file
     test_file = tmp_path / "test.txt"
     test_file.write_text("This is not an image")
     return test_file
@@ -229,32 +255,45 @@ async def test_crop_invalid_file_type(
 async def test_crop_download_timeout(
     bot_with_autocrop_cog: DemocracyBot, mocker: MockerFixture, test_image: pathlib.Path
 ) -> None:
-    """Test image download timeout handling.
+    """Test timeout handling during image download.
+
+    This test verifies that the cog properly handles timeouts when
+    downloading attachments takes longer than the configured timeout.
 
     Args:
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
-        mocker: Pytest mocker fixture
-        test_image: Test image fixture
+        mocker: Pytest mocker fixture for creating mocks
+        test_image: Path to test image file
+
+    Note:
+        Uses asyncio.sleep to simulate a slow download that exceeds
+        the configured timeout duration.
     """
 
-    # Mock attachment.save to simulate timeout
-    async def slow_save(*args, **kwargs):
-        await asyncio.sleep(aiosettings.autocrop_download_timeout + 1)
+    # Create a mock attachment that simulates a slow download
+    class SlowAttachment(discord.Attachment):
+        async def save(self, fp: str, **kwargs: Any) -> None:
+            await asyncio.sleep(aiosettings.autocrop_download_timeout + 1)
 
-    mock_attachment = mocker.Mock(spec=discord.Attachment)
-    mock_attachment.save.side_effect = slow_save
-    mock_attachment.content_type = "image/png"
-    mock_attachment.filename = "test.png"
-
-    cog = bot_with_autocrop_cog.get_cog("Autocrop")
-    success, error_msg = await cog._handle_crop(
-        await dpytest.get_message().channel.send("test"),  # Get context
-        "square",
-        mock_attachment,
+    # Create a slow attachment with the test image
+    slow_attachment = SlowAttachment(
+        state=mocker.Mock(),
+        data={
+            "id": 123456789,
+            "filename": test_image.name,
+            "size": 1000,
+            "url": "http://example.com/test.png",
+            "proxy_url": "http://example.com/test.png",
+            "content_type": "image/png",
+        },
     )
 
-    assert not success
-    assert "Image download timed out" in error_msg
+    # Send command with slow attachment
+    await dpytest.message("?crop square", attachments=[slow_attachment])
+
+    # Verify timeout error message
+    assert dpytest.verify().message().content("Processing image to square format...")
+    assert dpytest.verify().message().content("Image download timed out")
 
 
 @pytest.mark.asyncio
@@ -283,8 +322,12 @@ async def test_crop_processing_timeout(
     mock_attachment.content_type = "image/png"
     mock_attachment.filename = "test.png"
 
+    # Create a message first
+    await dpytest.message("test")
+    message = await dpytest.get_message()
+
     success, error_msg = await cog._handle_crop(
-        await dpytest.get_message().channel.send("test"),  # Get context
+        message,
         "square",
         mock_attachment,
     )
@@ -297,12 +340,19 @@ async def test_crop_processing_timeout(
 async def test_concurrent_processing(
     bot_with_autocrop_cog: DemocracyBot, test_image: pathlib.Path, tmp_path: pathlib.Path
 ) -> None:
-    """Test concurrent image processing.
+    """Test concurrent image processing capabilities.
+
+    This test verifies that the cog can handle multiple simultaneous
+    image processing requests without interference or corruption.
 
     Args:
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
-        test_image: Test image fixture
-        tmp_path: Temporary directory path
+        test_image: Path to test image file
+        tmp_path: Temporary directory for output files
+
+    Note:
+        Processes multiple copies of the same image concurrently and
+        verifies that all outputs are correctly processed.
     """
     cog = bot_with_autocrop_cog.get_cog("Autocrop")
 

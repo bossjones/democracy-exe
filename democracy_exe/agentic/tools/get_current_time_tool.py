@@ -70,15 +70,18 @@ class GetCurrentTimeTool(BaseTool):
             ValueError: If format string is invalid
         """
         try:
-            now = datetime.now()
-            logger.debug(f"Getting current time with format: {format}")
-            formatted_time = now.strftime(format)
-            timestamp = now.timestamp()
-            logger.debug(f"Current time: {formatted_time}, Timestamp: {timestamp}")
-            return formatted_time, timestamp
+            # Validate format string by attempting to use it
+            datetime.now().strftime(format)
         except Exception as e:
             logger.error(f"Error formatting time: {e!s}")
             raise ValueError(f"Invalid time format: {e!s}")
+
+        now = datetime.now()
+        logger.debug(f"Getting current time with format: {format}")
+        formatted_time = now.strftime(format)
+        timestamp = now.timestamp()
+        logger.debug(f"Current time: {formatted_time}, Timestamp: {timestamp}")
+        return formatted_time, timestamp
 
     def _run(
         self,

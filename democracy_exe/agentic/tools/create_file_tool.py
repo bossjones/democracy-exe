@@ -144,7 +144,7 @@ class CreateFileTool(BaseTool):
             response = CreateFileResponse(
                 file_path=file_path,
                 status="success"
-            ).dict()
+            ).model_dump()
             logger.info("File creation completed successfully")
             return response
         except Exception as e:

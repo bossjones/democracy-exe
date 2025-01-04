@@ -1,4 +1,8 @@
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportUninitializedInstanceVariable=false
+# pyright: reportUndefinedVariable=false
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
 
 """Autocrop cog for Discord bot.
 
@@ -54,24 +58,40 @@ ASPECT_RATIOS = {
 }
 
 class AutocropError(Exception):
-    """Base exception for autocrop-related errors."""
+    """Base exception for autocrop-related errors.
+
+    This exception is raised when image processing operations fail in the Autocrop cog.
+    """
+    pass
 
 class Autocrop(commands.Cog):
     """Autocrop functionality for Discord bot.
 
-    Handles intelligent cropping of images to various aspect ratios.
+    This cog provides image auto-cropping functionality including smart detection
+    of important regions and automatic resizing/cropping to common aspect ratios.
+    It supports concurrent processing and handles timeouts gracefully.
 
     Attributes:
-        bot: The Discord bot instance
+        bot (commands.Bot): The Discord bot instance this cog is attached to
     """
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot) -> None:
+        """Initialize the Autocrop cog.
+
+        Args:
+            bot: The Discord bot instance to attach this cog to
+        """
         logger.debug("Initializing Autocrop cog")
         self.bot = bot
         logger.debug("Autocrop cog initialized")
 
     @commands.Cog.listener()
-    async def on_ready(self):
+    async def on_ready(self) -> None:
+        """Handle the cog ready event.
+
+        This method is called when the cog is fully loaded and ready to process commands.
+        It logs the ready status and ensures all logging is complete.
+        """
         logger.debug(f"{type(self).__name__} Cog ready.")
         print(f"{type(self).__name__} Cog ready.")
         await logger.complete()
@@ -91,16 +111,20 @@ class Autocrop(commands.Cog):
     ) -> bool:
         """Process image with smart cropping.
 
+        This method handles the core image processing functionality, including loading,
+        conversion, and cropping operations. All CPU-bound operations are executed in
+        a thread pool to prevent blocking the event loop.
+
         Args:
-            image_path: Path to input image
-            aspect_ratio: Target width/height ratio tuple
-            output_path: Path to save processed image
+            image_path: Path to input image file
+            aspect_ratio: Target width/height ratio tuple (e.g., (1, 1) for square)
+            output_path: Path where the processed image should be saved
 
         Returns:
-            bool: Success status
+            bool: True if processing was successful, False otherwise
 
         Raises:
-            AutocropError: If processing fails
+            AutocropError: If any step of the image processing fails
         """
         logger.debug(f"Starting image processing - Input: {image_path}, Target ratio: {aspect_ratio}")
         try:
@@ -158,15 +182,28 @@ class Autocrop(commands.Cog):
     ) -> tuple[bool, str | None]:
         """Handle image cropping workflow.
 
+        This method orchestrates the complete image cropping process, including:
+        - Validating the input attachment
+        - Creating a progress message
+        - Downloading the attachment with timeout
+        - Processing the image with timeout
+        - Sending the result back to Discord
+
+        All operations are properly logged and error-handled.
+
         Args:
-            ctx: Command context
-            ratio_name: Name of aspect ratio to use
-            attachment: Image attachment to process
+            ctx: Discord command context containing message and channel info
+            ratio_name: Name of aspect ratio to use (e.g., "square", "portrait")
+            attachment: Discord attachment containing the image to process
 
         Returns:
-            Tuple containing:
-                - Success status (bool)
-                - Error message if any (Optional[str])
+            A tuple containing:
+                bool: Success status of the operation
+                str | None: Error message if operation failed, None if successful
+
+        Note:
+            This method uses temporary directories with unique names per request to
+            ensure thread safety during concurrent operations.
         """
         logger.info(f"Starting crop operation - User: {ctx.author}, Guild: {ctx.guild}, Ratio: {ratio_name}")
         logger.debug(f"Attachment details - Name: {attachment.filename}, Size: {attachment.size}, Type: {attachment.content_type}")
@@ -245,7 +282,14 @@ class Autocrop(commands.Cog):
 
     @commands.group(name="crop")
     async def crop(self, ctx: commands.Context) -> None:
-        """Autocrop command group."""
+        """Autocrop command group.
+
+        This is the base command for all cropping operations. If no subcommand is
+        specified, it displays the help message showing available options.
+
+        Args:
+            ctx: Discord command context
+        """
         logger.debug(f"Crop command invoked by {ctx.author} in {ctx.guild}")
         if ctx.invoked_subcommand is None:
             logger.debug("No subcommand specified, sending help message")
@@ -255,8 +299,15 @@ class Autocrop(commands.Cog):
     async def square(self, ctx: commands.Context) -> None:
         """Crop image to 1:1 aspect ratio.
 
+        This command processes an attached image to create a square crop,
+        maintaining the central portion of the image.
+
         Args:
-            ctx: Command context
+            ctx: Discord command context containing the message with image attachment
+
+        Note:
+            The image must be attached to the command message.
+            The resulting image will have equal width and height.
         """
         logger.debug(f"Square crop command invoked by {ctx.author}")
         if not ctx.message.attachments:
@@ -270,8 +321,15 @@ class Autocrop(commands.Cog):
     async def portrait(self, ctx: commands.Context) -> None:
         """Crop image to 4:5 aspect ratio.
 
+        This command processes an attached image to create a portrait crop
+        with a 4:5 aspect ratio, suitable for platforms like Instagram.
+
         Args:
-            ctx: Command context
+            ctx: Discord command context containing the message with image attachment
+
+        Note:
+            The image must be attached to the command message.
+            The resulting image will have a height 1.25 times its width.
         """
         logger.debug(f"Portrait crop command invoked by {ctx.author}")
         if not ctx.message.attachments:
@@ -285,8 +343,15 @@ class Autocrop(commands.Cog):
     async def landscape(self, ctx: commands.Context) -> None:
         """Crop image to 16:9 aspect ratio.
 
+        This command processes an attached image to create a landscape crop
+        with a 16:9 aspect ratio, suitable for HD video formats.
+
         Args:
-            ctx: Command context
+            ctx: Discord command context containing the message with image attachment
+
+        Note:
+            The image must be attached to the command message.
+            The resulting image will have a width 1.78 times its height.
         """
         logger.debug(f"Landscape crop command invoked by {ctx.author}")
         if not ctx.message.attachments:
@@ -300,8 +365,15 @@ class Autocrop(commands.Cog):
     async def story(self, ctx: commands.Context) -> None:
         """Crop image to 9:16 aspect ratio.
 
+        This command processes an attached image to create a vertical crop
+        with a 9:16 aspect ratio, suitable for stories/reels on social media.
+
         Args:
-            ctx: Command context
+            ctx: Discord command context containing the message with image attachment
+
+        Note:
+            The image must be attached to the command message.
+            The resulting image will have a height 1.78 times its width.
         """
         logger.debug(f"Story crop command invoked by {ctx.author}")
         if not ctx.message.attachments:

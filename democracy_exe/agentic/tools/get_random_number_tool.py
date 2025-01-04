@@ -114,12 +114,16 @@ class GetRandomNumberTool(BaseTool):
         Raises:
             ValueError: If range is invalid
         """
+        if max_value <= min_value:
+            raise ValueError("Maximum value must be greater than minimum value")
+
         try:
             if seed is not None:
-                logger.debug(f"Setting random seed: {seed}")
+                logger.debug("Generating random number with seed")
                 random.seed(seed)
+            else:
+                logger.debug("Generating random number without seed")
 
-            logger.debug(f"Generating random number between {min_value} and {max_value}")
             number = random.randint(min_value, max_value) # noqa: S311
             logger.debug(f"Generated number: {number}")
             return number
