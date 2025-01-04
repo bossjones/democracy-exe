@@ -48,6 +48,7 @@ def test_dir(tmp_path: pathlib.Path) -> pathlib.Path:
     return test_dir
 
 
+@pytest.mark.toolonly
 def test_validate_path(update_file_tool: UpdateFileTool, test_dir: pathlib.Path) -> None:
     """Test path validation logic.
 
@@ -73,6 +74,7 @@ def test_validate_path(update_file_tool: UpdateFileTool, test_dir: pathlib.Path)
         update_file_tool._validate_path("/nonexistent/dir", "test.txt")
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_success(
     update_file_tool: UpdateFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
@@ -107,6 +109,7 @@ async def test_arun_success(
     assert "File update completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_nonexistent_file(
     update_file_tool: UpdateFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
@@ -136,6 +139,7 @@ async def test_arun_nonexistent_file(
     assert "File does not exist" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_success(update_file_tool: UpdateFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture) -> None:
     """Test successful synchronous file update.
 
@@ -163,6 +167,7 @@ def test_run_success(update_file_tool: UpdateFileTool, test_dir: pathlib.Path, c
     assert "File update completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_with_default_directory(
     update_file_tool: UpdateFileTool, caplog: LogCaptureFixture, tmp_path: pathlib.Path, monkeypatch: MonkeyPatch
 ) -> None:
@@ -197,6 +202,7 @@ def test_run_with_default_directory(
     assert "File update completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_permission_error(
     update_file_tool: UpdateFileTool, test_dir: pathlib.Path, mocker: MockerFixture, caplog: LogCaptureFixture
 ) -> None:
@@ -230,6 +236,7 @@ def test_run_permission_error(
     assert "Permission denied" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_io_error(
     update_file_tool: UpdateFileTool, test_dir: pathlib.Path, mocker: MockerFixture, caplog: LogCaptureFixture

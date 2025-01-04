@@ -48,6 +48,7 @@ def test_dir(tmp_path: pathlib.Path) -> pathlib.Path:
     return test_dir
 
 
+@pytest.mark.toolonly
 def test_validate_path(delete_file_tool: DeleteFileTool, test_dir: pathlib.Path) -> None:
     """Test path validation logic.
 
@@ -73,6 +74,7 @@ def test_validate_path(delete_file_tool: DeleteFileTool, test_dir: pathlib.Path)
         delete_file_tool._validate_path("/nonexistent/dir", "test.txt")
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_success(
     delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
@@ -103,6 +105,7 @@ async def test_arun_success(
     assert "File deletion completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_without_force(
     delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
@@ -133,6 +136,7 @@ async def test_arun_without_force(
     assert "Force flag not set, requiring confirmation" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_nonexistent_file(
     delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
@@ -155,6 +159,7 @@ async def test_arun_nonexistent_file(
     assert "File does not exist" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_success(delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture) -> None:
     """Test successful synchronous file deletion.
 
@@ -182,6 +187,7 @@ def test_run_success(delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, c
     assert "File deletion completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_with_default_directory(
     delete_file_tool: DeleteFileTool, caplog: LogCaptureFixture, tmp_path: pathlib.Path, monkeypatch: MonkeyPatch
 ) -> None:
@@ -216,6 +222,7 @@ def test_run_with_default_directory(
     assert "File deletion completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_permission_error(
     delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, mocker: MockerFixture, caplog: LogCaptureFixture
 ) -> None:
@@ -250,6 +257,7 @@ def test_run_permission_error(
     assert "Permission denied" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_io_error(
     delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, mocker: MockerFixture, caplog: LogCaptureFixture

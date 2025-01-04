@@ -73,6 +73,7 @@ def test_validate_path(create_file_tool: CreateFileTool, test_dir: pathlib.Path)
 
 
 @pytest.mark.asyncio
+@pytest.mark.toolonly
 async def test_arun_success(
     create_file_tool: CreateFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
 ) -> None:
@@ -105,6 +106,7 @@ async def test_arun_success(
 
 
 @pytest.mark.asyncio
+@pytest.mark.toolonly
 async def test_arun_existing_file(
     create_file_tool: CreateFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture
 ) -> None:
@@ -137,6 +139,7 @@ async def test_arun_existing_file(
     assert "File already exists" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_success(create_file_tool: CreateFileTool, test_dir: pathlib.Path, caplog: LogCaptureFixture) -> None:
     """Test successful synchronous file creation.
 
@@ -162,6 +165,7 @@ def test_run_success(create_file_tool: CreateFileTool, test_dir: pathlib.Path, c
     assert "File creation completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_with_default_directory(
     create_file_tool: CreateFileTool, caplog: LogCaptureFixture, tmp_path: pathlib.Path, monkeypatch: MonkeyPatch
 ) -> None:
@@ -193,6 +197,7 @@ def test_run_with_default_directory(
     assert "File creation completed successfully" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_permission_error(
     create_file_tool: CreateFileTool, test_dir: pathlib.Path, mocker: MockerFixture, caplog: LogCaptureFixture
 ) -> None:
@@ -223,6 +228,7 @@ def test_run_permission_error(
 
 
 @pytest.mark.asyncio
+@pytest.mark.toolonly
 async def test_arun_io_error(
     create_file_tool: CreateFileTool, test_dir: pathlib.Path, mocker: MockerFixture, caplog: LogCaptureFixture
 ) -> None:

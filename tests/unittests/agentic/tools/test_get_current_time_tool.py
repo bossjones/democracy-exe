@@ -49,6 +49,7 @@ def mock_datetime(mocker: MockerFixture) -> datetime:
     return mock_time
 
 
+@pytest.mark.toolonly
 def test_get_time_default_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
 ) -> None:
@@ -70,6 +71,7 @@ def test_get_time_default_format(
     assert str(formatted_time) in caplog.text
 
 
+@pytest.mark.toolonly
 def test_get_time_custom_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
 ) -> None:
@@ -91,6 +93,7 @@ def test_get_time_custom_format(
     assert str(formatted_time) in caplog.text
 
 
+@pytest.mark.toolonly
 def test_get_time_invalid_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
 ) -> None:
@@ -108,6 +111,7 @@ def test_get_time_invalid_format(
     assert "Error formatting time" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_success(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
 ) -> None:
@@ -130,6 +134,7 @@ def test_run_success(
     assert "Successfully retrieved current time" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_custom_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
 ) -> None:
@@ -152,6 +157,7 @@ def test_run_custom_format(
     assert "Successfully retrieved current time" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_invalid_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
 ) -> None:
@@ -173,6 +179,7 @@ def test_run_invalid_format(
     assert "Failed to get current time" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_success(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
@@ -196,6 +203,7 @@ async def test_arun_success(
     assert "Successfully retrieved current time" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_custom_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
@@ -219,6 +227,7 @@ async def test_arun_custom_format(
     assert "Successfully retrieved current time" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_invalid_format(
     get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture

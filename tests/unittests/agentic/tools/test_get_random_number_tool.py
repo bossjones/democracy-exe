@@ -42,6 +42,7 @@ def mock_random(mocker: MockerFixture) -> None:
     mocker.patch("random.randint", return_value=42)
 
 
+@pytest.mark.toolonly
 def test_generate_number_with_seed(get_random_number_tool: GetRandomNumberTool, caplog: LogCaptureFixture) -> None:
     """Test generating number with seed.
 
@@ -68,6 +69,7 @@ def test_generate_number_with_seed(get_random_number_tool: GetRandomNumberTool, 
     assert str(random_number) in caplog.text
 
 
+@pytest.mark.toolonly
 def test_generate_number_without_seed(
     get_random_number_tool: GetRandomNumberTool, mock_random: None, caplog: LogCaptureFixture
 ) -> None:
@@ -91,6 +93,7 @@ def test_generate_number_without_seed(
     assert str(random_number) in caplog.text
 
 
+@pytest.mark.toolonly
 def test_generate_number_invalid_range(get_random_number_tool: GetRandomNumberTool, caplog: LogCaptureFixture) -> None:
     """Test generating number with invalid range.
 
@@ -108,6 +111,7 @@ def test_generate_number_invalid_range(get_random_number_tool: GetRandomNumberTo
     assert "Invalid range for random number generation" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_success(get_random_number_tool: GetRandomNumberTool, mock_random: None, caplog: LogCaptureFixture) -> None:
     """Test successful synchronous number generation.
 
@@ -130,6 +134,7 @@ def test_run_success(get_random_number_tool: GetRandomNumberTool, mock_random: N
     assert "Successfully generated random number" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_with_seed(get_random_number_tool: GetRandomNumberTool, caplog: LogCaptureFixture) -> None:
     """Test number generation with seed.
 
@@ -151,6 +156,7 @@ def test_run_with_seed(get_random_number_tool: GetRandomNumberTool, caplog: LogC
     assert "Successfully generated random number" in caplog.text
 
 
+@pytest.mark.toolonly
 def test_run_invalid_range(get_random_number_tool: GetRandomNumberTool, caplog: LogCaptureFixture) -> None:
     """Test number generation with invalid range.
 
@@ -173,6 +179,7 @@ def test_run_invalid_range(get_random_number_tool: GetRandomNumberTool, caplog: 
     assert "Failed to generate random number" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_success(
     get_random_number_tool: GetRandomNumberTool, mock_random: None, caplog: LogCaptureFixture
@@ -198,6 +205,7 @@ async def test_arun_success(
     assert "Successfully generated random number" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_with_seed(get_random_number_tool: GetRandomNumberTool, caplog: LogCaptureFixture) -> None:
     """Test async number generation with seed.
@@ -220,6 +228,7 @@ async def test_arun_with_seed(get_random_number_tool: GetRandomNumberTool, caplo
     assert "Successfully generated random number" in caplog.text
 
 
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 async def test_arun_invalid_range(get_random_number_tool: GetRandomNumberTool, caplog: LogCaptureFixture) -> None:
     """Test async number generation with invalid range.
