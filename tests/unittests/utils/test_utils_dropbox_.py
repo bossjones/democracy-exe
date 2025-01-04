@@ -1,7 +1,7 @@
 # pyright: reportUninitializedInstanceVariable=false
 # pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
-
+# pylint: disable=no-member
 from __future__ import annotations
 
 import asyncio
