@@ -5,6 +5,8 @@ import asyncio
 import json
 import os
 import pathlib
+import sys
+import traceback
 
 from collections.abc import AsyncIterator, Callable
 from datetime import datetime
@@ -12,11 +14,13 @@ from functools import partial
 from typing import Any, Dict, List, Optional, TypeVar, Union, cast, overload
 
 import aiofiles
+import bpdb
 import gallery_dl
 
 from loguru import logger
 from pydantic import BaseModel, EmailStr, Field
 
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.utils.file_functions import expand_path_str, tilda
 
 
@@ -237,6 +241,8 @@ class AsyncGalleryDL:
             >>> client = AsyncGalleryDL({"your": "config"})
         """
         self.config = config or {}
+        logger.debug(f"Using self.config: {self.config}")
+
         if verbose:
             self.config["verbosity"] = 2
         if write_info_json:
@@ -252,6 +258,8 @@ class AsyncGalleryDL:
             self.config_file = expand_path_str(config_file)
         else:
             self.config_file = expand_path_str("~/.gallery-dl.conf")
+        logger.debug(f"Using self.config_file: {self.config_file}")
+
 
     @overload
     async def _run_in_executor(
@@ -353,6 +361,18 @@ class AsyncGalleryDL:
                 await asyncio.sleep(0)
 
         except Exception as e:
+            print(f"{e}")
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print(f"Error Class: {e.__class__}")
+            output = f"[UNEXPECTED] {type(e).__name__}: {e}"
+            print(output)
+            print(f"exc_type: {exc_type}")
+            print(f"exc_value: {exc_value}")
+            traceback.print_tb(exc_traceback)
+            await logger.complete()
+            if aiosettings.dev_mode:
+                bpdb.pm()
+
             logger.error("Error in gallery-dl download")
             raise
 
@@ -424,3 +444,43 @@ class AsyncGalleryDL:
         """
         # Cleanup if needed
         pass
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    import rich
+
+    from langsmith import tracing_context
+    from loguru import logger
+
+    async def main() -> None:
+        """Run the AsyncGalleryDL tool asynchronously."""
+        url = "https://x.com/Eminitybaba_/status/1868256259251863704"
+        with tracing_context(enabled=False):
+
+            # Test download
+            try:
+                # Test extraction with command line options
+                client = AsyncGalleryDL(verbose=True, write_info_json=True, write_metadata=True, no_mtime=True)
+                items = []
+                async for item in client.extract_from_url(url):
+                    items.append(item)
+                rich.print(f"items: {items}")
+
+            except Exception as ex:
+                print(f"{ex}")
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                print(f"Error Class: {ex.__class__}")
+                output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+                print(output)
+                print(f"exc_type: {exc_type}")
+                print(f"exc_value: {exc_value}")
+                traceback.print_tb(exc_traceback)
+                await logger.complete()
+                rich.print(f"aiosettings.dev_mode: {aiosettings.dev_mode}")
+                if aiosettings.dev_mode:
+                    bpdb.pm()
+
+
+    asyncio.run(main())

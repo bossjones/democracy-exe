@@ -961,4 +961,15 @@ test-gallery-dl-debug:
 test-gallery-dl:
 	uv run pytest --capture=tee-sys -k test_run_single_tweet
 
+generate-cassettes-dropboxonly:
+	{{UV_RUN}} pytest --record-mode=once --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=. -m dropboxonly
+
+test-dropbox:
+	uv run pytest --showlocals --tb=short --capture=tee-sys -m dropboxonly
+
+test-dropbox-debug:
+	uv run pytest --showlocals --tb=short --capture=tee-sys --pdb --pdbcls bpdb:BPdb -m dropboxonly
+
+
+
 # /Users/malcolm/dev/gallery-dl/gallery_dl

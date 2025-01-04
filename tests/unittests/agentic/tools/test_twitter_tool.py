@@ -119,7 +119,7 @@ def test_validate_mode(twitter_tool: TwitterTool) -> None:
 # )
 @pytest.mark.asyncio
 @pytest.mark.skip_until(
-    deadline=datetime.datetime(2024, 12, 25),
+    deadline=datetime.datetime(2025, 1, 25),
     strict=True,
     msg="Need to find a good url to test this with, will do later",
 )

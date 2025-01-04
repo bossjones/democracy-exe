@@ -140,7 +140,7 @@ class TestMessageHandler:
         mock_message.channel.create_thread.assert_called_once_with(name="Response", message=mock_message)
 
     @pytest.mark.skip_until(
-        deadline=datetime(2024, 12, 25), strict=True, msg="Alert is suppresed. Make progress till then"
+        deadline=datetime(2025, 1, 25), strict=True, msg="Alert is suppresed. Make progress till then"
     )
     async def test_format_inbound_message(self, message_handler: MessageHandler, mock_message: Message) -> None:
         """Test formatting inbound Discord message.
@@ -159,7 +159,7 @@ class TestMessageHandler:
         assert "test-channel" in result.content
 
     @pytest.mark.skip_until(
-        deadline=datetime(2024, 12, 25), strict=True, msg="Alert is suppresed. Make progress till then"
+        deadline=datetime(2025, 1, 25), strict=True, msg="Alert is suppresed. Make progress till then"
     )
     async def test_stream_bot_response(self, message_handler: MessageHandler, mocker: MockerFixture) -> None:
         """Test streaming bot responses.

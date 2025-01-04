@@ -116,6 +116,7 @@ dependencies = [
     "grandalf>=0.8",
     "emoji==1.7.0",
     "emoji-country-flag==1.3.2",
+    "dropbox>=12.0.2",
 ]
 
 [project.urls]
@@ -1029,6 +1030,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "*.pyi" = ["D", "E501", "E701", "I002"]
 "democracy_exe/chatbot/core/bot.py" = ["B026"]
 "democracy_exe/utils/twitter_utils/models.py" = ["SIM102"]
+"democracy_exe/utils/aiodbx.py" = ["SIM102", "S112", "S110", "SIM105"]
 
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
@@ -1456,6 +1458,8 @@ markers = [
     "aidergenerated: marks tests that are aider generated (deselect with '-m \"not aidergenerated\"')",
     "asynciotyper: marks tests that are asyncio typer generated (deselect with '-m \"not asynciotyper\"')",
     "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
+    "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
+    "gallerydlonly: marks tests that run code that utilizes the gallery-dl module (deselect with '-m \"not gallerydlonly\"')",
 ]
 
 
