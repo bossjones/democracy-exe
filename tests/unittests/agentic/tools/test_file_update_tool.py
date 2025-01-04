@@ -199,7 +199,7 @@ def test_run_with_default_directory(
 
     # Verify logging
     assert "Starting synchronous file update" in caplog.text
-    assert "File update completed successfully" in caplog.text
+    assert " Asynchronous file update completed successfully" in caplog.text
 
 
 @pytest.mark.toolonly

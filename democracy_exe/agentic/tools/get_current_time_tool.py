@@ -2,6 +2,8 @@
 """Time retrieval tool for LangChain/LangGraph integration."""
 from __future__ import annotations
 
+import re
+
 from datetime import datetime
 from typing import Any, Dict, Optional, Type, Union
 
@@ -57,6 +59,33 @@ class GetCurrentTimeTool(BaseTool):
     args_schema: type[BaseModel] = GetCurrentTimeInput
     return_direct: bool = True
 
+    # def _get_time(self, format: str = "%Y-%m-%d %H:%M:%S") -> tuple[str, float]:
+    #     """Get the current time in specified format.
+
+    #     Args:
+    #         format: Format string for datetime output
+
+    #     Returns:
+    #         tuple[str, float]: Tuple of (formatted time string, Unix timestamp)
+
+    #     Raises:
+    #         ValueError: If format string is invalid
+    #     """
+    #     try:
+    #         # Validate format string by attempting to use it
+    #         datetime.now().strftime(format)
+    #     except Exception as e:
+    #         logger.error(f"Error formatting time: {e!s}")
+    #         raise ValueError(f"Invalid time format: {e!s}")
+
+    #     now = datetime.now()
+    #     logger.debug(f"Getting current time with format: {format}")
+    #     formatted_time = now.strftime(format)
+    #     timestamp = now.timestamp()
+    #     logger.debug(f"Current time: {formatted_time}, Timestamp: {timestamp}")
+    #     return formatted_time, timestamp
+
+
     def _get_time(self, format: str = "%Y-%m-%d %H:%M:%S") -> tuple[str, float]:
         """Get the current time in specified format.
 
@@ -69,19 +98,28 @@ class GetCurrentTimeTool(BaseTool):
         Raises:
             ValueError: If format string is invalid
         """
+        # Validate format string
         try:
-            # Validate format string by attempting to use it
-            datetime.now().strftime(format)
-        except Exception as e:
-            logger.error(f"Error formatting time: {e!s}")
-            raise ValueError(f"Invalid time format: {e!s}")
+            # Check if the format string contains only valid directives
+            valid_directives = r'%[aAwdbBmyYHIpMSfzZjUWcxX]'
+            if re.sub(valid_directives, '', format):
+                raise ValueError("Invalid directive in format string")
 
-        now = datetime.now()
-        logger.debug(f"Getting current time with format: {format}")
-        formatted_time = now.strftime(format)
-        timestamp = now.timestamp()
-        logger.debug(f"Current time: {formatted_time}, Timestamp: {timestamp}")
-        return formatted_time, timestamp
+            # Attempt to use the format string
+            now = datetime.now()
+            formatted_time = now.strftime(format)
+            timestamp = now.timestamp()
+
+            logger.debug(f"Getting current time with format: {format}")
+            logger.debug(f"Current time: {formatted_time}, Timestamp: {timestamp}")
+
+            return formatted_time, timestamp
+        except ValueError as ve:
+            logger.error(f"Error formatting time: {ve}")
+            raise ValueError(f"Invalid time format: {ve}")
+        except Exception as e:
+            logger.error(f"Unexpected error formatting time: {e}")
+            raise ValueError(f"Invalid time format: {e}")
 
     def _run(
         self,

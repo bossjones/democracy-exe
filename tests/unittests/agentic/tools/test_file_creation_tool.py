@@ -162,7 +162,7 @@ def test_run_success(create_file_tool: CreateFileTool, test_dir: pathlib.Path, c
 
     # Verify logging
     assert "Starting synchronous file creation" in caplog.text
-    assert "File creation completed successfully" in caplog.text
+    assert "Asynchronous file creation completed successfully" in caplog.text
 
 
 @pytest.mark.toolonly

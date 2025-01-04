@@ -38,6 +38,7 @@ from rich.pretty import pprint
 from democracy_exe.aio_settings import aiosettings
 from democracy_exe.factories.guild_factory import Guild
 from democracy_exe.utils import file_functions
+from tests.internal.discord_test_utils import SlowAttachment
 
 
 # Command constants
@@ -178,7 +179,7 @@ class Autocrop(commands.Cog):
         self,
         ctx: Context,
         ratio_name: str,
-        attachment: discord.Attachment
+        attachment: discord.Attachment | SlowAttachment
     ) -> tuple[bool, str | None]:
         """Handle image cropping workflow.
 
@@ -218,6 +219,9 @@ class Autocrop(commands.Cog):
             progress = await ctx.send(f"Processing image to {ratio_name} format...")
             logger.debug("Progress message created successfully")
         except discord.HTTPException as e:
+            logger.error(f"Failed to send progress message: {e}")
+            return False, "Failed to send progress message"
+        except Exception as e:
             logger.error(f"Failed to send progress message: {e}")
             return False, "Failed to send progress message"
 

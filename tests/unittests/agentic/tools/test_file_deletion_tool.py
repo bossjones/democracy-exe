@@ -219,7 +219,7 @@ def test_run_with_default_directory(
 
     # Verify logging
     assert "Starting synchronous file deletion" in caplog.text
-    assert "File deletion completed successfully" in caplog.text
+    assert "Asynchronous file deletion completed successfully" in caplog.text
 
 
 @pytest.mark.toolonly

@@ -44,6 +44,7 @@
       <standard>Add `# pyright: reportAttributeAccessIssue=false` at the top of any Python file that uses discord.py.</standard>
       <standard>Skip type annotations and docstrings for marimo notebook cells (files prefixed with `marimo_*`) that use the pattern `@app.cell def __()`.</standard>
       <standard>Use aiofiles for all async file operations instead of builtin open, with appropriate file modes specified.</standard>
+      <standard>In async functions, NEVER use the built-in `open()` function - always use `aiofiles.open()` to prevent blocking I/O operations.</standard>
       <examples>
         <example>
           <![CDATA[
