@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set Taplo version
-TAPLO_VERSION=0.8.0
+TAPLO_VERSION=0.9.3
 
 # Determine the architecture
 if [ "$(uname -m)" = "aarch64" ]; then

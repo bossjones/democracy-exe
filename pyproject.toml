@@ -148,7 +148,6 @@ dev-dependencies = [
     "isort>=5.13.2",
     "langsmith>=0.1.142",
     "manhole>=1.8.1",
-    "mdformat-config>=0.2.1",
     "mdformat-footnote>=0.1.1",
     "mdformat-frontmatter>=2.0.8",
     "mdformat-gfm>=0.3.7",

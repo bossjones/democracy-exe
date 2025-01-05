@@ -26,17 +26,19 @@ ENV UV_CACHE_DIR=/root/.cache/uv/
 # Install dependencies first (for better caching)
 WORKDIR /deps/__outer_studio/src
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml uv sync --frozen --no-install-project  --all-extras  --verbose
-# Copy project and install
-COPY . /app
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --frozen && uv tool dir --bin
-# Pre-compile bytecode
-RUN python3 -m compileall .
+# RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml uv sync --frozen --no-install-project  --all-extras  --verbose
+# # Copy project and install
+# COPY . /app
+# RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --frozen && uv tool dir --bin
+# # Pre-compile bytecode
+# RUN python3 -m compileall .
 
-ADD . /deps/democracy-exe
+# ADD . /deps/democracy-exe
 
-RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+# RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
 
-ENV LANGSERVE_GRAPHS='{"memgraph": "/deps/democracy-exe/democracy_exe/agentic/graph.py:memgraph"}'
+# ENV LANGSERVE_GRAPHS='{"memgraph": "/deps/democracy-exe/democracy_exe/agentic/graph.py:memgraph"}'
 
 WORKDIR /deps/democracy-exe
+
+ENTRYPOINT ["/bin/bash", "-l"]

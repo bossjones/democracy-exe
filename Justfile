@@ -996,3 +996,9 @@ generate-langgraph-dockerfile:
 	uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
 	langgraph dockerfile -c langgraph.json Dockerfile
 	cat Dockerfile | ccze -A
+
+docker-build-debug:
+	docker build -f Dockerfile.debugging -t democracy-exe-debugging .
+
+docker-run-debug:
+	docker run -it democracy-exe-debugging
