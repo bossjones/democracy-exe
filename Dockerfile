@@ -4,7 +4,7 @@ FROM langchain/langgraph-api:3.12
 RUN apt-get update && apt-get install -y --no-install-recommends python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake build-essential autoconf automake libtool libmagic-dev poppler-utils libreoffice libomp-dev tesseract-ocr tesseract-ocr-por libyaml-dev ffmpeg libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git libpq5 libpq-dev libxml2-dev libxslt1-dev libcairo2-dev libgirepository1.0-dev libgraphviz-dev libjpeg-dev libopencv-dev libpango1.0-dev libprotobuf-dev protobuf-compiler rustc cargo libwebp-dev libzbar0 libzbar-dev imagemagick ghostscript pandoc aria2 zsh bash-completion libpq-dev pkg-config libssl-dev  openssl unzip gzip vim tree less sqlite3 && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.2
 RUN echo "source $HOME/.asdf/asdf.sh" >> ~/.bashrc
-ENV TAPLO_VERSION 0.9.3
+ENV TAPLO_VERSION=0.9.3
 COPY ./install_taplo.sh .
 RUN chmod +x install_taplo.sh && bash -x ./install_taplo.sh && mv taplo /usr/local/bin/taplo && rm install_taplo.sh
 # Install rust
@@ -30,11 +30,11 @@ RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,t
 COPY . /deps/democracy-exe
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --no-dev --frozen && uv tool dir --bin
 # Pre-compile bytecode
-RUN python3 -m compileall .
+# RUN python3 -m compileall .
 RUN ls -lta && pwd && ls -lta /deps && tree /deps
-ENV VIRTUAL_ENV="/deps/democracy-exe/.venv"
+# ENV VIRTUAL_ENV="/deps/democracy-exe/.venv"
 # Place executables in the environment at the front of the path
-ENV PATH="/deps/democracy-exe/.venv/bin:$PATH"
+# ENV PATH="/deps/democracy-exe/.venv/bin:$PATH"
 
 ADD . /deps/democracy-exe
 

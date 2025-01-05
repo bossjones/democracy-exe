@@ -13,6 +13,9 @@ democracy_exe is an advanced, agentic Python application leveraging LangChain an
 
 ## Getting started with your project
 
+![LangGraph Architecture](@langgraph.png)
+
+
 ### 1. Create a New Repository
 
 First, create a repository on GitHub with the same name as this project, and then run the following commands:

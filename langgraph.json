@@ -6,7 +6,7 @@
         "RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.2",
         "RUN echo \"source $HOME/.asdf/asdf.sh\" >> ~/.bashrc",
 
-        "ENV TAPLO_VERSION 0.9.3",
+        "ENV TAPLO_VERSION=0.9.3",
         "COPY ./install_taplo.sh .",
         "RUN chmod +x install_taplo.sh && bash -x ./install_taplo.sh && mv taplo /usr/local/bin/taplo && rm install_taplo.sh",
 
@@ -51,13 +51,13 @@
 
 
         "# Pre-compile bytecode",
-        "RUN python3 -m compileall .",
+        "# RUN python3 -m compileall .",
         "RUN ls -lta && pwd && ls -lta /deps && tree /deps",
 
-        "ENV VIRTUAL_ENV=\"/deps/democracy-exe/.venv\"",
+        "# ENV VIRTUAL_ENV=\"/deps/democracy-exe/.venv\"",
 
         "# Place executables in the environment at the front of the path",
-        "ENV PATH=\"/deps/democracy-exe/.venv/bin:$PATH\""
+        "# ENV PATH=\"/deps/democracy-exe/.venv/bin:$PATH\""
     ],
     "graphs": {
         "memgraph": "./democracy_exe/agentic/graph.py:memgraph"
@@ -70,7 +70,6 @@
     ],
     "env_vars": {
         "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONPATH": "${PYTHONPATH}:${PWD}",
         "PYTHONUNBUFFERED": "1",
         "UV_CACHE_DIR": "/root/.cache/uv/",
         "UV_COMPILE_BYTECODE": "1",

@@ -433,3 +433,7 @@ PATH.PID
 log.txt
 25MB_song.mp4
 tests/fixtures/25MB_song.mp3
+typings
+.venv
+.git
+__pycache__
