@@ -57,11 +57,12 @@ RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile
 RUN echo "alias pip='uv pip'" >> ~/.bashrc
 RUN echo "alias pip='uv pip'" >> ~/.profile
 # Seems as though things only work when we don't use the virtual environment and add it to our path.
+ENV PYTHONASYNCIODEBUG=1
 
 ADD . /deps/democracy-exe
 
 RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
 
-ENV LANGSERVE_GRAPHS='{"memgraph": "/deps/democracy-exe/democracy_exe/agentic/graph.py:memgraph"}'
+ENV LANGSERVE_GRAPHS='{"react": "/deps/democracy-exe/democracy_exe/agentic/workflows/react/graph.py:graph"}'
 
 WORKDIR /deps/democracy-exe
