@@ -983,25 +983,7 @@ test-toolsonly-cog-debug:
 test-toolsonly-cog:
 	uv run pytest --showlocals --tb=short --capture=tee-sys tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
+# DISABLED: uv run pytest --capture=tee-sys tests/unittests/utils/test_utils_dropbox_.py
 # use this with aider to fix tests incrementally
 test-fix:
-	uv run pytest --capture=tee-sys tests/unittests/agentic/tools/test_get_random_number_tool.py
-
-# /Users/malcolm/dev/gallery-dl/gallery_dl
-
-#  - tests/unittests/agentic/tools/test_file_creation_tool.py:51 test_validate_path
-#    - tests/unittests/agentic/tools/test_file_creation_tool.py:75 test_arun_success
-#    - tests/unittests/agentic/tools/test_file_creation_tool.py:142 test_run_success
-#    - tests/unittests/agentic/tools/test_file_deletion_tool.py:77 test_arun_success
-#    - tests/unittests/agentic/tools/test_file_deletion_tool.py:190 test_run_with_default_directory
-#    - tests/unittests/agentic/tools/test_file_update_tool.py:77 test_arun_success
-#    - tests/unittests/agentic/tools/test_file_update_tool.py:170 test_run_with_default_directory
-#    - tests/unittests/agentic/tools/test_get_current_time_tool.py:52 test_get_time_default_format
-#    - tests/unittests/agentic/tools/test_get_current_time_tool.py:74 test_get_time_custom_format
-#    - tests/unittests/agentic/tools/test_get_current_time_tool.py:114 test_run_success
-#    - tests/unittests/agentic/tools/test_get_current_time_tool.py:137 test_run_custom_format
-#    - tests/unittests/agentic/tools/test_get_current_time_tool.py:182 test_arun_success
-#    - tests/unittests/agentic/tools/test_get_current_time_tool.py:206 test_arun_custom_format
-#    - tests/unittests/agentic/tools/test_get_random_number_tool.py:96 test_generate_number_invalid_range
-#    - tests/unittests/agentic/tools/test_get_random_number_tool.py:159 test_run_invalid_range
-#    - tests/unittests/agentic/tools/test_get_random_number_tool.py:231 test_arun_invalid_range
+	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py

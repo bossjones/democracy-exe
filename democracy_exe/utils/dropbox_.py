@@ -81,6 +81,7 @@ async def get_dropbox_client(oauth2_access_token: str | None = None) -> dropbox.
         sys.exit("ERROR: Invalid access token; try re-generating an access token from the app console on the web.")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        return None
 
     return dbx
 
@@ -421,12 +422,12 @@ def cli_oauth() -> None:
 
     try:
         oauth_result = auth_flow.finish(auth_code)
+        with dropbox.Dropbox(oauth2_access_token=oauth_result.access_token) as dbx:
+            dbx.users_get_current_account()
+            rich.print("Successfully set up client!")
     except Exception as e:
         print(f"Error: {e}")
-
-    with dropbox.Dropbox(oauth2_access_token=oauth_result.access_token) as dbx:
-        dbx.users_get_current_account()
-        rich.print("Successfully set up client!")
+        sys.exit(1)
 
 
 class AsyncDropBox:
