@@ -987,3 +987,7 @@ test-toolsonly-cog:
 # use this with aider to fix tests incrementally
 test-fix:
 	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
+
+generate-langgraph-dockerfile:
+	#!/bin/bash
+	cd cookbook/studio && langgraph dockerfile -c langgraph.json Dockerfile
