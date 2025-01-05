@@ -68,7 +68,7 @@
 
         "# Pre-compile bytecode",
         "# RUN python3 -m compileall .",
-        "RUN ls -lta && pwd && ls -lta /deps && tree /deps",
+        "RUN ls -lta && pwd && ls -lta /deps && tree /deps && cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile && echo \"alias pip='uv pip'\" >> ~/.bashrc && echo \"alias pip='uv pip'\" >> ~/.profile",
 
         "# Use the virtual environment automatically",
         "# ENV VIRTUAL_ENV=\"/deps/democracy-exe/.venv\"",
@@ -87,11 +87,11 @@
         "# ENV PYTHONPATH='/deps/democracy-exe:$PYTHONPATH'",
         "# hardcoded path cause langgraph is rendering the env vars from my host machine.",
         "# ENV PATH=\"/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin\"",
-        "RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile",
+        "#RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile",
 
         "# EXPERIMENTAL: alias pip='uv pip' to use uv pip instead of pip",
-        "RUN echo \"alias pip='uv pip'\" >> ~/.bashrc",
-        "RUN echo \"alias pip='uv pip'\" >> ~/.profile",
+        "# RUN echo \"alias pip='uv pip'\" >> ~/.bashrc",
+        "# RUN echo \"alias pip='uv pip'\" >> ~/.profile",
 
         "# Seems as though things only work when we don't use the virtual environment and add it to our path.",
 

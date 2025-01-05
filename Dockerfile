@@ -1,6 +1,7 @@
 FROM langchain/langgraph-api:3.12
 
 # Install system dependencies
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake build-essential autoconf automake libtool libmagic-dev poppler-utils libreoffice libomp-dev tesseract-ocr tesseract-ocr-por libyaml-dev ffmpeg libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git libpq5 libpq-dev libxml2-dev libxslt1-dev libcairo2-dev libgirepository1.0-dev libgraphviz-dev libjpeg-dev libopencv-dev libpango1.0-dev libprotobuf-dev protobuf-compiler rustc cargo libwebp-dev libzbar0 libzbar-dev imagemagick ghostscript pandoc aria2 zsh bash-completion libpq-dev pkg-config libssl-dev  openssl unzip gzip vim tree less sqlite3 && rm -rf /var/lib/apt/lists/*
 # debugging, show the current directory and the contents of the deps directory, look for .venv which should not exist.
 RUN ls -lta && echo `pwd` && ls -lta && tree
@@ -40,7 +41,7 @@ COPY . /deps/democracy-exe
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --no-dev --frozen && uv tool dir --bin
 # Pre-compile bytecode
 # RUN python3 -m compileall .
-RUN ls -lta && pwd && ls -lta /deps && tree /deps
+RUN ls -lta && pwd && ls -lta /deps && tree /deps && cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile && echo "alias pip='uv pip'" >> ~/.bashrc && echo "alias pip='uv pip'" >> ~/.profile
 # Use the virtual environment automatically
 # ENV VIRTUAL_ENV="/deps/democracy-exe/.venv"
 # uv: Once the project is installed, you can either activate the project virtual environment by placing its binary directory at the front of the path:
@@ -52,12 +53,15 @@ RUN ls -lta && pwd && ls -lta /deps && tree /deps
 # ENV PYTHONPATH='/deps/democracy-exe:$PYTHONPATH'
 # hardcoded path cause langgraph is rendering the env vars from my host machine.
 # ENV PATH="/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
-RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile
+#RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile
 # EXPERIMENTAL: alias pip='uv pip' to use uv pip instead of pip
-RUN echo "alias pip='uv pip'" >> ~/.bashrc
-RUN echo "alias pip='uv pip'" >> ~/.profile
+# RUN echo "alias pip='uv pip'" >> ~/.bashrc
+# RUN echo "alias pip='uv pip'" >> ~/.profile
 # Seems as though things only work when we don't use the virtual environment and add it to our path.
+# Enable asyncio debugging
 ENV PYTHONASYNCIODEBUG=1
+# Enable fault handler
+ENV PYTHONFAULTHANDLER=1
 
 ADD . /deps/democracy-exe
 
