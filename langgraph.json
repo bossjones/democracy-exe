@@ -92,7 +92,9 @@
         "RUN echo \"alias pip='uv pip'\" >> ~/.bashrc",
         "RUN echo \"alias pip='uv pip'\" >> ~/.profile",
 
-        "# Seems as though things only work when we don't use the virtual environment and add it to our path."
+        "# Seems as though things only work when we don't use the virtual environment and add it to our path.",
+
+        "ENV PYTHONASYNCIODEBUG=1"
     ],
     "graphs": {
         "react": "./democracy_exe/agentic/workflows/react/graph.py:graph"
