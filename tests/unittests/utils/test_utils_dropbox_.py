@@ -28,6 +28,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from democracy_exe import aio_settings
+from democracy_exe.chatbot.utils.discord_utils import aunlink_orig_file, unlink_orig_file
 from democracy_exe.utils import dropbox_
 from democracy_exe.utils._testing import ContextLogger
 from democracy_exe.utils.dropbox_ import (
@@ -185,6 +186,10 @@ class TestDropboxClient:
         await download_img(mock_dbx, temp_file.name)
 
         mock_dbx.files_download.assert_called_once()
+        # cleanup
+
+        # await aunlink_orig_file(str(temp_file))
+        # assert not temp_file.exists()
 
     @pytest.mark.asyncio
     async def test_iter_dir_and_upload(self, mocker: MockerFixture, tmp_path: Path) -> None:
