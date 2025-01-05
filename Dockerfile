@@ -32,6 +32,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --frozen && uv tool dir --bin
 # Pre-compile bytecode
 RUN python3 -m compileall .
+RUN ls -lta && pwd && ls -lta /deps
 
 ADD . /deps/democracy-exe
 
