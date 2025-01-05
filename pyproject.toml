@@ -29,7 +29,6 @@ dependencies = [
     "langchain-openai>=0.2.6",
     "langchainhub>=0.1.21",
     "langgraph>=0.2.45",
-    "langserve[all]>=0.3.0",
     "aiodebug>=2.3.0",
     "aiofile>=3.9.0",
     "aiofiles>=24.1.0",

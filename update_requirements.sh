@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Export base requirements
-uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
+uv export --no-hashes --prune langserve --prune notebook --format requirements-txt --extra dev  -o democracy_exe/requirements.txt
 
 command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required but it's not installed. run 'brew install yq' or 'pip install yq'"; exit 1; }
 
@@ -24,5 +24,8 @@ done
 
 # Remove exact version requirement for sse-starlette
 gsed -i 's/^sse-starlette==.*/sse-starlette/g' democracy_exe/requirements.txt
+
+gsed -i 's/^langserve\[all\]==.*/langserve\[all\]/g' democracy_exe/requirements.txt
+gsed -i 's/^langserve==.*/langserve/g' democracy_exe/requirements.txt
 
 git diff democracy_exe/requirements.txt
