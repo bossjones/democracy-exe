@@ -93,6 +93,7 @@ def mock_thread() -> TweetThread:
     )
 
 
+@pytest.mark.toolonly
 def test_validate_mode(twitter_tool: TwitterTool) -> None:
     """Test mode validation."""
     # Valid modes
@@ -117,6 +118,7 @@ def test_validate_mode(twitter_tool: TwitterTool) -> None:
 #     match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
 #     ignore_localhost=False,
 # )
+@pytest.mark.toolonly
 @pytest.mark.asyncio
 @pytest.mark.skip_until(
     deadline=datetime.datetime(2025, 1, 25),

@@ -319,7 +319,6 @@ def format_user_info(user: User | Member) -> str:
         logger.error(f"Error formatting user info: {e}")
         raise ValueError(f"Invalid user object: {e}")
 
-
 def unlink_orig_file(a_filepath: str) -> str:
     """Delete the specified file and return its path.
 
@@ -335,6 +334,26 @@ def unlink_orig_file(a_filepath: str) -> str:
     try:
         rich.print(f"deleting ... {a_filepath}")
         os.unlink(f"{a_filepath}")
+        return a_filepath
+    except OSError as e:
+        logger.error(f"Error deleting file {a_filepath}: {e}")
+        raise
+
+async def aunlink_orig_file(a_filepath: str) -> str:
+    """Delete the specified file asynchronously and return its path.
+
+    Args:
+        a_filepath: The path to the file to be deleted
+
+    Returns:
+        The path of the deleted file
+
+    Raises:
+        OSError: If file deletion fails
+    """
+    try:
+        rich.print(f"deleting ... {a_filepath}")
+        await aiofiles.os.unlink(f"{a_filepath}")
         return a_filepath
     except OSError as e:
         logger.error(f"Error deleting file {a_filepath}: {e}")

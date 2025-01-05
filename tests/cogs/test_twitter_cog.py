@@ -608,7 +608,7 @@ async def test_info_command(
     await dpytest.message(f"?tweet info {TEST_TWEET_URL}")
     messages = dpytest.get_message()
     expected_embed = create_info_embed(mock_tweet_data["metadata"])
-    actual_embed = messages.embeds[0]
+    actual_embed = messages.embeds[0]  # type: ignore
 
     # Compare relevant fields
     assert actual_embed.title == expected_embed.title

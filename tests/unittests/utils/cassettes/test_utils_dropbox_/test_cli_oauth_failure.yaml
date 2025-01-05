@@ -1,0 +1,29 @@
+interactions:
+- request:
+    body: grant_type=authorization_code&code=test_code&client_id=FILTERED&client_secret=FILTERED
+    headers: {}
+    method: POST
+    uri: https://api.dropboxapi.com/oauth2/token
+  response:
+    body:
+      string: '{"error": "invalid_grant", "error_description": "code doesn''t exist
+        or has expired"}'
+    headers:
+      Content-Length:
+      - '84'
+      Content-Security-Policy:
+      - sandbox allow-forms allow-scripts
+      Content-Type:
+      - application/json
+      Date:
+      - Sun, 05 Jan 2025 00:42:28 GMT
+      Server:
+      - envoy
+      X-Dropbox-Request-Id:
+      - 1935a623bf8c43ea8fd7819489844bcf
+      X-Dropbox-Response-Origin:
+      - far_remote
+    status:
+      code: 400
+      message: Bad Request
+version: 1

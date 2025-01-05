@@ -29,7 +29,6 @@ dependencies = [
     "langchain-openai>=0.2.6",
     "langchainhub>=0.1.21",
     "langgraph>=0.2.45",
-    "langserve[all]>=0.3.0",
     "aiodebug>=2.3.0",
     "aiofile>=3.9.0",
     "aiofiles>=24.1.0",
@@ -148,7 +147,6 @@ dev-dependencies = [
     "isort>=5.13.2",
     "langsmith>=0.1.142",
     "manhole>=1.8.1",
-    "mdformat-config>=0.2.1",
     "mdformat-footnote>=0.1.1",
     "mdformat-frontmatter>=2.0.8",
     "mdformat-gfm>=0.3.7",
@@ -229,10 +227,12 @@ dev-dependencies = [
     "pytest-aioresponses>=0.2.0",
     "pytest-loguru>=0.4.0",
     "pytest-skipuntil>=0.2.0",
+    "pytest-freezegun",
 ]
 
 [tool.uv.sources]
 changelogs = {git = "https://github.com/bossjones/changelogs"}
+pytest-freezegun = { git = "https://github.com/parafoxia/pytest-freezegun" }
 
 [build-system]
 requires = ["setuptools >= 61.0"]
@@ -1443,7 +1443,6 @@ markers = [
     "skip_in_parallel: marks tests that should be run in serial only (deselect with '-m \"not skip_in_parallel\"')",
     "slow: marks tests as slow (run with '-m slow')",
     "toolonly: marks tests that run code that utilizes a Custom Langchain tool module in the tools directory (deselect with '-m \"not toolonly\"')",
-    "toolonly: marks tests that run code that utilizes llm tool classes  (deselect with '-m \"not toolonly\"')",
     "unittest: marks tests dealing with unittest (deselect with '-m \"not unittest\"')",
     "vectorstoronly: marks tests that run code that utilizes the flex_vector_store_tool module (deselect with '-m \"not vectorstoronly\"')",
     "visiontoolonly: marks tests that run code that utilizes vision_tool.py (deselect with '-m \"not visiontoolonly\"')",

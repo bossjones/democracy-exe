@@ -9,10 +9,13 @@ CURRENT_DIR := "$(pwd)"
 
 base64_cmd := if "{{os()}}" == "macos" { "base64 -w 0 -i cert.pem -o ca.pem" } else { "base64 -w 0 -i cert.pem > ca.pem" }
 grep_cmd := if "{{os()}}" =~ "macos" { "ggrep" } else { "grep" }
+sed_cmd := if "{{os()}}" =~ "macos" { "gsed" } else { "sed" }
 
 # Variables
 PYTHON := "uv run python"
 UV_RUN := "uv run"
+# GREP_LANGGRAPH_SDK := `{{grep_cmd}} -h 'langgraph-sdk>=.*",' pyproject.toml | {{sed_cmd}} 's/^[[:space:]]*"//; s/",$//'`
+LANGGRAPH_REPLACEMENT := if "{{os()}}" =~ "macos" { `ggrep -h 'langgraph-sdk>=.*",' pyproject.toml | gsed 's/^[[:space:]]*"//; s/",$//'` } else { `grep -h 'langgraph-sdk>=.*",' pyproject.toml | sed 's/^[[:space:]]*"//; s/",$//'` }
 
 # Recipes
 # Install the virtual environment and install the pre-commit hooks
@@ -128,7 +131,7 @@ check-taplo-installed:
 
 # Format Python files using pre-commit
 fmt-python:
-	git ls-files '*.py' '*.ipynb' | xargs uv run pre-commit run --files
+	git ls-files '*.py' '*.ipynb' "Dockerfile" | xargs uv run pre-commit run --files
 
 # Format Markdown files using pre-commit
 fmt-markdown-pre-commit:
@@ -924,6 +927,9 @@ generate-ai-docs:
 	/Users/malcolm/dev/gallery-dl/test/test_ytdl.py \
 	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/cerebro.xml"
+	uv run files-to-prompt /Users/malcolm/dev/universityofprofessorex/cerebro-bot/cerebro_bot/cogs/autoresize.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/cerebro_bot/autoresize_cog.xml
+
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
@@ -970,6 +976,40 @@ test-dropbox:
 test-dropbox-debug:
 	uv run pytest --showlocals --tb=short --capture=tee-sys --pdb --pdbcls bpdb:BPdb -m dropboxonly
 
+# Run unit tests in debug mode with extended output
+test-autocrop-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace tests/unittests/chatbot/cogs/test_autocrop.py
+# Run unit tests in debug mode with extended output
+test-toolsonly-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
+test-toolsonly-cog:
+	uv run pytest --showlocals --tb=short --capture=tee-sys tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
-# /Users/malcolm/dev/gallery-dl/gallery_dl
+# DISABLED: uv run pytest --capture=tee-sys tests/unittests/utils/test_utils_dropbox_.py
+# use this with aider to fix tests incrementally
+test-fix:
+	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
+
+generate-langgraph-dockerfile-studio:
+	#!/bin/bash
+	cd cookbook/studio && langgraph dockerfile -c langgraph.json Dockerfile
+
+generate-langgraph-dockerfile:
+	uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
+	gsed -i "s/langgraph-sdk==0.1.46/{{LANGGRAPH_REPLACEMENT}}/g" democracy_exe/requirements.txt
+	langgraph dockerfile -c langgraph.json Dockerfile
+	cat Dockerfile
+
+docker-build-debug:
+	docker build -f Dockerfile.debugging -t democracy-exe-debugging .
+
+docker-run-debug:
+	docker run -it democracy-exe-debugging
+
+# Update requirements.txt from pyproject.toml using yq
+update-requirements:
+	@echo "🚀 Updating requirements.txt from pyproject.toml for use with Langgraph studio"
+	./update_requirements.sh
+	langgraph dockerfile -c langgraph.json Dockerfile
+	cat Dockerfile
