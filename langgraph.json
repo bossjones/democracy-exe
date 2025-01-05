@@ -95,7 +95,7 @@
         "# Seems as though things only work when we don't use the virtual environment and add it to our path."
     ],
     "graphs": {
-        "memgraph": "./democracy_exe/agentic/graph.py:memgraph"
+        "react": "./democracy_exe/agentic/workflows/react/graph.py:graph"
 
     },
     "env": ".env",
