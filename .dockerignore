@@ -373,3 +373,63 @@ ruff_config.toml
 notebooks/e2e_evals.ipynb
 # tests/services/cassettes/.*
 democracy_exe/data/chroma/vectorstorage/
+democracy_exe/vendored
+
+
+__pycache__/
+
+.venv/
+
+apps/marimo-prompt-library/prompt_executions
+
+.env
+
+scratchpad/
+
+runtime_time_table.jsonl
+
+bup/
+notebooks/travel2.backup.sqlite
+notebooks/travel2.sqlite
+democracy_exe/vendored/dpytest
+democracy_exe/vendored/langgraph
+democracy_exe/vendored/langchain
+.env.langraph
+democracy_exe/vendored/goob_ai
+democracy_exe/vendored/brevia
+democracy_exe/vendored/chat-langchain
+democracy_exe/vendored/sandbox_agent
+democracy_exe/vendored/retrieval-agent-template
+democracy_exe/vendored/rag-research-agent-template
+democracy_exe/vendored/memory-template
+democracy_exe/vendored/react-agent
+democracy_exe/vendored/cerebro-bot
+democracy_exe/vendored/langchain-academy/
+democracy_exe/vendored/dpytest
+file.out
+ruff_config.toml
+.virtual_documents/
+
+
+# SOURCE: https://github.com/ausboss/DiscordLangAgent/tree/58a7289a49864fdadb3a70d8a106b2fc92c2ee7b
+# PyCharm
+#  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+database/database.db
+database/messages.db
+typingcov/
+diditwork.webp
+temp/
+.aider*
+!.aider.conf.yml
+!.aiderignore
+rtdocs
+notebooks/chroma_db
+notebooks/chroma
+PATH.PID
+log.txt
+25MB_song.mp4
+tests/fixtures/25MB_song.mp3
