@@ -988,6 +988,10 @@ test-toolsonly-cog:
 test-fix:
 	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
 
-generate-langgraph-dockerfile:
+generate-langgraph-dockerfile-studio:
 	#!/bin/bash
 	cd cookbook/studio && langgraph dockerfile -c langgraph.json Dockerfile
+
+generate-langgraph-dockerfile:
+	uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
+	langgraph dockerfile -c langgraph.json Dockerfile
