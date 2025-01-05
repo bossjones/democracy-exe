@@ -11,13 +11,13 @@ RUN chmod +x install_taplo.sh && bash -x ./install_taplo.sh && mv taplo /usr/loc
 # Install rust
 ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
-ENV PATH='/root/.cargo/bin:$PATH'
+ENV PATH='/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 # Install justfile
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/bin
 # Install UV 0.5.14
 ADD https://astral.sh/uv/0.5.14/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH='/root/.local/bin:$PATH'
+ENV PATH='/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 # Configure UV
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_PIP_DEFAULT_PYTHON=/usr/bin/python3
@@ -39,12 +39,12 @@ RUN ls -lta && pwd && ls -lta /deps && tree /deps
 ENV VIRTUAL_ENV="/deps/democracy-exe/.venv"
 # uv: Once the project is installed, you can either activate the project virtual environment by placing its binary directory at the front of the path:
 # Place entry points in the environment at the front of the path
-ENV PATH='/deps/democracy-exe/.venv/bin:$PATH'
+ENV PATH='/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 # Add the project directory to the Python path. Source: https://github.com/bradcstevens/mtg-judgebot/blob/35ab51f7cd7341801f9364e93871a58464c93e7b/langgraph.json
 # ENV PYTHONPATH='/deps/democracy-exe'
 # ENV PYTHONPATH='/deps/democracy-exe:$PYTHONPATH'
 # hardcoded path cause langgraph is rendering the env vars from my host machine.
-ENV PATH="/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+# ENV PATH="/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 ADD . /deps/democracy-exe
 
