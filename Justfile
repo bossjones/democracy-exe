@@ -1035,7 +1035,7 @@ docker-build-debug:
 
 # Run docker image for debugging
 docker-run-debug:
-	docker run -it democracy-exe-debugging
+	docker run -it -v /Users/malcolm/dev/bossjones/democracy-exe:/deps/democracy-exe democracy-exe-debugging
 
 # Update requirements.txt from pyproject.toml using yq
 update-requirements:
@@ -1043,3 +1043,12 @@ update-requirements:
 	./update_requirements.sh
 	langgraph dockerfile -c langgraph.json Dockerfile
 	cat Dockerfile
+
+
+# Tail the LangGraph Studio logs
+tail-langgraph-studio:
+	log stream --predicate 'process == "LangGraph Studio"' --level info
+
+logs-langgraph-studio:
+	#!/bin/bash
+	log show --predicate 'process == "LangGraph Studio"' --last 5m --debug --info --backtrace

@@ -66,6 +66,7 @@ import functools
 import gc
 import inspect
 import logging
+import multiprocessing
 import os
 import re
 import sys
@@ -569,7 +570,7 @@ def logger_wraps(*, entry=True, exit=True, level="DEBUG"):
 # @pysnooper.snoop(thread_info=True)
 # FIXME: https://github.com/abnerjacobsen/fastapi-mvc-loguru-demo/blob/main/mvc_demo/core/loguru_logs.py
 # SOURCE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger
-def global_log_config(log_level: str | int = logging.INFO, json: bool = False) -> _Logger:
+def global_log_config(log_level: str | int = logging.INFO, json: bool = False, context: None | Any = None) -> _Logger:
     """Configure global logging settings.
 
     Args:
@@ -579,6 +580,9 @@ def global_log_config(log_level: str | int = logging.INFO, json: bool = False) -
     Returns:
         The configured logger instance.
     """
+
+    # if not context:
+    #     context = multiprocessing.get_context("spawn")
 
 
     # SOURCE: https://github.com/acgnhiki/blrec/blob/975fa2794a3843a883597acd5915a749a4e196c8/src/blrec/logging/configure_logging.py#L21
@@ -628,6 +632,9 @@ def global_log_config(log_level: str | int = logging.INFO, json: bool = False) -
                 "catch": True,
                 # filter (callable, optional) - A callable that takes a record and returns a boolean. If the callable returns False, the record is filtered out.
                 "filter": filter_out_serialization_errors,
+
+                # context (multiprocessing.context.SpawnContext, optional) - The context to use for logging.
+                # "context": context,
             }
         ],
         # extra={"request_id": REQUEST_ID_CONTEXTVAR.get()},

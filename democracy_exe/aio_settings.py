@@ -572,6 +572,12 @@ class AioSettings(BaseSettings):
     experimental_redis_memory: bool = Field(
         env="EXPERIMENTAL_REDIS_MEMORY", description="enable experimental redis memory", default=False
     )
+    # https://pgrzesik.com/posts/til-python-faulthandler/
+    # Introduction
+    # Recently, I encountered regular segfaults in one of the Python applications I was working on. During my investigation, I discovered a simple yet remarkable utility called faulthandler, which is included in Python's standard library. I'd like to demonstrate how this utility can assist in diagnosing segfault issues within your Python applications.
+    python_fault_handler: bool = Field(env="PYTHONFAULTHANDLER", description="enable fault handler", default=False)
+
+    debug_langgraph_studio: bool = Field(env="DEBUG_LANGGRAPH_STUDIO", description="enable langgraph studio debug", default=False)
 
     oco_openai_api_key: SecretStr = Field(env="OCO_OPENAI_API_KEY", description="opencommit api key", default="")
     oco_tokens_max_input: int = Field(env="OCO_TOKENS_MAX_INPUT", description="OCO_TOKENS_MAX_INPUT", default=4096)
