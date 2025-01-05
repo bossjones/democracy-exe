@@ -131,7 +131,7 @@ check-taplo-installed:
 
 # Format Python files using pre-commit
 fmt-python:
-	git ls-files '*.py' '*.ipynb' | xargs uv run pre-commit run --files
+	git ls-files '*.py' '*.ipynb' "Dockerfile" | xargs uv run pre-commit run --files
 
 # Format Markdown files using pre-commit
 fmt-markdown-pre-commit:

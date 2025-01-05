@@ -22,4 +22,7 @@ yq -r ".[\"tool.uv\"][\"dev-dependencies\"][]" pyproject.toml | while read -r de
     gsed -i "s|^$pkg==.*|$pkg$ver|g" democracy_exe/requirements.txt
 done
 
+# Remove exact version requirement for sse-starlette
+gsed -i 's/^sse-starlette==.*/sse-starlette/g' democracy_exe/requirements.txt
+
 git diff democracy_exe/requirements.txt
