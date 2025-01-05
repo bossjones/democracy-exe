@@ -34,10 +34,19 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --frozen && uv t
 RUN python3 -m compileall .
 RUN ls -lta && pwd && ls -lta /deps
 
-ADD . /deps/democracy-exe
+ADD democracy_exe/requirements.txt /deps/__outer_democracy_exe/democracy_exe/requirements.txt
+RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -r /deps/__outer_democracy_exe/democracy_exe/requirements.txt
+
+ADD ./democracy_exe /deps/__outer_democracy_exe/democracy_exe
+RUN set -ex && \
+    for line in '[project]' \
+                'name = "democracy_exe"' \
+                'version = "0.1"' \
+                '[tool.setuptools.package-data]' \
+                '"*" = ["**/*"]'; do \
+        echo "$line" >> /deps/__outer_democracy_exe/pyproject.toml; \
+    done
 
 RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
 
-ENV LANGSERVE_GRAPHS='{"memgraph": "/deps/democracy-exe/democracy_exe/agentic/graph.py:memgraph"}'
-
-WORKDIR /deps/democracy-exe
+ENV LANGSERVE_GRAPHS='{"memgraph": "/deps/__outer_democracy_exe/democracy_exe/agentic/graph.py:memgraph"}'

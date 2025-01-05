@@ -9,10 +9,13 @@ CURRENT_DIR := "$(pwd)"
 
 base64_cmd := if "{{os()}}" == "macos" { "base64 -w 0 -i cert.pem -o ca.pem" } else { "base64 -w 0 -i cert.pem > ca.pem" }
 grep_cmd := if "{{os()}}" =~ "macos" { "ggrep" } else { "grep" }
+sed_cmd := if "{{os()}}" =~ "macos" { "gsed" } else { "sed" }
 
 # Variables
 PYTHON := "uv run python"
 UV_RUN := "uv run"
+# GREP_LANGGRAPH_SDK := `{{grep_cmd}} -h 'langgraph-sdk>=.*",' pyproject.toml | {{sed_cmd}} 's/^[[:space:]]*"//; s/",$//'`
+LANGGRAPH_REPLACEMENT := if "{{os()}}" =~ "macos" { `ggrep -h 'langgraph-sdk>=.*",' pyproject.toml | gsed 's/^[[:space:]]*"//; s/",$//'` } else { `grep -h 'langgraph-sdk>=.*",' pyproject.toml | sed 's/^[[:space:]]*"//; s/",$//'` }
 
 # Recipes
 # Install the virtual environment and install the pre-commit hooks
@@ -993,9 +996,10 @@ generate-langgraph-dockerfile-studio:
 	cd cookbook/studio && langgraph dockerfile -c langgraph.json Dockerfile
 
 generate-langgraph-dockerfile:
-	# uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
+	uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
+	gsed -i "s/langgraph-sdk==0.1.46/{{LANGGRAPH_REPLACEMENT}}/g" democracy_exe/requirements.txt
 	langgraph dockerfile -c langgraph.json Dockerfile
-	cat Dockerfile | ccze -A
+	cat Dockerfile
 
 docker-build-debug:
 	docker build -f Dockerfile.debugging -t democracy-exe-debugging .

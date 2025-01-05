@@ -59,7 +59,7 @@
     "env": ".env",
     "python_version": "3.12",
     "dependencies": [
-        "."
+        "./democracy_exe"
     ],
     "env_vars": {
         "PYTHONDONTWRITEBYTECODE": "1",
