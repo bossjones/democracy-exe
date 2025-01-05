@@ -1006,3 +1006,10 @@ docker-build-debug:
 
 docker-run-debug:
 	docker run -it democracy-exe-debugging
+
+# Update requirements.txt from pyproject.toml using yq
+update-requirements:
+	@echo "🚀 Updating requirements.txt from pyproject.toml for use with Langgraph studio"
+	./update_requirements.sh
+	langgraph dockerfile -c langgraph.json Dockerfile
+	cat Dockerfile
