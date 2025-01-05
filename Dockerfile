@@ -20,7 +20,8 @@ ENV PATH="/root/.local/bin:$PATH"
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_PIP_DEFAULT_PYTHON=/usr/bin/python3
 ENV UV_LINK_MODE=copy
-ENV UV_COMPILE_BYTECODE=1
+# Compiling Python source files to bytecode is typically desirable for production images as it tends to improve startup time (at the cost of increased installation time).
+# ENV UV_COMPILE_BYTECODE=1
 ENV UV_CACHE_DIR=/root/.cache/uv/
 # Install dependencies first (for better caching)
 WORKDIR /deps/democracy-exe
@@ -32,8 +33,10 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --no-dev --froze
 # Pre-compile bytecode
 # RUN python3 -m compileall .
 RUN ls -lta && pwd && ls -lta /deps && tree /deps
+# Use the virtual environment automatically
 # ENV VIRTUAL_ENV="/deps/democracy-exe/.venv"
-# Place executables in the environment at the front of the path
+# uv: Once the project is installed, you can either activate the project virtual environment by placing its binary directory at the front of the path:
+# Place entry points in the environment at the front of the path
 # ENV PATH="/deps/democracy-exe/.venv/bin:$PATH"
 
 ADD . /deps/democracy-exe
