@@ -27,5 +27,6 @@ gsed -i 's/^sse-starlette==.*/sse-starlette/g' democracy_exe/requirements.txt
 
 gsed -i 's/^langserve\[all\]==.*/langserve\[all\]/g' democracy_exe/requirements.txt
 gsed -i 's/^langserve==.*/langserve/g' democracy_exe/requirements.txt
+gsed -i 's/^tenacity==.*/tenacity/g' democracy_exe/requirements.txt
 
 git diff democracy_exe/requirements.txt

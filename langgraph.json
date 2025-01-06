@@ -57,7 +57,7 @@
 
         "COPY pyproject.toml uv.lock ./",
 
-        "RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml uv sync --frozen --no-install-project  --all-extras  --verbose --no-dev",
+        "RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml --mount=type=bind,source=democracy_exe/requirements.txt,target=requirements.txt uv sync --frozen --no-install-project  --all-extras  --verbose --no-dev && uv pip install --system -r requirements.txt -e .[all] --no-deps --verbose",
 
 
         "# Copy project and install",

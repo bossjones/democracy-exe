@@ -1035,7 +1035,7 @@ docker-build-debug:
 
 # Run docker image for debugging
 docker-run-debug:
-	docker run -it -v /Users/malcolm/dev/bossjones/democracy-exe:/deps/democracy-exe democracy-exe-debugging
+	docker run -it democracy-exe-debugging
 
 # Update requirements.txt from pyproject.toml using yq
 update-requirements:
