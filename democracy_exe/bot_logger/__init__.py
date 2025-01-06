@@ -82,8 +82,6 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, Deque, Dict, Literal, Optional, Union, cast
 
 import loguru
-import pysnooper
-import vcr
 
 from loguru import logger
 from loguru._defaults import LOGURU_FORMAT
@@ -243,6 +241,48 @@ def filter_out_serialization_errors(record: dict[str, Any]):
     return True  # Keep all other messages
 
 
+def filter_discord_logs(record: dict[str, Any]) -> bool:
+    """
+    Filter Discord.py log messages based on specific patterns and levels.
+
+    This filter helps reduce noise from Discord.py's verbose logging while keeping
+    important messages. It filters out common heartbeat messages and routine WebSocket
+    events unless they indicate errors.
+
+    Args:
+        record: The log record to check.
+
+    Returns:
+        bool: True if the message should be kept, False if it should be filtered out.
+    """
+    # Always keep error and critical messages
+    if record["level"].no >= 40:  # ERROR and CRITICAL
+        return True
+
+    # Filter out common Discord.py noise patterns
+    noise_patterns = [
+        r"^Shard ID \d* has sent the HEARTBEAT payload\.$",
+        r"^Shard ID \d* has successfully IDENTIFIED\.$",
+        r"^Shard ID \d* has sent the RESUME payload\.$",
+        r"^Got a request to RESUME the session\.$",
+        r"^WebSocket Event: \'PRESENCE_UPDATE\'\.$",
+        r"^WebSocket Event: \'GUILD_CREATE\'\.$",
+        r"^WebSocket Event: \'TYPING_START\'\.$",
+        r"^Found matching ID for \w+ for \d+\.$",
+    ]
+
+    # Skip filtering if not from discord
+    if not record["name"].startswith("discord"):
+        return True
+
+    # Check message against noise patterns
+    message = str(record["message"])
+    for pattern in noise_patterns:
+        if re.match(pattern, message):
+            return False
+
+    return True
+
 def filter_out_modules(record: dict[str, Any]) -> bool:
     """
     Filter out log messages from the standard logging module.
@@ -330,7 +370,6 @@ def set_log_extras(record: dict[str, Any]) -> None:
     """
     record["extra"]["datetime"] = datetime.now(UTC)
 
-
 # SOURCE: https://github.com/joint-online-judge/fastapi-rest-framework/blob/b0e93f0c0085597fcea4bb79606b653422f16700/fastapi_rest_framework/logging.py#L43
 def format_record(record: dict[str, Any]) -> str:
     """Custom format for loguru loggers.
@@ -351,6 +390,55 @@ def format_record(record: dict[str, Any]) -> str:
 
     format_string += "{exception}\n"
     return format_string
+
+# SOURCE: https://github.com/joint-online-judge/fastapi-rest-framework/blob/b0e93f0c0085597fcea4bb79606b653422f16700/fastapi_rest_framework/logging.py#L43
+def format_record_improved(record: dict[str, Any]) -> str:
+    """Custom format for loguru loggers.
+
+    Uses pformat for log any data like request/response body during debug.
+    Works with logging if loguru handler it.
+
+    Args:
+        record: The log record.
+
+    Returns:
+        The formatted log record.
+    """
+    # Format the time using the record's time field
+    time_str = record["time"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+    # Safely format the message, handling dictionary content
+    message = record["message"]
+    if isinstance(message, str) and ('{' in message and '}' in message):
+        try:
+            # Check if message looks like a dict string but avoid eval
+            if message.strip().startswith('{') and message.strip().endswith('}'):
+                # Use pformat directly on the string representation
+                message = pformat(message, indent=2, width=80)
+            # Otherwise keep original message
+        except Exception:
+            # If formatting fails, keep original message
+            pass
+
+    # Format the basic message
+    formatted = (
+        f"{time_str} | "
+        f"{record['level'].name:<8} | "
+        f"{record['name']}:{record['function']} - "
+        f"{record['file'].name}:{record['line']} | "
+        f"{message}"
+    )
+
+    # Add payload if present
+    if record["extra"].get("payload") is not None:
+        payload = pformat(record["extra"]["payload"], indent=2, width=80)
+        formatted += f"\n{payload}"
+
+    # Add exception if present
+    if record["exception"]:
+        formatted += f"\n{record['exception']}"
+
+    return formatted
 
 
 class InterceptHandler(logging.Handler):
@@ -392,6 +480,58 @@ class InterceptHandler(logging.Handler):
             # DISABLED 12/10/2021 # level = str(record.levelno)
             level = record.levelno
 
+        # NOTE: Original question: I don't quite understand the frame and depth aspects, can you try explaining it using a practical example? imagine there is a logger for "discord.client" for example
+        # -------------------------------------------------------------------------------------------------------------
+        # # If we didn't track frames properly
+        # logger.info("Connecting to Discord...")
+        # # Would show: "File 'logging/__init__.py', line 123" in the log
+        # # This is wrong! We want to know it came from client.py
+        # Here's an example of how it would work:
+
+        # # discord/client.py
+        # import logging
+
+        # logger = logging.getLogger("discord.client")
+
+        # class Client:
+        #     def connect(self):
+        #         logger.info("Connecting to Discord...")  # This is where our log originates
+
+        # # When this log message is created, it creates a stack of function calls (frames) like this:
+        # # Frame 3 (Top): logging/__init__.py - internal logging code
+        # # Frame 2: logging/__init__.py - more logging internals
+        # # Frame 1: discord/client.py - our actual Client.connect() method
+        # # Frame 0 (Bottom): The script that called Client.connect()
+
+        # # Your application code
+        # from discord import Client
+        # import logging
+
+        # # Set up logging
+        # logging.basicConfig(handlers=[InterceptHandlerImproved()])
+
+        # client = Client()
+        # client.connect()
+
+        # # What happens when client.connect() logs:
+        # # 1. discord.client calls logger.info("Connecting to Discord...")
+        # # 2. This goes through standard logging
+        # # 3. InterceptHandlerImproved receives it
+        # # 4. It walks back through the frames:
+        # #    - Skips logging internals
+        # #    - Finds discord/client.py
+        # # 5. Finally outputs something like:
+        # #    "2024-01-10 12:34:56 | INFO | discord.client:connect:45 | Connecting to Discord..."
+        # #    With the correct file, function, and line number!
+        # -------------------------------------------------------------------------------------------------------------
+
+
+        # NOTE: Here is how it works:
+        # Starts at depth 2, keeps going until it finds non-logging frame
+        # Frame 3 (depth 2) -> logging/__init__.py (skip)
+        # Frame 2 (depth 3) -> logging/__init__.py (skip)
+        # Frame 1 (depth 4) -> discord/client.py (found it!)
+
         # INFO: Find Caller Frame
         # Find caller from where originated the logged message
         frame, depth = logging.currentframe(), 2
@@ -418,15 +558,19 @@ class InterceptHandlerImproved(logging.Handler):
         Args:
             record (logging.LogRecord): The standard logging record to be logged.
         """
-
-        # Determine the corresponding Loguru log level.
-        level: str | int
+        # Map standard logging levels to Loguru levels
         try:
-            # Attempt to get the Loguru level name using the record's level name.
-            level = logger.level(record.levelname).name
+            level = record.levelname
         except ValueError:
-            # If the level name is not found, fall back to using the numeric level.
-            level = record.levelno
+            level = "INFO"  # Default to INFO if level mapping fails
+
+
+        # NOTE: Here is how it works:
+        # Starts at depth 0, more precisely tracks frames
+        # Current frame (depth 0) -> InterceptHandler.emit
+        # Frame 3 (depth 1) -> logging/__init__.py (skip)
+        # Frame 2 (depth 2) -> logging/__init__.py (skip)
+        # Frame 1 (depth 3) -> discord/client.py (found it!)
 
         # Find the stack frame from which the log message originated.
         frame, depth = inspect.currentframe(), 0
@@ -442,6 +586,100 @@ class InterceptHandlerImproved(logging.Handler):
             record.getMessage(),  # Log the message content.
         )
 
+class InterceptHandlerImproved2(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self._is_logging = False
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if self._is_logging:
+            return  # Prevent recursive logging
+
+        self._is_logging = True
+        try:
+            # Map standard logging levels to Loguru levels
+            try:
+                level = logger.level(record.levelname).name
+            except ValueError:
+                level = record.levelno
+
+            # Find the caller's stack frame
+            frame, depth = inspect.currentframe(), 0
+            while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+                frame = frame.f_back
+                depth += 1
+
+            # Create a simplified message that won't trigger recursion
+            message = str(record.getMessage())
+
+            # Handle dictionary-like messages specially
+            if message.startswith('{') and message.endswith('}'):
+                try:
+                    # Safely evaluate dictionary-like strings
+                    message = f"Dict: {message}"
+                except Exception:
+                    pass
+
+            logger.opt(depth=depth, exception=record.exc_info).log(
+                level,
+                message
+            )
+        finally:
+            self._is_logging = False
+
+
+class InterceptHandler3(logging.Handler):
+    """
+    An advanced logging handler that intercepts standard logging messages and redirects them to Loguru.
+    This handler provides improved stack trace handling and level mapping.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """
+        Process and emit a logging record by converting it to a Loguru log message.
+
+        Args:
+            record: The logging record to process and emit.
+        """
+        # Try to map the standard logging level name to a Loguru level
+        # For example, converts 'INFO' to Loguru's info level
+        try:
+            level: str | int = logger.level(record.levelname).name
+        except ValueError:
+            # If the level name isn't recognized by Loguru, fall back to the numeric level
+            level = record.levelno
+
+        # Initialize frame tracking to find the true origin of the log message
+        frame, depth = inspect.currentframe(), 0
+
+        # Walk up the stack frames until we find the actual caller
+        while frame:
+            # Get the filename of the current frame
+            filename = frame.f_code.co_filename
+
+            # Check if this frame is from the logging module itself
+            is_logging = filename == logging.__file__
+
+            # Check if this frame is from Python's import machinery
+            # These frames appear when code is running from a frozen executable
+            is_frozen = "importlib" in filename and "_bootstrap" in filename
+
+            # If we've gone past the logging frames and aren't in import machinery,
+            # we've found our caller
+            if depth > 0 and not (is_logging or is_frozen):
+                break
+
+            # Move up to the next frame and increment our depth counter
+            frame = frame.f_back
+            depth += 1
+
+        # Emit the log message through Loguru with:
+        # - proper stack depth for correct file/line reporting
+        # - original exception info preserved
+        # - original message content
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+# logging.basicConfig(handlers=[InterceptHandler3()], level=0, force=True)
 
 def get_logger(
     name: str,
@@ -593,44 +831,95 @@ def global_log_config(
     global _console_handler_id, _file_handler_id
     global _old_log_dir, _old_console_log_level, _old_backup_count
 
-    if isinstance(log_level, str) and (log_level in logging._nameToLevel):
-        log_level = logging.DEBUG
+    # If log_level is a string (e.g., "INFO", "DEBUG"), convert it to the corresponding numeric value
+    # This allows users to specify log levels either as strings or as integer constants
+    if isinstance(log_level, str):
+        try:
+            log_level = logging._nameToLevel.get(log_level.upper(), logging.INFO)
+        except (AttributeError, KeyError):
+            # If conversion fails, default to INFO level
+            log_level = logging.INFO
 
     # NOTE: Original
-    intercept_handler = InterceptHandler()
+    # intercept_handler = InterceptHandler()
+    intercept_handler = InterceptHandlerImproved2()
+    # intercept_handler = InterceptHandler3()
+
+    log_filters = {
+        "discord": aiosettings.thirdparty_lib_loglevel,
+        # "telethon": aiosettings.thirdparty_lib_loglevel,
+        # "web3": aiosettings.thirdparty_lib_loglevel,
+        # "apprise": aiosettings.thirdparty_lib_loglevel,
+        "urllib3": aiosettings.thirdparty_lib_loglevel,
+        # "asyncz": aiosettings.thirdparty_lib_loglevel,
+        # "rlp": aiosettings.thirdparty_lib_loglevel,
+        # "numexpr": aiosettings.thirdparty_lib_loglevel,
+        # "yfinance": aiosettings.thirdparty_lib_loglevel,
+        # "peewee": aiosettings.thirdparty_lib_loglevel,
+        "httpx": aiosettings.thirdparty_lib_loglevel,
+        "openai": aiosettings.thirdparty_lib_loglevel,
+        "httpcore": aiosettings.thirdparty_lib_loglevel,
+    }
 
     logging.root.setLevel(log_level)
 
+    # Create a set to track which module loggers we've already configured
     seen = set()
+    # Iterate through a list of logger names, including:
+    # 1. All existing loggers from the root logger's dictionary
+    # 2. Specific modules we want to ensure are configured
     for name in [
         *logging.root.manager.loggerDict.keys(),  # pylint: disable=no-member
-        "asyncio",
-        "discord",
-        "discord.client",
-        "discord.gateway",
-        "discord.http",
-        "chromadb",
-        "langchain_chroma",
+        "asyncio",          # Python's async/await framework
+        "discord",          # Main Discord.py library
+        "discord.client",   # Discord client module
+        "discord.gateway",  # Discord WebSocket gateway
+        "discord.http",     # Discord HTTP client
+        "chromadb",        # Vector database for embeddings
+        "langchain_chroma", # LangChain integration with ChromaDB
     ]:
+        # Only process each base module once (e.g., 'discord.client' and 'discord.http'
+        # both have base module 'discord')
         if name not in seen:
+            if "discord" in name:
+                print(f"name: {name}")
+            # Extract the base module name (e.g., 'discord.client' -> 'discord')
             module_name = name.split(".")[0]
+            # Log which module we're configuring
             print(f"Setting up logger for {module_name}")
+            # Add the base module to our tracking set
             seen.add(module_name)
-            logging.getLogger(name).handlers = [intercept_handler]
+            # Replace the module's logging handlers with our custom interceptor
+            module_logger = logging.getLogger(module_name)
+            module_logger.handlers = [intercept_handler]
+
+            if "discord" in name:
+                module_logger.setLevel(logging.INFO)
+            # logging.getLogger(name).handlers = [intercept_handler]
 
     # Get a new logger instance with multiprocessing support
     config = {
         "handlers": [{
             "sink": stdout,
             "format": format_record,
-            "filter": filter_out_serialization_errors,
+            # "filter": lambda record: (
+            #     filter_out_serialization_errors(record)
+            #     and filter_out_modules(record)
+            #     and filter_discord_logs(record)
+            # ),
+            "filter": lambda record: (
+                filter_out_serialization_errors(record)
+                and filter_out_modules(record)
+                and filter_discord_logs(record)
+            ),
             "enqueue": True,  # Enable multiprocessing-safe queue
             "serialize": False,
             "backtrace": True,
             "diagnose": True,
             "catch": True,
             "level": log_level,
-            # "colorize": True
+            "colorize": True,
+            # "flush": True,
         }],
         "extra": {"request_id": REQUEST_ID_CONTEXTVAR.get()}
     }
@@ -681,6 +970,11 @@ def setup_uvicorn_logger():
 def setup_gunicorn_logger():
     logging.getLogger("gunicorn.error").handlers = [InterceptHandler()]
     logging.getLogger("gunicorn.access").handlers = [InterceptHandler()]
+
+def setup_discord_logger():
+    discord_logger = logging.getLogger('discord')
+    discord_logger.setLevel(logging.INFO)
+    discord_logger.addHandler(InterceptHandler())
 
 
 def get_lm_from_tree(loggertree: LoggerModel, find_me: str) -> LoggerModel | None:

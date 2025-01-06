@@ -876,6 +876,8 @@ class AioSettings(BaseSettings):
     # change the verified icon color
     tweetpik_verified_icon: str = "#1b95e0"
 
+    thirdparty_lib_loglevel: str = "INFO"
+
     @model_validator(mode="before")
     @classmethod
     def pre_update(cls, values: dict[str, Any]) -> dict[str, Any]:
