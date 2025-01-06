@@ -127,12 +127,19 @@ def test_format_record():
     from democracy_exe.bot_logger import format_record
 
     # Create a test record with all components
+    # Create a RecordLevel-like object
+    class RecordLevel:
+        def __init__(self, name, no, icon):
+            self.name = name
+            self.no = no
+            self.icon = icon
+
     record = {
         "time": datetime(2024, 1, 6, 12, 34, 56, 789000),
-        "level": {"name": "INFO", "no": 20, "icon": "🔵"},
+        "level": RecordLevel("INFO", 20, "🔵"),
         "name": "test_logger",
         "function": "test_func",
-        "file": "test_file.py",
+        "file": RecordLevel("test_file.py", 0, ""),  # File is also an object with a name attribute
         "line": 42,
         "message": "Test message",
         "exception": None,

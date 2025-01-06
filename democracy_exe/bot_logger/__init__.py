@@ -386,12 +386,15 @@ def format_record(record: dict[str, Any]) -> str:
     # Format the datetime in the expected format
     time_str = record["time"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
+    # Get level name directly from the level object
+    level_name = record["level"].name
+
     # Build the basic message format
     format_string = (
         f"{time_str} | "
-        f"{record['level']['name']:<8} | "
+        f"{level_name:<8} | "
         f"{record['name']}:{record['function']} - "
-        f"{record['file']}:{record['line']} | "
+        f"{record['file'].name}:{record['line']} | "
         f"{record['message']}"
     )
 
@@ -828,19 +831,24 @@ def logger_wraps(*, entry=True, exit=True, level="DEBUG"):
 def global_log_config(
     log_level: str | int = logging.INFO,
     json: bool = False,
-    mp_context: str = "spawn"
 ) -> _Logger:
     """Configure global logging settings.
 
     Args:
         log_level: The log level to use. Defaults to logging.INFO.
         json: Whether to format logs as JSON. Defaults to False.
-        mp_context: Multiprocessing context to use. One of: fork, spawn, forkserver.
-                   Defaults to "spawn" for better cross-platform compatibility.
 
     Returns:
         The configured logger instance.
     """
+    # Determine best multiprocessing context based on platform
+    if sys.platform == "darwin":  # macOS
+        mp_context = "spawn"  # Recommended for macOS
+    elif sys.platform == "win32":  # Windows
+        mp_context = "spawn"  # Only option on Windows
+    else:  # Linux and other Unix
+        mp_context = "fork"  # Default and most efficient on Unix
+
     # Set up multiprocessing context
     context = multiprocessing.get_context(mp_context)
 
@@ -919,11 +927,6 @@ def global_log_config(
         "handlers": [{
             "sink": stdout,
             "format": format_record,
-            # "filter": lambda record: (
-            #     filter_out_serialization_errors(record)
-            #     and filter_out_modules(record)
-            #     and filter_discord_logs(record)
-            # ),
             "filter": lambda record: (
                 filter_out_serialization_errors(record)
                 and filter_out_modules(record)
@@ -936,7 +939,7 @@ def global_log_config(
             "catch": True,
             "level": log_level,
             "colorize": True,
-            # "flush": True,
+            "context": context,  # Pass multiprocessing context to handler
         }],
         "extra": {"request_id": REQUEST_ID_CONTEXTVAR.get()}
     }
