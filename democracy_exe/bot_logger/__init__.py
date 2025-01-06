@@ -570,25 +570,28 @@ def logger_wraps(*, entry=True, exit=True, level="DEBUG"):
 # @pysnooper.snoop(thread_info=True)
 # FIXME: https://github.com/abnerjacobsen/fastapi-mvc-loguru-demo/blob/main/mvc_demo/core/loguru_logs.py
 # SOURCE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger
-def global_log_config(log_level: str | int = logging.INFO, json: bool = False, context: None | Any = None) -> _Logger:
+def global_log_config(
+    log_level: str | int = logging.INFO,
+    json: bool = False,
+    mp_context: str = "spawn"
+) -> _Logger:
     """Configure global logging settings.
 
     Args:
-        log_level: The log level to use. Defaults to logging.DEBUG.
+        log_level: The log level to use. Defaults to logging.INFO.
         json: Whether to format logs as JSON. Defaults to False.
+        mp_context: Multiprocessing context to use. One of: fork, spawn, forkserver.
+                   Defaults to "spawn" for better cross-platform compatibility.
 
     Returns:
         The configured logger instance.
     """
-
-    # if not context:
-    #     context = multiprocessing.get_context("spawn")
-
+    # Set up multiprocessing context
+    context = multiprocessing.get_context(mp_context)
 
     # SOURCE: https://github.com/acgnhiki/blrec/blob/975fa2794a3843a883597acd5915a749a4e196c8/src/blrec/logging/configure_logging.py#L21
     global _console_handler_id, _file_handler_id
     global _old_log_dir, _old_console_log_level, _old_backup_count
-    # SOURCE: https://github.com/acgnhiki/blrec/blob/975fa2794a3843a883597acd5915a749a4e196c8/src/blrec/logging/configure_logging.py#L21
 
     if isinstance(log_level, str) and (log_level in logging._nameToLevel):
         log_level = logging.DEBUG
@@ -610,42 +613,54 @@ def global_log_config(log_level: str | int = logging.INFO, json: bool = False, c
         "langchain_chroma",
     ]:
         if name not in seen:
-            seen.add(name.split(".")[0])
+            module_name = name.split(".")[0]
+            print(f"Setting up logger for {module_name}")
+            seen.add(module_name)
             logging.getLogger(name).handlers = [intercept_handler]
 
-    logger.configure(
-        handlers=[
-            {
-                # sink (file-like object, str, pathlib.Path, callable, coroutine function or logging.Handler) - An object in charge of receiving formatted logging messages and propagating them to an appropriate endpoint.
-                "sink": stdout,
-                # serialize (bool, optional) - Whether the logged message and its records should be first converted to a JSON string before being sent to the sink.
-                "serialize": False,
-                # format (str or callable, optional) - The template used to format logged messages before being sent to the sink. If a callable is passed, it should take a logging.Record as its first argument and return a string.
-                "format": format_record,
-                # diagnose (bool, optional) - Whether the exception trace should display the variables values to eases the debugging. This should be set to False in production to avoid leaking sensitive
-                "diagnose": True,
-                # backtrace (bool, optional) - Whether the exception trace formatted should be extended upward, beyond the catching point, to show the full stacktrace which generated the error.
-                "backtrace": True,
-                # enqueue (bool, optional) - Whether the messages to be logged should first pass through a multiprocessing-safe queue before reaching the sink. This is useful while logging to a file through multiple processes. This also has the advantage of making logging calls non-blocking.
-                "enqueue": True,
-                # catch (bool, optional) - Whether errors occurring while sink handles logs messages should be automatically caught. If True, an exception message is displayed on sys.stderr but the exception is not propagated to the caller, preventing your app to crash.
-                "catch": True,
-                # filter (callable, optional) - A callable that takes a record and returns a boolean. If the callable returns False, the record is filtered out.
-                "filter": filter_out_serialization_errors,
+    # Get a new logger instance with multiprocessing support
+    config = {
+        "handlers": [{
+            "sink": stdout,
+            "format": format_record,
+            "filter": filter_out_serialization_errors,
+            "enqueue": True,  # Enable multiprocessing-safe queue
+            "serialize": False,
+            "backtrace": True,
+            "diagnose": True,
+            "catch": True,
+            "level": log_level,
+            # "colorize": True
+        }],
+        "extra": {"request_id": REQUEST_ID_CONTEXTVAR.get()}
+    }
 
-                # context (multiprocessing.context.SpawnContext, optional) - The context to use for logging.
-                # "context": context,
-            }
-        ],
-        # extra={"request_id": REQUEST_ID_CONTEXTVAR.get()},
-    )
+    new_logger = logger.configure(**config)
+
+    # Register cleanup handlers for multiprocessing
+    import atexit
+    import signal
+
+    def cleanup_logger():
+        """Ensure all logging is complete at exit."""
+        try:
+            logger.complete()
+        except Exception:
+            pass
+
+    def terminate_handler(signo, frame):
+        """Handle termination gracefully."""
+        cleanup_logger()
+        sys.exit(signo)
+
+    atexit.register(cleanup_logger)
+    signal.signal(signal.SIGTERM, terminate_handler)
+    signal.signal(signal.SIGINT, terminate_handler)
 
     print(f"Logger set up with log level: {log_level}")
 
     setup_uvicorn_logger()
     setup_gunicorn_logger()
-
-    # logger.disable("logging")
 
     return logger
 

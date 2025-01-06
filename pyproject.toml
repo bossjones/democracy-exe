@@ -1032,6 +1032,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/chatbot/core/bot.py" = ["B026"]
 "democracy_exe/utils/twitter_utils/models.py" = ["SIM102"]
 "democracy_exe/utils/aiodbx.py" = ["SIM102", "S112", "S110", "SIM105"]
+"democracy_exe/bot_logger/__init__.py" = ["SIM105", "S110"]
 
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
