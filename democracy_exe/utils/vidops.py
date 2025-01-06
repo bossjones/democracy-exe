@@ -17,7 +17,7 @@ import traceback
 
 from pathlib import Path
 
-from loguru import logger as LOGGER
+from loguru import logger
 
 from democracy_exe import shell
 from democracy_exe.shell import _aio_run_process_and_communicate
@@ -36,7 +36,7 @@ async def get_duration(input_file: Path) -> float:
         input_file (Path): The path to the input audio file.
 
     """
-    LOGGER.debug(f"Processing audio file: {input_file}")
+    logger.debug(f"Processing audio file: {input_file}")
 
     # Calculate input file duration
     duration_cmd = [
@@ -49,10 +49,10 @@ async def get_duration(input_file: Path) -> float:
         "default=noprint_wrappers=1:nokey=1",
         str(input_file),
     ]
-    LOGGER.debug(f"duration_cmd = {duration_cmd}")
+    logger.debug(f"duration_cmd = {duration_cmd}")
     duration = float(await _aio_run_process_and_communicate(duration_cmd))
-    LOGGER.debug(f"duration = {duration}")
-    await LOGGER.complete()
+    logger.debug(f"duration = {duration}")
+    await logger.complete()
     return duration
 
 
@@ -71,7 +71,7 @@ def calculate_bitrate(duration: float, multiplier: int) -> int:
 
     """
     bitrate = int(multiplier * 8 * 1000 / duration)
-    LOGGER.debug(f"bitrate = {bitrate}")
+    logger.debug(f"bitrate = {bitrate}")
     return bitrate
 
 
@@ -91,7 +91,7 @@ async def process_video(input_file: Path) -> None:
         None
 
     """
-    LOGGER.debug(f"Processing video file: {input_file}")
+    logger.debug(f"Processing video file: {input_file}")
 
     # Calculate bitrate based on input file duration
     duration_cmd = [
@@ -107,37 +107,37 @@ async def process_video(input_file: Path) -> None:
     duration = await get_duration(input_file)
     bitrate = calculate_bitrate(duration, 23)
 
-    LOGGER.debug(f"Video length: {duration}s")
-    LOGGER.debug(f"Bitrate target: {bitrate}k")
+    logger.debug(f"Video length: {duration}s")
+    logger.debug(f"Bitrate target: {bitrate}k")
 
     # Exit if target bitrate is under 150kbps
     if bitrate < 150:
-        LOGGER.debug("Target bitrate is under 150kbps.")
-        LOGGER.debug("Unable to compress.")
-        await LOGGER.complete()
+        logger.debug("Target bitrate is under 150kbps.")
+        logger.debug("Unable to compress.")
+        await logger.complete()
         return
 
     video_bitrate = int(bitrate * 90 / 100)
     audio_bitrate = int(bitrate * 10 / 100)
 
-    LOGGER.debug(f"Video Bitrate: {video_bitrate}k")
-    LOGGER.debug(f"Audio Bitrate: {audio_bitrate}k")
+    logger.debug(f"Video Bitrate: {video_bitrate}k")
+    logger.debug(f"Audio Bitrate: {audio_bitrate}k")
 
     # Exit if target video bitrate is under 125kbps
     if video_bitrate < 125:
-        LOGGER.debug("Target video bitrate is under 125kbps.")
-        LOGGER.debug("Unable to compress.")
-        await LOGGER.complete()
+        logger.debug("Target video bitrate is under 125kbps.")
+        logger.debug("Unable to compress.")
+        await logger.complete()
         return
 
     # Exit if target audio bitrate is under 32kbps
     if audio_bitrate < 32:
-        LOGGER.debug("Target audio bitrate is under 32.")
-        LOGGER.debug("Unable to compress.")
-        await LOGGER.complete()
+        logger.debug("Target audio bitrate is under 32.")
+        logger.debug("Unable to compress.")
+        await logger.complete()
         return
 
-    LOGGER.debug("Compressing video file using FFmpeg...")
+    logger.debug("Compressing video file using FFmpeg...")
     output_file = input_file.parent / f"25MB_{input_file.stem}.mp4"
     compress_cmd = [
         "ffmpeg",
@@ -170,9 +170,9 @@ async def process_video(input_file: Path) -> None:
         f"{bitrate}k",
         str(output_file),
     ]
-    LOGGER.debug(f"compress_cmd = {compress_cmd}")
+    logger.debug(f"compress_cmd = {compress_cmd}")
     await _aio_run_process_and_communicate(compress_cmd)
-    await LOGGER.complete()
+    await logger.complete()
 
 
 async def process_audio(input_file: Path) -> None:
@@ -194,17 +194,17 @@ async def process_audio(input_file: Path) -> None:
     duration = await get_duration(input_file)
     bitrate = calculate_bitrate(duration, 25)
 
-    LOGGER.debug(f"Audio duration: {duration}s")
-    LOGGER.debug(f"Bitrate target: {bitrate}k")
+    logger.debug(f"Audio duration: {duration}s")
+    logger.debug(f"Bitrate target: {bitrate}k")
 
     # Exit if target bitrate is under 32kbps
     if bitrate < 32:
-        LOGGER.debug("Target bitrate is under 32kbps.")
-        LOGGER.debug("Unable to compress.")
-        await LOGGER.complete()
+        logger.debug("Target bitrate is under 32kbps.")
+        logger.debug("Unable to compress.")
+        await logger.complete()
         return
 
-    LOGGER.debug("Compressing audio file using FFmpeg...")
+    logger.debug("Compressing audio file using FFmpeg...")
     output_file = input_file.parent / f"25MB_{input_file.stem}.mp3"
     compress_cmd = [
         "ffmpeg",
@@ -229,9 +229,9 @@ async def process_audio(input_file: Path) -> None:
         f"{bitrate}k",
         str(output_file),
     ]
-    LOGGER.debug(f"compress_cmd = {compress_cmd}")
+    logger.debug(f"compress_cmd = {compress_cmd}")
     await _aio_run_process_and_communicate(compress_cmd)
-    await LOGGER.complete()
+    await logger.complete()
 
 
 async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
@@ -253,7 +253,7 @@ async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
     if (pathlib.Path(f"{file_to_compress}").is_file()) and pathlib.Path(
         f"{file_to_compress}"
     ).suffix in VIDEO_EXTENSIONS:
-        LOGGER.debug(f"compressing file -> {file_to_compress}")
+        logger.debug(f"compressing file -> {file_to_compress}")
         ######################################################
         # compress the file if it is too large
         ######################################################
@@ -267,7 +267,7 @@ async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
         try:
             _ = await shell._aio_run_process_and_communicate(compress_command, cwd=f"{tmpdirname}")
 
-            LOGGER.debug(
+            logger.debug(
                 f"compress_video: new file size for {file_to_compress} = {pathlib.Path(file_to_compress).stat().st_size}"
             )
 
@@ -275,7 +275,7 @@ async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
             # nuke the uncompressed version
             ######################################################
 
-            LOGGER.info(f"nuking uncompressed: {file_to_compress}")
+            logger.info(f"nuking uncompressed: {file_to_compress}")
 
             # nuke the originals
             unlink_func = functools.partial(unlink_orig_file, f"{file_to_compress}")
@@ -284,22 +284,22 @@ async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 unlink_result = await loop.run_in_executor(pool, unlink_func)
 
-            await LOGGER.complete()
+            await logger.complete()
             return True
         except Exception as ex:
             print(ex)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            LOGGER.error(f"Error Class: {ex.__class__!s}")
+            logger.error(f"Error Class: {ex.__class__!s}")
             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-            LOGGER.warning(output)
-            LOGGER.error(f"exc_type: {exc_type}")
-            LOGGER.error(f"exc_value: {exc_value}")
+            logger.warning(output)
+            logger.error(f"exc_type: {exc_type}")
+            logger.error(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            await LOGGER.complete()
+            await logger.complete()
 
     else:
-        LOGGER.debug(f"no videos to process in {tmpdirname}")
-        await LOGGER.complete()
+        logger.debug(f"no videos to process in {tmpdirname}")
+        await logger.complete()
         return False
 
 
@@ -322,7 +322,7 @@ def compress_video(tmpdirname: str, file_to_compress: str) -> bool:
     if (pathlib.Path(f"{file_to_compress}").is_file()) and pathlib.Path(
         f"{file_to_compress}"
     ).suffix in VIDEO_EXTENSIONS:
-        LOGGER.debug(f"compressing file -> {file_to_compress}")
+        logger.debug(f"compressing file -> {file_to_compress}")
         ######################################################
         # compress the file if it is too large
         ######################################################
@@ -334,28 +334,28 @@ def compress_video(tmpdirname: str, file_to_compress: str) -> bool:
         try:
             _ = shell.pquery(compress_command, cwd=f"{tmpdirname}")
 
-            LOGGER.debug(
+            logger.debug(
                 f"compress_video: new file size for {file_to_compress} = {pathlib.Path(file_to_compress).stat().st_size}"
             )
 
-            LOGGER.info(f"nuking uncompressed: {file_to_compress}")
+            logger.info(f"nuking uncompressed: {file_to_compress}")
 
             # nuke the originals
             unlink_orig_file(f"{file_to_compress}")
-            LOGGER.complete()
+            logger.complete()
             return True
         except Exception as ex:
             print(ex)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            LOGGER.error(f"Error Class: {ex.__class__!s}")
+            logger.error(f"Error Class: {ex.__class__!s}")
             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
-            LOGGER.warning(output)
-            LOGGER.error(f"exc_type: {exc_type}")
-            LOGGER.error(f"exc_value: {exc_value}")
+            logger.warning(output)
+            logger.error(f"exc_type: {exc_type}")
+            logger.error(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            LOGGER.complete()
+            logger.complete()
 
     else:
-        LOGGER.debug(f"no videos to process in {tmpdirname}")
-        LOGGER.complete()
+        logger.debug(f"no videos to process in {tmpdirname}")
+        logger.complete()
         return False

@@ -294,7 +294,7 @@ def filter_out_modules(record: dict[str, Any]) -> bool:
         bool: True if the message should be kept, False if it should be filtered out.
     """
     # Check if the log message originates from the logging module
-    if record["name"].startswith("logging"):
+    if record["name"].startswith("logging") or record["name"].startswith("langsmith.client"):
         return False  # Filter out this message
 
     return True  # Keep all other messages
@@ -968,8 +968,8 @@ def global_log_config(
 
     print(f"Logger set up with log level: {log_level}")
 
-    setup_uvicorn_logger()
-    setup_gunicorn_logger()
+    # setup_uvicorn_logger()
+    # setup_gunicorn_logger()
 
     return logger
 

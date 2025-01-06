@@ -418,7 +418,6 @@ async def aio_tasks_democracy_ai(
     # Respond using memory as well as the chat history
     response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"], config=config)
 
-    # await logger.complete()
 
     return {"messages": [response]}
 
@@ -512,7 +511,7 @@ async def aio_update_profile(
         )
 
     tool_calls = state['messages'][-1].tool_calls
-    # await logger.complete()
+
 
     # Return tool message with update verification
     return {
