@@ -383,13 +383,28 @@ def format_record(record: dict[str, Any]) -> str:
     Returns:
         The formatted log record.
     """
-    format_string = NEW_LOGGER_FORMAT
-    if record["extra"].get("payload") is not None:
-        record["extra"]["payload"] = pformat(record["extra"]["payload"], indent=4, compact=True, width=88)
-        format_string += "\n<level>{extra[payload]}</level>"
+    # Format the datetime in the expected format
+    time_str = record["time"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-    format_string += "{exception}\n"
-    return format_string
+    # Build the basic message format
+    format_string = (
+        f"{time_str} | "
+        f"{record['level']['name']:<8} | "
+        f"{record['name']}:{record['function']} - "
+        f"{record['file']}:{record['line']} | "
+        f"{record['message']}"
+    )
+
+    # Add payload if present
+    if record["extra"].get("payload") is not None:
+        payload = pformat(record["extra"]["payload"], indent=4, compact=True, width=88)
+        format_string += f"\n{payload}"
+
+    # Add exception if present
+    if record["exception"]:
+        format_string += f"\n{record['exception']}"
+
+    return format_string + "\n"
 
 # SOURCE: https://github.com/joint-online-judge/fastapi-rest-framework/blob/b0e93f0c0085597fcea4bb79606b653422f16700/fastapi_rest_framework/logging.py#L43
 def format_record_improved(record: dict[str, Any]) -> str:
@@ -475,10 +490,12 @@ class InterceptHandler(logging.Handler):
         # Get corresponding Loguru level if it exists.
         level: str | int
         try:
-            level = loguru.logger.level(record.levelname).name
+            # First try to get the level by name
+            level = logger.level(record.levelname).name
         except ValueError:
-            # DISABLED 12/10/2021 # level = str(record.levelno)
-            level = record.levelno
+            # If the level doesn't exist, register it
+            logger.level(record.levelname, no=record.levelno)
+            level = record.levelname
 
         # NOTE: Original question: I don't quite understand the frame and depth aspects, can you try explaining it using a practical example? imagine there is a logger for "discord.client" for example
         # -------------------------------------------------------------------------------------------------------------

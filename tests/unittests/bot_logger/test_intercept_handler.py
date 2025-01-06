@@ -103,18 +103,19 @@ def test_emit_with_formatted_message(intercept_handler, caplog):
 def test_emit_with_custom_level(intercept_handler, caplog):
     """Test emission with a custom log level."""
     CUSTOM_LEVEL = 15
-    logging.addLevelName(CUSTOM_LEVEL, "CUSTOM")
+    logging.addLevelName(CUSTOM_LEVEL, "CUSTOM_LEVEL")
+    new_level = logger.level("CUSTOM_LEVEL", no=CUSTOM_LEVEL, color="<yellow>", icon="🐍")
 
     record = logging.LogRecord(
         name="test_logger",
-        level=CUSTOM_LEVEL,
+        level="CUSTOM_LEVEL",
         pathname="test_file.py",
         lineno=42,
         msg="Custom level message",
         args=(),
         exc_info=None,
     )
-    with caplog.at_level(CUSTOM_LEVEL):
+    with caplog.at_level("CUSTOM_LEVEL"):
         intercept_handler.emit(record)
         assert "Custom level message" in caplog.text
 
@@ -127,7 +128,7 @@ def test_format_record():
 
     # Create a test record with all components
     record = {
-        "time": datetime.now(),
+        "time": datetime(2024, 1, 6, 12, 34, 56, 789000),
         "level": {"name": "INFO", "no": 20, "icon": "🔵"},
         "name": "test_logger",
         "function": "test_func",
