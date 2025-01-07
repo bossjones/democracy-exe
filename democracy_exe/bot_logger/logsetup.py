@@ -9,7 +9,32 @@ from democracy_exe.aio_settings import aiosettings
 
 
 # NOTE: if you want to try out setup_logging, comment this out
-custom_logger = structlog.stdlib.get_logger("custom_logger")
+def get_custom_logger() -> structlog.stdlib.BoundLogger:
+    """Get a configured structlog logger instance.
+
+    Returns:
+        structlog.stdlib.BoundLogger: The configured logger instance
+    """
+    # Configure structlog
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="ISO", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+    # Get a new logger instance and bind it
+    logger = structlog.get_logger("custom_logger")
+    return structlog.stdlib.BoundLogger(logger, [], {})
+
+custom_logger = get_custom_logger()
 
 # TODO: Try out both of these
 

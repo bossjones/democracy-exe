@@ -1015,6 +1015,14 @@ test-toolsonly-cog-debug:
 test-toolsonly-cog:
 	uv run pytest --showlocals --tb=short --capture=tee-sys tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
+# Run unit tests in debug mode with extended output
+test-logsetup-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/test_logsetup.py
+
+# Run unit tests specifically for tools
+test-logsetup:
+	{{UV_RUN}} pytest --showlocals --tb=short --capture=tee-sys tests/test_logsetup.py
+
 # DISABLED: uv run pytest --capture=tee-sys tests/unittests/utils/test_utils_dropbox_.py
 # use this with aider to fix tests incrementally
 

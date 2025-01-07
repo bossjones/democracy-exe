@@ -23,6 +23,8 @@ from langsmith import tracing_context
 
 logger = structlog.get_logger(__name__)
 
+import structlog
+
 from structlog.testing import capture_logs
 
 import pytest
@@ -469,8 +471,7 @@ async def test_run_single_tweet_aio_gallery_dl(
 
     # import bpdb; bpdb.set_trace()
     with capsys.disabled():
-        with ContextLogger(caplog) as _logger:
-            _logger.add(sys.stdout, level="DEBUG")
+        with capture_logs() as captured:
             caplog.set_level(logging.DEBUG)
 
             with tracing_context(enabled=False):

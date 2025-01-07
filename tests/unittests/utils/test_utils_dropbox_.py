@@ -274,8 +274,7 @@ class TestDropboxClient:
 
         # import bpdb; bpdb.set_trace()
         with capsys.disabled():
-            with ContextLogger(caplog) as _logger:
-                _logger.add(sys.stdout, level="DEBUG")
+            with capture_logs() as captured:
                 caplog.set_level(logging.DEBUG)
 
                 with tracing_context(enabled=False):

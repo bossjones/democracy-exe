@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union
 import discord
 import discord.ext.test as dpytest  # type: ignore
 import pytest_asyncio
+import structlog
 
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
@@ -45,6 +46,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_openai.embeddings import OpenAIEmbeddings
 from rich.console import Console
 from rich.markdown import Markdown
+from structlog.testing import LogCapture
 from vcr import filters
 
 import pytest

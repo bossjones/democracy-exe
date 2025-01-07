@@ -460,8 +460,7 @@ async def test_download_tweet_failure(
         capsys: Pytest stdout/stderr capture fixture
     """
     with capsys.disabled():
-        with ContextLogger(caplog) as _logger:
-            _logger.add(sys.stdout, level="DEBUG")
+        with capture_logs() as captured:
             caplog.set_level(logging.DEBUG)
 
             # Mock shell command execution
@@ -681,8 +680,7 @@ async def test_download_tweet_success_twitter_cog(
         AssertionError: If expected messages are not received or in wrong format
     """
     with capsys.disabled():
-        with ContextLogger(caplog) as _logger:
-            _logger.add(sys.stdout, level="DEBUG")
+        with capture_logs() as captured:
             caplog.set_level(logging.DEBUG)
 
             mock_aio_tweet_data, tmp_path = mock_aio_tweet_data_with_media
