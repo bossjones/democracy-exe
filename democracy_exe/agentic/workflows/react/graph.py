@@ -13,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import multiprocessing
 import uuid
 
 from datetime import UTC, datetime, timezone
@@ -55,13 +54,6 @@ from democracy_exe.agentic.workflows.react.prompts import (
     MODEL_SYSTEM_MESSAGE,
     TRUSTCALL_INSTRUCTION,
 )
-
-
-logger.remove()
-logger.disable("langsmith")
-logger.disable("langsmith.client")
-
-multiprocessing.set_start_method("fork", force=True)
 
 
 # if aiosettings.debug_langgraph_studio:

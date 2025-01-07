@@ -1,7 +1,10 @@
 #!/bin/bash
 
+# uv pip compile pyproject.toml --python-version 3.12 --python-platform linux - -o democracy_exe/requirements-linux.txt --upgrade
+
 # Export base requirements
-uv export --no-hashes --prune langserve --prune notebook --format requirements-txt --extra dev  -o democracy_exe/requirements.txt
+# uv export --no-hashes --prune langserve --prune notebook --format requirements-txt --extra dev  -o democracy_exe/requirements.txt
+uv export --no-hashes --prune langserve --prune notebook --format requirements-txt -o democracy_exe/requirements.txt
 
 command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required but it's not installed. run 'brew install yq' or 'pip install yq'"; exit 1; }
 

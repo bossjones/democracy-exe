@@ -851,6 +851,7 @@ def global_log_config(
 
     # Set up multiprocessing context
     context = multiprocessing.get_context(mp_context)
+    multiprocessing.set_start_method(mp_context, force=True)
 
     # SOURCE: https://github.com/acgnhiki/blrec/blob/975fa2794a3843a883597acd5915a749a4e196c8/src/blrec/logging/configure_logging.py#L21
     global _console_handler_id, _file_handler_id
@@ -932,7 +933,7 @@ def global_log_config(
                 and filter_out_modules(record)
                 and filter_discord_logs(record)
             ),
-            "enqueue": True,  # Enable multiprocessing-safe queue
+            # "enqueue": True,  # Enable multiprocessing-safe queue
             "serialize": False,
             "backtrace": True,
             "diagnose": True,

@@ -202,6 +202,11 @@ download-models:
 upgrade-dry-run:
 	uv lock --upgrade --dry-run
 
+
+# sync all uv deps to editable mode
+sync:
+	uv sync --all-extras --dev
+
 # Upgrade all dependencies and sync the environment
 sync-upgrade-all:
 	uv lock --upgrade
@@ -1052,3 +1057,49 @@ tail-langgraph-studio:
 logs-langgraph-studio:
 	#!/bin/bash
 	log show --predicate 'process == "LangGraph Studio"' --last 5m --debug --info --backtrace
+
+# Access the Docker VM debug shell
+docker-debug-shell:
+    socat -d -d ~/Library/Containers/com.docker.docker/Data/debug-shell.sock pty,rawer
+    @echo "Now run 'screen /dev/ttys0xx' in a new terminal (replace ttys0xx with the PTY output)"
+
+# Access Docker VM using a privileged container
+docker-vm-shell:
+    docker run -it --rm --privileged --pid=host --name nsenter1 justincormack/nsenter1
+
+# View overall Docker disk usage
+docker-disk-usage:
+    docker system df
+
+# View detailed Docker disk usage
+docker-disk-usage-verbose:
+    docker system df -v
+
+# List Docker images and their sizes
+docker-list-images:
+    docker image ls
+
+# List all containers and their sizes
+docker-list-containers:
+    docker container ls -a
+
+# Check the size of the Docker disk image file
+docker-check-image-size:
+    ls -klsh ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
+
+# Remove unused Docker objects
+docker-prune:
+	#!/bin/bash
+	docker system prune --filter "until=$((60*24))h"
+
+# Aggressively reclaim space (use with caution)
+docker-reclaim-space:
+    docker run --privileged --pid=host docker/desktop-reclaim-space
+
+# Run all disk usage checks
+docker-check-all:
+    @just docker-disk-usage
+    @just docker-disk-usage-verbose
+    @just docker-list-images
+    @just docker-list-containers
+    @just docker-check-image-size
