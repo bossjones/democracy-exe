@@ -326,57 +326,6 @@ def assert_success_message(message: discord.Message) -> None:
     assert "Download complete!" in message.content
 
 
-# @pytest.mark.asyncio
-# async def test_twitter_cog_init(twitter_cog: TwitterCog) -> None:
-#     """Test Twitter cog initialization.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#     """
-#     assert isinstance(twitter_cog, TwitterCog)
-#     assert isinstance(twitter_cog.bot, commands.Bot)
-
-
-# @pytest.mark.asyncio
-# async def test_twitter_cog_on_ready(twitter_cog: TwitterCog, caplog: LogCaptureFixture) -> None:
-#     """Test Twitter cog on_ready event.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         caplog: Pytest log capture fixture
-#     """
-#     await twitter_cog.on_ready()
-#     assert any(record.message == f"{type(twitter_cog).__name__} Cog ready." for record in caplog.records)
-
-
-# @pytest.mark.asyncio
-# async def test_twitter_cog_on_guild_join(
-#     twitter_cog: TwitterCog, test_guild: discord.Guild, caplog: LogCaptureFixture
-# ) -> None:
-#     """Test Twitter cog on_guild_join event.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         test_guild: Test guild fixture
-#         caplog: Pytest log capture fixture
-#     """
-#     await twitter_cog.on_guild_join(test_guild)
-#     assert any(record.message == f"Adding new guild to database: {test_guild.id}" for record in caplog.records)
-#     assert any(record.message == f"Successfully added guild {test_guild.id} to database" for record in caplog.records)
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2025, 1, 25),
-#     strict=True,
-#     msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.vcronly()
-# @pytest.mark.default_cassette("test_download_tweet_success_twitter_cog.yaml")
-# @pytest.mark.vcr(
-#     allow_playback_repeats=True,
-#     match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
-#     ignore_localhost=False,
-# )
 @pytest.mark.asyncio
 @pytest.mark.asyncio
 async def test_twitter_cog_init(bot_with_twitter_cog: DemocracyBot) -> None:
@@ -398,9 +347,14 @@ async def test_twitter_cog_on_ready(bot_with_twitter_cog: DemocracyBot, caplog: 
         bot_with_twitter_cog: The Discord bot instance with Twitter cog
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_twitter_cog.get_cog("Twitter")
-    await cog.on_ready()  # type: ignore
-    assert any(record.message == "Twitter Cog ready." for record in caplog.records)
+    with capture_logs() as captured:
+        cog = bot_with_twitter_cog.get_cog("Twitter")
+        await cog.on_ready()  # type: ignore
+
+        # Check if the log message exists in the captured structlog events
+        assert any(log.get("event") == "Twitter Cog ready." for log in captured), (
+            "Expected 'Twitter Cog ready.' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio
@@ -411,10 +365,12 @@ async def test_twitter_cog_on_guild_join(bot_with_twitter_cog: DemocracyBot, cap
         bot_with_twitter_cog: The Discord bot instance with Twitter cog
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_twitter_cog.get_cog("Twitter")
-    guild = bot_with_twitter_cog.guilds[0]
-    await cog.on_guild_join(guild)  # type: ignore
-    assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
+    with capture_logs() as captured:
+        caplog.set_level(logging.DEBUG)
+        cog = bot_with_twitter_cog.get_cog("Twitter")
+        guild = bot_with_twitter_cog.guilds[0]
+        await cog.on_guild_join(guild)  # type: ignore
+        assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
 
 
 # NOTE: to get this to to pass after the refactor, you might need to incorporate things like which channel this is being said in etc. (via aider)
@@ -642,15 +598,17 @@ async def test_cleanup_temp_dir(
         tmp_path: Pytest temporary path fixture
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_twitter_cog.get_cog("Twitter")
-    test_dir = tmp_path / "gallery-dl" / "test"
-    test_dir.mkdir(parents=True)
-    test_file = test_dir / "test.txt"
-    test_file.touch()
+    with capture_logs() as captured:
+        caplog.set_level(logging.DEBUG)
+        cog = bot_with_twitter_cog.get_cog("Twitter")
+        test_dir = tmp_path / "gallery-dl" / "test"
+        test_dir.mkdir(parents=True)
+        test_file = test_dir / "test.txt"
+        test_file.touch()
 
-    cog._cleanup_temp_dir(str(test_file))  # type: ignore
-    assert not test_dir.exists()
-    assert any("Temporary directory cleanup complete" in record.message for record in caplog.records)
+        cog._cleanup_temp_dir(str(test_file))  # type: ignore
+        assert not test_dir.exists()
+        assert any("Temporary directory cleanup complete" in record.message for record in caplog.records)
 
 
 async def test_download_tweet_success_twitter_cog(
