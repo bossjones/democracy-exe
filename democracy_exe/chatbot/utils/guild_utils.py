@@ -6,7 +6,11 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.factories import guild_factory
 
@@ -24,7 +28,7 @@ async def preload_guild_data() -> dict[int, dict[str, Any]]:
     logger.info("Preloading guild data...")
     try:
         guilds = [guild_factory.Guild() for _ in range(3)]  # Create 3 guilds for testing
-        await logger.complete()
+        # await logger.complete()
         return {guild.id: {"prefix": guild.prefix} for guild in guilds}
     except Exception as e:
         logger.error(f"Error preloading guild data: {e}")

@@ -20,6 +20,10 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 
 import langsmith
 import rich
+
+# from democracy_exe.aio_settings import aiosettings
+# from loguru import logger
+import structlog
 import tiktoken
 
 from langchain.chat_models import init_chat_model
@@ -40,10 +44,14 @@ from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
 
-# from democracy_exe.aio_settings import aiosettings
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 
 # from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import BaseModel, Field
 from trustcall import create_extractor
 from trustcall._base import ExtractionOutputs, InputsLike

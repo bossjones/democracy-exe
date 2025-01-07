@@ -6,11 +6,16 @@ import logging
 
 import openai
 
+# from loguru import logger
+import structlog
+
 from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch, RunnableLambda, RunnableMap
 from langchain_openai import ChatOpenAI, OpenAI
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import BaseModel, Field
 
 from democracy_exe.aio_settings import aiosettings

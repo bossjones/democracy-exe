@@ -29,9 +29,14 @@ import cv2
 import discord
 import numpy as np
 
+# from loguru import logger
+import structlog
+
 from discord.ext import commands
 from discord.ext.commands import Context
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 from rich.pretty import pprint
 
@@ -95,7 +100,7 @@ class Autocrop(commands.Cog):
         """
         logger.debug(f"{type(self).__name__} Cog ready.")
         print(f"{type(self).__name__} Cog ready.")
-        await logger.complete()
+        # await logger.complete()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):

@@ -26,12 +26,17 @@ import requests
 import rich
 import six
 
+# from loguru import logger
+import structlog
+
 from dropbox import DropboxOAuth2FlowNoRedirect, create_session
 from dropbox.dropbox_client import BadInputException
 from dropbox.exceptions import ApiError, AuthError
 from dropbox.files import FileMetadata, FolderMetadata, WriteMode
 from dropbox.users import Account
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import Field, SecretStr
 
 from democracy_exe.aio_settings import aiosettings
@@ -107,7 +112,7 @@ async def list_files_in_remote_folder(dbx: dropbox.Dropbox) -> None:
         for file in files:
             rich.print(file.name)
         logger.info("Successfully listed files")
-        await logger.complete()
+        # await logger.complete()
 
     except Exception as ex:
         logger.error(f"Error Class: {ex.__class__!s}")
@@ -116,7 +121,7 @@ async def list_files_in_remote_folder(dbx: dropbox.Dropbox) -> None:
         logger.error(f"exc_type: {sys.exc_info()[0]}")
         logger.error(f"exc_value: {sys.exc_info()[1]}")
         traceback.print_tb(sys.exc_info()[2])
-        await logger.complete()
+        # await logger.complete()
         raise
 
 
@@ -191,11 +196,11 @@ async def list_folder(dbx: dropbox.Dropbox, folder: str, subfolder: str) -> dict
         with stopwatch("list_folder"):
             res = await asyncio.to_thread(dbx.files_list_folder, path)
         logger.info("Successfully listed folder contents")
-        await logger.complete()
+        # await logger.complete()
         return {entry.name: entry for entry in res.entries}
     except dropbox.exceptions.ApiError as err:
         logger.error(f"Folder listing failed for {path}: {err}")
-        await logger.complete()
+        # await logger.complete()
         return {}
 
 
@@ -228,11 +233,11 @@ async def download(
             md, res = await asyncio.to_thread(dbx.files_download, path)
             data = res.content
             logger.info(f"Successfully downloaded {len(data)} bytes")
-            await logger.complete()
+            # await logger.complete()
             return data
         except dropbox.exceptions.HttpError as err:
             logger.error(f"HTTP error during download: {err}")
-            await logger.complete()
+            # await logger.complete()
             return None
 
 

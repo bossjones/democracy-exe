@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

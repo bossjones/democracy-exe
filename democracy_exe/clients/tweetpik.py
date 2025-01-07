@@ -5,7 +5,11 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.aio_settings import aiosettings
 

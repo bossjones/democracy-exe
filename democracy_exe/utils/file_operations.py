@@ -24,8 +24,13 @@ import aiofiles
 import aiofiles.os
 import aiohttp
 
+# from loguru import logger
+import structlog
+
 from discord import Attachment, File
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 
 from democracy_exe import shell
@@ -176,7 +181,7 @@ async def aio_create_temp_directory() -> str:
         raise e
     print("created temporary directory", tmpdirname)
     logger.info("created temporary directory", tmpdirname)
-    await logger.complete()
+    # await logger.complete()
     return tmpdirname
 
 
@@ -221,5 +226,5 @@ async def aio_create_nested_directories(file_path: str) -> str:
     logger.info(f"path = {path}")
     logger.info(f"parent_dir = {parent_dir}")
     await aiofiles.os.makedirs(parent_dir, exist_ok=True)
-    await logger.complete()
+    # await logger.complete()
     return str(parent_dir)

@@ -12,8 +12,13 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 import aiohttp
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord import Attachment, File, HTTPException, Message
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

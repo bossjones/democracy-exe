@@ -15,7 +15,13 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, cast
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
+import logging
+
 from pydantic import (
     AliasChoices,
     AmqpDsn,
@@ -877,6 +883,7 @@ class AioSettings(BaseSettings):
     tweetpik_verified_icon: str = "#1b95e0"
 
     thirdparty_lib_loglevel: str = "INFO"
+    log_level: int = logging.DEBUG
 
     @model_validator(mode="before")
     @classmethod

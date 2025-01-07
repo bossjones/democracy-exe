@@ -13,12 +13,17 @@ from typing import Any, Dict, List, Optional, cast
 import aiofiles
 import discord.ext.commands
 
+# from loguru import logger
+import structlog
+
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 from discord.ext import commands
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

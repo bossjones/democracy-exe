@@ -8,7 +8,11 @@ from typing import Any
 
 import rich
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from rich import print
 
 

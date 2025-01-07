@@ -21,9 +21,14 @@ from typing import Any, Dict, Final, List, Optional, Tuple, Union, cast
 import bpdb
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord.ext import commands
 from discord.ext.commands import Context
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from rich.pretty import pprint
 
 from democracy_exe.aio_settings import aiosettings
@@ -74,7 +79,7 @@ class Twitter(commands.Cog):
     async def on_ready(self):
         logger.debug(f"{type(self).__name__} Cog ready.")
         print(f"{type(self).__name__} Cog ready.")
-        await logger.complete()
+        # await logger.complete()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):

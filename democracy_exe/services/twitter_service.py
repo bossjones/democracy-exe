@@ -11,7 +11,11 @@ from typing import List, Optional, Tuple
 import aiohttp
 import discord
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.services.base_service import BaseService
 from democracy_exe.utils import file_functions

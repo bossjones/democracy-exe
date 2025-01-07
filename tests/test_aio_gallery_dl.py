@@ -15,13 +15,19 @@ from typing import TYPE_CHECKING, Any, Dict, cast
 import aiofiles
 import pytest_asyncio
 
+# from loguru import logger
+import structlog
+
 from langsmith import tracing_context
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
+
+from structlog.testing import capture_logs
 
 import pytest
 
 from democracy_exe.clients.aio_gallery_dl import AsyncGalleryDL, GalleryDLConfig
-from democracy_exe.utils._testing import ContextLogger
 
 
 if TYPE_CHECKING:
@@ -334,7 +340,7 @@ async def test_download_error(mock_gallery_dl: Any, caplog: LogCaptureFixture, c
         caplog: Pytest log capture fixture
         capsys: Pytest capture fixture
     """
-    with ContextLogger(caplog):
+    with capture_logs() as cap_logs:
         caplog.set_level(logging.ERROR, logger="democracy_exe")
         # Setup mock error
         mock_gallery_dl.job.DownloadJob.side_effect = ValueError("Test error")
@@ -484,5 +490,5 @@ async def test_run_single_tweet_aio_gallery_dl(
                             break
                     except Exception as e:
                         logger.exception(f"Error extracting from URL: {url}")
-                        logger.complete()
+                        # logger.complete()()
                         raise

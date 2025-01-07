@@ -33,11 +33,15 @@ import cv2
 import numpy as np
 import pytz
 import rich
+
+# from loguru import logger
+import structlog
 import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as FT
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 from scipy.spatial import KDTree
 from torchvision.transforms.functional import InterpolationMode
@@ -969,7 +973,7 @@ async def aio_main():
         test_image.shape[0],
         test_image.shape[1],
     )
-    await logger.complete()
+    # await logger.complete()
 
 
 def main():

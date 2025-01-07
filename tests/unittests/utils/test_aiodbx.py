@@ -40,7 +40,11 @@ from io import BytesIO
 import aiofiles
 import aiohttp
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

@@ -13,8 +13,13 @@ from typing import TYPE_CHECKING, Any, List
 import aiofiles
 import pysnooper
 
+# from loguru import logger
+import structlog
+
 from discord.ext import commands
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.aio_settings import aiosettings
 
@@ -177,7 +182,7 @@ class AsyncExtensionIterator:
 
                 logger.debug(f"Found extension file: {file}")
                 logger.debug(f"Converting to module path: {extension_path}")
-                await logger.complete()
+                # await logger.complete()
                 return extension_path
 
             except OSError as e:
@@ -185,7 +190,7 @@ class AsyncExtensionIterator:
                 continue
 
         logger.debug("Completed async extension discovery")
-        await logger.complete()
+        # await logger.complete()
         raise StopAsyncIteration
 
 
@@ -226,10 +231,10 @@ async def load_extensions(bot: DemocracyBot, extension_list: list[str]) -> None:
         try:
             await bot.load_extension(extension)
             logger.info(f"Loaded extension: {extension}")
-            await logger.complete()
+            # await logger.complete()
         except Exception as e:
             logger.error(f"Failed to load extension {extension}: {e}")
-            await logger.complete()
+            # await logger.complete()
             raise
 
 
@@ -246,10 +251,10 @@ async def reload_extension(bot: DemocracyBot, extension: str) -> None:
     try:
         await bot.reload_extension(extension)
         logger.info(f"Reloaded extension: {extension}")
-        await logger.complete()
+        # await logger.complete()
     except Exception as e:
         logger.error(f"Failed to reload extension {extension}: {e}")
-        await logger.complete()
+        # await logger.complete()
         raise
 
 
@@ -266,8 +271,8 @@ async def unload_extension(bot: DemocracyBot, extension: str) -> None:
     try:
         await bot.unload_extension(extension)
         logger.info(f"Unloaded extension: {extension}")
-        await logger.complete()
+        # await logger.complete()
     except Exception as e:
         logger.error(f"Failed to unload extension {extension}: {e}")
-        await logger.complete()
+        # await logger.complete()
         raise

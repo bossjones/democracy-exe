@@ -3,9 +3,15 @@
 # https://github.com/hackersandslackers/asyncio-tutorial/blob/0f4c99776b61ca3eafd850c43202bc7c52349552/asyncio_tutorial/part_II_aiohttp_aiofiles/writer.py
 from __future__ import annotations
 
+import asyncio
+
 import aiofiles
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 
 async def write_file(fname: str, body: bytes, filetype: str, directory: str):
@@ -25,5 +31,6 @@ async def write_file(fname: str, body: bytes, filetype: str, directory: str):
     except Exception as e:
         logger.error(f"Unexpected error while writing from `{fname}`: {e}")
     finally:
-        await logger.complete()
+        # await logger.complete()
+        await asyncio.sleep(1)
     return filename

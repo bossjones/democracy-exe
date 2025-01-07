@@ -19,7 +19,11 @@ import aiofiles
 import pandas as pd
 import rich
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from rich.console import Console
 from rich.table import Table
 
@@ -811,7 +815,7 @@ async def aiowrite_file(data: str, dl_dir: str = "./", fname: str = "", ext: str
     logger.debug(f"Writing to {p_new.absolute()}")
     async with aiofiles.open(p_new.absolute(), mode="w") as f:
         await f.write(data)
-    await logger.complete()
+    # await logger.complete()
 
 
 async def aioread_file(dl_dir: str = "./", fname: str = "", ext: str = "") -> str:
@@ -835,7 +839,7 @@ async def aioread_file(dl_dir: str = "./", fname: str = "", ext: str = "") -> st
     logger.debug(f"Reading from {p_new.absolute()}")
     async with aiofiles.open(p_new.absolute()) as f:
         content = await f.read()
-    await logger.complete()
+    # await logger.complete()
     return content
 
 

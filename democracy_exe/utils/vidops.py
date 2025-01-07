@@ -17,7 +17,11 @@ import traceback
 
 from pathlib import Path
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe import shell
 from democracy_exe.shell import _aio_run_process_and_communicate
@@ -52,7 +56,7 @@ async def get_duration(input_file: Path) -> float:
     logger.debug(f"duration_cmd = {duration_cmd}")
     duration = float(await _aio_run_process_and_communicate(duration_cmd))
     logger.debug(f"duration = {duration}")
-    await logger.complete()
+    # await logger.complete()
     return duration
 
 
@@ -114,7 +118,7 @@ async def process_video(input_file: Path) -> None:
     if bitrate < 150:
         logger.debug("Target bitrate is under 150kbps.")
         logger.debug("Unable to compress.")
-        await logger.complete()
+        # await logger.complete()
         return
 
     video_bitrate = int(bitrate * 90 / 100)
@@ -127,14 +131,14 @@ async def process_video(input_file: Path) -> None:
     if video_bitrate < 125:
         logger.debug("Target video bitrate is under 125kbps.")
         logger.debug("Unable to compress.")
-        await logger.complete()
+        # await logger.complete()
         return
 
     # Exit if target audio bitrate is under 32kbps
     if audio_bitrate < 32:
         logger.debug("Target audio bitrate is under 32.")
         logger.debug("Unable to compress.")
-        await logger.complete()
+        # await logger.complete()
         return
 
     logger.debug("Compressing video file using FFmpeg...")
@@ -172,7 +176,7 @@ async def process_video(input_file: Path) -> None:
     ]
     logger.debug(f"compress_cmd = {compress_cmd}")
     await _aio_run_process_and_communicate(compress_cmd)
-    await logger.complete()
+    # await logger.complete()
 
 
 async def process_audio(input_file: Path) -> None:
@@ -201,7 +205,7 @@ async def process_audio(input_file: Path) -> None:
     if bitrate < 32:
         logger.debug("Target bitrate is under 32kbps.")
         logger.debug("Unable to compress.")
-        await logger.complete()
+        # await logger.complete()
         return
 
     logger.debug("Compressing audio file using FFmpeg...")
@@ -231,7 +235,7 @@ async def process_audio(input_file: Path) -> None:
     ]
     logger.debug(f"compress_cmd = {compress_cmd}")
     await _aio_run_process_and_communicate(compress_cmd)
-    await logger.complete()
+    # await logger.complete()
 
 
 async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
@@ -284,7 +288,7 @@ async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 unlink_result = await loop.run_in_executor(pool, unlink_func)
 
-            await logger.complete()
+            # await logger.complete()
             return True
         except Exception as ex:
             print(ex)
@@ -295,11 +299,11 @@ async def aio_compress_video(tmpdirname: str, file_to_compress: str) -> bool:
             logger.error(f"exc_type: {exc_type}")
             logger.error(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            await logger.complete()
+            # await logger.complete()
 
     else:
         logger.debug(f"no videos to process in {tmpdirname}")
-        await logger.complete()
+        # await logger.complete()
         return False
 
 
@@ -342,7 +346,7 @@ def compress_video(tmpdirname: str, file_to_compress: str) -> bool:
 
             # nuke the originals
             unlink_orig_file(f"{file_to_compress}")
-            logger.complete()
+            # logger.complete()()
             return True
         except Exception as ex:
             print(ex)
@@ -353,9 +357,9 @@ def compress_video(tmpdirname: str, file_to_compress: str) -> bool:
             logger.error(f"exc_type: {exc_type}")
             logger.error(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            logger.complete()
+            # logger.complete()()
 
     else:
         logger.debug(f"no videos to process in {tmpdirname}")
-        logger.complete()
+        # logger.complete()()
         return False

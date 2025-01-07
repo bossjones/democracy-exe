@@ -1576,6 +1576,7 @@ dependencies = [
     { name = "sentence-transformers" },
     { name = "sentencepiece" },
     { name = "strip-tags" },
+    { name = "structlog" },
     { name = "symbex" },
     { name = "tavily-python" },
     { name = "toolong" },
@@ -1786,6 +1787,7 @@ requires-dist = [
     { name = "sentence-transformers", specifier = ">=3.2.1" },
     { name = "sentencepiece", specifier = ">=0.2.0" },
     { name = "strip-tags", specifier = ">=0.5.1" },
+    { name = "structlog", specifier = ">=24.4.0" },
     { name = "symbex", specifier = ">=1.4" },
     { name = "tavily-python", specifier = ">=0.5.0" },
     { name = "toolong", specifier = ">=1.5.0" },
@@ -8368,6 +8370,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/59/22/1b50f0c98d35c7e958b080aa7947a90bd74b3dc7e72b759034727edc10e3/strip-tags-0.5.1.tar.gz", hash = "sha256:841a158bc8f57e3a891d45132e78c1eb8fdd9b978b8a40e68028446118dedad3", size = 11159 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f5/b6/0bf8b369ca8b07f8b74b867fdbdd2e693452ab715d726a8f7f134aee44d3/strip_tags-0.5.1-py3-none-any.whl", hash = "sha256:2ced3d245bab6cd2ea34948baabbc244e1ee734c89e65705eff0e8ac6fdef46e", size = 11195 },
+]
+
+[[package]]
+name = "structlog"
+version = "24.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/a3/e811a94ac3853826805253c906faa99219b79951c7d58605e89c79e65768/structlog-24.4.0.tar.gz", hash = "sha256:b27bfecede327a6d2da5fbc96bd859f114ecc398a6389d664f62085ee7ae6fc4", size = 1348634 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/65/813fc133609ebcb1299be6a42e5aea99d6344afb35ccb43f67e7daaa3b92/structlog-24.4.0-py3-none-any.whl", hash = "sha256:597f61e80a91cc0749a9fd2a098ed76715a1c8a01f73e336b746504d1aad7610", size = 67180 },
 ]
 
 [[package]]

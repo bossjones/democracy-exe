@@ -750,6 +750,16 @@ def mock_text_documents(mock_ebook_txt_file: FixtureRequest) -> list[Document]:
 #     await dpytest.empty_queue()
 
 
+@pytest.fixture(name="log_output")
+def fixture_log_output():
+    return LogCapture()
+
+
+@pytest.fixture(autouse=True)
+def fixture_configure_structlog(log_output):
+    structlog.configure(processors=[log_output])
+
+
 # @pytest.fixture
 @pytest_asyncio.fixture
 async def bot() -> AsyncGenerator[DemocracyBot, None]:

@@ -4,8 +4,13 @@ import logging
 
 from datetime import datetime
 
+# from loguru import logger
+import structlog
+
 from freezegun import freeze_time
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

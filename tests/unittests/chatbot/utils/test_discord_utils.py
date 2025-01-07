@@ -10,8 +10,13 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord import DMChannel, Guild, Member, Message, PermissionOverwrite, Role, TextChannel, User
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

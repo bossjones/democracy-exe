@@ -6,7 +6,11 @@ import pathlib
 
 from typing import Final, Optional
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.shell import ProcessException, ShellConsole, run_coroutine_subprocess
 

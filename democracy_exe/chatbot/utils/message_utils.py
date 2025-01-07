@@ -10,10 +10,15 @@ from typing import Any, Optional, Union, cast
 
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord import DMChannel, Guild, Member, Message, TextChannel, Thread, User
 from discord.abc import Messageable
 from langchain_core.messages import AIMessage, HumanMessage
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 
 def format_inbound_message(message: Message) -> HumanMessage:

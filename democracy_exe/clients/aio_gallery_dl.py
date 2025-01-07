@@ -17,7 +17,11 @@ import aiofiles
 import bpdb
 import gallery_dl
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import BaseModel, EmailStr, Field
 
 from democracy_exe.aio_settings import aiosettings
@@ -369,7 +373,7 @@ class AsyncGalleryDL:
             print(f"exc_type: {exc_type}")
             print(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            await logger.complete()
+            # await logger.complete()
             if aiosettings.dev_mode:
                 bpdb.pm()
 
@@ -477,7 +481,7 @@ if __name__ == "__main__":
                 print(f"exc_type: {exc_type}")
                 print(f"exc_value: {exc_value}")
                 traceback.print_tb(exc_traceback)
-                await logger.complete()
+                # await logger.complete()
                 rich.print(f"aiosettings.dev_mode: {aiosettings.dev_mode}")
                 if aiosettings.dev_mode:
                     bpdb.pm()

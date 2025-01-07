@@ -18,7 +18,11 @@ import aiofiles
 import aiohttp
 import rich
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from tqdm.auto import tqdm
 
 from democracy_exe import shell

@@ -5,7 +5,11 @@ import logging
 
 from typing import Any, Optional
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 
 class BaseService:

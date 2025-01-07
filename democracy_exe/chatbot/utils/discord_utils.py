@@ -21,11 +21,16 @@ import aiohttp
 import discord
 import rich
 
+# from loguru import logger
+import structlog
+
 from codetiming import Timer
 from discord import Attachment, Client, File, Guild, Member, Message, PermissionOverwrite, Role, TextChannel, User
 from discord.ext import commands
 from logging_tree import printout
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.bot_logger import generate_tree, get_lm_from_tree
 from democracy_exe.models.loggers import LoggerModel
@@ -465,7 +470,7 @@ async def co_task(name: str, queue: asyncio.Queue) -> AsyncIterator[None]:
             await shell.run_coroutine_subprocess(cmd=co_cmd_task.cmd, uri=co_cmd_task.uri)
             timer.stop()
             yield
-            await logger.complete()
+            # await logger.complete()
         except Exception as e:
             logger.error(f"Error in task {name}: {e}")
             continue

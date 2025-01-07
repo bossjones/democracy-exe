@@ -12,11 +12,16 @@ from typing import TYPE_CHECKING, Union
 
 import langsmith
 
+# from loguru import logger
+import structlog
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.runnables import RunnableConfig
 from langchain_fireworks import FireworksEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from pinecone import Pinecone, ServerlessSpec
 
 import democracy_exe.agentic._schemas as schemas

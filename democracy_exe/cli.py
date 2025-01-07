@@ -37,11 +37,16 @@ import bpdb
 import discord
 import pysnooper
 import rich
+
+# from loguru import logger
+import structlog
 import typer
 
 from langchain.globals import set_debug, set_verbose
 from langchain_chroma import Chroma as ChromaVectorStore
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from pinecone import ServerlessSpec
 from pinecone.core.openapi.data.model.describe_index_stats_response import DescribeIndexStatsResponse
 from pinecone.core.openapi.data.model.query_response import QueryResponse
@@ -59,7 +64,6 @@ import democracy_exe
 
 from democracy_exe.aio_settings import aiosettings, get_rich_console
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
-from democracy_exe.bot_logger import get_logger, global_log_config
 from democracy_exe.chatbot.discord_bot import DemocracyBot
 from democracy_exe.chatbot.terminal_bot import go_terminal_bot
 from democracy_exe.types import PathLike
@@ -79,11 +83,6 @@ if aiosettings.debug_langchain:
     # Setting the verbose flag will print out inputs and outputs in a slightly more readable format and will skip logging certain raw outputs (like the token usage stats for an LLM call) so that you can focus on application logic.
     set_verbose(True)
 
-# SOURCE: https://github.com/Delgan/loguru/blob/420704041797daf804b505e5220805528fe26408/docs/resources/recipes.rst#L1083
-global_log_config(
-    log_level=logging.getLevelName("DEBUG"),
-    json=False,
-)
 
 
 class ChromaChoices(str, Enum):
@@ -219,12 +218,13 @@ async def run_bot():
         if aiosettings.dev_mode:
             bpdb.pm()
 
-    await logger.complete()
+    # await logger.complete()
 
 
 async def run_bot_with_redis():
 
-    await logger.complete()
+    await asyncio.sleep(1)
+
 
 
 @APP.command()
@@ -398,9 +398,37 @@ def handle_sigterm(signo, frame):
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 if __name__ == "__main__":
+    # import multiprocessing
+    # from logging_tree import printout
+
+    # # Determine best multiprocessing context based on platform
+    # if sys.platform == "darwin":  # macOS
+    #     mp_context = "spawn"  # Recommended for macOS
+    # elif sys.platform == "win32":  # Windows
+    #     mp_context = "spawn"  # Only option on Windows
+    # else:  # Linux and other Unix
+    #     mp_context = "fork"  # Default and most efficient on Unix
+
+    # # Set up multiprocessing context
+    # multiprocessing.set_start_method(mp_context, force=True)
+    # context = multiprocessing.get_context(mp_context)
+
+    # print(f"********************************************** Using multiprocessing context: {mp_context}")
+    # print(f"********************************************** Using multiprocessing context: {context}")
+
     # # SOURCE: https://github.com/Delgan/loguru/blob/420704041797daf804b505e5220805528fe26408/docs/resources/recipes.rst#L1083
     # global_log_config(
     #     log_level=logging.getLevelName("DEBUG"),
     #     json=False,
     # )
+    # from democracy_exe.bot_logger import global_log_config
+
+    # # SOURCE: https://github.com/Delgan/loguru/blob/420704041797daf804b505e5220805528fe26408/docs/resources/recipes.rst#L1083
+    # global_log_config(
+    #     log_level=logging.getLevelName("DEBUG"),
+    #     json=False,
+    #     mp_context="spawn",
+    # )
+    from democracy_exe.bot_logger import logsetup
+
     APP()

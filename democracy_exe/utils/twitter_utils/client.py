@@ -9,8 +9,13 @@ from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Dict, Final, List, Optional, TypedDict, cast, final
 
+# from loguru import logger
+import structlog
+
 from gallery_dl.extractor import twitter  # type: ignore
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from .types import TweetMetadata
 

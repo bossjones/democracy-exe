@@ -20,16 +20,22 @@ import discord.ext.test as dpytest
 import pytest_asyncio
 import rich
 
+# from loguru import logger
+import structlog
+
 from discord.client import _LoopSentinel
 from discord.ext import commands
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
+
+from structlog.testing import capture_logs
 
 import pytest
 
 from democracy_exe.chatbot.cogs.twitter import HELP_MESSAGE, TwitterError
 from democracy_exe.chatbot.cogs.twitter import Twitter as TwitterCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
-from democracy_exe.utils._testing import ContextLogger
 from democracy_exe.utils.twitter_utils.embed import create_error_embed, create_info_embed
 from democracy_exe.utils.twitter_utils.models import TweetInfo
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode, TweetMetadata

@@ -9,9 +9,14 @@ from typing import Any, List, Optional, Union, cast
 
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord import DMChannel, Guild, Message
 from discord.ext import commands
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.aio_settings import aiosettings
 
@@ -55,7 +60,7 @@ async def get_prefix(bot: Any, message: Message) -> Any:
             else [get_guild_prefix(bot, cast(Guild, message.guild).id)]
         )
         logger.debug("Using prefix: {}", prefix)
-        await logger.complete()
+        # await logger.complete()
         base = [f"<@!{bot.user.id}> ", f"<@{bot.user.id}> "]
         prefixes = [aiosettings.prefix] if isinstance(channel, DMChannel) else bot.prefixes.get(cast(Guild, message.guild).id, [aiosettings.prefix])
         base.extend(prefixes)

@@ -9,9 +9,14 @@ from typing import Any, Dict, Optional
 
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord import DMChannel, Message, Thread
 from langchain_core.messages import HumanMessage
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.agentic.workflows.react.graph import graph as memgraph
 from democracy_exe.ai.graphs import AgentState

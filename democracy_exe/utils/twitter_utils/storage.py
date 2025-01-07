@@ -11,7 +11,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Final, List, Optional, Set, TypedDict, Union
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.utils.twitter_utils.models import (
     DownloadedContent,

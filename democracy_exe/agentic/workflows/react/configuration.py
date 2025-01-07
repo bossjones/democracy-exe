@@ -7,8 +7,13 @@ from typing import Annotated, Any, Optional, Type, TypeVar
 
 import rich
 
+# from loguru import logger
+import structlog
+
 from langchain_core.runnables import RunnableConfig, ensure_config
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from rich.pretty import pprint
 
 from democracy_exe.agentic.studio.react import prompts

@@ -16,7 +16,13 @@ import discord
 import discord.ext.test as dpytest
 import pytest_asyncio
 
-from loguru import logger
+# from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
+
+from structlog.testing import capture_logs
 
 import pytest
 
@@ -24,7 +30,6 @@ from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.cogs.autocrop import HELP_MESSAGE, AutocropError
 from democracy_exe.chatbot.cogs.autocrop import Autocrop as AutocropCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
-from democracy_exe.utils._testing import ContextLogger
 from tests.internal.discord_test_utils import SlowAttachment
 
 

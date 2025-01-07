@@ -13,13 +13,18 @@ from typing import Any, Optional, Union, cast
 
 import discord
 
+# from loguru import logger
+import structlog
+
 from discord import DMChannel, Message, TextChannel, Thread
 from discord.abc import Messageable
 from discord.member import Member
 from discord.user import User
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph  # type: ignore
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 
 from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
