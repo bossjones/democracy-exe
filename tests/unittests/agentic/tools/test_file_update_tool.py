@@ -7,6 +7,10 @@ import pathlib
 
 from typing import TYPE_CHECKING
 
+import structlog
+
+from structlog.testing import capture_logs
+
 import pytest
 
 from pytest_mock import MockerFixture
@@ -21,6 +25,8 @@ if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
 
     from pytest_mock.plugin import MockerFixture
+
+logger = structlog.get_logger(__name__)
 
 
 @pytest.fixture
@@ -86,27 +92,38 @@ async def test_arun_success(
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("Original content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("Original content")
 
-    result = await update_file_tool.arun({
-        "file_name": "test.txt",
-        "content": "Updated content",
-        "directory": str(test_dir),
-    })
+        result = await update_file_tool.arun({
+            "file_name": "test.txt",
+            "content": "Updated content",
+            "directory": str(test_dir),
+        })
 
-    # Verify response
-    assert result["status"] == "success"
-    assert result["file_path"] == str(test_dir / "test.txt")
-    assert result.get("error") is None
+        # Verify response
+        assert result["status"] == "success"
+        assert result["file_path"] == str(test_dir / "test.txt")
+        assert result.get("error") is None
 
-    # Verify file was updated with correct content
-    assert test_file.read_text() == "Updated content"
+        # Verify file was updated with correct content
+        assert test_file.read_text() == "Updated content"
 
-    # Verify logging
-    assert "Starting asynchronous file update" in caplog.text
-    assert "Asynchronous file update completed successfully" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_success:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Starting asynchronous file update for test.txt") for log in captured), (
+            "Expected 'Starting asynchronous file update' message not found in logs"
+        )
+
+        assert any(log.get("event") == "Asynchronous file update completed successfully" for log in captured), (
+            "Expected 'Asynchronous file update completed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -121,22 +138,30 @@ async def test_arun_nonexistent_file(
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    result = await update_file_tool.arun({
-        "file_name": "nonexistent.txt",
-        "content": "New content",
-        "directory": str(test_dir),
-    })
+    with capture_logs() as captured:
+        result = await update_file_tool.arun({
+            "file_name": "nonexistent.txt",
+            "content": "New content",
+            "directory": str(test_dir),
+        })
 
-    # Verify error response
-    assert result["status"] == "error"
-    assert "File does not exist" in result["error"]
-    assert result["file_path"] == ""
+        # Verify error response
+        assert result["status"] == "error"
+        assert "File does not exist" in result["error"]
+        assert result["file_path"] == ""
 
-    # Verify file was not created
-    assert not (test_dir / "nonexistent.txt").exists()
+        # Verify file was not created
+        assert not (test_dir / "nonexistent.txt").exists()
 
-    # Verify logging
-    assert "File does not exist" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_nonexistent_file:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Path validation failed: File does not exist:") for log in captured), (
+            "Expected 'Path validation failed: File does not exist' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -148,23 +173,38 @@ def test_run_success(update_file_tool: UpdateFileTool, test_dir: pathlib.Path, c
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("Original content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("Original content")
 
-    result = update_file_tool.run({"file_name": "test.txt", "content": "Updated content", "directory": str(test_dir)})
+        result = update_file_tool.run({
+            "file_name": "test.txt",
+            "content": "Updated content",
+            "directory": str(test_dir),
+        })
 
-    # Verify response
-    assert result["status"] == "success"
-    assert result["file_path"] == str(test_dir / "test.txt")
-    assert result.get("error") is None
+        # Verify response
+        assert result["status"] == "success"
+        assert result["file_path"] == str(test_dir / "test.txt")
+        assert result.get("error") is None
 
-    # Verify file was updated with correct content
-    assert test_file.read_text() == "Updated content"
+        # Verify file was updated with correct content
+        assert test_file.read_text() == "Updated content"
 
-    # Verify logging
-    assert "Starting synchronous file update" in caplog.text
-    assert "update completed successfully" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_success:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Starting synchronous file update for test.txt") for log in captured), (
+            "Expected 'Starting synchronous file update' message not found in logs"
+        )
+
+        assert any(log.get("event") == "File update completed successfully" for log in captured), (
+            "Expected 'File update completed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -179,27 +219,38 @@ def test_run_with_default_directory(
         tmp_path: Pytest fixture providing temporary directory
         monkeypatch: Pytest fixture for modifying environment
     """
-    # Change working directory to tmp_path
-    monkeypatch.chdir(tmp_path)
+    with capture_logs() as captured:
+        # Change working directory to tmp_path
+        monkeypatch.chdir(tmp_path)
 
-    # Create scratchpad directory and test file
-    scratchpad_dir = tmp_path / "scratchpad"
-    scratchpad_dir.mkdir()
-    test_file = scratchpad_dir / "test.txt"
-    test_file.write_text("Original content")
+        # Create scratchpad directory and test file
+        scratchpad_dir = tmp_path / "scratchpad"
+        scratchpad_dir.mkdir()
+        test_file = scratchpad_dir / "test.txt"
+        test_file.write_text("Original content")
 
-    result = update_file_tool.run({"file_name": "test.txt", "content": "Updated content"})
+        result = update_file_tool.run({"file_name": "test.txt", "content": "Updated content"})
 
-    # Verify response
-    assert result["status"] == "success"
-    assert result["file_path"] == str(scratchpad_dir / "test.txt")
+        # Verify response
+        assert result["status"] == "success"
+        assert result["file_path"] == str(scratchpad_dir / "test.txt")
 
-    # Verify file was updated
-    assert test_file.read_text() == "Updated content"
+        # Verify file was updated
+        assert test_file.read_text() == "Updated content"
 
-    # Verify logging
-    assert "Starting synchronous file update" in caplog.text
-    assert "File update completed successfully" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_with_default_directory:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Starting synchronous file update for test.txt") for log in captured), (
+            "Expected 'Starting synchronous file update' message not found in logs"
+        )
+
+        assert any(log.get("event") == "File update completed successfully" for log in captured), (
+            "Expected 'File update completed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -214,26 +265,37 @@ def test_run_permission_error(
         mocker: Pytest mocker fixture
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("Original content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("Original content")
 
-    # Mock open to raise PermissionError
-    mocker.patch("builtins.open", side_effect=PermissionError("Permission denied"))
+        # Mock open to raise PermissionError
+        mocker.patch("builtins.open", side_effect=PermissionError("Permission denied"))
 
-    result = update_file_tool.run({"file_name": "test.txt", "content": "Updated content", "directory": str(test_dir)})
+        result = update_file_tool.run({
+            "file_name": "test.txt",
+            "content": "Updated content",
+            "directory": str(test_dir),
+        })
 
-    # Verify error response
-    assert result["status"] == "error"
-    assert "Permission denied" in result["error"]
-    assert result["file_path"] == ""
+        # Verify error response
+        assert result["status"] == "error"
+        assert "Permission denied" in result["error"]
+        assert result["file_path"] == ""
 
-    # Verify file was not modified
-    assert test_file.read_text() == "Original content"
+        # Verify file was not modified
+        assert test_file.read_text() == "Original content"
 
-    # Verify logging
-    assert "File update failed" in caplog.text
-    assert "Permission denied" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_permission_error:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("File update failed: Permission denied") for log in captured), (
+            "Expected 'File update failed' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -249,27 +311,34 @@ async def test_arun_io_error(
         mocker: Pytest mocker fixture
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("Original content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("Original content")
 
-    # Mock aiofiles.open to raise IOError
-    mocker.patch("aiofiles.open", side_effect=OSError("Disk full"))
+        # Mock aiofiles.open to raise IOError
+        mocker.patch("aiofiles.open", side_effect=OSError("Disk full"))
 
-    result = await update_file_tool.arun({
-        "file_name": "test.txt",
-        "content": "Updated content",
-        "directory": str(test_dir),
-    })
+        result = await update_file_tool.arun({
+            "file_name": "test.txt",
+            "content": "Updated content",
+            "directory": str(test_dir),
+        })
 
-    # Verify error response
-    assert result["status"] == "error"
-    assert "Disk full" in result["error"]
-    assert result["file_path"] == ""
+        # Verify error response
+        assert result["status"] == "error"
+        assert "Disk full" in result["error"]
+        assert result["file_path"] == ""
 
-    # Verify file was not modified
-    assert test_file.read_text() == "Original content"
+        # Verify file was not modified
+        assert test_file.read_text() == "Original content"
 
-    # Verify logging
-    assert "file update failed" in caplog.text
-    assert "Disk full" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_io_error:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Asynchronous file update failed: Disk full") for log in captured), (
+            "Expected 'Asynchronous file update failed' message not found in logs"
+        )
