@@ -17,6 +17,10 @@ UV_RUN := "uv run"
 # GREP_LANGGRAPH_SDK := `{{grep_cmd}} -h 'langgraph-sdk>=.*",' pyproject.toml | {{sed_cmd}} 's/^[[:space:]]*"//; s/",$//'`
 LANGGRAPH_REPLACEMENT := if "{{os()}}" =~ "macos" { `ggrep -h 'langgraph-sdk>=.*",' pyproject.toml | gsed 's/^[[:space:]]*"//; s/",$//'` } else { `grep -h 'langgraph-sdk>=.*",' pyproject.toml | sed 's/^[[:space:]]*"//; s/",$//'` }
 
+# Default values for external docs generation
+EXTERNAL_DOCS_PATH := "limbo/bindings/python"
+EXTERNAL_DOCS_MODEL := "claude-3.5-sonnet"
+
 # Recipes
 # Install the virtual environment and install the pre-commit hooks
 install:
@@ -340,6 +344,10 @@ aider-o1-preview:
 # Run aider with Sonnet
 aider-sonnet:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff
+
+# Run aider with Sonnet in browser
+aider-sonnet-browser:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff --browser
 
 # Run aider with Gemini
 aider-gemini:
@@ -852,12 +860,6 @@ pyright-createstubs-missing:
 		uv run pyright --createstub "$package"
 	done
 
-# generate-ai-docs-koalabot-simple:
-# 	@echo "🚀 Generating AI docs"
-# 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml"
-# 	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/koalabot.py /Users/malcolm/dev/KoalaBot/tests/conftest.py /Users/malcolm/dev/KoalaBot/tests/test_koalabot.py /Users/malcolm/dev/KoalaBot/tests/test_utils.py /Users/malcolm/dev/KoalaBot/koala/utils.py /Users/malcolm/dev/KoalaBot/koala/cogs/base/cog.py /Users/malcolm/dev/KoalaBot/tests/cogs/base/test_cog.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml
-# just generate-ai-docs-koalabot-simple
-
 # Generate AI docs
 generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml"
@@ -1111,3 +1113,12 @@ docker-check-all:
     @just docker-list-images
     @just docker-list-containers
     @just docker-check-image-size
+
+# Generate external documentation with configurable path and model
+generate-external-docs path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:
+	#!/usr/bin/env bash
+	uv run files-to-prompt {{path}} -c | uv run llm -m {{model}} -s 'write extensive usage documentation in markdown, including realistic usage examples' > {{path}}/docs.md
+# Generate external documentation with configurable path and model
+generate-advice path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:
+	#!/usr/bin/env bash
+	uv run files-to-prompt {{path}} -c | uv run llm -m {{model}} -s 'step by step advice on how to implement automated tests for this, which is hard because the tests need to work a number of different ways within this project. Provide all code at the end.'

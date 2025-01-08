@@ -60,13 +60,14 @@
 
         "COPY pyproject.toml uv.lock ./",
 
-        "RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml --mount=type=bind,source=democracy_exe/requirements.txt,target=requirements.txt uv sync --frozen --no-install-project --no-dev && PYTHONDONTWRITEBYTECODE=1 uv pip install --no-cache-dir --system -r requirements.txt -e /deps/*",
+        "RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml --mount=type=bind,source=democracy_exe/requirements.txt,target=requirements.txt pip install -U pip && uv sync --frozen --no-install-project --no-dev && PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir  -r requirements.txt -e . /deps/*",
 
 
         "# Copy project and install",
 
         "COPY . /deps/democracy-exe",
         "RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --frozen",
+
         "# RUN uv tool dir --bin && ls -lta && pwd && ls -lta /deps && tree /deps && cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile && echo \"alias pip='uv pip'\" >> ~/.bashrc && echo \"alias pip='uv pip'\" >> ~/.profile",
 
 

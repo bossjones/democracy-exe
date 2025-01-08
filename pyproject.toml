@@ -1034,6 +1034,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/utils/aiodbx.py" = ["SIM102", "S112", "S110", "SIM105"]
 "democracy_exe/bot_logger/__init__.py" = ["SIM105", "S110"]
 "democracy_exe/bot_logger/logsetup.py" = ["SIM105", "S110", "RUF005"]
+"generate_prompt.py" = ["SIM105", "S110", "RUF005", "S607"]
 
 
 # ===========================[ ISORT ]========================
@@ -1463,6 +1464,7 @@ markers = [
     "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
     "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
     "gallerydlonly: marks tests that run code that utilizes the gallery-dl module (deselect with '-m \"not gallerydlonly\"')",
+    "logsonly: marks tests that run code that utilizes the logs module (deselect with '-m \"not logsonly\"')",
 ]
 
 
