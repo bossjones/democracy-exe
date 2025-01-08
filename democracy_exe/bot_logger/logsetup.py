@@ -131,7 +131,7 @@ def configure_logging(
     # Performance optimization for production
     if enable_json_logs:
         # JSON output optimized for production
-        renderer = structlog.processors.JSONRenderer(serializer=structlog.processors.JSONRenderer.get_default_serializer(sort_keys=False))
+        renderer = structlog.processors.JSONRenderer(sort_keys=False)
         shared_processors.append(structlog.processors.format_exc_info)
     else:
         # Pretty output for development

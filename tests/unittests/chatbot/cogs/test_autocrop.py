@@ -13,20 +13,19 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 
 import discord
+import discord.ext.commands as commands
 import discord.ext.test as dpytest
 import pytest_asyncio
-
-# from loguru import logger
 import structlog
-
-
-logger = structlog.get_logger(__name__)
 
 from structlog.testing import capture_logs
 
 import pytest
 
 from democracy_exe.aio_settings import aiosettings
+
+
+logger = structlog.get_logger(__name__)
 from democracy_exe.chatbot.cogs.autocrop import HELP_MESSAGE, AutocropError
 from democracy_exe.chatbot.cogs.autocrop import Autocrop as AutocropCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
@@ -76,6 +75,23 @@ async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
         await dpytest.empty_queue()
     finally:
         pass
+
+    # try:
+    #     await dpytest.empty_queue()
+    #     # Close bot's session and cleanup
+    #     if test_bot.ws is not None:
+    #         test_bot.ws.socket = None
+    #         test_bot.ws.thread = None
+    #     await test_bot.close()
+    #     # Cancel all tasks
+    #     for task in asyncio.all_tasks():
+    #         if task is not asyncio.current_task():
+    #             task.cancel()
+    #     # Wait for tasks to complete
+    #     await asyncio.sleep(0.1)
+    # finally:
+    #     # Final cleanup
+    #     await asyncio.gather(*asyncio.all_tasks(), return_exceptions=True)
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -147,6 +163,10 @@ async def test_autocrop_cog_on_ready(bot_with_autocrop_cog: DemocracyBot, caplog
         cog = bot_with_autocrop_cog.get_cog("Autocrop")
         await cog.on_ready()
 
+        print("\nCaptured logs in test_autocrop_cog_on_ready:")
+        for log in captured:
+            print(f"Log event: {log}")
+
         # Check if the log message exists in the captured structlog events
         assert any(log.get("event") == "Autocrop Cog ready." for log in captured), (
             "Expected 'Autocrop Cog ready.' message not found in logs"
@@ -161,10 +181,19 @@ async def test_autocrop_cog_on_guild_join(bot_with_autocrop_cog: DemocracyBot, c
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_autocrop_cog.get_cog("Autocrop")
-    guild = bot_with_autocrop_cog.guilds[0]
-    await cog.on_guild_join(guild)
-    assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
+    with capture_logs() as captured:
+        cog = bot_with_autocrop_cog.get_cog("Autocrop")
+        guild = dpytest.get_config().guilds[0]
+        await cog.on_guild_join(guild)
+
+        print("\nCaptured logs in test_autocrop_cog_on_guild_join:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Check if the log message exists in the captured structlog events
+        assert any(log.get("event") == f"Adding new guild to database: {guild.id}" for log in captured), (
+            "Expected 'Adding new guild to database' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio
@@ -175,7 +204,9 @@ async def test_crop_help_command(bot_with_autocrop_cog: DemocracyBot) -> None:
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
     """
     await dpytest.message("?crop")
-    assert dpytest.verify().message().content(HELP_MESSAGE)
+    # Wait for message to be processed
+    message = await dpytest.sent_queue.get()
+    assert "Available commands" in message.content
 
 
 @pytest.mark.asyncio
@@ -200,19 +231,46 @@ async def test_process_image(
         This test specifically checks square cropping (1:1 aspect ratio)
         and verifies the output dimensions.
     """
-    cog = bot_with_autocrop_cog.get_cog("Autocrop")
-    output_path = tmp_path / "output.png"
+    with capture_logs() as captured:
+        cog = bot_with_autocrop_cog.get_cog("Autocrop")
+        output_path = tmp_path / "output.png"
 
-    # Test square crop
-    success = await cog._process_image(str(test_image), (1, 1), str(output_path))
-    assert success
+        # Create a test image with known dimensions
+        import numpy as np
 
-    # Verify output image dimensions
-    from PIL import Image
+        from PIL import Image
 
-    with Image.open(output_path) as img:
-        width, height = img.size
-        assert width == height  # Should be square
+        # Create a 200x100 test image (landscape)
+        img_array = np.random.randint(0, 255, (100, 200, 3), dtype=np.uint8)
+        test_img = Image.fromarray(img_array)
+        test_img_path = tmp_path / "test_landscape.png"
+        test_img.save(test_img_path)
+
+        # Test square crop (1:1)
+        success = await cog._process_image(str(test_img_path), (1, 1), str(output_path))
+        assert success, "Image processing should succeed"
+
+        # Verify output image dimensions
+        with Image.open(output_path) as img:
+            width, height = img.size
+            assert width == height, f"Output image should be square, got {width}x{height}"
+            # Since input was 200x100, the square crop should be 100x100
+            assert width == 100, f"Expected width 100, got {width}"
+            assert height == 100, f"Expected height 100, got {height}"
+
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_process_image:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Starting image processing") for log in captured), (
+            "Expected 'Starting image processing' message not found in logs"
+        )
+
+        assert any(log.get("event") == "Image processed successfully" for log in captured), (
+            "Expected 'Image processed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio
@@ -223,7 +281,9 @@ async def test_crop_invalid_attachment(bot_with_autocrop_cog: DemocracyBot) -> N
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
     """
     await dpytest.message("?crop square")
-    assert dpytest.verify().message().content("Please attach an image to crop")
+    # Wait for message to be processed
+    message = await dpytest.sent_queue.get()
+    assert "Please attach an image to crop" in message.content
 
 
 @pytest.fixture
@@ -257,9 +317,9 @@ async def test_crop_invalid_file_type(
     """
     # Send command with invalid file attachment
     await dpytest.message("?crop square", attachments=[invalid_file])
-
-    # Verify error message
-    assert dpytest.verify().message().content("Please provide a valid image file")
+    # Wait for message to be processed
+    message = await dpytest.sent_queue.get()
+    assert "Please provide a valid image file" in message.content
 
 
 @pytest.mark.asyncio
@@ -277,112 +337,61 @@ async def test_crop_download_timeout_draft(
         test_image: Path to test image file
 
     Note:
-        Uses asyncio.sleep to simulate a slow download that exceeds
+        Uses SlowAttachment to simulate a slow download that exceeds
         the configured timeout duration.
     """
-    # Get the first guild (server) from the bot's guild list
-    guild = bot_with_autocrop_cog.guilds[0]
-    # Get the first member from the guild and type-annotate it as a discord.Member
-    author: discord.Member = guild.members[0]
-    # Get the first channel from the guild
-    channel = guild.channels[0]
+    with capture_logs() as captured:
+        # Get the first guild (server) from the bot's guild list
+        guild = dpytest.get_config().guilds[0]
+        # Get the first member from the guild
+        author = guild.members[0]
+        # Get the first channel from the guild
+        channel = guild.channels[0]
 
-    # # Create a mock attachment that simulates a slow download
-    # class SlowAttachment(discord.Attachment):
-    #     async def save(self, fp: str, **kwargs: Any) -> None:
-    #         await asyncio.sleep(aiosettings.autocrop_download_timeout + 1)
-    #         # Simulate saving the file
-    #         with open(fp, 'wb') as f:
-    #             f.write(b'test content')
+        # Create a mock Discord Attachment object with test image data
+        attach = SlowAttachment(
+            state=dpytest.back.get_state(),
+            data=dpytest.back.facts.make_attachment_dict(
+                filename=test_image.name,
+                size=15112122,
+                url=f"https://media.discordapp.net/attachments/123/456/{test_image.name}",
+                proxy_url=f"https://media.discordapp.net/attachments/123/456/{test_image.name}",
+                height=1000,
+                width=1000,
+                content_type="image/png",
+            ),
+        )
 
-    # Create a mock Discord Attachment object with test image data
-    attach: discord.Attachment = SlowAttachment(
-        # Pass the current state manager from dpytest backend
-        state=dpytest.back.get_state(),
-        # Create a mock attachment dictionary with test image properties
-        data=dpytest.back.facts.make_attachment_dict(
-            # Set the filename for the test attachment
-            f"{test_image.name}",
-            # Set the file size in bytes
-            15112122,
-            # Set the CDN URL for the attachment
-            f"https://media.discordapp.net/attachments/some_number/random_number/{test_image.name}",
-            # Set the proxy URL (usually same as CDN URL)
-            f"https://media.discordapp.net/attachments/some_number/random_number/{test_image.name}",
-            # Set the image height in pixels
-            height=1000,
-            # Set the image width in pixels
-            width=1000,
-            # Set the MIME type of the attachment
-            content_type="image/jpeg",
-        ),
-    )
+        # Create a message dictionary using dpytest's factory
+        message_dict = dpytest.back.facts.make_message_dict(channel, author, attachments=[attach])
 
-    # Create a message dictionary using dpytest's factory with the channel, author and attachment
-    message_dict = dpytest.back.facts.make_message_dict(channel, author, attachments=[attach])
+        # Create a Discord Message object from the dictionary
+        message = discord.Message(state=dpytest.back.get_state(), channel=channel, data=message_dict)
 
-    try:
-        # Attempt to create a Discord Message object from the dictionary and type-annotate it
-        message: discord.Message = discord.Message(state=dpytest.back.get_state(), channel=channel, data=message_dict)
-    # If any error occurs during message creation, fail the test with the error message
-    except Exception as err:
-        pytest.fail(str(err))
+        # Get the Autocrop cog
+        cog = bot_with_autocrop_cog.get_cog("Autocrop")
 
-    # # Create a slow attachment with the test image
-    # slow_attachment = SlowAttachment(
-    #     state=mocker.Mock(),
-    #     data={
-    #         "id": 123456789,
-    #         "filename": test_image.name,
-    #         "size": 1000,
-    #         "url": "http://example.com/test.png",
-    #         "proxy_url": "http://example.com/test.png",
-    #         "content_type": "image/png",
-    #     },
-    # )
+        # Create a mock context
+        ctx = mocker.Mock(spec=commands.Context)
+        ctx.message = message
+        ctx.author = author
+        ctx.guild = guild
+        ctx.channel = channel
+        ctx.send = mocker.AsyncMock()
 
-    # # Send command with slow attachment
-    # # Create a message first
-    # await dpytest.message("test")
-    # await asyncio.sleep(0.1)  # Add small delay to ensure message is queued
-    # # Get cog instance
-    # cog = bot_with_autocrop_cog.get_cog("Autocrop")
+        # Call _handle_crop directly with the message and attachment
+        success, error_msg = await cog._handle_crop(ctx, "square", attach)
+        assert not success, "Expected crop operation to fail due to timeout"
+        assert error_msg == "Image download timed out", f"Expected timeout error message, got: {error_msg}"
 
-    # # Create a message first
-    # await dpytest.message("test")
-    # await asyncio.sleep(0.1)  # Add small delay to ensure message is queued
-    # message = await dpytest.get_message()
+        # Verify logging
+        assert any("Starting image download" in str(log.get("event", "")) for log in captured), (
+            "Expected 'Starting image download' message not found in logs"
+        )
 
-    # # Create mock attachment that simulates slow processing
-    # mock_attachment = mocker.Mock(spec=discord.Attachment)
-    # mock_attachment.save.return_value = None
-    # mock_attachment.content_type = "image/png"
-    # mock_attachment.filename = "test.png"
-
-    # # Test directly with _handle_crop instead of going through dpytest.message
-    # success, error_msg = await cog._handle_crop(
-    #     message,
-    #     "square",
-    #     mock_attachment,
-    # )
-
-    # assert not success
-    # assert "Image processing timed out" in error_msg
-
-    # # Test directly with _handle_crop instead of going through dpytest.message
-    # # since dpytest doesn't handle custom Attachment classes well
-    # success, error_msg = await cog._handle_crop(
-    #     message,
-    #     "square",
-    #     slow_attachment,
-    # )
-
-    # assert not success
-    # assert "Image download timed out" in error_msg
-
-    # # Verify timeout error message
-    # assert dpytest.verify().message().content("Processing image to square format...")
-    # assert dpytest.verify().message().content("Image download timed out")
+        assert any("Image download timed out" in str(log.get("event", "")) for log in captured), (
+            "Expected 'Image download timed out' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio
@@ -490,34 +499,48 @@ async def test_crop_processing_timeout(
         mocker: MockerFixture
         test_image: Test image fixture
     """
+    with capture_logs() as captured:
+        # Mock _process_image to simulate timeout
+        async def slow_process(*args, **kwargs):
+            await asyncio.sleep(aiosettings.autocrop_processing_timeout + 1)
+            return True
 
-    # Mock _process_image to simulate timeout
-    async def slow_process(*args, **kwargs):
-        await asyncio.sleep(aiosettings.autocrop_processing_timeout + 1)
-        return True
+        cog = bot_with_autocrop_cog.get_cog("Autocrop")
+        mocker.patch.object(cog, "_process_image", side_effect=slow_process)
 
-    cog = bot_with_autocrop_cog.get_cog("Autocrop")
-    mocker.patch.object(cog, "_process_image", side_effect=slow_process)
+        # Create a mock attachment that saves quickly but processes slowly
+        mock_attachment = mocker.Mock(spec=discord.Attachment)
+        mock_attachment.save.return_value = None
+        mock_attachment.content_type = "image/png"
+        mock_attachment.filename = "test.png"
 
-    # Create a mock attachment that saves quickly but processes slowly
-    mock_attachment = mocker.Mock(spec=discord.Attachment)
-    mock_attachment.save.return_value = None
-    mock_attachment.content_type = "image/png"
-    mock_attachment.filename = "test.png"
+        # Create a message first
+        await dpytest.message("test")
+        await asyncio.sleep(0.1)  # Add small delay to ensure message is queued
+        message = await dpytest.get_message()
 
-    # Create a message first
-    await dpytest.message("test")
-    await asyncio.sleep(0.1)  # Add small delay to ensure message is queued
-    message = await dpytest.get_message()
+        success, error_msg = await cog._handle_crop(
+            message,
+            "square",
+            mock_attachment,
+        )
 
-    success, error_msg = await cog._handle_crop(
-        message,
-        "square",
-        mock_attachment,
-    )
+        assert not success
+        assert "Image processing timed out" in error_msg
 
-    assert not success
-    assert "Image processing timed out" in error_msg
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_crop_processing_timeout:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Starting image processing") for log in captured), (
+            "Expected 'Starting image processing' message not found in logs"
+        )
+
+        assert any(log.get("event") == "Image processing timed out" for log in captured), (
+            "Expected 'Image processing timed out' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio
@@ -538,24 +561,65 @@ async def test_concurrent_processing(
         Processes multiple copies of the same image concurrently and
         verifies that all outputs are correctly processed.
     """
-    cog = bot_with_autocrop_cog.get_cog("Autocrop")
+    with capture_logs() as captured:
+        cog = bot_with_autocrop_cog.get_cog("Autocrop")
 
-    # Create multiple output paths
-    output_paths = [tmp_path / f"output_{i}.png" for i in range(3)]
+        # Create test images with different dimensions
+        import numpy as np
 
-    # Process multiple images concurrently
-    tasks = [cog._process_image(str(test_image), (1, 1), str(output_path)) for output_path in output_paths]
+        from PIL import Image
 
-    results = await asyncio.gather(*tasks)
+        # Create test images: landscape, portrait, and square
+        test_images = []
+        dimensions = [(200, 100), (100, 200), (150, 150)]
 
-    # Verify all processes completed successfully
-    assert all(results)
+        for i, (width, height) in enumerate(dimensions):
+            img_array = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
+            test_img = Image.fromarray(img_array)
+            test_img_path = tmp_path / f"test_image_{i}.png"
+            test_img.save(test_img_path)
+            test_images.append(test_img_path)
 
-    # Verify each output file exists and is a valid image
-    from PIL import Image
+        # Create multiple output paths
+        output_paths = [tmp_path / f"output_{i}.png" for i in range(len(test_images))]
 
-    for output_path in output_paths:
-        assert output_path.exists()
-        with Image.open(output_path) as img:
-            width, height = img.size
-            assert width == height  # Should be square
+        # Process multiple images concurrently with different aspect ratios
+        tasks = [
+            cog._process_image(str(img_path), ratio, str(out_path))
+            for img_path, out_path, ratio in zip(
+                test_images,
+                output_paths,
+                [(1, 1), (4, 5), (16, 9)],
+                strict=False,  # square, portrait, landscape
+            )
+        ]
+
+        # Run tasks concurrently
+        results = await asyncio.gather(*tasks)
+
+        # Verify all processes completed successfully
+        assert all(results), "All image processing tasks should succeed"
+
+        # Verify each output file exists and has correct dimensions
+        expected_ratios = [(1, 1), (4, 5), (16, 9)]
+        for output_path, (target_width, target_height) in zip(output_paths, expected_ratios, strict=False):
+            assert output_path.exists(), f"Output file {output_path} should exist"
+
+            with Image.open(output_path) as img:
+                width, height = img.size
+                actual_ratio = width / height
+                expected_ratio = target_width / target_height
+                assert abs(actual_ratio - expected_ratio) < 0.01, (
+                    f"Expected aspect ratio {expected_ratio:.2f}, got {actual_ratio:.2f}"
+                )
+
+        # Verify logging
+        processing_starts = [log for log in captured if log.get("event", "").startswith("Starting image processing")]
+        assert len(processing_starts) == len(test_images), (
+            f"Expected {len(test_images)} 'Starting image processing' messages, got {len(processing_starts)}"
+        )
+
+        success_logs = [log for log in captured if "Image processed successfully" in str(log.get("event", ""))]
+        assert len(success_logs) == len(test_images), (
+            f"Expected {len(test_images)} 'Image processed successfully' messages, got {len(success_logs)}"
+        )

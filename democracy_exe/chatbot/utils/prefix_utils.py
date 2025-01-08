@@ -34,9 +34,11 @@ def get_guild_prefix(bot: Any, guild_id: int) -> str:
     try:
         if not hasattr(bot, 'prefixes'):
             raise AttributeError("Bot has no prefixes attribute")
-        return bot.prefixes.get(guild_id, [aiosettings.prefix])[0]
+        prefix = bot.prefixes.get(guild_id, [aiosettings.prefix])[0]
+        logger.info("Getting guild prefix", guild_id=guild_id, prefix=prefix)
+        return prefix
     except Exception as e:
-        logger.error("Error getting guild prefix: {}", str(e))
+        logger.error("Error getting guild prefix", error=str(e))
         return aiosettings.prefix
 
 
@@ -50,7 +52,7 @@ async def get_prefix(bot: Any, message: Message) -> Any:
     Returns:
         The command prefix to be used for the bot
     """
-    logger.info("Getting prefix for message: {}", message.id)
+    logger.info("Getting prefix for message", message_id=message.id)
     try:
         # Cast to proper types to satisfy type checker
         channel = cast(Union[DMChannel, Any], message.channel)
@@ -59,14 +61,14 @@ async def get_prefix(bot: Any, message: Message) -> Any:
             if isinstance(channel, DMChannel)
             else [get_guild_prefix(bot, cast(Guild, message.guild).id)]
         )
-        logger.debug("Using prefix: {}", prefix)
+        logger.debug("Using prefix", prefix=prefix)
         # await logger.complete()
         base = [f"<@!{bot.user.id}> ", f"<@{bot.user.id}> "]
         prefixes = [aiosettings.prefix] if isinstance(channel, DMChannel) else bot.prefixes.get(cast(Guild, message.guild).id, [aiosettings.prefix])
         base.extend(prefixes)
         return base
     except Exception as e:
-        logger.error("Error getting prefix: {}", str(e))
+        logger.error("Error getting prefix", error=str(e))
         # Fallback to default prefix
         return commands.when_mentioned_or(aiosettings.prefix)(bot, message)
 
@@ -95,12 +97,14 @@ def _prefix_callable(bot: Any, msg: Message) -> list[str]:
         guild = cast(Optional[Guild], msg.guild)
         if guild is None:
             base.extend(("!", "?"))
+            logger.info("Getting prefixes for DM channel")
         else:
             base.extend(bot.prefixes.get(guild.id, ["?", "!"]))
+            logger.info("Getting prefixes for guild channel", guild_id=guild.id)
 
         return base
     except Exception as e:
-        logger.error("Error in prefix_callable: {}", str(e))
+        logger.error("Error in prefix_callable", error=str(e))
         # Fallback to default prefixes
         return ["!", "?"]
 
@@ -124,12 +128,12 @@ async def update_guild_prefix(
 
         if guild_id in bot.prefixes:
             bot.prefixes[guild_id] = [new_prefix]
-            logger.info("Updated prefix for guild {} to {}", guild_id, new_prefix)
+            logger.info("Updated prefix for guild", guild_id=guild_id, new_prefix=new_prefix)
         else:
-            logger.warning("Guild {} not found in prefix cache", guild_id)
+            logger.warning("Guild not found in prefix cache", guild_id=guild_id)
 
     except Exception as e:
-        logger.error(f"Error updating guild prefix: {e}")
+        logger.error("Error updating guild prefix", error=str(e))
         raise
 
 
@@ -156,5 +160,5 @@ def get_prefix_display(
         else:
             return f"Current prefixes are: {', '.join(prefixes)}"
     except Exception as e:
-        logger.error("Error getting prefix display: {}", str(e))
+        logger.error("Error getting prefix display", error=str(e))
         return "Default prefixes are: ! ?"
