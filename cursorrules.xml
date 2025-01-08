@@ -684,6 +684,46 @@
           ]]>
         </example>
       </test_organization>
+
+      <structlog_testing>
+        <standard>Always use structlog's capture_logs context manager for testing log output.</standard>
+        <standard>Never use pytest's caplog fixture for structlog message verification.</standard>
+        <standard>Check log events using log.get("event") instead of checking message strings.</standard>
+        <standard>Include descriptive error messages in log assertions.</standard>
+        <standard>Remove caplog.set_level() calls when using structlog.</standard>
+        <example>
+          <![CDATA[
+          @pytest.mark.asyncio
+          async def test_example_event(bot: DemocracyBot, caplog: LogCaptureFixture) -> None:
+              """Test example event logging.
+
+              Args:
+                  bot: The Discord bot instance
+                  caplog: Pytest log capture fixture (kept for compatibility)
+              """
+              with capture_logs() as captured:
+                  # Perform the action that generates logs
+                  await some_action()
+
+                  # Check if the log message exists in the captured structlog events
+                  assert any(
+                      log.get("event") == "Expected Event Message" for log in captured
+                  ), "Expected 'Expected Event Message' not found in logs"
+
+                  # For multiple log checks, use multiple assertions
+                  assert any(
+                      log.get("event") == "Another Expected Event" for log in captured
+                  ), "Expected 'Another Expected Event' not found in logs"
+          ]]>
+        </example>
+        <best_practices>
+          <standard>Keep the caplog fixture parameter for compatibility with other tests.</standard>
+          <standard>Use descriptive variable names like 'captured' for the capture_logs result.</standard>
+          <standard>Check exact event messages rather than using string contains.</standard>
+          <standard>Include the full expected message in the assertion error message.</standard>
+          <standard>Group related log checks together within the same capture_logs context.</standard>
+        </best_practices>
+      </structlog_testing>
     </testing_practices>
 
     <examples>

@@ -143,9 +143,14 @@ async def test_autocrop_cog_on_ready(bot_with_autocrop_cog: DemocracyBot, caplog
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_autocrop_cog.get_cog("Autocrop")
-    await cog.on_ready()
-    assert any(record.message == "Autocrop Cog ready." for record in caplog.records)
+    with capture_logs() as captured:
+        cog = bot_with_autocrop_cog.get_cog("Autocrop")
+        await cog.on_ready()
+
+        # Check if the log message exists in the captured structlog events
+        assert any(log.get("event") == "Autocrop Cog ready." for log in captured), (
+            "Expected 'Autocrop Cog ready.' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio

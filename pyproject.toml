@@ -1465,6 +1465,12 @@ markers = [
     "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
     "gallerydlonly: marks tests that run code that utilizes the gallery-dl module (deselect with '-m \"not gallerydlonly\"')",
     "logsonly: marks tests that run code that utilizes the logs module (deselect with '-m \"not logsonly\"')",
+    "chatbotonly: marks tests that run code that utilizes the chatbot module (deselect with '-m \"not chatbotonly\"')",
+    "agenticonly: marks tests that run code that utilizes the agentic module (deselect with '-m \"not agenticonly\"')",
+
+
+
+
 ]
 
 
