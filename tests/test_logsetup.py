@@ -1,3 +1,8 @@
+# pyright: reportUnusedFunction=false
+# pyright: reportUndefinedVariable=false
+# pyright: reportInvalidTypeForm=false
+
+
 from __future__ import annotations
 
 import datetime
@@ -15,7 +20,7 @@ from structlog.testing import LogCapture
 
 import pytest
 
-from democracy_exe.bot_logger.logsetup import _add_module_name, _add_process_info, configure_logging, get_logger
+from democracy_exe.bot_logger.logsetup import configure_logging, get_logger
 
 
 if TYPE_CHECKING:
