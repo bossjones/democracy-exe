@@ -72,45 +72,6 @@ def get_log_level(level: str | int) -> int:
     except KeyError:
         raise ValueError(f"Invalid log level: '{level}'") from None
 
-
-def _add_module_name(logger: str, method_name: str, event_dict: dict) -> dict:
-    """Add the module name to the event dict.
-
-    Args:
-        logger: The logger name
-        method_name: The logging method name
-        event_dict: The event dictionary
-
-    Returns:
-        dict: The event dictionary with module name added
-    """
-    event_dict["module"] = logger
-    return event_dict
-
-
-def _add_process_info(logger: str, method_name: str, event_dict: dict) -> dict:
-    """Add process information to the event dict.
-
-    Args:
-        logger: The logger name
-        method_name: The logging method name
-        event_dict: The event dictionary
-
-    Returns:
-        dict: The event dictionary with process info added
-    """
-    try:
-        process = multiprocessing.current_process()
-        event_dict.update({
-            "process_name": process.name,
-            "process_id": process.pid,
-        })
-    except Exception:
-        # Fail silently if we can't get process info
-        pass
-    return event_dict
-
-
 def configure_logging(
     enable_json_logs: bool = False,
     log_level: str = "INFO",
@@ -150,26 +111,6 @@ def configure_logging(
 
     # Clear any existing context
     clear_contextvars()
-
-
-# borrowed this from /Users/malcolm/dev/structlog/tests/typing/api.py
-#     structlog.configure(
-#     processors=[
-#         structlog.stdlib.filter_by_level,
-#         structlog.stdlib.add_logger_name,
-#         structlog.stdlib.add_log_level,
-#         structlog.stdlib.PositionalArgumentsFormatter(),
-#         structlog.processors.TimeStamper(fmt="iso"),
-#         structlog.processors.StackInfoRenderer(),
-#         structlog.processors.format_exc_info,
-#         structlog.processors.UnicodeDecoder(),
-#         structlog.processors.JSONRenderer(),
-#     ],
-#     context_class=dict,
-#     logger_factory=structlog.stdlib.LoggerFactory(),
-#     wrapper_class=structlog.stdlib.BoundLogger,
-#     cache_logger_on_first_use=True,
-# )
 
     def get_processor_chain(enable_dev_processors: bool = False) -> list[Processor]:
         """Build the processor chain based on environment needs.
@@ -220,51 +161,7 @@ def configure_logging(
             # Time stamper
             # Add a timestamp to the event dict under the ``timestamp`` key.
             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            # ------------------------------------
-
-            # Console renderer
-            # Render the event dict as a human-readable string.
-            #  Render ``event_dict`` nicely aligned, possibly in colors, and ordered.
-
-            # # If ``event_dict`` contains a true-ish ``exc_info`` key, it will be rendered
-            # # *after* the log line. If Rich_ or better-exceptions_ are present, in colors
-            # # and with extra context.
-            # structlog.dev.ConsoleRenderer(),
-            # ------------------------------------
-
-            # # Basic event enrichment
-            # structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=True),
-            # structlog.stdlib.add_log_level, # pyright: ignore[reportAttributeAccessIssue]
-            # structlog.stdlib.add_logger_name,
-
-            # # Custom context processors
-            # _add_module_name,
-            # _add_process_info,
-
-            # # Error and stack trace handling
-            # structlog.processors.StackInfoRenderer(),
-            # structlog.processors.format_exc_info,
-
-            # # Encoding
-            # structlog.processors.UnicodeDecoder(),
         ]
-
-        # # Development-specific processors
-        # if enable_dev_processors:
-        #     processors.append(
-        #         structlog.processors.CallsiteParameterAdder(
-        #             {
-        #                 structlog.processors.CallsiteParameter.FILENAME,
-        #                 structlog.processors.CallsiteParameter.FUNC_NAME,
-        #                 structlog.processors.CallsiteParameter.LINENO,
-        #                 structlog.processors.CallsiteParameter.MODULE,
-        #                 structlog.processors.CallsiteParameter.THREAD,
-        #                 structlog.processors.CallsiteParameter.THREAD_NAME,
-        #                 structlog.processors.CallsiteParameter.PROCESS,
-        #                 structlog.processors.CallsiteParameter.PROCESS_NAME,
-        #             }
-        #         )
-        #     )
 
         return processors
 
@@ -306,16 +203,7 @@ def configure_logging(
 
         return structlog.dev.ConsoleRenderer(
             colors=True,
-            # exception_formatter=structlog.dev.plain_traceback,
             sort_keys=True,
-            # level_styles={
-            #     'debug': structlog.dev.BLUE,
-            #     'info': structlog.dev.GREEN,
-            #     'warning': structlog.dev.YELLOW,
-            #     'error': structlog.dev.RED,
-            #     'critical': structlog.dev.RED,
-            #     "notset": structlog.dev.RESET,
-            # }
         )
 
     # Get the appropriate renderer
@@ -329,57 +217,10 @@ def configure_logging(
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
-        # wrapper_class=structlog.stdlib.BoundLogger,  # Use regular BoundLogger by default
         wrapper_class=structlog.make_filtering_bound_logger(get_log_level(log_level)),
-        # cache_logger_on_first_use=True,
     )
 
     return structlog.get_config()
-
-    # # Configure standard logging
-    # logging.config.dictConfig({
-    #     "version": 1,
-    #     "disable_existing_loggers": False,
-    #     "formatters": {
-    #         "structured": {
-    #             "()": structlog.stdlib.ProcessorFormatter,
-    #             "processor": renderer,
-    #             "foreign_pre_chain": shared_processors,
-    #         },
-    #     },
-    #     "handlers": {
-    #         "default": {
-    #             "level": log_level,
-    #             "class": "logging.StreamHandler",
-    #             "formatter": "structured",
-    #             "stream": sys.stdout,  # Explicitly use stdout
-    #         },
-    #         "error": {
-    #             "level": "ERROR",
-    #             "class": "logging.StreamHandler",
-    #             "formatter": "structured",
-    #             "stream": sys.stderr,  # Errors go to stderr
-    #         },
-    #         "null": {
-    #             "class": "logging.NullHandler",
-    #         },
-    #     },
-    #     "loggers": {
-    #         "": {
-    #             "handlers": ["default", "error"],
-    #             "level": log_level,
-    #             "propagate": True,
-    #         },
-    #         **{
-    #             name: {
-    #                 "handlers": ["default", "error"],
-    #                 "level": level,
-    #                 "propagate": False,
-    #             }
-    #             for name, level in default_third_party.items()
-    #         },
-    #     },
-    # })
 
 
 def get_logger(name: str) -> BoundLogger:
@@ -393,9 +234,6 @@ def get_logger(name: str) -> BoundLogger:
     """
     return structlog.get_logger(name)
 
-
-# Initialize default logger
-# logger = get_logger(__name__)
 
 
 if __name__ == "__main__":
