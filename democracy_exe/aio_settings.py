@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import enum
+import logging
 import os
 import pathlib
 
@@ -15,12 +16,13 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, cast
 
-# from loguru import logger
 import structlog
 
 
-logger = structlog.get_logger(__name__)
-import logging
+# so we have logger names
+structlog.stdlib.recreate_defaults()
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 from pydantic import (
     AliasChoices,
