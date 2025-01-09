@@ -147,7 +147,7 @@ def configure_logging(
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
-        wrapper_class=structlog.stdlib.AsyncBoundLogger,
+        wrapper_class=structlog.stdlib.BoundLogger,  # Use regular BoundLogger by default
         cache_logger_on_first_use=True,
     )
 
