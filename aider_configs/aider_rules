@@ -31,7 +31,7 @@
   <code_quality>
     <standard>Add typing annotations to ALL functions and classes with return types.</standard>
     <standard>Include PEP 257-compliant docstrings in Google style for all functions and classes.</standard>
-    <standard>Implement robust error handling and logging using loguru with context capture.</standard>
+    <standard>Implement robust error handling and logging using structlog with context capture.</standard>
     <standard>Use descriptive variable and function names.</standard>
     <standard>Add detailed comments for complex logic.</standard>
     <standard>Provide rich error context for debugging.</standard>
@@ -39,7 +39,7 @@
     <standard>Skip type annotations and docstrings for marimo notebook cells (files prefixed with `marimo_*`) that use the pattern `@app.cell def __()`.</standard>
     <standard>Use dataclasses for configuration and structured data.</standard>
     <standard>Implement proper error boundaries and exception handling.</standard>
-    <standard>Use loguru for all logging with proper formatting and context.</standard>
+    <standard>Use structlog for all logging with proper formatting and context.</standard>
     <standard>Return only modified portions of code in generation results to optimize token usage.</standard>
     <standard>Add `# pyright: reportAttributeAccessIssue=false` at the top of any Python file that uses discord.py.</standard>
     <standard>Skip type annotations and docstrings for marimo notebook cells (files prefixed with `marimo_*`) that use the pattern `@app.cell def __()`.</standard>
@@ -66,8 +66,7 @@
       <example>
         <![CDATA[
         # Logging Configuration Example
-        from loguru import logger
-        import sys
+        import structlog
         from pathlib import Path
         from typing import Union, Dict, Any
 
@@ -81,28 +80,19 @@
                 log_path: Path to log file
                 log_level: Minimum log level to capture
             """
-            config = {
-                "handlers": [
-                    {
-                        "sink": sys.stdout,
-                        "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-                                "<level>{level: <8}</level> | "
-                                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
-                                "<level>{message}</level>",
-                        "level": log_level,
-                    },
-                    {
-                        "sink": log_path,
-                        "rotation": "500 MB",
-                        "retention": "10 days",
-                        "format": "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | "
-                                "{name}:{function}:{line} | {message}",
-                        "level": log_level,
-                    }
-                ]
-            }
-
-            logger.configure(**config)
+            structlog.configure(
+                processors=[
+                    structlog.contextvars.merge_contextvars,
+                    structlog.processors.add_log_level,
+                    structlog.processors.TimeStamper(fmt="iso"),
+                    structlog.processors.StackInfoRenderer(),
+                    structlog.dev.ConsoleRenderer()
+                ],
+                wrapper_class=structlog.make_filtering_bound_logger(log_level),
+                context_class=dict,
+                logger_factory=structlog.PrintLoggerFactory(),
+                cache_logger_on_first_use=True
+            )
 
         # Exception Hierarchy Example
         class DemocracyExeError(Exception):
@@ -125,7 +115,7 @@
         def log_error_context(
             error: Exception,
             context: Dict[str, Any],
-            level: str = "ERROR"
+            level: str = "error"
         ) -> None:
             """Log error with additional context.
 
@@ -134,11 +124,12 @@
                 context: Additional context information
                 level: Log level to use
             """
-            logger.opt(exception=error).log(
+            logger = structlog.get_logger()
+            logger.bind(**context).log(
                 level,
-                "Error occurred: {}\nContext: {}",
-                str(error),
-                context
+                "error_occurred",
+                error=str(error),
+                error_type=type(error).__name__
             )
 
         # Usage Example
@@ -725,14 +716,13 @@
       <example>
         <![CDATA[
         @pytest.mark.asyncio
-        async def test_example_event(bot: DemocracyBot, caplog: LogCaptureFixture) -> None:
+        async def test_example_event(bot: DemocracyBot) -> None:
             """Test example event logging.
 
             Args:
                 bot: The Discord bot instance
-                caplog: Pytest log capture fixture (kept for compatibility)
             """
-            with capture_logs() as captured:
+            with structlog.testing.capture_logs() as captured:
                 # Perform the action that generates logs
                 await some_action()
 
@@ -758,7 +748,6 @@
         ]]>
       </example>
       <best_practices>
-        <standard>Keep the caplog fixture parameter for compatibility with other tests.</standard>
         <standard>Use descriptive variable names like 'captured' for the capture_logs result.</standard>
         <standard>Check exact event messages rather than using string contains when possible.</standard>
         <standard>Use startswith() for messages with known prefixes but variable content.</standard>
@@ -850,7 +839,7 @@ democracy-exe/
       [Include guidelines on how to use and contribute to the system]
       ]]>
     </example>
-      <example>
+    <example>
       <![CDATA[
       Example prompt.xml for John Helldiver:
       <?xml version="1.0" encoding="UTF-8"?>
@@ -1312,26 +1301,60 @@ democracy-exe/
       </test_data_management>
 
       <logging_setup>
-        <standard>Configure logging for test environment</standard>
-        <standard>Capture and verify log messages in tests</standard>
+        <standard>Configure logging for test environment using structlog</standard>
+        <standard>Use structlog's capture_logs context manager for testing log output</standard>
+        <standard>Never use pytest's caplog fixture for structlog message verification</standard>
         <example>
           <![CDATA[
           @pytest.fixture(autouse=True)
-          def setup_logging(caplog: LogCaptureFixture) -> None:
-              """Configure logging for test environment.
+          def setup_logging() -> None:
+              """Configure structlog for test environment."""
+              import structlog
+
+              structlog.configure(
+                  processors=[
+                      structlog.contextvars.merge_contextvars,
+                      structlog.processors.add_log_level,
+                      structlog.processors.TimeStamper(fmt="iso"),
+                      structlog.processors.StackInfoRenderer(),
+                      structlog.testing.capture_logs,
+                  ],
+                  wrapper_class=structlog.make_filtering_bound_logger("DEBUG"),
+                  context_class=dict,
+                  logger_factory=structlog.testing.LogCapture,
+                  cache_logger_on_first_use=True
+              )
+
+          @pytest.mark.asyncio
+          async def test_example_event(bot: DemocracyBot) -> None:
+              """Test example event logging.
 
               Args:
-                  caplog: Pytest log capture fixture
+                  bot: The Discord bot instance
               """
-              import logging
-              caplog.set_level(logging.DEBUG)
+              with structlog.testing.capture_logs() as captured:
+                  # Perform the action that generates logs
+                  await some_action()
 
-              # Add test-specific logging format
-              formatter = logging.Formatter(
-                  '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-              )
-              for handler in logging.getLogger().handlers:
-                  handler.setFormatter(formatter)
+                  # Check if the log message exists in the captured structlog events
+                  assert any(
+                      log.get("event") == "Expected Event Message" for log in captured
+                  ), "Expected 'Expected Event Message' not found in logs"
+
+                  # For multiple log checks, use multiple assertions
+                  assert any(
+                      log.get("event") == "Another Expected Event" for log in captured
+                  ), "Expected 'Another Expected Event' not found in logs"
+
+                  # For dynamic messages with variable content, use startswith()
+                  assert any(
+                      log.get("event").startswith("File created at:") for log in captured
+                  ), "Expected file creation message not found in logs"
+
+                  # For messages containing variable paths or IDs, use partial matching
+                  assert any(
+                      "user_123" in log.get("event") for log in captured
+                  ), "Expected user ID in log message not found"
           ]]>
         </example>
       </logging_setup>
