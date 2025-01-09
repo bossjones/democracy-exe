@@ -94,22 +94,58 @@ def configure_logging(
     # Clear any existing context
     clear_contextvars()
 
-    # Performance optimization: pre-configure shared processors
-    timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=True)
+    def get_processor_chain(enable_dev_processors: bool = False) -> list[Processor]:
+        """Build the processor chain based on environment needs.
 
-    # Create processors that will be shared between structlog and standard logging
-    shared_processors: list[Processor] = [
-        # Merge context vars should be first to ensure context is available to other processors
-        merge_contextvars,
-        timestamper,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
-        _add_module_name,  # Add custom module name processor
-        _add_process_info,  # Add process info for multiprocessing support
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-    ]
+        Args:
+            enable_dev_processors: Whether to include development-specific processors
+
+        Returns:
+            List of configured processors
+        """
+        # Core processors - always included
+        processors: list[Processor] = [
+            # Context management
+            merge_contextvars,
+
+            # Basic event enrichment
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=True),
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+
+            # Custom context processors
+            _add_module_name,
+            _add_process_info,
+
+            # Error and stack trace handling
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+
+            # Encoding
+            structlog.processors.UnicodeDecoder(),
+        ]
+
+        # Development-specific processors
+        if enable_dev_processors:
+            processors.append(
+                structlog.processors.CallsiteParameterAdder(
+                    {
+                        structlog.processors.CallsiteParameter.FILENAME,
+                        structlog.processors.CallsiteParameter.FUNC_NAME,
+                        structlog.processors.CallsiteParameter.LINENO,
+                        structlog.processors.CallsiteParameter.MODULE,
+                        structlog.processors.CallsiteParameter.THREAD,
+                        structlog.processors.CallsiteParameter.THREAD_NAME,
+                        structlog.processors.CallsiteParameter.PROCESS,
+                        structlog.processors.CallsiteParameter.PROCESS_NAME,
+                    }
+                )
+            )
+
+        return processors
+
+    # Get shared processors
+    shared_processors = get_processor_chain(not enable_json_logs)
 
     # Performance optimization: only add expensive processors when needed
     if not enable_json_logs:  # Development mode
@@ -128,18 +164,38 @@ def configure_logging(
             )
         )
 
-    # Performance optimization for production
-    if enable_json_logs:
-        # JSON output optimized for production
-        renderer = structlog.processors.JSONRenderer(sort_keys=False)
-        shared_processors.append(structlog.processors.format_exc_info)
-    else:
-        # Pretty output for development
-        renderer = structlog.dev.ConsoleRenderer(
+    def get_renderer(enable_json_logs: bool) -> Processor:
+        """Get the appropriate renderer based on environment.
+
+        Args:
+            enable_json_logs: Whether to use JSON logging
+
+        Returns:
+            Configured renderer processor
+        """
+        if enable_json_logs:
+            return structlog.processors.JSONRenderer(
+                sort_keys=False,
+                serializer=lambda obj: str(obj)  # Simple serializer that handles non-JSON types
+            )
+
+        return structlog.dev.ConsoleRenderer(
             colors=True,
             exception_formatter=structlog.dev.plain_traceback,
-            sort_keys=True
+            sort_keys=True,
+            level_styles={
+                'debug': structlog.dev.DIM,
+                'info': structlog.dev.BRIGHT,
+                'warning': structlog.dev.YELLOW,
+                'error': structlog.dev.RED,
+                'critical': f"{structlog.dev.BRIGHT_RED}"
+            }
         )
+
+    # Get the appropriate renderer
+    renderer = get_renderer(enable_json_logs)
+    if enable_json_logs:
+        shared_processors.append(structlog.processors.format_exc_info)
 
     # Configure structlog
     structlog.configure(
