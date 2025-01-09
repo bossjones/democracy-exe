@@ -437,3 +437,4 @@ typings
 .venv
 .git
 __pycache__
+.venv/*

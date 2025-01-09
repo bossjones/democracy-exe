@@ -12,6 +12,7 @@ Context Required:
 3. Specific logging patterns or processors in use
 4. Location of tests (./tests directory structure)
 5. Any custom processors or configurations
+6. Pytest markers for test categorization (e.g., @pytest.mark.logsonly)
 
 Requirements:
 - Use pytest fixtures for structlog test configurations
@@ -20,53 +21,119 @@ Requirements:
 - Follow testing best practices (arrange-act-assert)
 - Include proper test isolation and cleanup
 - Add type hints and docstrings to all test functions
+- Use structlog's capture_logs context manager for testing log output
+- Never use pytest's caplog fixture for structlog message verification
+- Check log events using log.get("event") instead of checking message strings
+- Include descriptive error messages in log assertions
 
-Example 1 - Testing with capture_logs:
+Example 1 - Basic Logging Test:
 ```python
 from typing import List, Dict, Any
 from structlog.testing import capture_logs
 
 def test_basic_logging() -> None:
-    """
-    Test basic logging functionality using capture_logs.
+    """Test basic logging functionality using capture_logs.
 
     This demonstrates capturing and asserting structured log output.
     """
-    with capture_logs() as cap_logs:
+    with capture_logs() as captured:
         logger = get_logger()
         logger.info("process_started", user_id="123")
 
-    assert cap_logs == [{
-        "event": "process_started",
-        "user_id": "123",
-        "log_level": "info"
-    }]
+    assert len(captured) == 1, "Expected exactly one log message"
+    assert captured[0]["event"] == "process_started", "Unexpected event name"
+    assert captured[0]["user_id"] == "123", "Missing or incorrect user_id"
+    assert captured[0]["log_level"] == "info", "Incorrect log level"
 ```
 
-Example 2 - Testing Error Scenarios:
+Example 2 - Testing with LogCapture Fixture:
 ```python
-# Production Code
-def validate_user(user_id: str):
-    logger.info("validating_user", user_id=user_id)
-    if not user_id:
-        logger.error("validation_failed", user_id=user_id, reason="empty_id")
-        raise ValueError("User ID cannot be empty")
-    return True
+@pytest.fixture(name="log_output")
+def fixture_log_output() -> LogCapture:
+    """Create a LogCapture fixture for testing structlog output.
 
-# Test Code
-def test_validate_user_error_logging(caplog):
-    # Arrange
-    invalid_user_id = ""
+    Returns:
+        LogCapture: A structlog LogCapture instance
+    """
+    return LogCapture()
 
-    # Act & Assert
-    with pytest.raises(ValueError):
-        validate_user(invalid_user_id)
+@pytest.fixture(autouse=True)
+def clean_logging() -> Generator[None, None, None]:
+    """Reset logging configuration before and after each test.
 
-    log_messages = [event for event in caplog.records]
-    assert len(log_messages) == 2
-    assert log_messages[1].msg == "validation_failed"
-    assert log_messages[1].reason == "empty_id"
+    Yields:
+        None
+    """
+    # Reset before test
+    logging.root.handlers = []
+    structlog.reset_defaults()
+
+    yield
+
+    # Reset after test
+    logging.root.handlers = []
+    structlog.reset_defaults()
+
+def test_complex_logging(log_output: LogCapture) -> None:
+    """Test complex logging scenarios with context and multiple events.
+
+    Args:
+        log_output: The LogCapture fixture
+    """
+    logger = get_logger().bind(request_id="abc")
+    logger.info("operation.start", step=1)
+    logger.error("operation.error", error="timeout")
+
+    assert len(log_output.entries) == 2, "Expected exactly two log messages"
+    assert log_output.entries[0]["request_id"] == "abc", "Missing request_id in context"
+    assert log_output.entries[0]["event"] == "operation.start", "Incorrect start event"
+    assert log_output.entries[1]["error"] == "timeout", "Missing error info"
 ```
+
+Example 3 - Testing Async Logging:
+```python
+@pytest.mark.asyncio
+async def test_async_logging(log_output: LogCapture) -> None:
+    """Test async logging capabilities.
+
+    Args:
+        log_output: The LogCapture fixture
+    """
+    logger = get_logger("test_async")
+    test_message = "async test message"
+
+    await logger.ainfo(test_message)
+
+    assert len(log_output.entries) == 1, "Expected exactly one log message"
+    assert log_output.entries[0]["event"] == test_message, "Incorrect message content"
+```
+
+Best Practices:
+1. Test Setup and Cleanup:
+   - Use fixtures for common setup and teardown
+   - Reset logging configuration between tests
+   - Clean up any file handlers or resources
+
+2. Log Message Verification:
+   - Use exact matches for known values
+   - Use startswith() for messages with known prefixes
+   - Use string contains for variable content
+   - Always include descriptive assertion messages
+
+3. Context and Metadata:
+   - Test bound context propagation
+   - Verify metadata is correctly added
+   - Check processor modifications
+
+4. Error Handling:
+   - Test error logging scenarios
+   - Verify error context is captured
+   - Check exception information
+
+5. Performance Considerations:
+   - Group related log checks in single capture block
+   - Avoid unnecessary log captures
+   - Clean up resources properly
 
 Chain of Thought:
 1. First, analyze the production code to identify key logging points and business logic
@@ -85,96 +152,3 @@ Think through each test case step by step:
 5. What cleanup is needed?
 
 Please generate tests following this pattern for my code, explaining your thought process at each step.
-
-# Example 1: Testing with capture_logs
-from structlog.testing import capture_logs
-from typing import Dict, Any
-
-def test_basic_logging() -> None:
-    """
-    Test basic logging functionality using capture_logs.
-
-    This demonstrates capturing and asserting structured log output.
-    """
-    with capture_logs() as cap_logs:
-        logger = get_logger()
-        logger.info("process_started", user_id="123")
-
-    assert cap_logs == [{
-        "event": "process_started",
-        "user_id": "123",
-        "log_level": "info"
-    }]
-
-# Example 2: Testing with LogCapture fixture
-@pytest.fixture(name="log_output")
-def fixture_log_output() -> LogCapture:
-    """
-    Fixture that provides a LogCapture instance for testing.
-
-    Returns:
-        LogCapture: The log capture instance.
-    """
-    return LogCapture()
-
-@pytest.fixture(autouse=True)
-def fixture_configure_structlog(log_output: LogCapture) -> None:
-    """
-    Configure structlog for testing with the LogCapture processor.
-
-    Args:
-        log_output: The LogCapture instance to use for testing.
-    """
-    structlog.configure(processors=[log_output])
-
-def test_complex_logging(log_output: LogCapture) -> None:
-    """
-    Test complex logging scenarios with context and multiple events.
-    """
-    logger = get_logger().bind(request_id="abc")
-    logger.info("operation.start", step=1)
-    logger.error("operation.error", error="timeout")
-
-    assert len(log_output.entries) == 2
-    assert log_output.entries[0]["request_id"] == "abc"
-    assert log_output.entries[1]["error"] == "timeout"
-
-Analysis Steps:
-1. Examine the code's logging patterns:
-   - What processors are configured?
-   - What context is being bound?
-   - What log levels are used?
-
-2. Identify test scenarios:
-   - Happy path logging
-   - Error scenarios
-   - Context propagation
-   - Processor behavior
-
-3. Design test structure:
-   - Required fixtures
-   - Test isolation needs
-   - Assertions for both structure and content
-
-4. Implementation approach:
-   - Choose appropriate capture method
-   - Set up necessary context
-   - Write assertions
-   - Add type hints and docstrings
-
-Testing Guidelines:
-1. Use type hints for all test functions and fixtures
-2. Include clear docstrings following PEP 257
-3. Create fixtures for common setup
-4. Test both log structure and content
-5. Verify context propagation
-6. Test processor chains if custom processors are used
-7. Ensure proper cleanup after tests
-
-Structure Tests By:
-1. Logical grouping in test files
-2. Clear fixture hierarchies
-3. Shared utilities in conftest.py
-4. Consistent naming patterns
-5. Comprehensive docstrings
-6. Type annotations for better code understanding
