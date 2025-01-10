@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import threading
 import time
@@ -42,30 +43,37 @@ def configure_structlog(log_output: Any) -> None:
     """
     structlog.configure(
         processors=[
-            structlog.processors.add_log_level,
+            structlog.stdlib.add_log_level,
             structlog.processors.format_exc_info,
             structlog.processors.TimeStamper(fmt="iso"),
             log_output,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger("DEBUG"),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
         context_class=dict,
         logger_factory=structlog.testing.LogCapture,
         cache_logger_on_first_use=True,
     )
 
 
-@pytest.mark.asyncio(scope="module")
+@pytest.mark.asyncio(loop_scope="module")
 @pytest.mark.unittest()
 @pytest.mark.integration()
 class TestUtilsAsync:
     """Test async utilities with comprehensive coverage."""
 
-    loop: asyncio.AbstractEventLoop
+    # Class variable to store the loop for all tests
+    _loop: asyncio.AbstractEventLoop | None = None
 
     async def test_remember_loop(self) -> None:
         """Test loop storage for shared tests."""
-        TestUtilsAsync.loop = asyncio.get_running_loop()
-        assert isinstance(TestUtilsAsync.loop, asyncio.AbstractEventLoop)
+        current_loop = asyncio.get_running_loop()
+        assert isinstance(current_loop, asyncio.AbstractEventLoop)
+
+        # Store the loop for other tests to use
+        TestUtilsAsync._loop = current_loop
+
+        # Verify we have a valid running loop
+        assert current_loop.is_running()
 
     async def test_thread_safe_event(self) -> None:
         """Test ThreadSafeEvent functionality."""
