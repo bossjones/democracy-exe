@@ -71,3 +71,4 @@ RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt
 ENV LANGSERVE_GRAPHS='{"react": "/deps/democracy-exe/democracy_exe/agentic/workflows/react/graph.py:graph"}'
 
 WORKDIR /deps/democracy-exe
+CMD bash -l
