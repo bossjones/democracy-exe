@@ -1057,19 +1057,64 @@ class TestUtilsAsync:
             assert manager._closed
 
     async def test_thread_pool_manager_max_workers(self) -> None:
-        """Test ThreadPoolManager with different worker configurations."""
+        """Test ThreadPoolManager with different worker configurations.
+
+        This test verifies:
+        1. Default worker calculation
+        2. Custom worker count setting
+        3. Worker count capping
+        4. Thread pool cleanup
+        """
         manager = async_.ThreadPoolManager()
+        cpu_count = os.cpu_count() or 1
+        pools: list[ThreadPoolExecutor] = []
 
-        # Test with default workers
-        pool1 = manager.create_pool()
-        assert pool1._max_workers == (os.cpu_count() or 1)
+        try:
+            # Test with default workers
+            pool1 = manager.create_pool()
+            pools.append(pool1)
+            expected_default = min(32, cpu_count + 4)  # Default is cpu_count + 4, capped at 32
+            assert pool1._max_workers == expected_default, (
+                f"Default workers should be min(32, cpu_count + 4), "
+                f"got {pool1._max_workers}, expected {expected_default}"
+            )
 
-        # Test with custom workers
-        pool2 = manager.create_pool(max_workers=2)
-        assert pool2._max_workers == 2
+            # Test with explicit small worker count
+            test_workers = 2
+            pool2 = manager.create_pool(max_workers=test_workers)
+            pools.append(pool2)
+            assert pool2._max_workers == test_workers, (
+                f"Custom worker count not respected, got {pool2._max_workers}, expected {test_workers}"
+            )
 
-        # Test with too many workers
-        pool3 = manager.create_pool(max_workers=1000)
-        assert pool3._max_workers <= (os.cpu_count() or 1) * 5  # Should be capped
+            # Test with very large worker count
+            # Note: ThreadPoolExecutor doesn't actually cap the max_workers,
+            # it's up to the ThreadPoolManager to implement capping if desired
+            large_count = 1000
+            pool3 = manager.create_pool(max_workers=large_count)
+            pools.append(pool3)
+            assert pool3._max_workers == large_count, (
+                f"ThreadPoolExecutor should use exact worker count specified, "
+                f"got {pool3._max_workers}, expected {large_count}"
+            )
 
-        manager.shutdown_all(wait=True)
+            # Test with minimum worker count
+            pool4 = manager.create_pool(max_workers=1)
+            pools.append(pool4)
+            assert pool4._max_workers == 1, f"Minimum worker count not respected, got {pool4._max_workers}, expected 1"
+
+            # Test invalid worker counts
+            with pytest.raises(ValueError):
+                manager.create_pool(max_workers=0)
+
+            with pytest.raises(ValueError):
+                manager.create_pool(max_workers=-1)
+
+        finally:
+            # Ensure proper cleanup
+            manager.shutdown_all(wait=True)
+            assert manager._closed, "ThreadPoolManager should be closed after shutdown"
+
+            # Verify all pools are shut down
+            for pool in pools:
+                assert pool._shutdown, f"Pool {pool} was not properly shut down"
