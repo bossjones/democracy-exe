@@ -1135,6 +1135,7 @@ docker-build-langraph:
 	@just generate-langgraph-dockerfile-langraph-simple
 	echo "" >> Dockerfile
 	echo "CMD bash -l" >> Dockerfile
+	echo "" >> Dockerfile
 	docker build -f Dockerfile -t democracy-langraph .
 
 # Run docker image for debugging
