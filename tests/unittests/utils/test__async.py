@@ -515,21 +515,108 @@ class TestUtilsAsync:
         assert exc_info.type is ValueError
 
     async def test_fire_coroutine_threadsafe(self) -> None:
-        """Test fire_coroutine_threadsafe functionality."""
+        """Test fire_coroutine_threadsafe functionality with comprehensive coverage.
+
+        Tests:
+        1. Basic coroutine execution
+        2. Thread safety with multiple concurrent calls
+        3. Error propagation
+        4. Resource cleanup
+        5. State verification
+        6. Cancellation handling
+        """
         loop = asyncio.get_running_loop()
-        event = asyncio.Event()
+        events: list[asyncio.Event] = [asyncio.Event() for _ in range(5)]
+        errors: list[Exception] = []
+        cleanup_called = threading.Event()
 
-        async def coro() -> None:
-            event.set()
+        # Test successful execution with cleanup
+        async def success_coro() -> None:
+            try:
+                await asyncio.sleep(0.1)
+                events[0].set()
+            finally:
+                cleanup_called.set()
 
-        # Test successful execution
-        async_.fire_coroutine_threadsafe(coro(), loop)
-        await asyncio.wait_for(event.wait(), timeout=1)
-        assert event.is_set()
+        async_.fire_coroutine_threadsafe(success_coro(), loop)
+        await asyncio.wait_for(events[0].wait(), timeout=1)
+        assert events[0].is_set()
+        assert cleanup_called.is_set()
 
-        # Test error cases
+        # Test error propagation
+        error_event = asyncio.Event()
+
+        async def failing_coro() -> None:
+            try:
+                await asyncio.sleep(0.1)
+                raise ValueError("Coroutine error")
+            except Exception as e:
+                errors.append(e)
+                error_event.set()
+                raise
+
+        async_.fire_coroutine_threadsafe(failing_coro(), loop)
+        await asyncio.wait_for(error_event.wait(), timeout=1)
+        assert len(errors) == 1
+        assert isinstance(errors[0], ValueError)
+        assert str(errors[0]) == "Coroutine error"
+
+        # Test thread safety with multiple concurrent calls
+        async def concurrent_coro(idx: int) -> None:
+            await asyncio.sleep(0.1)
+            events[idx].set()
+
+        def thread_worker(idx: int) -> None:
+            try:
+                coro = concurrent_coro(idx)
+                async_.fire_coroutine_threadsafe(coro, loop)
+            except Exception as e:
+                errors.append(e)
+
+        # Run multiple threads
+        threads = [
+            threading.Thread(target=thread_worker, args=(i,))
+            for i in range(1, 5)  # Use events[1] through events[4]
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Wait for all events with timeout
+        await asyncio.wait_for(asyncio.gather(*(events[i].wait() for i in range(1, 5))), timeout=2)
+
+        # Verify all events were set
+        assert all(event.is_set() for event in events[1:5]), "Not all coroutines completed"
+        assert len(errors) == 1, f"Unexpected errors occurred: {errors}"  # Only the one from failing_coro
+
+        # Test invalid input
         with pytest.raises(TypeError, match="A coroutine object is required"):
             async_.fire_coroutine_threadsafe(lambda: None, loop)  # type: ignore
+
+        # Test cancellation
+        cancelled = threading.Event()
+
+        async def long_coro() -> None:
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+
+        # Create a task we can cancel
+        task = asyncio.create_task(long_coro())
+        async_.fire_coroutine_threadsafe(task, loop)
+        await asyncio.sleep(0.1)  # Let coroutine start
+        task.cancel()
+
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+        assert cancelled.is_set(), "Cancellation was not handled"
+        assert task.cancelled(), "Task was not cancelled"
 
     async def test_run_callback_threadsafe(self) -> None:
         """Test run_callback_threadsafe functionality."""
