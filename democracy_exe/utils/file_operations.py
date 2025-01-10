@@ -228,3 +228,14 @@ async def aio_create_nested_directories(file_path: str) -> str:
     await aiofiles.os.makedirs(parent_dir, exist_ok=True)
     # await logger.complete()
     return str(parent_dir)
+
+
+async def acreate_temp_directory() -> str:
+    """Create a temporary directory and return its path.
+
+    This is an alias for aio_create_temp_directory() to maintain consistent naming conventions.
+
+    Returns:
+        str: The path of the created temporary directory.
+    """
+    return await aio_create_temp_directory()

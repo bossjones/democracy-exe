@@ -139,6 +139,26 @@ def test_image(tmp_path: pathlib.Path) -> pathlib.Path:
     return img_path
 
 
+@pytest.fixture(autouse=True)
+def configure_structlog() -> None:
+    """Configure structlog for testing.
+
+    This fixture ensures each test has a clean, properly configured structlog setup.
+    It disables caching and configures appropriate processors for testing.
+    """
+    structlog.reset_defaults()
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.add_log_level,
+            structlog.processors.StackInfoRenderer(),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+        logger_factory=structlog.testing.CapturingLogger,
+        cache_logger_on_first_use=False,  # Important: Disable caching for tests
+    )
+
+
 @pytest.mark.asyncio
 async def test_autocrop_cog_init(bot_with_autocrop_cog: DemocracyBot) -> None:
     """Test Autocrop cog initialization.
@@ -381,17 +401,35 @@ async def test_crop_download_timeout_draft(
 
         # Call _handle_crop directly with the message and attachment
         success, error_msg = await cog._handle_crop(ctx, "square", attach)
+
+        # Verify operation failed as expected
         assert not success, "Expected crop operation to fail due to timeout"
         assert error_msg == "Image download timed out", f"Expected timeout error message, got: {error_msg}"
 
-        # Verify logging
-        assert any("Starting image download" in str(log.get("event", "")) for log in captured), (
-            "Expected 'Starting image download' message not found in logs"
+        # Debug: Print captured logs
+        print("\nCaptured logs:")
+        for log in captured:
+            print(f"Log entry: {log}")
+
+        # Verify logging - check exact event names and fields
+        start_log = f"Starting crop operation - User: {ctx.author}, Guild: {ctx.guild}, Ratio: square"
+        assert any(log.get("event") == start_log and log.get("log_level") == "info" for log in captured), (
+            f"Expected '{start_log}' event not found in logs"
         )
 
-        assert any("Image download timed out" in str(log.get("event", "")) for log in captured), (
-            "Expected 'Image download timed out' message not found in logs"
+        download_log = f"Downloading attachment with {aiosettings.autocrop_download_timeout}s timeout"
+        assert any(log.get("event") == download_log and log.get("log_level") == "debug" for log in captured), (
+            f"Expected '{download_log}' event not found in logs"
         )
+
+        timeout_log = "Image download timed out"
+        assert any(log.get("event") == timeout_log and log.get("log_level") == "error" for log in captured), (
+            f"Expected '{timeout_log}' error event not found in logs"
+        )
+
+        # Verify proper error logging
+        error_logs = [log for log in captured if log.get("log_level") == "error" and log.get("event") == timeout_log]
+        assert len(error_logs) == 1, "Expected exactly one error log for timeout"
 
 
 @pytest.mark.asyncio
