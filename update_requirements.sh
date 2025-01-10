@@ -9,7 +9,7 @@
 # This line is commented out, but it would export requirements including dev dependencies
 
 # Export base requirements without dev dependencies
-uv export --no-dev --no-extra --no-hashes --prune langserve --prune notebook --format requirements-txt -o democracy_exe/requirements.txt
+uv export --no-dev --no-hashes --prune langserve --prune notebook --format requirements-txt -o democracy_exe/requirements.txt
 
 # Check if yq is installed, exit with an error message if not
 command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required but it's not installed. run 'brew install yq' or 'pip install yq'"; exit 1; }
@@ -46,4 +46,4 @@ gsed -i 's/^langserve==.*/langserve/g' democracy_exe/requirements.txt
 gsed -i 's/^tenacity==.*/tenacity/g' democracy_exe/requirements.txt
 
 # Show the changes made to requirements.txt
-git diff democracy_exe/requirements.txt
+# git diff democracy_exe/requirements.txt
