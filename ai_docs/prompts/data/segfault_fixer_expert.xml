@@ -81,6 +81,28 @@
         <quote source="error_trace">
             Interaction between asyncio.run() and multiprocessing in uvicorn server startup
         </quote>
+        <quote source="langgraph_cli/tests/unit_tests/agent.py">
+            """
+            async def call_model(state, config):
+                if sleep := state.get("sleep"):
+                    await asyncio.sleep(sleep)
+                # Proper state validation and type checking
+                messages = state["messages"]
+                # Explicit bytes handling and validation
+                assert state["some_bytes"] == b"some_bytes"
+                assert state["some_byte_array"] == bytearray(b"some_byte_array")
+                assert state["dict_with_bytes"] == {"more_bytes": b"more_bytes"}
+            """
+        </quote>
+        <quote source="langgraph_cli/tests/unit_tests/conftest.py">
+            """
+            @pytest.fixture(autouse=True)
+            def disable_analytics_env() -> None:
+                # Environment variable safety with proper cleanup
+                with patch.dict(os.environ, {"LANGGRAPH_CLI_NO_ANALYTICS": "0"}):
+                    yield
+            """
+        </quote>
     </quotes>
 
     <info>
@@ -117,6 +139,11 @@
             <point>Multiprocessing and asyncio interaction in uvicorn needs coordination</point>
             <point>Multiple threads accessing shared LangSmith client resources unsafely</point>
             <point>Background thread batch processing lacks proper synchronization</point>
+            <point>Proper state validation and type checking in async operations is critical</point>
+            <point>Explicit handling of bytes and bytearray types prevents memory corruption</point>
+            <point>Environment variables should be managed with proper cleanup</point>
+            <point>State dictionaries should have explicit type definitions (TypedDict)</point>
+            <point>Async operations should handle sleep and timing properly</point>
         </diagnostic_points>
 
         <environment_settings>
@@ -1309,6 +1336,67 @@
                                     await self._cleanup_resources()
                                 finally:
                                     self._closed = True
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="StateValidation">
+                    <description>Pattern for validating state in async operations</description>
+                    <example>
+                        <![CDATA[
+                        class AgentState(TypedDict):
+                            some_bytes: bytes
+                            some_byte_array: bytearray
+                            dict_with_bytes: dict[str, bytes]
+                            messages: Annotated[Sequence[BaseMessage], add_messages]
+                            sleep: int
+
+                        async def validate_state(state: AgentState) -> None:
+                            """Validate state contents to prevent corruption."""
+                            assert isinstance(state["some_bytes"], bytes)
+                            assert isinstance(state["some_byte_array"], bytearray)
+                            assert all(isinstance(v, bytes) for v in state["dict_with_bytes"].values())
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncResourceManagement">
+                    <description>Pattern for managing async resources with proper cleanup</description>
+                    <example>
+                        <![CDATA[
+                        async def managed_operation():
+                            try:
+                                # Setup resources
+                                state = initialize_state()
+                                await validate_state(state)
+
+                                # Perform operation
+                                result = await process_state(state)
+
+                                return result
+                            finally:
+                                # Cleanup
+                                await cleanup_state(state)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="EnvironmentSafety">
+                    <description>Pattern for safe environment variable handling</description>
+                    <example>
+                        <![CDATA[
+                        @contextmanager
+                        def safe_env_override(key: str, value: str):
+                            """Safely override environment variables with proper cleanup."""
+                            original = os.environ.get(key)
+                            try:
+                                os.environ[key] = value
+                                yield
+                            finally:
+                                if original is None:
+                                    del os.environ[key]
+                                else:
+                                    os.environ[key] = original
                         ]]>
                     </example>
                 </pattern>

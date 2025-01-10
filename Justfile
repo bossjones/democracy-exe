@@ -1036,6 +1036,11 @@ generate-ai-docs:
 			/Users/malcolm/dev/langchain-ai/langsmith-sdk/python/langsmith \
 			--cxml -o ai_docs/prompts/data/langsmith_sdk_code.xml
 
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli \
+			--cxml -o ai_docs/prompts/data/langgraph_cli_code.xml
+
 	@echo "AI documentation generation complete"
 
 
