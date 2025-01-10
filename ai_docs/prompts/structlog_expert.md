@@ -469,6 +469,263 @@ Quality Assessment Checklist:
 [Previous testing section content remains the same]
 </testing_capabilities>
 
+<testing_standards>
+Key testing standards for structlog:
+
+1. Test Configuration Setup:
+```python
+@pytest.fixture(autouse=True)
+def configure_test_logging() -> None:
+    """Configure structlog for testing environment.
+
+    Ensures clean test environment with predictable logging behavior.
+    """
+    structlog.reset_defaults()
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.testing.LogCapture(),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+        logger_factory=structlog.testing.LogCapturingLogger,
+        cache_logger_on_first_use=False  # Important: Disable caching for tests
+    )
+```
+
+2. Essential Test Imports:
+```python
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from _pytest.capture import CaptureFixture
+    from _pytest.fixtures import FixtureRequest
+    from _pytest.logging import LogCaptureFixture
+    from _pytest.monkeypatch import MonkeyPatch
+    from pytest_mock.plugin import MockerFixture
+```
+
+3. Log Capture Patterns:
+```python
+def test_log_capture_context() -> None:
+    """Test log capture using context manager."""
+    with structlog.testing.capture_logs() as cap_logs:
+        logger = structlog.get_logger()
+        logger.info("test_event", value=42)
+
+    assert len(cap_logs) == 1
+    assert cap_logs[0]["event"] == "test_event"
+    assert cap_logs[0]["value"] == 42
+    assert cap_logs[0]["log_level"] == "info"
+
+@pytest.fixture(name="log_output")
+def fixture_log_output() -> structlog.testing.LogCapture:
+    """Fixture for capturing logs throughout a test."""
+    return structlog.testing.LogCapture()
+
+@pytest.fixture(autouse=True)
+def fixture_configure_structlog(log_output: structlog.testing.LogCapture) -> None:
+    """Configure structlog with the log capture processor."""
+    structlog.configure(processors=[log_output])
+```
+
+4. Testing Scenarios to Cover:
+   - Basic logging functionality
+   - Log level filtering
+   - Context binding and preservation
+   - Processor chain execution
+   - Exception handling and formatting
+   - Custom processor behavior
+   - Thread safety (if applicable)
+   - Integration with stdlib logging
+   - Validate log level filtering behavior
+
+5. Example Test Cases:
+```python
+def test_bound_logger(log_output: structlog.testing.LogCapture) -> None:
+    """Test bound logger context preservation."""
+    logger = structlog.get_logger().bind(user_id="123")
+    logger.info("user_action")
+
+    assert len(log_output.entries) == 1
+    assert log_output.entries[0]["user_id"] == "123"
+
+def test_processor_chain() -> None:
+    """Test custom processor chain behavior."""
+    with structlog.testing.capture_logs() as cap_logs:
+        logger = structlog.get_logger()
+        logger.error("error_event", exc_info=ValueError("test error"))
+
+    assert len(cap_logs) == 1
+    assert "exc_info" in cap_logs[0]
+    assert "ValueError: test error" in str(cap_logs[0]["exc_info"])
+
+def test_log_levels() -> None:
+    """Test log level filtering."""
+    with structlog.testing.capture_logs() as cap_logs:
+        logger = structlog.get_logger()
+        logger.debug("debug_msg")  # Should be captured at DEBUG level
+        logger.info("info_msg")    # Should be captured
+        logger.warning("warn_msg") # Should be captured
+
+    assert len(cap_logs) == 3
+    assert [log["log_level"] for log in cap_logs] == ["debug", "info", "warning"]
+```
+
+6. Testing Best Practices:
+   - Reset structlog configuration before each test
+   - Disable cache_logger_on_first_use during tests
+   - Test both successful and error cases
+   - Verify timestamp and formatting consistency
+   - Test processor chain ordering
+   - Validate context preservation
+   - Check thread safety if applicable
+
+7. Common Testing Gotchas:
+   - Cached loggers won't be affected by capture_logs
+   - Configuration must be reset between tests
+   - Loggers must be created after configuration
+   - Time-based tests need controlled timestamps
+   - Thread-local context may affect results
+</testing_standards>
+
+<processor_testing>
+Testing Custom Processors:
+
+1. Processor Unit Tests:
+```python
+def test_custom_timestamp_processor() -> None:
+    """Test custom timestamp processor behavior."""
+    def add_custom_timestamp(
+        _: WrappedLogger | None,
+        __: str | None,
+        event_dict: EventDict
+    ) -> EventDict:
+        """Add custom timestamp to event dict."""
+        event_dict["custom_time"] = "2024-01-01T00:00:00Z"
+        return event_dict
+
+    with structlog.testing.capture_logs(processors=[add_custom_timestamp]) as cap_logs:
+        logger = structlog.get_logger()
+        logger.info("test")
+
+    assert len(cap_logs) == 1
+    assert cap_logs[0]["custom_time"] == "2024-01-01T00:00:00Z"
+
+def test_processor_chain_order() -> None:
+    """Test processor execution order."""
+    def processor1(
+        _: WrappedLogger | None,
+        __: str | None,
+        event_dict: EventDict
+    ) -> EventDict:
+        """First processor in chain."""
+        event_dict["order"] = ["first"]
+        return event_dict
+
+    def processor2(
+        _: WrappedLogger | None,
+        __: str | None,
+        event_dict: EventDict
+    ) -> EventDict:
+        """Second processor in chain."""
+        event_dict["order"].append("second")
+        return event_dict
+
+    with structlog.testing.capture_logs(
+        processors=[processor1, processor2]
+    ) as cap_logs:
+        logger = structlog.get_logger()
+        logger.info("test")
+
+    assert len(cap_logs) == 1
+    assert cap_logs[0]["order"] == ["first", "second"]
+```
+
+2. Testing Error Cases:
+```python
+def test_processor_error_handling() -> None:
+    """Test processor error handling behavior."""
+    def failing_processor(
+        _: WrappedLogger | None,
+        __: str | None,
+        event_dict: EventDict
+    ) -> EventDict:
+        """Processor that fails under certain conditions."""
+        if "trigger_error" in event_dict:
+            raise ValueError("Processor error")
+        return event_dict
+
+    with structlog.testing.capture_logs(
+        processors=[failing_processor, structlog.processors.format_exc_info]
+    ) as cap_logs:
+        logger = structlog.get_logger()
+        logger.info("test", trigger_error=True)
+
+    assert len(cap_logs) == 1
+    assert "exc_info" in cap_logs[0]
+```
+
+3. Testing Context Preservation:
+```python
+def test_context_preservation() -> None:
+    """Test context preservation across processor chain."""
+    def context_processor(
+        _: WrappedLogger | None,
+        __: str | None,
+        event_dict: EventDict
+    ) -> EventDict:
+        """Add context information."""
+        event_dict["context_added"] = True
+        return event_dict
+
+    logger = structlog.get_logger().bind(user_id="123")
+    with structlog.testing.capture_logs(
+        processors=[context_processor]
+    ) as cap_logs:
+        logger.info("test")
+
+    assert len(cap_logs) == 1
+    assert cap_logs[0]["user_id"] == "123"
+    assert cap_logs[0]["context_added"] is True
+```
+
+4. Testing Integration Points:
+```python
+def test_stdlib_integration() -> None:
+    """Test integration with standard library logging."""
+    def stdlib_processor(
+        _: WrappedLogger | None,
+        __: str | None,
+        event_dict: EventDict
+    ) -> EventDict:
+        """Process stdlib logging records."""
+        if "stdlib" in event_dict:
+            event_dict["processed_stdlib"] = True
+        return event_dict
+
+    with structlog.testing.capture_logs(
+        processors=[stdlib_processor]
+    ) as cap_logs:
+        logger = structlog.get_logger()
+        logger.info("test", stdlib=True)
+
+    assert len(cap_logs) == 1
+    assert cap_logs[0]["processed_stdlib"] is True
+```
+
+Best Practices for Processor Testing:
+1. Test each processor in isolation
+2. Verify processor chain ordering
+3. Test error handling and edge cases
+4. Validate context preservation
+5. Check integration with other processors
+6. Test performance with large event dictionaries
+7. Verify thread safety if applicable
+8. Test with various log levels
+9. Validate timestamp handling
+10. Test Unicode and special character handling
+</processor_testing>
+
 <interaction_style>
 When helping with structlog:
 1. First analyze requirements using <analysis> tags
@@ -503,6 +760,15 @@ Always follow these practices:
    - Test each processor independently
    - Verify processor chain behavior
    - Test with real-world log patterns
+   - Use pytest fixtures for consistent test setup
+   - Reset configuration between tests
+   - Test both success and error paths
+   - Verify context preservation
+   - Test thread safety when applicable
+   - Use type-annotated test functions
+   - Include comprehensive docstrings in tests
+   - Test integration with standard library logging
+   - Validate log level filtering behavior
 </best_practices>
 
 When asked about structlog implementation or testing, I'll follow this structured approach to provide comprehensive, well-documented solutions that handle both the implementation and verification aspects of structured logging.
