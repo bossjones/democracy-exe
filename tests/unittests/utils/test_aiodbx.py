@@ -539,3 +539,312 @@ async def test_request_rate_limit_handling(mocker: MockerFixture) -> None:
     # Verify behavior
     assert response == success_response
     assert mock_func.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_thread_safety(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler thread safety.
+
+    Tests concurrent access patterns and proper locking behavior.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "concurrent.txt"
+    write_count = 5
+    results: list[bool] = []
+    errors: list[Exception] = []
+
+    async def write_file(content: str) -> None:
+        try:
+            async with SafeFileHandler(test_file, "a") as f:
+                await f.write(content + "\n")
+                await asyncio.sleep(0.1)  # Simulate work
+            results.append(True)
+        except Exception as e:
+            errors.append(e)
+            results.append(False)
+
+    # Run concurrent writes
+    tasks = [write_file(f"line {i}") for i in range(write_count)]
+    await asyncio.gather(*tasks)
+
+    # Verify results
+    assert len(errors) == 0, f"Encountered errors: {errors}"
+    assert len(results) == write_count
+    assert all(results)
+
+    # Verify file contents
+    async with SafeFileHandler(test_file, "r") as f:
+        content = await f.read()
+    assert len(content.splitlines()) == write_count
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_cleanup_on_error(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler cleanup behavior on errors.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "cleanup_test.txt"
+
+    # Test cleanup on write error
+    with pytest.raises(OSError):
+        async with SafeFileHandler(tmp_path / "nonexistent" / "test.txt", "w") as f:
+            await f.write("test")
+    assert not test_file.exists()
+
+    # Test cleanup on runtime error
+    with pytest.raises(RuntimeError):
+        async with SafeFileHandler(test_file, "w") as f:
+            await f.write("test")
+            raise RuntimeError("Test error")
+    assert not test_file.exists()
+
+    # Test no cleanup when cleanup_on_error=False
+    with pytest.raises(RuntimeError):
+        async with SafeFileHandler(test_file, "w", cleanup_on_error=False) as f:
+            await f.write("test")
+            raise RuntimeError("Test error")
+    assert test_file.exists()
+    assert test_file.read_text() == "test"
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_state_management(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler state management.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "state_test.txt"
+    handler = SafeFileHandler(test_file, "w")
+
+    # Test reuse prevention
+    async with handler:
+        await handler.file.write("test")  # type: ignore
+
+    assert handler._closed
+
+    # Attempt to reuse
+    with pytest.raises(RuntimeError, match="Cannot reuse closed SafeFileHandler"):
+        async with handler:
+            pass
+
+    # Test explicit close
+    handler2 = SafeFileHandler(test_file, "w")
+    await handler2.close()
+    assert handler2._closed
+    assert handler2.file is None
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_directory_creation(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler directory creation behavior.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    nested_path = tmp_path / "deep" / "nested" / "dir" / "test.txt"
+
+    # Test automatic directory creation
+    async with SafeFileHandler(nested_path, "w") as f:
+        await f.write("test")
+
+    assert nested_path.exists()
+    assert nested_path.read_text() == "test"
+
+    # Test directory creation failure
+    readonly_path = tmp_path / "readonly"
+    readonly_path.mkdir()
+    os.chmod(readonly_path, 0o444)  # Make readonly
+
+    if os.access(readonly_path, os.W_OK):
+        pytest.skip("Cannot create readonly directory for testing")
+
+    with pytest.raises(OSError):
+        async with SafeFileHandler(readonly_path / "subdir" / "test.txt", "w"):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_event_loop_safety() -> None:
+    """Test SafeFileHandler event loop safety."""
+    # Test creation outside async context
+    with pytest.raises(RuntimeError, match="must be created from an async context"):
+
+        def create_handler() -> None:
+            SafeFileHandler("test.txt", "r")
+
+        create_handler()
+
+    # Test event loop reference clearing
+    handler = SafeFileHandler("test.txt", "r")
+    assert handler._loop is not None
+    await handler.close()
+    assert handler._loop is None
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_error_propagation(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler error handling and propagation.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "error_test.txt"
+
+    # Test OSError propagation
+    with pytest.raises(OSError) as exc_info:
+        async with SafeFileHandler(tmp_path / "nonexistent" / "test.txt", "r"):
+            pass
+    assert "File operation failed" in str(exc_info.value)
+
+    # Test error during write
+    class WriteError(Exception):
+        pass
+
+    with pytest.raises(WriteError):
+        async with SafeFileHandler(test_file, "w") as f:
+            await f.write("start")
+            raise WriteError("Test error during write")
+
+    # Verify cleanup occurred
+    assert not test_file.exists()
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_modes(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler with different file modes.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "modes_test.txt"
+
+    # Test write mode
+    async with SafeFileHandler(test_file, "w") as f:
+        await f.write("test")
+    assert test_file.read_text() == "test"
+
+    # Test append mode
+    async with SafeFileHandler(test_file, "a") as f:
+        await f.write("_append")
+    assert test_file.read_text() == "test_append"
+
+    # Test read mode
+    async with SafeFileHandler(test_file, "r") as f:
+        content = await f.read()
+    assert content == "test_append"
+
+    # Test binary mode
+    binary_data = b"binary\x00data"
+    async with SafeFileHandler(test_file, "wb") as f:
+        await f.write(binary_data)
+    async with SafeFileHandler(test_file, "rb") as f:
+        content = await f.read()
+    assert content == binary_data
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_concurrent_reads(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler concurrent read operations.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "concurrent_read.txt"
+    test_file.write_text("test content")
+
+    read_count = 5
+    results: list[str] = []
+    errors: list[Exception] = []
+
+    async def read_file() -> None:
+        try:
+            async with SafeFileHandler(test_file, "r") as f:
+                content = await f.read()
+                await asyncio.sleep(0.1)  # Simulate work
+                results.append(content)
+        except Exception as e:
+            errors.append(e)
+
+    # Run concurrent reads
+    tasks = [read_file() for _ in range(read_count)]
+    await asyncio.gather(*tasks)
+
+    # Verify results
+    assert len(errors) == 0, f"Encountered errors: {errors}"
+    assert len(results) == read_count
+    assert all(content == "test content" for content in results)
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_resource_cleanup(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler resource cleanup in various scenarios.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file = tmp_path / "cleanup_test.txt"
+
+    # Test normal cleanup
+    handler = SafeFileHandler(test_file, "w")
+    async with handler:
+        await handler.file.write("test")  # type: ignore
+    assert handler._closed
+    assert handler.file is None
+
+    # Test cleanup after error
+    handler = SafeFileHandler(test_file, "w")
+    try:
+        async with handler:
+            await handler.file.write("test")  # type: ignore
+            raise RuntimeError("Test error")
+    except RuntimeError:
+        pass
+    assert handler._closed
+    assert handler.file is None
+
+    # Test cleanup with explicit close
+    handler = SafeFileHandler(test_file, "w")
+    await handler.close()
+    assert handler._closed
+    assert handler.file is None
+
+    # Test double close
+    await handler.close()  # Should not raise
+    assert handler._closed
+
+
+@pytest.mark.asyncio
+async def test_safe_file_handler_context_nesting(tmp_path: pathlib.Path) -> None:
+    """Test SafeFileHandler nested context behavior.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+    """
+    test_file1 = tmp_path / "test1.txt"
+    test_file2 = tmp_path / "test2.txt"
+
+    # Test nested handlers
+    async with SafeFileHandler(test_file1, "w") as f1:
+        await f1.write("file1")
+        async with SafeFileHandler(test_file2, "w") as f2:
+            await f2.write("file2")
+
+    assert test_file1.read_text() == "file1"
+    assert test_file2.read_text() == "file2"
+
+    # Test error in nested context
+    with pytest.raises(RuntimeError):
+        async with SafeFileHandler(test_file1, "w") as f1:
+            await f1.write("new1")
+            async with SafeFileHandler(test_file2, "w") as f2:
+                await f2.write("new2")
+                raise RuntimeError("Test error")
+
+    # Verify both files were cleaned up
+    assert not test_file1.exists()
+    assert not test_file2.exists()
