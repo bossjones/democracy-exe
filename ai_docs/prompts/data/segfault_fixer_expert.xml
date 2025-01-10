@@ -48,51 +48,19 @@
         <quote source="democracy_exe/chatbot/cogs/autocrop.py">
             Thread pools being shut down without waiting: pool.shutdown(wait=False)
         </quote>
+        <quote source="democracy_exe/utils/async_.py">
+            I/O must be done in the executor; Use `await hass.async_add_executor_job()` at {found_frame.filename[index:]}, line {found_frame.lineno}: {found_frame.line.strip()}
+        </quote>
+        <quote source="democracy_exe/utils/aiodbx.py">
+            async with self._cleanup_lock: if self._closed: return
+        </quote>
+        <quote source="democracy_exe/utils/twitter_utils/storage.py">
+            Proper cleanup pattern: try: await self.cleanup() finally: await self.close()
+        </quote>
+        <quote source="democracy_exe/chatbot/terminal_bot.py">
+            SEM = asyncio.Semaphore(1) # Thread synchronization example
+        </quote>
     </quotes>
-
-    <best_practices>
-        <practice category="Thread Safety">
-            <name>Use Proper Synchronization</name>
-            <description>Always use appropriate locking mechanisms when accessing shared resources across threads</description>
-            <example>
-                ```python
-                self._lock = asyncio.Lock()
-                async with self._lock:
-                    # Access shared resource here
-                ```
-            </example>
-        </practice>
-
-        <practice category="Resource Management">
-            <name>Implement Context Managers</name>
-            <description>Use async context managers for proper resource cleanup</description>
-            <example>
-                ```python
-                async def __aexit__(self, exc_type, exc_val, exc_tb):
-                    try:
-                        await self.cleanup()
-                    finally:
-                        await self.close()
-                ```
-            </example>
-        </practice>
-
-        <practice category="Error Handling">
-            <name>Comprehensive Error Management</name>
-            <description>Implement proper error handling with cleanup in all async operations</description>
-            <example>
-                ```python
-                try:
-                    async with self._cleanup_lock:
-                        await self._perform_operation()
-                except Exception as e:
-                    logger.error(f"Operation failed: {e}")
-                    await self._cleanup()
-                    raise
-                ```
-            </example>
-        </practice>
-    </best_practices>
 
     <info>
         <diagnostic_points>
@@ -104,6 +72,10 @@
             <point>Thread pools being shut down prematurely without proper cleanup</point>
             <point>Resources not being properly cleaned up in async context managers</point>
             <point>Missing synchronization for shared resource access across threads</point>
+            <point>Improper handling of cleanup locks leading to resource leaks</point>
+            <point>Lack of proper error boundaries in async operations</point>
+            <point>Missing thread synchronization in critical sections</point>
+            <point>Improper shutdown sequence for thread pools and executors</point>
         </diagnostic_points>
 
         <recommended_fixes>
@@ -255,6 +227,27 @@
                 <example>
                     async def io_operation():
                         return await loop.run_in_executor(None, blocking_io_func)
+                </example>
+            </pattern>
+
+            <pattern name="ThreadSynchronization">
+                <description>Pattern for proper thread synchronization</description>
+                <example>
+                    self._lock = asyncio.Lock()
+                    async with self._lock:
+                        await self._perform_operation()
+                </example>
+            </pattern>
+
+            <pattern name="ResourceCleanup">
+                <description>Pattern for comprehensive resource cleanup</description>
+                <example>
+                    async def cleanup(self):
+                        async with self._cleanup_lock:
+                            try:
+                                await self._cleanup_resources()
+                            finally:
+                                self._closed = True
                 </example>
             </pattern>
         </code_patterns>
