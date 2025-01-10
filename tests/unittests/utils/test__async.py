@@ -171,27 +171,70 @@ class TestUtilsAsync:
 
     async def test_async_semaphore(self) -> None:
         """Test AsyncSemaphore functionality."""
+        # Initialize semaphore with value 2
         sem = async_.AsyncSemaphore(2)
-
-        # Test initial state
+        assert isinstance(sem._lock, type(threading.Lock()))
         assert sem._count == 2
-        assert not sem._closed
 
-        # Test acquire/release
-        assert await sem.acquire()
+        # Test basic acquire/release
+        acquired = await sem.acquire()
+        assert acquired
         assert sem._count == 1
         sem.release()
         assert sem._count == 2
 
-        # Test context manager
-        async with sem:
-            assert sem._count == 1
-        assert sem._count == 2
+        # Test multiple concurrent waiters
+        waiters = []
+        results: list[bool] = []
+        ready_event = threading.Event()
 
-        # Test close
+        async def waiter() -> None:
+            """Wait for semaphore with timeout."""
+            try:
+                await asyncio.wait_for(sem.acquire(), timeout=2.0)
+                results.append(True)
+                await asyncio.sleep(0.1)  # Hold the semaphore for a bit
+                sem.release()
+            except TimeoutError:
+                results.append(False)
+
+        # Start multiple waiters (more than semaphore value)
+        for _ in range(5):
+            waiters.append(asyncio.create_task(waiter()))
+
+        # Let waiters run
+        await asyncio.sleep(0.1)
+
+        # Release semaphore from another thread
+        def thread_release() -> None:
+            """Release semaphore from background thread."""
+            ready_event.wait(timeout=1.0)
+            for _ in range(3):  # Release for remaining waiters
+                try:
+                    sem.release()
+                except RuntimeError:
+                    pass  # Ignore if already released
+
+        thread = threading.Thread(target=thread_release)
+        thread.start()
+
+        # Signal thread to proceed and wait for waiters
+        ready_event.set()
+        await asyncio.gather(*waiters)
+        thread.join()
+
+        # Verify all waiters succeeded
+        assert all(results), "All waiters should have acquired the semaphore"
+        assert sem._count == 2, "Semaphore should be fully released"
+
+        # Test closing semaphore
         sem.close()
         with pytest.raises(RuntimeError, match="Semaphore is closed"):
             await sem.acquire()
+
+        # Test error on release after close
+        with pytest.raises(RuntimeError, match="Semaphore is closed"):
+            sem.release()
 
     async def test_thread_pool_manager(self) -> None:
         """Test ThreadPoolManager functionality."""

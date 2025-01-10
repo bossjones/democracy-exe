@@ -148,15 +148,23 @@ class AsyncSemaphore(AsyncContextManager):
 
         Args:
             value: Initial semaphore value
+
+        Raises:
+            ValueError: If value is less than 1
         """
         super().__init__()
         if value < 1:
             raise ValueError("Semaphore initial value must be >= 1")
+        self._value = value  # Store initial value
         self._semaphore = Semaphore(value)
         self._lock = threading.Lock()
-        self._count = value
+        self._count = value  # Current available count
         self._waiters: list[asyncio.Future] = []
         self._closed = False
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            raise RuntimeError("AsyncSemaphore must be created from an async context")
 
     async def acquire(self) -> bool:
         """Acquire the semaphore.
@@ -170,39 +178,68 @@ class AsyncSemaphore(AsyncContextManager):
         if self._closed:
             raise RuntimeError("Semaphore is closed")
 
+        # First acquire the underlying semaphore
+        await self._semaphore.acquire()
+
         with self._lock:
             if self._count > 0:
                 self._count -= 1
                 return True
 
+            # Create a waiter before releasing the lock
             waiter: asyncio.Future = asyncio.Future()
             self._waiters.append(waiter)
 
         try:
+            # Wait for our turn
             await waiter
-            return await self._semaphore.acquire()
+            self._count -= 1  # Decrement count after being woken up
+            return True
         except Exception:  # pylint: disable=broad-except
             with self._lock:
                 if waiter in self._waiters:
                     self._waiters.remove(waiter)
+                self._semaphore.release()  # Release semaphore if we failed
             raise
 
     def release(self) -> None:
         """Release the semaphore.
 
         Raises:
-            RuntimeError: If semaphore is closed
+            RuntimeError: If semaphore is closed or released more than acquired
         """
         if self._closed:
             raise RuntimeError("Semaphore is closed")
 
         with self._lock:
+            if self._count >= self._value:
+                raise RuntimeError("Semaphore released more than acquired")
+
             self._count += 1
+
+            # Use call_soon_threadsafe for thread safety
+            self._loop.call_soon_threadsafe(self._semaphore.release)
+
             if self._waiters:
                 waiter = self._waiters.pop(0)
                 if not waiter.done():
-                    waiter.set_result(None)
-            self._semaphore.release()
+                    self._loop.call_soon_threadsafe(waiter.set_result, None)
+
+    def close(self) -> None:
+        """Close the semaphore and cleanup resources."""
+        with self._lock:
+            self._closed = True
+            # Wake up all waiters with an error
+            for waiter in self._waiters:
+                if not waiter.done():
+                    self._loop.call_soon_threadsafe(
+                        waiter.set_exception, RuntimeError("Semaphore is closed")
+                    )
+            self._waiters.clear()
+            # Release all held resources
+            while self._count < self._value:
+                self._loop.call_soon_threadsafe(self._semaphore.release)
+                self._count += 1
 
     async def __aenter__(self) -> AsyncSemaphore:
         """Enter async context and acquire semaphore.
@@ -227,15 +264,6 @@ class AsyncSemaphore(AsyncContextManager):
             exc_tb: Exception traceback if an error occurred
         """
         self.release()
-
-    def close(self) -> None:
-        """Close the semaphore and cleanup resources."""
-        with self._lock:
-            self._closed = True
-            for waiter in self._waiters:
-                if not waiter.done():
-                    waiter.set_exception(RuntimeError("Semaphore closed"))
-            self._waiters.clear()
 
 
 class ThreadPoolManager:

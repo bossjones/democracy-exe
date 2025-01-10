@@ -333,232 +333,102 @@
                         ]]>
                     </example>
                 </pattern>
-            </async_testing_patterns>
 
-            <iterative_testing_strategy>
-                <description>
-                    When developing and debugging tests, use an iterative approach focusing on individual tests to isolate issues and ensure thorough coverage. This methodical approach allows you to:
-                    - Focus on one test at a time
-                    - Get detailed debugging information
-                    - Quickly iterate on test implementations
-                    - Understand test failures more clearly
-                </description>
-
-                <execution_pattern>
-                    <command>
-                        <![CDATA[
-                        # Base format for running individual tests with maximum debugging info
-                        uv run pytest -s --record-mode=none --verbose -vvvv --showlocals --tb=short tests/test_file.py -k test_name
-
-                        # Example: Testing thread safety in isolation
-                        uv run pytest -s --record-mode=none --verbose -vvvv --showlocals --tb=short tests/test_async.py -k test_thread_safe_event
-                        ]]>
-                    </command>
-
-                    <flag_explanations>
-                        <flag>-s: Show print statements and other output</flag>
-                        <flag>--record-mode=none: Disable any recording features</flag>
-                        <flag>--verbose -vvvv: Maximum verbosity for detailed test information</flag>
-                        <flag>--showlocals: Display local variables on test failure</flag>
-                        <flag>--tb=short: Concise traceback format</flag>
-                        <flag>-k test_name: Filter to run only tests matching the given name</flag>
-                    </flag_explanations>
-
-                    <usage_scenarios>
-                        <scenario>Implementing new test cases</scenario>
-                        <scenario>Debugging failing tests</scenario>
-                        <scenario>Refining test assertions</scenario>
-                        <scenario>Investigating timing-related issues</scenario>
-                        <scenario>Troubleshooting thread safety problems</scenario>
-                        <scenario>Verifying resource cleanup</scenario>
-                        <scenario>Testing error handling paths</scenario>
-                    </usage_scenarios>
-                </execution_pattern>
-
-                <best_practices>
-                    <practice>Start with simple test cases and gradually add complexity</practice>
-                    <practice>Use descriptive test names that indicate the scenario being tested</practice>
-                    <practice>Add detailed comments explaining complex test setups</practice>
-                    <practice>Include proper error handling in test fixtures</practice>
-                    <practice>Clean up resources even if tests fail</practice>
-                    <practice>Test both success and failure paths</practice>
-                    <practice>Verify thread safety with concurrent operations</practice>
-                </best_practices>
-            </iterative_testing_strategy>
-
-            <async_testing_guidelines>
-                <guideline>
-                    <name>Event Loop Management</name>
-                    <description>
-                        - Use @pytest.mark.asyncio for all async tests
-                        - Configure asyncio_mode = auto in pytest config
-                        - Use loop_scope="module" for class-based tests sharing a loop
-                        - Initialize loops properly with _async_setup_hook()
-                        - Clean up loops in teardown with shutdown_asyncgens() and close()
-                        - Handle event loop lifecycle consistently across tests
-                    </description>
+                <pattern>
+                    <name>Thread-Safe Event Loop Access</name>
+                    <description>When accessing event loop methods from background threads, always use thread-safe methods.</description>
+                    <recommendations>
+                        <item>Use call_soon_threadsafe() instead of direct method calls on the event loop</item>
+                        <item>Store the event loop at object creation time to ensure consistent access</item>
+                        <item>Verify objects requiring event loop access are created in async context</item>
+                        <item>Handle RuntimeError when getting event loop from non-async context</item>
+                    </recommendations>
                     <example>
                         <![CDATA[
-                        @pytest.mark.asyncio(loop_scope="module")
-                        class TestAsyncOperations:
-                            async def test_async_operation(self):
-                                await self.setup_loop()
+                        class ThreadSafeAsyncObject:
+                            def __init__(self):
                                 try:
-                                    await self.run_test()
-                                finally:
-                                    await self.cleanup_loop()
+                                    self._loop = asyncio.get_running_loop()
+                                except RuntimeError:
+                                    raise RuntimeError("Must be created from async context")
+
+                            def wake_up_waiter(self, waiter):
+                                # Use call_soon_threadsafe for thread-safe operations
+                                self._loop.call_soon_threadsafe(waiter.set_result, None)
                         ]]>
                     </example>
-                </guideline>
+                </pattern>
 
-                <guideline>
+                <pattern>
+                    <name>Semaphore Testing</name>
+                    <description>Guidelines for testing async semaphores and similar synchronization primitives.</description>
+                    <recommendations>
+                        <item>Test both async and sync contexts</item>
+                        <item>Verify proper cleanup of resources</item>
+                        <item>Test error conditions and timeout scenarios</item>
+                        <item>Use explicit synchronization between threads</item>
+                        <item>Add sleep intervals to allow state changes to propagate</item>
+                        <item>Test with more waiters than semaphore value</item>
+                        <item>Verify final state after all operations</item>
+                    </recommendations>
+                    <example>
+                        <![CDATA[
+                        async def test_semaphore():
+                            sem = AsyncSemaphore(2)
+                            waiters = []
+                            ready_event = threading.Event()
+
+                            async def waiter():
+                                await sem.acquire()
+                                await asyncio.sleep(0.1)  # Hold semaphore
+                                sem.release()
+
+                            # Start multiple waiters
+                            for _ in range(5):
+                                waiters.append(asyncio.create_task(waiter()))
+
+                            # Coordinate with background thread
+                            thread = threading.Thread(target=thread_func)
+                            thread.start()
+                            ready_event.set()
+
+                            await asyncio.gather(*waiters)
+                            thread.join()
+
+                            # Verify final state
+                            assert sem._count == initial_count
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern>
                     <name>Resource Cleanup</name>
-                    <description>
-                        - Clear shared resources between tests
-                        - Use fixtures for proper setup/teardown
-                        - Implement proper cleanup in async context managers
-                        - Handle executor shutdown carefully to avoid deadlocks
-                        - Close all async generators before loop shutdown
-                        - Ensure proper cleanup order in teardown
-                    </description>
+                    <description>Ensure proper cleanup of async resources to prevent memory leaks and segfaults.</description>
+                    <recommendations>
+                        <item>Always close/cleanup resources in both success and error cases</item>
+                        <item>Wake up and clear all waiters when closing resources</item>
+                        <item>Release all held resources during cleanup</item>
+                        <item>Set clear state flags to prevent further operations</item>
+                        <item>Use context managers when possible</item>
+                    </recommendations>
                     <example>
                         <![CDATA[
-                        @pytest_asyncio.fixture
-                        async def database():
-                            db = await setup_test_db()
-                            yield db
-                            await db.cleanup()
+                        def close(self):
+                            with self._lock:
+                                self._closed = True
+                                # Wake up waiters
+                                for waiter in self._waiters:
+                                    if not waiter.done():
+                                        waiter.set_exception(RuntimeError("Resource closed"))
+                                self._waiters.clear()
+                                # Release resources
+                                while self._count < self._value:
+                                    self._semaphore.release()
+                                    self._count += 1
                         ]]>
                     </example>
-                </guideline>
-
-                <guideline>
-                    <name>Error Handling</name>
-                    <description>
-                        - Re-raise errors in test environment for better debugging
-                        - Use structured logging for test output
-                        - Implement proper exception boundaries
-                        - Add comprehensive error context
-                        - Track and log all async operations
-                        - Handle timeouts properly
-                    </description>
-                    <example>
-                        <![CDATA[
-                        @pytest.mark.asyncio
-                        async def test_with_error_handling():
-                            with structlog.testing.capture_logs() as logs:
-                                try:
-                                    await async_operation()
-                                except Exception as e:
-                                    assert "expected error" in str(e)
-                                    assert any(
-                                        "error_event" in log.get("event")
-                                        for log in logs
-                                    )
-                        ]]>
-                    </example>
-                </guideline>
-
-                <guideline>
-                    <name>Test Organization</name>
-                    <description>
-                        - Group related tests in classes with shared loop
-                        - Use fixtures for common setup/teardown
-                        - Separate unit and integration tests
-                        - Add proper type annotations for test functions
-                        - Document test requirements and assumptions
-                        - Maintain consistent test structure
-                    </description>
-                    <example>
-                        <![CDATA[
-                        @pytest.mark.asyncio
-                        @pytest.mark.integration
-                        class TestIntegration:
-                            @pytest_asyncio.fixture(autouse=True)
-                            async def setup(self):
-                                self.resource = await setup_test_resource()
-                                yield
-                                await cleanup_test_resource(self.resource)
-                        ]]>
-                    </example>
-                </guideline>
-
-                <guideline>
-                    <name>Thread Safety Testing</name>
-                    <description>
-                        - Use thread-safe event handling in tests
-                        - Implement proper synchronization for shared resources
-                        - Handle concurrent operations carefully
-                        - Use proper thread pool management
-                        - Clean up thread resources in teardown
-                        - Test thread interaction scenarios
-                    </description>
-                    <example>
-                        <![CDATA[
-                        @pytest.mark.asyncio
-                        async def test_thread_safety():
-                            async with ThreadPoolManager() as pool:
-                                futures = [
-                                    pool.submit(thread_operation)
-                                    for _ in range(10)
-                                ]
-                                results = await asyncio.gather(*futures)
-                                assert all(results)
-                        ]]>
-                    </example>
-                </guideline>
-
-                <guideline>
-                    <name>Event Loop Policy Management</name>
-                    <description>
-                        - Configure custom event loop policies when needed
-                        - Handle policy changes safely between tests
-                        - Restore default policies in teardown
-                        - Handle platform-specific policy requirements
-                        - Ensure proper cleanup of policy changes
-                    </description>
-                    <example>
-                        <![CDATA[
-                        @pytest.fixture
-                        def event_loop_policy(request):
-                            """Configure and cleanup custom event loop policies."""
-                            original_policy = asyncio.get_event_loop_policy()
-                            policy = CustomEventLoopPolicy()
-                            asyncio.set_event_loop_policy(policy)
-                            yield policy
-                            asyncio.set_event_loop_policy(original_policy)
-                        ]]>
-                    </example>
-                </guideline>
-
-                <guideline>
-                    <name>Structured Logging in Tests</name>
-                    <description>
-                        - Use structlog for test logging
-                        - Configure logging specifically for test environment
-                        - Capture and verify log messages
-                        - Add context to log messages
-                        - Clean up logging handlers
-                    </description>
-                    <example>
-                        <![CDATA[
-                        @pytest.fixture(autouse=True)
-                        def configure_structlog(log_output):
-                            structlog.configure(
-                                processors=[
-                                    structlog.processors.add_log_level,
-                                    structlog.processors.TimeStamper(fmt="iso"),
-                                    log_output
-                                ],
-                                wrapper_class=structlog.make_filtering_bound_logger("DEBUG"),
-                                context_class=dict,
-                                logger_factory=structlog.testing.LogCapture,
-                                cache_logger_on_first_use=True
-                            )
-                        ]]>
-                    </example>
-                </guideline>
-            </async_testing_guidelines>
+                </pattern>
+            </async_testing_patterns>
 
             <test_patterns>
                 <pattern name="AsyncFixture">
