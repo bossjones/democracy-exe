@@ -615,6 +615,38 @@ def test_log_levels() -> None:
    - Loggers must be created after configuration
    - Time-based tests need controlled timestamps
    - Thread-local context may affect results
+
+
+9. Iterative Testing Development:
+   When developing and debugging structlog tests, an iterative approach focusing on individual tests helps isolate issues and ensure thorough coverage. This methodical approach allows you to:
+   - Focus on one test at a time
+   - Get detailed debugging information
+   - Quickly iterate on test implementations
+   - Understand test failures more clearly
+
+   Here's the recommended test execution pattern:
+   ```bash
+   # Base format for running individual tests with maximum debugging info
+   uv run pytest -s --record-mode=none --verbose -vvvv --showlocals --tb=short tests/test_logsetup.py -k test_name
+
+   # Example: Testing timestamp formatting in isolation
+   uv run pytest -s --record-mode=none --verbose -vvvv --showlocals --tb=short tests/test_logsetup.py -k test_timestamp_formatting
+   ```
+
+   Each flag serves a specific debugging purpose:
+   - `-s`: Show print statements and other output
+   - `--record-mode=none`: Disable any recording features
+   - `--verbose -vvvv`: Maximum verbosity for detailed test information
+   - `--showlocals`: Display local variables on test failure
+   - `--tb=short`: Concise traceback format
+   - `-k test_name`: Filter to run only tests matching the given name
+
+   This approach is particularly valuable when:
+   - Implementing new test cases
+   - Debugging failing tests
+   - Refining test assertions
+   - Investigating timing-related issues
+   - Troubleshooting processor chain behavior
 </testing_standards>
 
 <processor_testing>

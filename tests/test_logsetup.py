@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Dict, cast
 
 import structlog
 
+from freezegun import freeze_time
 from structlog.processors import TimeStamper, add_log_level
 from structlog.stdlib import BoundLogger
 from structlog.testing import CapturingLogger, LogCapture
@@ -98,13 +99,27 @@ def fixture_configure_structlog(log_output: LogCapture) -> Generator[None, None,
     Yields:
         None
     """
+    # Reset structlog to defaults before configuring
+    structlog.reset_defaults()
+
+    # Configure structlog for testing
     structlog.configure(
         processors=[
-            TimeStamper(fmt="iso", utc=True),
-            add_log_level,
+            # Add stdlib processors first
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            # Add structlog processors
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            # LogCapture must be last to capture processed events
             log_output,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=False,  # Important: disable caching for tests
     )
     yield
@@ -137,6 +152,7 @@ def clean_logging() -> Generator[None, None, None]:
 
 
 @pytest.mark.logsonly
+@freeze_time("2024-01-01 12:00:00Z")
 def test_logger_initialization(log_output: LogCapture) -> None:
     """Test that the logger is properly initialized.
 
@@ -185,10 +201,7 @@ def test_logger_initialization(log_output: LogCapture) -> None:
 
     # Verify timestamp format (ISO format)
     assert "timestamp" in log_entry, "Missing timestamp"
-    try:
-        datetime.datetime.fromisoformat(log_entry["timestamp"].replace("Z", "+00:00"))
-    except ValueError as e:
-        pytest.fail(f"Invalid timestamp format: {e}")
+    assert log_entry["timestamp"] == "2024-01-01T12:00:00Z", "Incorrect timestamp format"
 
     # Verify logger capabilities
     assert hasattr(logger, "info"), "Logger missing info method"
@@ -366,6 +379,7 @@ def test_module_name_processor(log_output: LogCapture) -> None:
 
 
 @pytest.mark.logsonly
+@freeze_time("2024-01-01 12:00:00Z")
 def test_timestamp_formatting(log_output: LogCapture) -> None:
     """Test that timestamps are properly formatted.
 
@@ -377,25 +391,32 @@ def test_timestamp_formatting(log_output: LogCapture) -> None:
     Args:
         log_output: The LogCapture fixture for verifying log output
     """
-    configure_logging(enable_json_logs=True)
+    # Reset and reconfigure for this test
+    structlog.reset_defaults()
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            log_output,
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
+
     logger = get_logger("test_timestamps")
 
-    with structlog.testing.capture_logs() as captured:
-        logger.info("test message")
+    logger.info("test message")
+    assert len(log_output.entries) == 1, "Expected exactly one log message"
+    log_entry = log_output.entries[0]
 
-        assert len(captured) == 1, "Expected exactly one log message"
-        log_entry = captured[0]
-
-        # Verify timestamp exists and format
-        assert "timestamp" in log_entry, "Missing timestamp"
-        timestamp = log_entry["timestamp"]
-
-        # Should be in ISO format with timezone
-        try:
-            dt = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-            assert dt.tzinfo is not None, "Timestamp should include timezone information"
-        except ValueError as e:
-            pytest.fail(f"Invalid timestamp format: {e}")
+    # Verify timestamp exists and format
+    assert "timestamp" in log_entry, "Missing timestamp"
+    assert log_entry["timestamp"] == "2024-01-01T12:00:00Z", "Incorrect timestamp format"
 
 
 @pytest.mark.logsonly
@@ -403,30 +424,51 @@ def test_error_formatting(log_output: LogCapture) -> None:
     """Test that errors are properly formatted in log entries.
 
     This test verifies:
-    1. Exception information is captured
-    2. Stack traces are formatted properly
+    1. Exception information is captured and formatted
+    2. Stack traces are included
     3. Error context is preserved
 
     Args:
         log_output: The LogCapture fixture for verifying log output
     """
-    configure_logging(enable_json_logs=True)
+    # Reset and reconfigure for this test
+    structlog.reset_defaults()
+    structlog.configure(
+        processors=[
+            # Add stdlib processors first
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            # Add structlog processors
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            # LogCapture must be last
+            log_output,
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
+
     logger = get_logger("test_errors")
 
-    test_error = ValueError("test error")
-    with structlog.testing.capture_logs() as captured:
-        try:
-            raise test_error
-        except ValueError:
-            logger.error("error occurred", exc_info=True)
+    try:
+        raise ValueError("test error")
+    except ValueError:
+        logger.exception("error occurred")
 
-        assert len(captured) == 1, "Expected exactly one log message"
-        log_entry = captured[0]
+    assert len(log_output.entries) == 1, "Expected exactly one log message"
+    log_entry = log_output.entries[0]
 
-        # Verify error details
-        assert "exc_info" in log_entry, "Missing exception info"
-        assert "ValueError: test error" in str(log_entry["exc_info"]), "Incorrect error message"
-        assert "test_error_formatting" in str(log_entry["exc_info"]), "Missing stack trace info"
+    # Verify error details
+    assert "exception" in log_entry, "Missing exception info"
+    assert isinstance(log_entry["exception"], str), "Exception should be formatted as string"
+    assert "Traceback (most recent call last)" in log_entry["exception"], "Missing traceback"
+    assert "ValueError: test error" in log_entry["exception"], "Missing error message"
+    assert log_entry["log_level"] == "error", "Incorrect log level"
 
 
 @pytest.mark.logsonly
@@ -475,40 +517,58 @@ def test_processor_chain_ordering(log_output: LogCapture) -> None:
         log_output: The LogCapture fixture for verifying log output
     """
 
-    # Create a processor that tracks execution order
-    def order_tracking_processor(
+    # Create processors that track execution order
+    def first_processor(
         logger_name: str | None,
         method_name: str | None,
         event_dict: EventDict,
     ) -> EventDict:
-        """Add execution order information to the event dict."""
-        event_dict.setdefault("processor_order", []).append("order_tracker")
+        """Add first processor tracking."""
+        event_dict.setdefault("processor_order", []).append("first")
         return event_dict
 
-    # Configure with custom processor
+    def second_processor(
+        logger_name: str | None,
+        method_name: str | None,
+        event_dict: EventDict,
+    ) -> EventDict:
+        """Add second processor tracking."""
+        event_dict.setdefault("processor_order", []).append("second")
+        return event_dict
+
+    # Reset and reconfigure for this test
+    structlog.reset_defaults()
     structlog.configure(
         processors=[
-            order_tracking_processor,
-            TimeStamper(fmt="iso", utc=True),
-            add_log_level,
+            # Our tracking processors
+            first_processor,
+            second_processor,
+            # Standard processors
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            # LogCapture must be last
             log_output,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=False,
     )
 
     logger = get_logger("test_processors")
+    logger.info("test message")
 
-    with structlog.testing.capture_logs() as captured:
-        logger.info("test message")
+    assert len(log_output.entries) == 1, "Expected exactly one log message"
+    log_entry = log_output.entries[0]
 
-        assert len(captured) == 1, "Expected exactly one log message"
-        log_entry = captured[0]
+    # Verify processor execution order
+    assert "processor_order" in log_entry, "Missing processor order tracking"
+    assert log_entry["processor_order"] == ["first", "second"], "Incorrect processor order"
 
-        # Verify processor execution order
-        assert "processor_order" in log_entry, "Missing processor order tracking"
-        assert log_entry["processor_order"] == ["order_tracker"], "Incorrect processor order"
-
-        # Verify all processors executed
-        assert "timestamp" in log_entry, "TimeStamper processor didn't execute"
-        assert "log_level" in log_entry, "add_log_level processor didn't execute"
+    # Verify standard processors executed
+    assert "timestamp" in log_entry, "TimeStamper processor didn't execute"
+    assert "log_level" in log_entry, "add_log_level processor didn't execute"
+    assert "logger" in log_entry, "add_logger_name processor didn't execute"

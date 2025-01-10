@@ -101,13 +101,6 @@ def configure_logging(
 
     Returns:
         dict[str, Any]: The current structlog configuration
-
-    Example:
-        >>> configure_logging(
-        ...     enable_json_logs=True,
-        ...     log_level="INFO",
-        ...     environment="production"
-        ... )
     """
     # Default third-party logger configuration
     default_third_party = {
@@ -146,6 +139,9 @@ def configure_logging(
         """
         # Core processors that are always needed
         processors: list[Processor] = [
+            # Filter by level first for performance
+            structlog.stdlib.filter_by_level,
+
             # Context management
             structlog.contextvars.merge_contextvars,
 
@@ -201,6 +197,10 @@ def configure_logging(
         Returns:
             Configured renderer processor
         """
+        if environment == "testing":
+            # No renderer needed for testing
+            return lambda _, __, event_dict: event_dict
+
         if enable_json_logs or environment == "production":
             return structlog.processors.JSONRenderer(
                 sort_keys=False,
@@ -214,7 +214,7 @@ def configure_logging(
 
     # Get the appropriate renderer
     renderer = get_renderer(enable_json_logs)
-    if enable_json_logs:
+    if enable_json_logs and environment != "testing":
         shared_processors.append(structlog.processors.format_exc_info)
 
     # Configure root logger with handlers
@@ -239,11 +239,12 @@ def configure_logging(
     # Configure structlog with performance optimizations
     structlog.configure(
         processors=shared_processors + [
+            renderer,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.make_filtering_bound_logger(get_log_level(log_level)),
-        cache_logger_on_first_use=True,  # Performance optimization
+        cache_logger_on_first_use=environment != "testing",  # Disable caching for tests
     )
 
     return structlog.get_config()
