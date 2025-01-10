@@ -250,7 +250,7 @@ class Autocrop(commands.Cog):
                         await attachment.save(input_path)
                     logger.debug("Attachment downloaded successfully")
                 except TimeoutError:
-                    logger.error("Attachment download timed out")
+                    logger.error("Image download timed out")
                     await progress.edit(content="Image download timed out")
                     return False, "Image download timed out"
                 except discord.HTTPException as e:

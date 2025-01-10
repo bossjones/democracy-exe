@@ -152,9 +152,12 @@ def configure_structlog() -> None:
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.add_log_level,
             structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.testing.LogCapture(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        logger_factory=structlog.testing.CapturingLogger,
+        logger_factory=structlog.PrintLoggerFactory,
+        context_class=dict,
         cache_logger_on_first_use=False,  # Important: Disable caching for tests
     )
 
@@ -179,7 +182,7 @@ async def test_autocrop_cog_on_ready(bot_with_autocrop_cog: DemocracyBot, caplog
         bot_with_autocrop_cog: The Discord bot instance with Autocrop cog
         caplog: Pytest log capture fixture
     """
-    with capture_logs() as captured:
+    with structlog.testing.capture_logs() as captured:
         cog = bot_with_autocrop_cog.get_cog("Autocrop")
         await cog.on_ready()
 
