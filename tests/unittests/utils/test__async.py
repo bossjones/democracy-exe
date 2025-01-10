@@ -237,20 +237,54 @@ class TestUtilsAsync:
             sem.release()
 
     async def test_thread_pool_manager(self) -> None:
-        """Test ThreadPoolManager functionality."""
+        """Test ThreadPoolManager functionality with comprehensive coverage."""
         manager = async_.ThreadPoolManager()
 
-        # Test pool creation
+        # Test pool creation with different worker configs
         pool1 = manager.create_pool(max_workers=2)
-        pool2 = manager.create_pool(max_workers=2)
+        pool2 = manager.create_pool(max_workers=3)
         assert isinstance(pool1, ThreadPoolExecutor)
         assert isinstance(pool2, ThreadPoolExecutor)
+        assert pool1._max_workers == 2
+        assert pool2._max_workers == 3
 
-        # Test shutdown
+        # Test worker task execution
+        def worker_task() -> str:
+            return "success"
+
+        future = pool1.submit(worker_task)
+        assert future.result() == "success"
+
+        # Test error propagation
+        def failing_task() -> None:
+            raise ValueError("Task failed")
+
+        future = pool1.submit(failing_task)
+        with pytest.raises(ValueError, match="Task failed"):
+            future.result()
+
+        # Verify pool is still usable after error
+        assert not pool1._shutdown
+
+        # Test proper cleanup during shutdown
         manager.shutdown_all(wait=True)
         assert manager._closed
+        assert pool1._shutdown
+        assert pool2._shutdown
+
+        # Verify cannot create new pools after shutdown
         with pytest.raises(RuntimeError, match="ThreadPoolManager is closed"):
             manager.create_pool()
+
+        # Test cleanup during exception
+        manager = async_.ThreadPoolManager()
+        pool = manager.create_pool(max_workers=1)
+        try:
+            raise RuntimeError("Forced error")
+        except RuntimeError:
+            manager.shutdown_all(wait=True)
+            assert manager._closed
+            assert pool._shutdown
 
     async def test_gather_with_concurrency(self) -> None:
         """Test gather_with_concurrency functionality."""
