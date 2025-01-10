@@ -36,6 +36,11 @@
                 <point>No thread synchronization for shared client state</point>
                 <point>Direct memory access without proper locking</point>
                 <point>Missing cleanup in error cases</point>
+                <point>Unsafe stream handling without proper synchronization</point>
+                <point>Missing thread-safe wrappers around critical operations</point>
+                <point>Improper shutdown sequence in up() command</point>
+                <point>Insufficient health check configuration</point>
+                <point>Unsafe environment variable handling in config</point>
             </diagnostic_points>
         </thread>
 
@@ -80,6 +85,10 @@
                 <issue>Direct memory access in concurrent operations</issue>
                 <issue>Missing memory barriers between threads</issue>
                 <issue>Race conditions in resource cleanup</issue>
+                <issue>Unsafe stream handling in monitor_stream()</issue>
+                <issue>Missing proper signal handling in process management</issue>
+                <issue>Insufficient error boundaries around critical operations</issue>
+                <issue>Incomplete error context preservation</issue>
             </issues>
             <impact_level>Critical</impact_level>
             <fix_priority>Immediate</fix_priority>
@@ -189,6 +198,18 @@
         <quote file="democracy_exe/utils/async_.py">
             Detected I/O inside the event loop. This is causing stability issues. Please report issue for integration doing I/O
         </quote>
+        <quote file="langgraph_cli/exec.py">
+            Unsafe stream handling in monitor_stream() without proper thread synchronization
+        </quote>
+        <quote file="langgraph_cli/cli.py">
+            Unsafe thread pool shutdown in up() command using --abort-on-container-exit
+        </quote>
+        <quote file="langgraph_cli/docker.py">
+            Insufficient health check configuration for detecting deadlocks and resource issues
+        </quote>
+        <quote file="langgraph_cli/config.py">
+            Unsafe environment variable handling in config_to_docker using direct string interpolation
+        </quote>
         <quote file="democracy_exe/utils/aiodbx.py">
             SafeFileHandler implements proper error handling and cleanup with async context management
         </quote>
@@ -214,6 +235,10 @@
             <item>Add comprehensive logging for thread lifecycle events</item>
             <item>Log resource cleanup operations</item>
             <item>Track error conditions and recovery</item>
+            <item>Add metrics collection for critical operations</item>
+            <item>Implement better error tracking and context preservation</item>
+            <item>Add proper resource usage tracking</item>
+            <item>Monitor thread pool status and health</item>
         </category>
 
         <category name="Metrics">
@@ -236,5 +261,11 @@
         <step priority="4">Add comprehensive testing</step>
         <step priority="5">Implement monitoring and logging</step>
         <step priority="6">Verify fixes in staging environment</step>
+        <step priority="7">Add proper signal handling and process management</step>
+        <step priority="8">Implement comprehensive error boundaries</step>
+        <step priority="9">Add proper resource tracking and cleanup</step>
+        <step priority="10">Improve health check configuration</step>
+        <step priority="11">Add stress testing under load</step>
+        <step priority="12">Implement safer environment variable handling</step>
     </next_steps>
 </segfault_analysis>
