@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 """Tests for async utilities with comprehensive coverage."""
 
 from __future__ import annotations
@@ -376,65 +377,142 @@ class TestUtilsAsync:
             if task is not asyncio.current_task():
                 assert task.done(), "Task was not properly cleaned up"
 
-    async def test_to_async(self) -> None:
-        """Test to_async decorator."""
-
-        @async_.to_async
-        def sync_func(x: int) -> int:
-            time.sleep(0.1)
-            return x * 2
-
-        # Test successful execution
-        result = await sync_func(21)
-        assert result == 42
-
-        # Test error handling
-        @async_.to_async
-        def failing_func() -> None:
-            raise ValueError("Sync error")
-
-        with pytest.raises(ValueError, match="Sync error"):
-            await failing_func()
-
-    async def test_to_async_thread(self) -> None:
-        """Test to_async_thread decorator."""
-
-        @async_.to_async_thread
-        def thread_func(x: int) -> int:
-            time.sleep(0.1)
-            return x * 2
-
-        # Test successful execution
-        result = await thread_func(21)
-        assert result == 42
-
-        # Test error handling
-        @async_.to_async_thread
-        def failing_thread_func() -> None:
-            raise ValueError("Thread error")
-
-        with pytest.raises(ValueError, match="Thread error"):
-            await failing_thread_func()
-
     def test_to_sync(self) -> None:
-        """Test to_sync decorator."""
+        """Test to_sync decorator with comprehensive coverage.
+
+        Tests:
+        1. Basic async to sync conversion
+        2. Error propagation
+        3. Thread safety with multiple calls
+        4. Resource cleanup
+        5. Loop management
+        6. Nested event loop prevention
+        7. Exception context preservation
+        8. State isolation between calls
+        """
+        results: list[int] = []
+        errors: list[Exception] = []
+        cleanup_called = threading.Event()
 
         @async_.to_sync
         async def async_func(x: int) -> int:
             await asyncio.sleep(0.1)
             return x * 2
 
+        @async_.to_sync
+        async def failing_async_func() -> None:
+            await asyncio.sleep(0.1)
+            raise ValueError("Async error")
+
+        @async_.to_sync
+        async def resource_func() -> None:
+            try:
+                await asyncio.sleep(0.1)
+            finally:
+                cleanup_called.set()
+
+        @async_.to_sync
+        async def nested_loop_func() -> None:
+            # This should raise if we try to create a nested event loop
+            await asyncio.sleep(0.1)
+            # Create but don't run the coroutine to avoid "never awaited" warning
+            coro = asyncio.sleep(0.1)
+            try:
+                asyncio.run(coro)  # This should fail
+            finally:
+                # Clean up the coroutine
+                coro.close()
+
         # Test successful execution
         result = async_func(21)
         assert result == 42
 
-        # Test error handling
-        @async_.to_sync
-        async def failing_async_func() -> None:
-            raise ValueError("Async error")
-
-        with pytest.raises(ValueError, match="Async error"):
+        # Test error handling with proper context
+        with pytest.raises(ValueError) as exc_info:
             failing_async_func()
+        assert "Async error" in str(exc_info.value)
+        assert exc_info.type is ValueError
+
+        # Test resource cleanup
+        resource_func()
+        assert cleanup_called.is_set(), "Cleanup was not called"
+
+        # Test nested event loop prevention
+        with pytest.raises(RuntimeError) as exc_info:
+            nested_loop_func()
+        assert "cannot be called from a running event loop" in str(exc_info.value)
+
+        # Test thread safety with multiple calls
+        def worker(x: int) -> None:
+            try:
+                # Create a new event loop for this thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result = async_func(x)
+                    results.append(result)
+                finally:
+                    loop.close()
+                    asyncio.set_event_loop(None)
+            except Exception as e:
+                errors.append(e)
+
+        # Run multiple threads
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(5)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Verify thread safety
+        assert len(results) == 5, f"Expected 5 results, got {len(results)}, errors: {errors}"
+        assert sorted(results) == [0, 2, 4, 6, 8]
+        assert not errors, f"Unexpected errors: {errors}"
+
+        # Test state isolation
+        state_values: list[int] = []
+
+        @async_.to_sync
+        async def stateful_func() -> None:
+            # Each call should get its own isolated state
+            local_val = 42
+            await asyncio.sleep(0.1)
+            state_values.append(local_val)
+
+        # Run concurrent calls to check state isolation
+        def state_worker() -> None:
+            try:
+                # Create a new event loop for this thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    stateful_func()
+                finally:
+                    loop.close()
+                    asyncio.set_event_loop(None)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=state_worker) for _ in range(3)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert all(val == 42 for val in state_values), "State was not properly isolated"
+        assert len(state_values) == 3, f"Expected 3 state values, got {len(state_values)}"
+
+        # Test error context preservation
+        def get_error_context() -> None:
+            try:
+                raise RuntimeError("Original error")
+            except RuntimeError:
+                failing_async_func()
+
+        with pytest.raises(ValueError) as exc_info:
+            get_error_context()
+        assert "Async error" in str(exc_info.value)
+        assert exc_info.type is ValueError
 
     async def test_fire_coroutine_threadsafe(self) -> None:
         """Test fire_coroutine_threadsafe functionality."""

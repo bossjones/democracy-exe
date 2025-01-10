@@ -89,6 +89,16 @@
             <point>Resource cleanup during shutdown may be incomplete or out of order</point>
             <point>Thread pool configuration may not be optimized for the application's needs</point>
             <point>Base class implementations may not consistently handle resource cleanup</point>
+            <point>Nested event loops can cause deadlocks and segfaults</point>
+            <point>Improper state isolation between sync/async calls can cause corruption</point>
+            <point>Missing exception context can hide root causes of failures</point>
+            <point>Thread safety violations in sync wrappers can cause crashes</point>
+            <point>Resource cleanup failures can lead to memory leaks</point>
+            <point>Missing event loop in worker threads can cause operations to fail</point>
+            <point>Improper loop cleanup can lead to resource leaks</point>
+            <point>Nested event loops can cause deadlocks</point>
+            <point>State isolation failures between threads can corrupt data</point>
+            <point>Loop creation/cleanup errors can leave resources dangling</point>
         </diagnostic_points>
 
         <recommended_fixes>
@@ -132,6 +142,28 @@
                     <step>Use thread pools with proper lifecycle management</step>
                     <step>Ensure thread pools are shut down with wait=True when appropriate</step>
                     <step>Add proper coordination between asyncio, threading and multiprocessing</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Sync/Async Conversion Safety</issue>
+                <solution>
+                    <step>Prevent nested event loop creation</step>
+                    <step>Ensure proper state isolation between calls</step>
+                    <step>Preserve exception context in conversions</step>
+                    <step>Implement proper thread safety in wrappers</step>
+                    <step>Add comprehensive resource cleanup</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Thread Event Loop Management</issue>
+                <solution>
+                    <step>Create new event loop for each worker thread</step>
+                    <step>Set loop as current in thread context</step>
+                    <step>Clean up loop in finally block</step>
+                    <step>Reset loop to None after cleanup</step>
+                    <step>Handle loop errors gracefully</step>
                 </solution>
             </fix>
         </recommended_fixes>
@@ -428,6 +460,418 @@
                         ]]>
                     </example>
                 </pattern>
+
+                <pattern name="thread_decorator_testing">
+                    <description>
+                        When testing async decorators that interact with threads:
+                        - Use explicit thread synchronization with threading.Event
+                        - Handle both Future and Task objects appropriately
+                        - Ensure proper cleanup in all execution paths
+                        - Test cancellation with proper state verification
+                        - Verify thread pool states before and after operations
+                    </description>
+                    <example>
+                        <![CDATA[
+                        async def test_thread_decorator():
+                            # Set up thread synchronization
+                            execution_started = threading.Event()
+                            execution_continue = threading.Event()
+                            thread_pool_manager = ThreadPoolManager()
+
+                            try:
+                                @to_async_thread
+                                def thread_func(x: int) -> int:
+                                    execution_started.set()  # Signal start
+                                    execution_continue.wait()  # Wait for signal
+                                    return x * 2
+
+                                # Test with proper thread coordination
+                                execution_continue.set()
+                                result = await thread_func(21)
+                                assert result == 42
+
+                                # Reset for next test
+                                execution_started.clear()
+                                execution_continue.clear()
+
+                                # Test cancellation
+                                future = thread_func(10)
+                                await asyncio.sleep(0.1)
+                                assert execution_started.is_set()
+                                future.cancel()
+
+                                try:
+                                    await future
+                                except asyncio.CancelledError:
+                                    pass  # Expected
+                            finally:
+                                # Ensure events are set to prevent hanging
+                                execution_continue.set()
+                                execution_started.set()
+                                # Clean up thread pools
+                                thread_pool_manager.shutdown_all(wait=True)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="future_vs_task_handling">
+                    <description>
+                        Guidelines for handling Future vs Task objects in tests:
+                        - Understand when decorators return Futures vs Tasks
+                        - Use appropriate cancellation methods for each type
+                        - Verify state transitions correctly
+                        - Handle cleanup appropriately for each type
+                        - Test both sync and async cancellation paths
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # For Tasks (coroutines)
+                        task = asyncio.create_task(coro())
+                        task.cancel()
+                        await task  # Handle CancelledError
+
+                        # For Futures (from thread operations)
+                        future = thread_func()  # Returns Future directly
+                        future.cancel()
+                        await future  # Handle CancelledError
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_pool_verification">
+                    <description>
+                        Guidelines for verifying thread pool state:
+                        - Check pool state before and after operations
+                        - Verify proper shutdown behavior
+                        - Test with multiple pools
+                        - Ensure cleanup in both success and error paths
+                        - Monitor for resource leaks
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # Test thread pool lifecycle
+                        pools = [thread_pool_manager.create_pool(max_workers=1)
+                                for _ in range(3)]
+                        try:
+                            # Verify active state
+                            assert all(not pool._shutdown for pool in pools)
+
+                            # Run work
+                            futures = []
+                            for pool in pools:
+                                futures.append(pool.submit(work_func))
+
+                            # Wait for completion
+                            for future in futures:
+                                future.result()
+                        finally:
+                            # Verify cleanup
+                            thread_pool_manager.shutdown_all(wait=True)
+                            assert all(pool._shutdown for pool in pools)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="comprehensive_cleanup">
+                    <description>
+                        Guidelines for comprehensive cleanup in async tests:
+                        - Use try/except/finally blocks consistently
+                        - Clean up thread synchronization primitives
+                        - Handle both expected and unexpected errors
+                        - Verify resource state after cleanup
+                        - Prevent test hanging
+                    </description>
+                    <example>
+                        <![CDATA[
+                        try:
+                            # Test operations
+                            await async_operation()
+                        except Exception as e:
+                            # Handle expected errors
+                            cleanup_resources()
+                            raise  # Re-raise after cleanup
+                        finally:
+                            # Always cleanup
+                            execution_continue.set()  # Prevent hanging
+                            execution_started.set()
+                            if not thread_pool_manager._closed:
+                                thread_pool_manager.shutdown_all(wait=True)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="sync_async_conversion_testing">
+                    <description>
+                        Guidelines for testing sync/async conversion decorators:
+                        - Test nested event loop prevention
+                        - Verify state isolation between calls
+                        - Check exception context preservation
+                        - Test thread safety in concurrent scenarios
+                        - Ensure proper resource cleanup
+                        - Verify error propagation
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_sync_async_conversion():
+                            cleanup_called = threading.Event()
+                            results: list[int] = []
+                            errors: list[Exception] = []
+
+                            @to_sync
+                            async def async_func():
+                                try:
+                                    await asyncio.sleep(0.1)
+                                finally:
+                                    cleanup_called.set()
+
+                            # Test nested event loop prevention
+                            with pytest.raises(RuntimeError) as exc_info:
+                                @to_sync
+                                async def nested():
+                                    await asyncio.sleep(0.1)
+                                    asyncio.run(asyncio.sleep(0.1))
+                                nested()
+
+                            # Test thread safety
+                            def worker():
+                                try:
+                                    async_func()
+                                except Exception as e:
+                                    errors.append(e)
+
+                            threads = [threading.Thread(target=worker)
+                                     for _ in range(5)]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+
+                            assert not errors, "Thread safety violation"
+                            assert cleanup_called.is_set(), "Cleanup failed"
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="event_loop_safety">
+                    <description>
+                        Guidelines for preventing event loop issues:
+                        - Prevent nested event loop creation
+                        - Handle event loop cleanup properly
+                        - Ensure proper loop state in threads
+                        - Verify loop isolation between calls
+                        - Test loop error propagation
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_event_loop_safety():
+                            # Test nested loop prevention
+                            with pytest.raises(RuntimeError):
+                                asyncio.run(asyncio.sleep(0.1))  # In sync context
+
+                            # Test loop cleanup
+                            async def coro():
+                                await asyncio.sleep(0.1)
+                            asyncio.run(coro())  # Should clean up loop
+
+                            # Test loop isolation
+                            def thread_func():
+                                asyncio.run(coro())  # Each thread gets own loop
+                            threads = [threading.Thread(target=thread_func)
+                                     for _ in range(3)]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="exception_context">
+                    <description>
+                        Guidelines for testing exception handling in sync/async conversion:
+                        - Preserve original exception context
+                        - Test exception type conversion
+                        - Verify exception attributes
+                        - Check stack trace preservation
+                        - Test nested exception handling
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_exception_context():
+                            @to_sync
+                            async def failing_func():
+                                raise ValueError("Async error")
+
+                            def get_error_context():
+                                try:
+                                    raise RuntimeError("Original")
+                                except RuntimeError:
+                                    failing_func()
+
+                            with pytest.raises(ValueError) as exc_info:
+                                get_error_context()
+                            assert "Async error" in str(exc_info.value)
+                            assert exc_info.type is ValueError
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_event_loop_management">
+                    <description>
+                        Guidelines for managing event loops in threaded environments:
+                        - Create new event loop for each thread
+                        - Set and unset event loops properly
+                        - Clean up loops after use
+                        - Handle loop state isolation
+                        - Prevent loop leaks
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def worker() -> None:
+                            try:
+                                # Create new loop for this thread
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+                                try:
+                                    # Run async operations
+                                    result = async_func()
+                                finally:
+                                    # Clean up loop
+                                    loop.close()
+                                    asyncio.set_event_loop(None)
+                            except Exception as e:
+                                errors.append(e)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="sync_async_state_isolation">
+                    <description>
+                        Guidelines for maintaining state isolation in sync/async conversions:
+                        - Verify state isolation between threads
+                        - Test concurrent access patterns
+                        - Check state cleanup
+                        - Monitor for state leaks
+                        - Verify state consistency
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_state_isolation():
+                            state_values: list[int] = []
+
+                            @to_sync
+                            async def stateful_func():
+                                local_val = 42  # Thread-local state
+                                await asyncio.sleep(0.1)
+                                state_values.append(local_val)
+
+                            # Run concurrent threads
+                            threads = [Thread(target=worker)
+                                     for _ in range(3)]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+
+                            # Verify state
+                            assert len(state_values) == 3
+                            assert all(v == 42 for v in state_values)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="event_loop_error_handling">
+                    <description>
+                        Guidelines for handling event loop errors:
+                        - Handle loop creation failures
+                        - Manage nested loop errors
+                        - Clean up after loop errors
+                        - Preserve error context
+                        - Prevent loop leaks in error cases
+                    </description>
+                    <example>
+                        <![CDATA[
+                        try:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            try:
+                                # Operations that might fail
+                                result = async_operation()
+                            except Exception as e:
+                                logger.error("Operation failed",
+                                           error=str(e))
+                                raise
+                            finally:
+                                try:
+                                    loop.close()
+                                finally:
+                                    asyncio.set_event_loop(None)
+                        except Exception as e:
+                            handle_error(e)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="coroutine_cleanup">
+                    <description>
+                        Guidelines for proper coroutine cleanup in tests:
+                        - Always clean up created coroutines, even in error cases
+                        - Handle "never awaited" warnings by explicitly closing coroutines
+                        - Use try/finally blocks to ensure cleanup
+                        - Understand the difference between coroutines, Tasks, and Futures
+                        - Properly handle coroutines in nested event loop tests
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_coroutine_cleanup():
+                            # Create but don't run the coroutine
+                            coro = asyncio.sleep(1)
+                            try:
+                                # Test operation that might fail
+                                result = some_operation(coro)
+                            finally:
+                                # Clean up the coroutine directly
+                                coro.close()
+
+                        def test_task_cleanup():
+                            # For Tasks, we can check done() state
+                            task = asyncio.create_task(some_coro())
+                            try:
+                                result = await task
+                            except Exception:
+                                if not task.done():
+                                    task.cancel()
+                                    try:
+                                        await task
+                                    except asyncio.CancelledError:
+                                        pass
+
+                        def test_nested_event_loop():
+                            coro = asyncio.sleep(0.1)
+                            try:
+                                # This should raise
+                                asyncio.run(coro)
+                            finally:
+                                # Always clean up the coroutine
+                                coro.close()
+                        ]]>
+                    </example>
+                    <diagnostic_points>
+                        <point>Coroutine objects don't have done() method - that's for Tasks/Futures</point>
+                        <point>Unclosed coroutines lead to "never awaited" warnings</point>
+                        <point>Missing cleanup can cause resource leaks</point>
+                        <point>Improper cleanup in error cases can mask original errors</point>
+                        <point>Nested event loop tests need explicit coroutine management</point>
+                    </diagnostic_points>
+                    <recommendations>
+                        <item>Always use try/finally for coroutine cleanup</item>
+                        <item>Use close() directly on coroutine objects</item>
+                        <item>For Tasks, check done() state and handle cancellation</item>
+                        <item>Handle cleanup in both success and error paths</item>
+                        <item>Use proper exception handling to preserve error context</item>
+                    </recommendations>
+                </pattern>
+
             </async_testing_patterns>
 
             <test_patterns>
