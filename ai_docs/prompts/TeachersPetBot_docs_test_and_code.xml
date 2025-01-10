@@ -1,0 +1,4939 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/TeachersPetBot/src/cal.py</source>
+<document_content>
+from datetime import datetime
+import discord
+from src import db
+
+BOT = None
+CALENDAR_EMBED = None
+MSG = None
+
+
+async def display_events(ctx):
+    """
+    Function:
+        display_events
+    Description:
+        Creates or edit the calender embed
+    Input:
+        - ctx: context of function activation
+    Output:
+        Calendar is created or calendar is updated with new events
+    """
+    global MSG
+    # recreate the embed from the database
+    update_calendar()
+
+    # if it was never created, send the first message
+    if MSG is None:
+        MSG = await ctx.send(embed=CALENDAR_EMBED)
+    else:
+        # otherwise, delete the existing calender
+        async for msg in MSG.channel.history(limit=2):
+            await msg.delete()
+        # Adding the updated calender
+
+        await MSG.channel.send(embed=CALENDAR_EMBED)
+
+
+def update_calendar():
+    """
+    Function:
+        update_calendar
+    Description:
+        Builds the calendar embed using the event entries of database
+    Input:
+        None
+    Output:
+        Calendar embed with events
+    """
+    global CALENDAR_EMBED
+
+    # create an Embed with a title and description of color 'currently BLUE'
+    CALENDAR_EMBED = discord.Embed(title="The Course Calendar, sire",
+                                   description="All of the class assignments and exams!", color=0x0000FF)
+
+    # make a list that contains the string representing the
+    # event that has the comparison item as the first index
+    # which is the date, we are comparing as strings but still works for ordering events by date
+    # do this for the events we care about in the calendar 'assignments, exams, and custom events'
+    assignments = []
+    for title, link, desc, date, due_hr, due_min in db.select_query(
+            'SELECT ' +
+            'title, link, desc, date, due_hr, due_min ' +
+            'FROM ' +
+            'assignments ' +
+            'ORDER BY ' +
+            'date ASC, ' +
+            'due_hr ASC, ' +
+            'due_min ASC'):
+        assignments.append([f'{date} {due_hr}:{due_min}',
+                            f'{date} {due_hr}:{due_min}\n{title}\n{desc}\n{link}\n\n'])
+
+    exams = []
+    for title, desc, date, begin_hr, begin_min, end_hr, end_min in db.select_query(
+            'SELECT ' +
+            'title, desc, date, begin_hr, begin_min, end_hr, end_min ' +
+            'FROM ' +
+            'exams ' +
+            'ORDER BY ' +
+            'date ASC, ' +
+            'begin_hr ASC, '
+            'begin_min ASC'):
+        exams.append([f'{date} {begin_hr}:{begin_min}',
+                      f'{date} {begin_hr}:{begin_min} - {end_hr}:{end_min}\n{title}\n{desc}\n\n'])
+
+    custom_events = []
+    for title, link, desc, date, due_hr, due_min, begin_hr, begin_min, end_hr, end_min in db.select_query(
+            'SELECT ' +
+            'title, link, desc, date, due_hr, due_min, begin_hr, begin_min, end_hr, end_min ' +
+            'FROM ' +
+            'custom_events ' +
+            'ORDER BY ' +
+            'date ASC, ' +
+            'due_hr ASC, '
+            'due_min ASC, '
+            'begin_hr ASC, '
+            'begin_min ASC'):
+        custom_events.append([f'{date} {due_hr}:{due_min}\n'
+                              f'{begin_hr}:{begin_min} - {end_hr}:{end_min}\n{title}\n{desc}\n\n'])
+
+    # get current time for comparison and make sure it is of same string format
+    current_time = datetime.now().strftime('%m-%d-%Y %H:%M')
+    # Time in EST: 2017-01-19 08:06:14
+
+    special_events = ''
+    if len(custom_events) == 0:
+        special_events = "No special events"
+    else:
+        for each in custom_events:
+            special_events += each[0]
+
+    CALENDAR_EMBED.add_field(name="Special Events", value=special_events, inline=True)
+
+    i = 0
+    j = 0
+
+    # 2 lists for fields in the calendar
+    past_events = ''
+    # current_events = ''
+    future_events = ''
+
+    # go through the sorted lists and take the earliest date,
+    # moving the index of each until all lists are placed
+    # into one of the defined areas
+    while i != len(exams) or j != len(assignments):
+        if i == len(exams) or (j != len(assignments) and assignments[j][0] < exams[i][0]):
+            if assignments[j][0] < current_time:
+                past_events += assignments[j][1]
+            else:
+                future_events += assignments[j][1]
+            j += 1
+        else:
+            if exams[i][0] < current_time:
+                past_events += exams[i][1]
+            else:
+                future_events += exams[i][1]
+            i += 1
+
+    # add the built strings to the embed
+    if past_events != '':
+        CALENDAR_EMBED.add_field(name="Past Events", value=past_events, inline=True)
+
+    # CALENDAR_EMBED.add_field(name="Current Events", value=events, inline=False)
+
+    if future_events != '':
+        CALENDAR_EMBED.add_field(name="Coming up", value=future_events, inline=True)
+
+    # mark the time that this was done for both creation and editing
+    # NOTE - we put in EST because we are EST
+    time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' EST'
+    CALENDAR_EMBED.set_footer(text=f"{time_now}")
+
+
+async def init(b):
+    """
+    Function:
+        init
+    Description:
+        Initializes the calendar, creating channel and embed call
+    Input:
+         - b: bot
+    Output:
+        Updated calender
+    """
+    global BOT
+
+    BOT = b
+    for guild in BOT.guilds:
+        for channel in guild.text_channels:
+            if channel.name == 'course-calendar':
+                await channel.delete()
+
+        channel = await guild.create_text_channel('course-calendar')
+        await display_events(channel)
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/TeachersPetBot/src/db.py</source>
+<document_content>
+import sqlite3
+from sqlite3 import Error
+import os
+
+CON = None
+
+
+def connect():
+    """
+    Function:
+        connect
+    Description:
+        connects the program to db.sqlite database file
+    Input:
+         None
+    Output:
+        database connection
+    """
+    ''' connect program to database file db.sqlite '''
+    global CON
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'db.sqlite')
+    try:
+        CON = sqlite3.connect(db_path)
+        print("Connection to SQLite DB successful")
+    except Error as err:
+        print(f"The error '{err}' occurred when trying to connect to SQLite database")
+
+
+def select_query(sql, args=()):
+    """
+    Function:
+        select_query
+    Description:
+        Select query to return items from database
+    Input:
+         - args: selection criteria
+    Output:
+        Selects entries from database
+    """
+
+    cur = CON.cursor()
+    return cur.execute(sql, args)
+
+
+def delete_db():
+    """
+    Function:
+        delete_db
+    Description:
+        Deletes the database
+    Input:
+         None
+    Output:
+        Database file is deleted
+    """
+    os.remove('db.sqlite')
+    print("The SQLite database has been deleted")
+
+
+def mutation_query(sql, args=()):
+    """
+    Function:
+        mutation_query
+    Description:
+        Does a mutation on the database
+    Input:
+         - args: mutation criteria
+    Output:
+        Entries of the database is edited
+    """
+    cur = CON.cursor()
+    cur.execute(sql, args)
+    CON.commit()
+
+
+def shutdown():
+    """
+    Function:
+        shutdown
+    Description:
+        Disconnect the database connection
+    Input:
+         NOne
+    Output:
+        Bot disconnects from database
+    """
+    CON.close()
+    print("The SQLite connection is closed")
+
+
+def add_Tables(db):
+    db.mutation_query('''
+            CREATE TABLE IF NOT EXISTS ta_office_hours (
+                guild_id    INT,
+                ta          VARCHAR(50),
+                day         INT,
+                begin_hr    INT,
+                begin_min   INT,
+                end_hr      INT,
+                end_min     INT
+            )
+        ''')
+
+    db.mutation_query('''
+            CREATE TABLE IF NOT EXISTS exams (
+                guild_id    INT,
+                title       VARCHAR(50),
+                desc        VARCHAR(300),
+                date        VARCHAR(10),
+                begin_hr    INT,
+                begin_min   INT,
+                end_hr      INT,
+                end_min     INT
+            )
+        ''')
+
+    db.mutation_query('''
+            CREATE TABLE IF NOT EXISTS assignments (
+                guild_id    INT,
+                title       VARCHAR(50),
+                link        VARCHAR(300),
+                desc        VARCHAR(300),
+                date        VARCHAR(10),
+                due_hr      INT,
+                due_min     INT
+            )
+        ''')
+
+    db.mutation_query('''
+                CREATE TABLE IF NOT EXISTS custom_events (
+                    guild_id    INT,
+                    title       VARCHAR(50),
+                    link        VARCHAR(300),
+                    desc        VARCHAR(300),
+                    date        VARCHAR(10),
+                    due_hr      INT,
+                    due_min     INT,
+                    begin_hr    INT,
+                    begin_min   INT,
+                    end_hr      INT,
+                    end_min     INT
+                )
+            ''')
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/TeachersPetBot/src/event_creation.py</source>
+<document_content>
+import datetime
+from discord_components import Button, ButtonStyle, Select, SelectOption
+import validators
+from src import db
+from src import utils
+from src import office_hours
+from src import cal
+
+
+async def get_times(ctx, bot, event_type):
+    """
+    Function:
+        get_times
+    Description:
+        Helper function for acquiring the times an instructor wants an event to be held during
+    Inputs:
+        - ctx: context of the message
+        - bot: discord bot object
+        - event_type: type of the event
+    Output:
+        The begin & end times of the event
+    """
+
+    def check(m):
+        return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+    # Looping until a valid time is entered.
+    while True:
+        await ctx.send(
+            'Enter in format `<begin_time>-<end_time>`, and times should be in 24-hour format.\n'
+            f'For example, setting {event_type} from 9:30am to 1pm can be done as 9:30-13\n'
+            + "Type 'NA' if none. Type 'quit' to abort."
+        )
+
+        msg = await bot.wait_for('message', check=check)
+        user_input = msg.content
+
+        # Checking whether user entered 'quit' or 'NA'.
+        if await check_quit(ctx, user_input):
+            return
+        elif user_input == 'NA':
+            return False
+
+        times = msg.content.strip().split('-')
+        if len(times) != 2:
+            await ctx.send("Incorrect input. Please enter the time in the expected format.\n")
+            continue
+
+        new_times = []
+        new_time = None
+        for t in times:
+            parts = t.split(':')
+            if len(parts) == 1:
+                new_time = (int(parts[0]), 0)
+            elif len(parts) == 2:
+                new_time = (int(parts[0]), int(parts[1]))
+            new_times.append(new_time)
+
+        if len(new_times) != 2:
+            await ctx.send("Incorrect input. Please enter the time in the expected format.\n")
+            continue
+        return new_times
+
+
+async def get_due_time(ctx, bot):
+    """
+    Function:
+        get_due_time
+    Description:
+        Helper function for acquiring the due time of an event
+    Inputs:
+        - ctx: context of the message
+        - bot: discord bot object
+    Output:
+        The begin & end times of the event
+    """
+
+    def check(m):
+        return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+    # Looping until a valid time is entered.
+    while True:
+        await ctx.send("Enter in 24-hour format. e.g. an assignment due at 11:59pm "
+                       "can be inputted as 23:59. Type 'NA' if none. Type 'quit to abort.")
+        msg = await bot.wait_for("message", check=check)
+        time = msg.content.strip()
+
+        # Aborting if user entered 'quit'.
+        if await check_quit(ctx, time):
+            return
+        elif time == 'NA':
+            return False
+
+        # Checking whether the format is valid. If invalid, continue the loop.
+        try:
+            time = datetime.datetime.strptime(time, '%H:%M')
+        except ValueError:
+            try:
+                time = datetime.datetime.strptime(time, '%H')
+            except ValueError:
+                await ctx.send("Incorrect input. Please enter the time in the expected format.\n")
+                continue
+        return time
+
+
+async def check_quit(ctx, value):
+    """
+    Function:
+        check_quit
+    Description:
+        Helper function for checking whether user entered 'quit'.
+    Input:
+        - ctx: context of the message
+        - value: parameter that holds user input
+    Output:
+        True if user input is 'quit', False otherwise.
+    """
+    if value == 'quit':
+        await ctx.send("Aborting event creation. Type '!create' to restart.")
+        return True
+    return False
+
+
+async def get_date(ctx, bot):
+    """
+    Function:
+        get_date
+    Description:
+        Helper function for acquiring the date or due date of an event
+    Input:
+        - ctx: context of the message
+        - bot: discord bot object
+    Output:
+        The date or the due date of the event.
+    """
+    def check(m):
+        return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+    # Looping until a valid date is entered.
+    while True:
+        await ctx.send("Enter in format `MM-DD-YYYY`. Type NA if none. Type 'quit' to abort")
+        msg = await bot.wait_for("message", check=check)
+        date = msg.content.strip()
+
+        # Aborting if user entered 'quit'.
+        if await check_quit(ctx, date):
+            return
+        elif date == 'NA':
+            return False
+
+        # Checking whether the format is valid. If invalid, continue the loop.
+        try:
+            datetime.datetime.strptime(date, '%m-%d-%Y')
+        except ValueError:
+            await ctx.send("Invalid date. Please enter the date in the expected format.\n")
+            continue
+        return date
+
+
+async def get_url(ctx, bot):
+    """
+    Function:
+        get_url
+    Description:
+        Helper function for acquiring the associated url of an event
+    Input:
+        - ctx: context of the message
+        - bot: discord bot object
+    Output:
+        The url associated with the event, or False if user enters 'NA'.
+    """
+
+    def check(m):
+        return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+    # Looping until a valid URL is entered (or 'quit'/'NA' is entered).
+    while True:
+        await ctx.send("Enter the URL. Type NA if none. Type 'quit' to abort.")
+        msg = await bot.wait_for("message", check=check)
+        link = msg.content.strip()
+
+        if await check_quit(ctx, link):
+            return
+        elif link == 'NA':
+            return False
+        elif link and not validators.url(link):
+            await ctx.send("Invalid URL. Please enter a valid URL.\n")
+        else:
+            return link
+
+
+async def create_event(ctx, bot, testing_mode):
+    """
+    Function:
+        create_event
+    Description:
+        Event creation subroutine
+    Input:
+        - ctx: context of the message
+        - bot: discord bot object
+        - testing_mode: flag indicating whether this event is being created during a system test
+    Output:
+        A new event is created in the database and calendar is updated with the new event.
+    """
+    # creating buttons for event types
+    if ctx.channel.name == 'instructor-commands':
+        await ctx.send(
+            'Which type of event would you like to create?',
+            components=[
+                Button(style=ButtonStyle.blue, label='Assignment', custom_id='assignment'),
+                Button(style=ButtonStyle.green, label='Exam', custom_id='exam'),
+                Button(style=ButtonStyle.red, label='Office Hour', custom_id='office-hour'),
+                Button(style=ButtonStyle.gray, label='Custom Event', custom_id='custom-event')
+            ],
+        )
+        # Getting the ID of the clicked button
+        button_clicked = ((await utils.wait_for_msg(bot, ctx.channel)).content
+                          if testing_mode else (await bot.wait_for('button_click')).custom_id)
+
+        # If 'Assignment' is clicked, this will run
+        if button_clicked == 'assignment':
+            def check(m):
+                return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+            await ctx.send("What would you like the assignment to be called? "
+                           "(Type 'quit' to abort)")
+            msg = await bot.wait_for("message", check=check)
+            title = msg.content.strip()
+
+            # Aborting if user entered 'quit'.
+            if await check_quit(ctx, title):
+                return
+
+            # Getting associated url of the event.
+            await ctx.send("Is there a link associated with this assignment?\n ")
+            link = await get_url(ctx, bot)
+            if link is None:
+                return
+
+            await ctx.send("Extra description for assignment? Type NA if none. "
+                           "Type 'quit' to abort")
+            msg = await bot.wait_for("message", check=check)
+            description = msg.content.strip()
+
+            # Aborting if user entered 'quit'.
+            if await check_quit(ctx, description):
+                return
+
+            # Getting the due date.
+            await ctx.send("What is the due date of this assignment?\n ")
+            date = await get_date(ctx, bot)
+            if date is None:
+                return
+
+            # Getting the due time.
+            await ctx.send("What time is this assignment due?\n ")
+            time = await get_due_time(ctx, bot)
+            if time is None:
+                return
+            # If due time is entered as 'NA', this part will run
+            elif not time:
+                db.mutation_query(
+                    'INSERT INTO assignments VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [ctx.guild.id, title, link, description, date, 0, 0]
+                )
+                await ctx.send('Assignment successfully created!')
+                await cal.display_events(None)
+                return
+
+            # If there's a valid due time, this will execute
+            db.mutation_query(
+                'INSERT INTO assignments VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [ctx.guild.id, title, link, description, date, time.hour, time.minute]
+            )
+
+            await ctx.send('Assignment successfully created!')
+            await cal.display_events(None)
+            return
+
+        # If 'exam' is clicked, this will run
+        elif button_clicked == 'exam':
+            def check(m):
+                return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+            await ctx.send("What is the title of this exam? (Type 'quit' to abort)")
+            msg = await bot.wait_for("message", check=check)
+            title = msg.content.strip()
+
+            # Aborting if user entered 'quit'.
+            if await check_quit(ctx, title):
+                return
+
+            await ctx.send("What content is this exam covering? (Type 'quit' to abort)")
+            msg = await bot.wait_for('message', check=check)
+            description = msg.content.strip()
+
+            # Aborting if user entered 'quit'.
+            if await check_quit(ctx, description):
+                return
+
+            # Getting the date.
+            await ctx.send("What is the date of this exam?\n ")
+            date = await get_date(ctx, bot)
+            if date is None:
+                return
+
+            # Getting the exam start/end times.
+            await ctx.send("Type the start & end times of the exam\n")
+            times = await get_times(ctx, bot, 'exam')
+            if times is None:
+                return
+            # This part will run if user entered 'NA'.
+            elif not times:
+                db.mutation_query(
+                    'INSERT INTO exams VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    [ctx.guild.id, title, description, date,
+                     0, 0, 0, 0]
+                )
+                await ctx.send('Exam successfully created!')
+                await cal.display_events(ctx)
+                return
+
+            ((begin_hour, begin_minute), (end_hour, end_minute)) = times
+            db.mutation_query(
+                'INSERT INTO exams VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [ctx.guild.id, title, description, date,
+                 begin_hour, begin_minute, end_hour, end_minute]
+            )
+
+            await ctx.send('Exam successfully created!')
+            await cal.display_events(ctx)
+            return
+
+        # If 'Office Hour' is clicked, this will run
+        elif button_clicked == 'office-hour':
+            # Adding instructors in the server to a list
+            all_instructors = []
+            for mem in ctx.guild.members:
+                is_instructor = next((role.name == 'Instructor'
+                                      for role in mem.roles), None) is not None
+                if is_instructor:
+                    all_instructors.append(mem)
+
+            if len(all_instructors) < 1:
+                await ctx.send('There are no instructors in the server. Aborting event creation.')
+                return
+
+            options = [SelectOption(label=instr.name, value=instr.name)
+                       for instr in all_instructors]
+
+            await ctx.send(
+                'Which instructor will this office hour be for?',
+                components=[
+                    Select(
+                        placeholder='Select an instructor',
+                        options=options
+                    )
+                ]
+            )
+
+            instructor = ((await utils.wait_for_msg(bot, ctx.channel)).content
+                          if testing_mode else (await bot.wait_for('select_option')).values[0])
+
+            await ctx.send(
+                'Which day would you like the office hour to be on?',
+                components=[
+                    Select(
+                        placeholder='Select a day',
+                        options=[
+                            SelectOption(label='Monday', value='Mon'),
+                            SelectOption(label='Tuesday', value='Tue'),
+                            SelectOption(label='Wednesday', value='Wed'),
+                            SelectOption(label='Thursday', value='Thu'),
+                            SelectOption(label='Friday', value='Fri'),
+                            SelectOption(label='Saturday', value='Sat'),
+                            SelectOption(label='Sunday', value='Sun')
+                        ]
+                    )
+                ]
+            )
+
+            day = (
+                (await utils.wait_for_msg(bot, ctx.channel)).content
+                if testing_mode else
+                (await bot.wait_for('select_option', check=lambda x: x.values[0] in ('Mon', 'Tue', 'Wed', 'Thu', 'Fri',
+                                                                                     'Sat', 'Sun'))).values[0]
+            )
+
+            day_num = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun').index(day)
+
+            # Looping until a valid time range is entered (or 'quit' is entered).
+            await ctx.send("Type the start & end times of your office hours.\n")
+            while True:
+                times = await get_times(ctx, bot, 'office hour')
+                if times is None:
+                    return
+                if not times:
+                    await ctx.send("You must enter a time range for office hours\n")
+                    continue
+                break
+            ((begin_hour, begin_minute), (end_hour, end_minute)) = times
+
+            office_hours.add_office_hour(
+                ctx.guild,
+                office_hours.TaOfficeHour(
+                    instructor,
+                    day_num,
+                    (datetime.time(hour=begin_hour, minute=begin_minute),
+                     datetime.time(hour=end_hour, minute=end_minute))
+                )
+            )
+
+            db.mutation_query(
+                'INSERT INTO ta_office_hours VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [ctx.guild.id, instructor, day_num, begin_hour, begin_minute, end_hour, end_minute]
+            )
+
+            await ctx.send('Office hour successfully created!')
+
+        # If 'Custom Event' is clicked, this will run
+        elif button_clicked == 'custom-event':
+            def check(m):
+                return m.content is not None and m.channel == ctx.channel and m.author == ctx.author
+
+            await ctx.send("What would you like this event to be called? "
+                           "(Type 'quit' to abort)")
+            msg = await bot.wait_for("message", check=check)
+            title = msg.content.strip()
+
+            # Aborting if user entered 'quit'.
+            if await check_quit(ctx, title):
+                return
+
+            await ctx.send("Extra description for the event? Type 'NA' if none. "
+                           "Type 'quit' to abort")
+            msg = await bot.wait_for("message", check=check)
+            description = msg.content.strip()
+
+            # Aborting if user entered 'quit'.
+            if await check_quit(ctx, description):
+                return
+
+            # Getting associated url of the event.
+            await ctx.send("Is there an associated link for this event?")
+            link = await get_url(ctx, bot)
+            if link is None:
+                return
+
+            # Getting the associated date.
+            await ctx.send("Is there a date or a due date for this event?\n")
+            date = await get_date(ctx, bot)
+            if date is None:
+                return
+
+            # send this message if there's an associated date.
+            if date:
+                await ctx.send("Is there a due time for this event?\n")
+                time = await get_due_time(ctx, bot)
+                if time is None:
+                    return
+                elif time:
+                    db.mutation_query(
+                        'INSERT INTO custom_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        [ctx.guild.id, title, link, description, date, time.hour, time.minute, 0, 0, 0, 0]
+                    )
+                    await ctx.send('Event successfully created!')
+                    await cal.display_events(None)
+                    return
+
+            await ctx.send("What are the start & end times of this event?\n")
+            times = await get_times(ctx, bot, 'event')
+            if times is None:
+                return
+            elif not times:
+                db.mutation_query(
+                    'INSERT INTO custom_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [ctx.guild.id, title, link, description, date, 0, 0, 0, 0, 0, 0]
+                )
+                await ctx.send('Event successfully created!')
+                await cal.display_events(None)
+                return
+
+            ((begin_hour, begin_minute), (end_hour, end_minute)) = times
+            db.mutation_query(
+                'INSERT INTO custom_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [ctx.guild.id, title, link, description, date, 0, 0, begin_hour, begin_minute, end_hour, end_minute]
+            )
+
+            await ctx.send('Assignment successfully created!')
+            await cal.display_events(None)
+            return
+
+    else:
+        await ctx.author.send('`!create` can only be used in the `instructor-commands` channel')
+        await ctx.message.delete()
+        return
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/TeachersPetBot/src/logmsg.py</source>
+<document_content>
+import logging
+from datetime import date
+
+
+def get_today():
+    today = date.today()
+    dt_string = today.strftime("%d_%m_%Y")
+    return dt_string
+
+
+def logerror(error):
+    logging.basicConfig(level=logging.DEBUG)
+    logging.info(error)
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/TeachersPetBot/src/office_hours.py</source>
+<document_content>
+###########################
+# Functionality related to administering office hours
+###########################
+from datetime import datetime, time
+import discord
+from discord.ext import tasks
+from src import db
+
+
+class Group:
+    """
+    Class: Group
+    Description: Contains information about an office hour group
+    """
+    def __init__(self, student, group_id):
+        """
+        Function:
+            __init__
+        Description:
+            Initializes group members and group ID
+        Inputs:
+            - student: students of the group
+            - group_id: ID of the group
+        Output:
+            Class variables are set
+        """
+        self.group_members = [student]
+        self.group_id = group_id
+
+
+class OfficeHourQueue:
+    """
+    Class: OfficeHourQueue
+    Description: Contains information about an office hour queue
+    """
+    def __init__(self, ta_name, text_channel, voice_channel, waiting_room):
+        """
+        Function:
+            __init__
+        Description:
+            Initializes text channels, waiting room, and the queue.
+        Inputs:
+            - ta_name: Name of the TA
+            - text_channel: text channel associated with the office hour
+            - voice_channel: voice channel associated with the office hour
+            - waiting_room: waiting room channel
+        Output:
+            Class variables are set
+        """
+        self.current_student = None
+        self.queue = []
+        self.prev_queue_message = None
+        self.ta_name = ta_name
+        self.text_channel = text_channel
+        self.voice_channel = voice_channel
+        self.waiting_room = waiting_room
+        self.next_grp_id = 0
+
+    def enqueue(self, student):
+        """
+        Function:
+            enqueue
+        Description:
+            Adds a student to the office hour queue
+        Input:
+            - student : student to add to the office hour queue
+        Output:
+            None
+        """
+        self.queue.append(Group(student, f'{self.next_grp_id:03d}'))
+        self.next_grp_id = (self.next_grp_id + 1) % 1000
+
+    async def display_queue(self):
+        """
+        Function:
+            display_queue
+        Description:
+            Displays the office hour queue in the office hour channel
+        Input:
+            None
+        Output:
+            Office hour queue as a message in the office hour channel
+        """
+        if self.prev_queue_message:
+            await self.prev_queue_message.delete()
+
+        lines = []
+        for i, grp in enumerate(self.queue):
+            grp_members_str = ', '.join(mem.name for mem in grp.group_members)
+            line = f"{i + 1}: {grp_members_str} (group ID: {grp.group_id})"
+            lines.append(line)
+
+        queue_str = (
+                'Office Hour Queue:\n'
+                '------------------\n' +
+                ('\n'.join(lines) if len(lines) != 0 else '(The queue is currently empty)')
+        )
+        self.prev_queue_message = await self.text_channel.send(queue_str)
+
+
+async def office_hour_command(ctx, command, *args):
+    """
+    Function:
+        office_hour_command
+    Description:
+        Handles a command given in an office hour channel
+    Inputs:
+        - ctx: context of this discord message
+        - command: office hour command given
+        - args: extra arguments given to command
+    Output:
+        Add to office hours
+    """
+
+    if ctx.channel.name[:len('office-hour-')] == 'office-hour-':
+        ta = ctx.channel.name[len('office-hour-'):]
+
+        office_hour_queue = office_hour_queues[ta]
+        queue = office_hour_queue.queue
+
+        is_instructor = 'Instructor' in (r.name for r in ctx.author.roles)
+
+        if command == 'enter' and not is_instructor:
+            all_queued_students = []
+            for grp in queue:
+                all_queued_students.append(*grp.group_members)
+            if ctx.author.name not in all_queued_students:
+                if len(args) == 0:
+                    office_hour_queue.enqueue(ctx.author)
+                    await office_hour_queue.display_queue()
+                elif len(args) == 1:
+                    group_id_to_join = args[0]
+                    group_to_join = next((group for group in queue if
+                                          group_id_to_join == group.group_id), None)
+                    if group_to_join:
+                        group_to_join.group_members.append(ctx.author)
+                        await office_hour_queue.display_queue()
+                    else:
+                        await ctx.author.send(
+                            'The office hour group you have attempted to join does not exist. '
+                            'Please ensure you enter a valid group ID when attempting to '
+                            'join an office hour group.'
+                        )
+                await office_hour_queue.waiting_room.set_permissions(
+                    ctx.author, read_messages=True, send_messages=True)
+            else:
+                await ctx.author.send(
+                    'You are already in the office hour queue so you cannot join again. '
+                    'If you would like to join an office hour group, please exit the queue '
+                    'and join the group.'
+                )
+        elif command == 'exit' and not is_instructor:
+            queued_group = next(
+                (group for group in queue if ctx.author in group.group_members),
+                None
+            )
+            if queued_group:
+                queued_group.group_members.remove(ctx.author)
+                if len(queued_group.group_members) == 0:
+                    queue.remove(queued_group)
+                await office_hour_queue.waiting_room.set_permissions(ctx.author, overwrite=None)
+                await office_hour_queue.display_queue()
+        elif command == 'next' and is_instructor:
+            voice_channel = office_hour_queue.voice_channel
+            waiting_room = office_hour_queue.waiting_room
+
+            if office_hour_queue.current_student:
+                await voice_channel.set_permissions(
+                    office_hour_queue.current_student,
+                    overwrite=None
+                )
+
+            next_group = queue.pop(0)
+            for member in next_group.group_members:
+                await voice_channel.set_permissions(member, read_messages=True, send_messages=True)
+                await waiting_room.set_permissions(member, overwrite=None)
+
+                message = (
+                    f'{office_hour_queue.ta_name} is ready to help '
+                    f"{'you' if len(next_group.group_members) == 1 else 'your group'}."
+                    'Please join the office hour voice channel.'
+                )
+                await member.send(message)
+            await office_hour_queue.display_queue()
+    else:
+        await ctx.author.send('The `!oh` command is only valid in office hour text channels.')
+
+    await ctx.message.delete()
+
+
+async def open_oh(guild, ta):
+    """
+    Function:
+        open_oh
+    Description:
+        Opens an office hour for students to get help from
+    Inputs:
+        - guild: discord guild this office hour is relevant for
+        - ta: name of TA who is holding this office hour
+    Outputs:
+        Creation of channels relevant to office hour
+    """
+    category = None
+    check = False
+
+    if guild.categories[0].name == 'TA Office Hours':
+        check = True
+        category = guild.categories[0]
+
+    if guild.categories[1].name == 'TA Office Hours':
+        check = True
+        category = guild.categories[1]
+
+    if guild.categories[2].name == 'TA Office Hours':
+        check = True
+        category = guild.categories[0]
+
+    if not check:
+        category = await guild.create_category_channel(f'TA Office Hours')
+
+    instructor_role = next((role for role in guild.roles if role.name == 'Instructor'), None)
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False, send_messages=False),
+        instructor_role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+    }
+
+    ta_name_channelified = ta.lower().replace(" ", "-")
+    text_channel = await category.create_text_channel(f'office-hour-{ta_name_channelified}')
+    voice_channel = await category.create_voice_channel(
+        f'office-hour-{ta_name_channelified}', overwrites=overwrites)
+    waiting_room = await category.create_voice_channel(
+        f'office-hour-{ta_name_channelified}-waiting-list', overwrites=overwrites)
+
+    await text_channel.send(
+        f"Welcome to {ta}'s office hour!\n"
+        'To join the queue, please type `!oh enter` in this channel. '
+        'If you would like to join an existing office hour group, type `!oh enter <groupID>\n`'
+        'If you would like to exit the queue, please type `!oh exit`.\n'
+        f'You may join the waiting list channel (office-hour-{ta_name_channelified}-waiting-list)'
+        "while you wait for your turn if you'd like. When it is your turn, you will be notified."
+    )
+
+    office_hour_queues[ta_name_channelified] = OfficeHourQueue(ta, text_channel, voice_channel,
+                                                               waiting_room)
+
+
+async def close_oh(guild, ta):
+    """
+    Function:
+        close_oh
+    Description:
+        Closes an office hour session
+    Inputs:
+        - guild: discord guild this office hour is relevant for
+        - ta: name of TA who is holding this office hour
+    Outputs:
+        Deletion of channels relevant to office hour
+    """
+    ta_name_channelified = ta.lower().replace(" ", "-")
+    channels_to_delete = [
+        next((chan for chan in guild.text_channels if chan.name ==
+              f'office-hour-{ta_name_channelified}'), None),
+        next((chan for chan in guild.voice_channels if chan.name ==
+              f'office-hour-{ta_name_channelified}'), None),
+        next((chan for chan in guild.voice_channels if chan.name ==
+              f'office-hour-{ta_name_channelified}-waiting-list'), None),
+        next((cat for cat in guild.categories if cat.name == f'Office Hour {ta}'), None)
+    ]
+
+    for channel in channels_to_delete:
+        if channel:
+            await channel.delete()
+
+    office_hour_queues.pop(ta_name_channelified)
+
+
+class TaOfficeHour:
+    """
+    Class: TaOfficeHour
+    Description: Contains information about when an office hour is held
+    """
+    def __init__(self, ta, day, times):
+        self.ta = ta
+        self.day = day
+        self.times = times
+
+
+###########################
+# Function: check_office_hour_loop
+# Description: runs intermittently to open or close office hours based on the current time
+###########################
+@tasks.loop(seconds=5)
+async def check_office_hour_loop():
+    curr_datetime = datetime.now()
+    curr_day = curr_datetime.weekday()
+    curr_time = curr_datetime.time()
+    for guild in bot.guilds:
+        ta_office_hours = all_guilds_ta_office_hours[guild.id]
+        for office_hour in ta_office_hours:
+            day = office_hour.day
+            if curr_day == day:
+                begin_time, end_time = office_hour.times
+                ta_name_channelified = office_hour.ta.lower().replace(" ", "-")
+                if begin_time <= curr_time <= end_time and \
+                        ta_name_channelified not in office_hour_queues:
+                    await open_oh(guild, office_hour.ta)
+                elif curr_time > end_time and ta_name_channelified in office_hour_queues:
+                    await close_oh(guild, office_hour.ta)
+
+
+def add_office_hour(guild, ta_office_hour):
+    """
+    Function:
+        add_office_hour
+    Description:
+        adds a new TA office hour to the guild
+    Inputs:
+        - guild: discord guild this office hour is relevant for
+        - ta_office_hour: TA office hour information
+    Outputs:
+        adds a new TA office hour to the system
+    """
+    all_guilds_ta_office_hours[guild.id].append(ta_office_hour)
+
+
+bot = None
+all_guilds_ta_office_hours = None
+office_hour_queues = None
+
+
+def init(b):
+    """
+    Function:
+        init
+    Description:
+        initializes office hours module
+    Inputs:
+        - b: discord bot
+    """
+    global bot
+    global all_guilds_ta_office_hours
+    global office_hour_queues
+
+    office_hour_queues = {}
+    all_guilds_ta_office_hours = {}
+    bot = b
+    for guild in bot.guilds:
+        ta_office_hours = [
+            TaOfficeHour(ta, day, (time(hour=begin_hr, minute=begin_min),
+                                   time(hour=end_hr, minute=end_min)))
+            for ta, day, begin_hr, begin_min, end_hr, end_min in db.select_query(
+                'SELECT ta, day, begin_hr, begin_min, end_hr, end_min '
+                'FROM ta_office_hours WHERE guild_id = ?', [guild.id])
+        ]
+
+        all_guilds_ta_office_hours[guild.id] = ta_office_hours
+
+    check_office_hour_loop.start()
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/TeachersPetBot/src/profanity.py</source>
+<document_content>
+from better_profanity import profanity
+
+profanity.load_censor_words()
+
+
+###########################
+# Function: check_profanity
+# Description: Uses better_profanity to check profanity in a message
+# Inputs:
+#      - msg: message from user
+###########################
+def check_profanity(msg):
+    """
+    Function:
+        check_profanity
+    Description:
+        Uses 'contains_profanity' to check profanity of a message
+    Input:
+        - msg: message from user
+    Output:
+        None
+    """
+    ''' check if message contains profanity through profanity module '''
+    return profanity.contains_profanity(msg)
+
+
+###########################
+# Function: censor_profanity
+# Description: censor the message per better_profanity
+# Inputs:
+#      - msg: message from user
+###########################
+def censor_profanity(msg):
+    """
+    Function:
+        censor_profanity
+    Description:
+        censors a message based on profanity
+    Input:
+        - msg: message from user
+    Output:
+        None
+    """
+    return profanity.censor(msg)
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/TeachersPetBot/src/qna.py</source>
+<document_content>
+###########################
+# Implements Q and A functionality
+###########################
+from discord import NotFound
+
+# keep track of next question number
+QUESTION_NUMBER = 1
+
+# dictionary of questions with answers
+QNA = {}
+
+
+###########################
+# Class: QuestionsAnswers
+# Description: object with question details
+# Inputs:
+#      - q: question text
+#      - number: question number
+#      - message: id of the message associated with question
+#      - ans: answers to the question
+# Outputs: None
+###########################
+class QuestionsAnswers:
+    """
+    Class: QuestionsAnswers
+    Description: Class containing needed question/answer information and identification
+    """
+    def __init__(self, qs, number, message, ans):
+        """
+        Function:
+            __init__
+        Description:
+            Initializes class variables
+        Inputs:
+            - q: question text
+            - number: question number
+            - message: id of the message associated with question
+            - ans: answers to the question
+        Outputs: None
+        """
+        self.question = qs
+        self.number = number
+        self.msg = message
+        self.answer = ans
+
+
+async def question(ctx, qs):
+    """
+    Function:
+        question
+    Description:
+        Takes question from user and reposts anonymously and numbered
+    Inputs:
+        - ctx: context of the command
+        - q: question text
+    Outputs:
+        User question in new post
+    """
+    global QUESTION_NUMBER
+
+    # format question
+    q_str = 'Q' + str(QUESTION_NUMBER) + ': ' + qs + '\n'
+
+    message = await ctx.send(q_str)
+
+    # create QNA object
+    new_question = QuestionsAnswers(qs, QUESTION_NUMBER, message.id, '')
+    # add question to list
+    QNA[QUESTION_NUMBER] = new_question
+
+    # increment question number for next question
+    QUESTION_NUMBER += 1
+
+    # delete original question
+    await ctx.message.delete()
+
+
+async def answer(ctx, num, ans):
+    """
+    Function:
+        answer
+    Description:
+        Adds user answer to specific question and post anonymously
+    Inputs:
+          - ctx: context of the command
+          - num: question number being answered
+          - ans: answer text to question specified in num
+    Outputs:
+        User answer added to question post
+    """
+
+    # check if question number exists
+    if int(num) not in QNA.keys():
+        await ctx.author.send('Invalid question number: ' + str(num))
+        # delete user msg
+        await ctx.message.delete()
+        return
+
+    # get question
+    q_answered = QNA[int(num)]
+    # check if message exists
+    try:
+        message = await ctx.fetch_message(q_answered.msg)
+    except NotFound:
+        await ctx.author.send('Invalid question number: ' + str(num))
+        # delete user msg
+        await ctx.message.delete()
+        return
+
+    # generate and edit msg with answer
+    if "instructor" in [y.name.lower() for y in ctx.author.roles]:
+        role = 'Instructor'
+    else:
+        role = 'Student'
+    new_answer = role + ' Ans: ' + ans
+
+    # store new answer
+    if not q_answered.answer == '':
+        q_answered.answer += '\n'
+    q_answered.answer += new_answer
+
+    # check if message exists and edit
+    q_str = 'Q' + str(q_answered.number) + ': ' + q_answered.question
+    content = q_str + '\n' + q_answered.answer
+    try:
+        await message.edit(content=content)
+        # message.content = content
+    except NotFound:
+        await ctx.author.send('Invalid question number: ' + str(num))
+
+    # delete user msg
+    await ctx.message.delete()
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/TeachersPetBot/src/utils.py</source>
+<document_content>
+from time import sleep
+
+
+async def wait_for_msg(bot, channel):
+    messages = await channel.history(limit=1).flatten()
+    if messages[0].author.name != 'TeachersPetBot':
+        sleep(0.25)
+        return messages[0]
+
+    msg = await bot.wait_for('message', check=lambda x: x.guild.id == channel.guild.id)
+    sleep(0.25)
+    return msg
+
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/TeachersPetBot/test/test_bot.py</source>
+<document_content>
+import datetime
+from datetime import datetime, timedelta
+
+import discord.ext.test as dpytest
+import pytest
+
+
+# --------------------
+# Tests cogs/hello.py
+# --------------------
+@pytest.mark.asyncio
+async def test_hello(bot):
+    await dpytest.empty_queue()
+    await dpytest.message("!hello")
+    assert dpytest.verify().message().content("Hello World!")
+
+
+# -------------------
+# Tests cogs/ping.py
+# -------------------
+@pytest.mark.asyncio
+async def test_ping(bot):
+    await dpytest.empty_queue()
+    await dpytest.message("!ping")
+    assert dpytest.verify().message().contains().content("Pong!")
+
+
+# -------------------
+# Tests cogs/notification.py
+# -------------------
+@pytest.mark.asyncio
+async def test_generate_reminders(bot):
+    await dpytest.empty_queue()
+    await dpytest.message("!clearreminders")
+    assert dpytest.verify().message().contains().content("No reminders to delete..!!")
+    # Try generating a normal reminder
+    await dpytest.message("!addhw CSC500 HW1 DEC 21 2021 12:00")
+    assert dpytest.verify().message().contains().content(
+        "CSC500 homework named: HW1 which is due on: 2021-12-21 12:00:00")
+    # Try to generate the same reminder
+    await dpytest.message("!addhw CSC500 HW1 DEC 21 2021 12:00")
+    assert dpytest.verify().message().contains().content("This homework has already been added..!!")
+    # Try updating the due date
+    await dpytest.empty_queue()
+    await dpytest.message("!changeduedate CSC500 HW1 DEC 22 2022 10:00")
+    embed = dpytest.get_embed()
+    assert embed is not None
+    # Try deleting a reminder
+    await dpytest.empty_queue()
+    await dpytest.message("!deletereminder CSC500 HW1")
+    assert dpytest.verify().message().contains().content(
+        "Following reminder has been deleted: Course: CSC500, Homework Name: HW1, Due Date: 2022-12-22 10:00:00")
+    # Try adding a reminder due in an hour
+    now = datetime.now() + timedelta(hours=1)
+    dt_string = now.strftime("%b %d %Y %H:%M")
+    await dpytest.message(f"!addhw CSC600 HW0 {dt_string}")
+    assert dpytest.verify().message().contains().content(
+        "A date has been added for: CSC600 homework named: HW0")
+    await dpytest.empty_queue()
+    # Check to see that the reminder is due this week
+    await dpytest.message("!duethisweek")
+    assert dpytest.verify().message().contains().content("Following homeworks are due this week")
+    await dpytest.empty_queue()
+    # Clear reminders at the end of testing since we're using a local JSON file to store them
+    await dpytest.message("!clearreminders")
+    assert dpytest.verify().message().contains().content("All reminders have been cleared..!!")
+
+# -------------------
+# Tests cogs/notification.py
+# -------------------
+@pytest.mark.asyncio
+async def test_empty_reminders(bot):
+    await dpytest.empty_queue()
+    # Test duetoday
+    await dpytest.message("!duetoday")
+    assert dpytest.verify().message().contains().content("You have no dues today..!!")
+    # Test duethisweek
+    await dpytest.message("!duethisweek")
+    assert dpytest.verify().message().contains().content("No dues this week")
+    # Test coursedue
+    await dpytest.empty_queue()
+    await dpytest.message("!coursedue CSC505")
+    assert dpytest.verify().message().contains().content("Rejoice..!! You have no pending homeworks for CSC505..!!")
+    # Test listreminders
+    await  dpytest.message("!listreminders")
+    assert dpytest.verify().message().contains().content("Mission Accomplished..!! You don't have any more dues..!!")
+
+
+@pytest.mark.asyncio
+async def test_reminder_errors(bot):
+    await dpytest.empty_queue()
+    # with pytest.raises(Exception):
+    await dpytest.message("!addhw CSC500 HW1 DEC asdf")
+    assert dpytest.verify().message().contains().content("Due date could not be parsed")
+    with pytest.raises(Exception):
+        await dpytest.message("!deletereminder")
+        assert dpytest.verify().message().contains().content("To use the deletereminder command, do:")
+    with pytest.raises(Exception):
+        await dpytest.message("!changeduedate")
+        assert dpytest.verify().message().contains().content("To use the changeduedate command, do:")
+    with pytest.raises(Exception):
+        await dpytest.message("!coursedue")
+        assert dpytest.verify().message().contains().content("To use the coursedue command, do:")
+
+# -------------------
+# Tests cogs/member_information.py
+# -------------------
+@pytest.mark.asyncio
+async def test_member_information(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    command_channel = dpytest.backend.make_text_channel(name='instructor-commands', guild=guild0, position=2, id_num=2)
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+    test_channel = dpytest.get_config().guilds[0].channels[0]
+    await dpytest.message("!setInstructor TestUser0")
+    assert dpytest.verify().message().contains().content("TestUser0 has been given Instructor role!")
+    await dpytest.message(content="!whois TestUser0", channel=command_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+    await dpytest.empty_queue()
+    await dpytest.message(content="!whois", channel=command_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+    await dpytest.empty_queue()
+    await dpytest.message(content="!whois ABSDKFHKSJDHKFJ", channel=command_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+    await dpytest.empty_queue()
+    await dpytest.message(content="!whois TestUser0", channel=test_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+
+# -------------------
+# Tests cogs/setInstructor.py
+# -------------------
+@pytest.mark.asyncio
+async def test_set_instructor(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+    await dpytest.message("!setInstructor TestUser0")
+    assert dpytest.verify().message().contains().content("TestUser0 has been given Instructor role!")
+    await dpytest.message("!setInstructor")
+    assert dpytest.verify().message().contains().content("To use the setInstructor command, do:")
+    await dpytest.empty_queue()
+    await dpytest.message("!setInstructor asdf")
+    assert dpytest.verify().message().contains().content("Could not find a member with that name")
+
+# -------------------
+# Tests cogs/polling.py
+# -------------------
+@pytest.mark.asyncio
+async def test_polling(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    command_channel = dpytest.backend.make_text_channel(name='instructor-commands', guild=guild0, position=2, id_num=2)
+    general_channel = dpytest.backend.make_text_channel(name='general', guild=guild0, position=3, id_num=3)
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+    test_channel = dpytest.get_config().guilds[0].channels[0]
+    await dpytest.message("!setInstructor TestUser0")
+    assert dpytest.verify().message().contains().content("TestUser0 has been given Instructor role!")
+    message = await dpytest.message(content="!poll", channel=command_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+    await dpytest.add_reaction(user=user0, message=message, emoji='👍')
+    await dpytest.add_reaction(user=user0, message=message, emoji='👎')
+    await dpytest.empty_queue()
+    message = await dpytest.message(content="!poll Does this bot even work?", channel=command_channel, member=user0,
+                                    attachments=None)
+    await dpytest.add_reaction(user=user0, message=message, emoji='👍')
+    await dpytest.add_reaction(user=user0, message=message, emoji='👎')
+    await dpytest.empty_queue()
+    message = await dpytest.message(content="!poll Does this bot even work?", channel=general_channel, member=user0,
+                                    attachments=None)
+    await dpytest.add_reaction(user=user0, message=message, emoji='👍')
+    await dpytest.add_reaction(user=user0, message=message, emoji='👎')
+    await dpytest.empty_queue()
+    await dpytest.message(content="!multipoll", channel=command_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+    await dpytest.empty_queue()
+    await dpytest.message(content="!multipoll A B", channel=command_channel, member=user0, attachments=None)
+    await dpytest.empty_queue()
+    await dpytest.message(content="!multipoll A B C D E F G H I J K L M N O P Q R S T U V W X Y Z ",
+                          channel=command_channel, member=user0, attachments=None)
+    await dpytest.empty_queue()
+    await dpytest.message(content="!multipoll A B", channel=test_channel, member=user0, attachments=None)
+    embed = dpytest.get_embed()
+    assert embed is not None
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/TeachersPetBot/test/test_calendar.py</source>
+<document_content>
+# ###########################
+# # Tests Event creation & calendar functionality
+# ###########################
+import discord
+
+import discord.ext.test as dpytest
+from src import cal
+import pytest
+
+async def test_create_assignment_valid(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('assignment')
+    assert dpytest.verify().message().content('What would you like the assignment to be called')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('Link associated with submission? Type N/A if none')
+
+    await dpytest.message('N/A')
+    assert dpytest.verify().message().content('Extra description for assignment? Type N/A if none')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the due date')
+
+    await dpytest.message('01-01-1999')
+    assert dpytest.verify().message().content('What time is this assignment due')
+
+    await dpytest.message('13:37')
+    assert dpytest.verify().message().content('Assignment successfully created')
+
+async def test_create_assignment_invalid_time(bot):
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('assignment')
+    assert dpytest.verify().message().content('What would you like the assignment to be called')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('Link associated with submission? Type N/A if none')
+
+    await dpytest.message('N/A')
+    assert dpytest.verify().message().content('Extra description for assignment? Type N/A if none')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the due date')
+
+    await dpytest.message('01-01-1999')
+    assert dpytest.verify().message().content('What time is this assignment due')
+
+    await dpytest.message('25:37')
+    assert not dpytest.verify().message().content('Assignment successfully created')
+
+@pytest.mark.asyncio
+async def test_update_calendar(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+
+    try:
+        cal.update_calendar()
+
+    except AttributeError:
+        # Due to an array not existing in the fake environment; expected behavior
+        pass
+
+
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/TeachersPetBot/test/test_event_creation.py</source>
+<document_content>
+# ###########################
+# # Tests Event creation functionality
+# ###########################
+
+import discord.ext.test as dpytest
+import pytest
+
+
+async def test_create_assignment_valid(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('assignment')
+    assert dpytest.verify().message().content('What would you like the assignment to be called')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('Link associated with submission? Type N/A if none')
+
+    await dpytest.message('N/A')
+    assert dpytest.verify().message().content('Extra description for assignment? Type N/A if none')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the due date')
+
+    await dpytest.message('01-01-1999')
+    assert dpytest.verify().message().content('What time is this assignment due')
+
+    await dpytest.message('13:37')
+    assert dpytest.verify().message().content('Assignment successfully created')
+
+
+async def test_create_assignment_invalid_url(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('assignment')
+    assert dpytest.verify().message().content('What would you like the assignment to be called')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('Link associated with submission? Type N/A if none')
+
+    await dpytest.message('Oops')
+    assert dpytest.verify().message().content('Invalid URL. Aborting')
+
+
+async def test_create_assignment_invalid_date(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('assignment')
+    assert dpytest.verify().message().content('What would you like the assignment to be called')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('Link associated with submission? Type N/A if none')
+
+    await dpytest.message('N/A')
+    assert dpytest.verify().message().content('Extra description for assignment? Type N/A if none')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the due date')
+
+    await dpytest.message('Oops')
+    assert dpytest.verify().message().content('Invalid date')
+
+
+async def test_create_assignment_invalid_time(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('assignment')
+    assert dpytest.verify().message().content('What would you like the assignment to be called')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('Link associated with submission? Type N/A if none')
+
+    await dpytest.message('N/A')
+    assert dpytest.verify().message().content('Extra description for assignment? Type N/A if none')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the due date')
+
+    await dpytest.message('01-01-1999')
+    assert dpytest.verify().message().content('What time is this assignment due')
+
+    await dpytest.message('Oops')
+    assert dpytest.verify().message().content('Incorrect input')
+
+
+async def test_create_exam_valid(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('exam')
+    assert dpytest.verify().message().content('What is the title of this exam')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('What content is this exam covering?')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the date of this exam?')
+
+    await dpytest.message('01-01-1999')
+    assert dpytest.verify().message().content('Which times would you like the exam to be on')
+
+    await dpytest.message('12-12:01')
+    assert dpytest.verify().message().content('Exam successfully created')
+
+
+async def test_create_exam_invalid_date(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('exam')
+    assert dpytest.verify().message().content('What is the title of this exam')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('What content is this exam covering?')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the date of this exam?')
+
+    await dpytest.message('Oops')
+    assert dpytest.verify().message().content('Invalid date')
+
+
+async def test_create_exam_invalid_time(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('exam')
+    assert dpytest.verify().message().content('What is the title of this exam')
+
+    await dpytest.message('test')
+    assert dpytest.verify().message().content('What content is this exam covering?')
+
+    await dpytest.message('Some stuff')
+    assert dpytest.verify().message().content('What is the date of this exam?')
+
+    await dpytest.message('01-01-1999')
+    assert dpytest.verify().message().content('Which times would you like the exam to be on')
+
+    await dpytest.message('Oops')
+    assert dpytest.verify().message().content('Incorrect input')
+
+
+async def test_create_oh_valid(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('office-hour')
+    assert dpytest.verify().message().content('Which instructor will this office hour be for?')
+
+    await dpytest.message('Apollo')
+    assert dpytest.verify().message().content('Which day would you like the office hour to be on')
+
+    await dpytest.message('Mon')
+    assert dpytest.verify().message().content('Which times would you like the office hour to be on')
+
+    await dpytest.message('12-12:01')
+    assert dpytest.verify().message().content('Office hour successfully created')
+
+
+async def test_create_oh_invalid_times(bot):
+
+    await dpytest.message('!create')
+    assert dpytest.verify().message().content('Which type of event')
+
+    await dpytest.message('office-hour')
+    assert dpytest.verify().message().content('Which instructor will this office hour be for?')
+
+    await dpytest.message('Apollo')
+    assert dpytest.verify().message().content('Which day would you like the office hour to be on')
+
+    await dpytest.message('Mon')
+    assert dpytest.verify().message().content('Which times would you like the office hour to be on')
+
+    await dpytest.message('Oops')
+    assert dpytest.verify().message().content('Incorrect input')
+
+@pytest.mark.asyncio
+async def test_take(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    await dpytest.message('!importevents', attachments='files/assignments.csv')
+    bool = dpytest.verify().message().contains().content("Please Submit") == True #Convert verify() to bool
+    assert not bool
+
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/TeachersPetBot/test/test_office_hours.py</source>
+<document_content>
+
+import discord.ext.test as dpytest
+import discord.ext.commands.errors as dperr
+import pytest
+from src import office_hours
+from time import sleep
+
+
+@pytest.mark.asyncio
+async def test_oh_queue_individual(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    oh_channel = dpytest.backend.make_text_channel(name='office-hour-test', guild=guild0, position=2, id_num=2)
+
+    try:
+        await dpytest.message(content='!oh enter', channel=oh_channel, member=user0, attachments=None)
+        sleep(.5)
+        await dpytest.message(content='!oh exit', channel=oh_channel, member=user0, attachments=None)
+        sleep(.5)
+
+    except dperr.CommandInvokeError as e:
+        if "TypeError" in str(e):
+            # Type Error happens because no TA is loaded in the system (since it's not real). This is expected behavior
+            pass
+        else:
+            assert False
+
+@pytest.mark.asyncio
+async def test_oh_queue_instructor(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    oh_channel = dpytest.backend.make_text_channel(name='office-hour-test', guild=guild0, position=2, id_num=2)
+
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    try:
+        await dpytest.message(content='!oh enter', channel=oh_channel, member=user0, attachments=None)
+        sleep(.5)
+        await dpytest.message(content='!oh exit', channel=oh_channel, member=user0, attachments=None)
+        sleep(.5)
+
+    except dperr.CommandInvokeError as e:
+        if "TypeError" in str(e):
+            # Type Error happens because no TA is loaded in the system (since it's not real). This is expected behavior
+            pass
+        else:
+            assert False
+
+@pytest.mark.asyncio
+async def test_oh_open_instructor(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    oh_channel = dpytest.backend.make_text_channel(name='office-hour-test', guild=guild0, position=2, id_num=2)
+
+    await guild0.create_category(name='TA Office Hours')
+    await guild0.create_category(name='Not TA Office Hours')
+    await guild0.create_category(name='Not TA Office Hours')
+
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    try:
+        await office_hours.open_oh(guild0, "test")
+    except NotImplementedError:
+        # Limitation of dpytest; expected behavior
+        pass
+
+@pytest.mark.asyncio
+async def test_oh_close_instructor(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    oh_channel = dpytest.backend.make_text_channel(name='office-hour-test', guild=guild0, position=2, id_num=2)
+
+    await guild0.create_category(name='TA Office Hours')
+    await guild0.create_category(name='Not TA Office Hours')
+    await guild0.create_category(name='Not TA Office Hours')
+
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    try:
+        await office_hours.close_oh(guild0, "test")
+    except AttributeError:
+        # Due to an array not existing in the fake environment; expected behavior
+        pass
+
+
+@pytest.mark.asyncio
+async def test_oh_no_channel(bot):
+    await dpytest.message('!oh enter')
+    await dpytest.message('!oh exit')
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/TeachersPetBot/test/test_qna.py</source>
+<document_content>
+import discord.ext.test as dpytest
+import pytest
+
+###########################
+# Tests Q-and-A functionality
+###########################
+import discord
+from time import sleep
+
+
+###########################
+# Function: test_question
+# Description: tests questioning functionality
+# Inputs:
+#      - bot: bot that sends commands to test TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_question(bot):
+    await dpytest.message('!ask \"Hello\"')
+
+    sleep(.5)
+
+
+###########################
+# Function: test_question_no_input
+# Description: tests questioning functionality when given incorrect input
+# Inputs:
+#      - bot: bot that sends commands to test TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_question_no_input(bot):
+    try:
+        await dpytest.message('!ask')
+    except discord.ext.commands.errors.MissingRequiredArgument:
+        return True
+    assert False
+
+
+###########################
+# Function: test_question_invalid
+# Description: tests questioning functionality when given incorrect input
+# Inputs:
+#      - bot: bot that sends commands to test TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_question_invalid(bot):
+    try:
+        await dpytest.message('!ask\"hello\"')
+    except discord.ext.commands.errors.CommandNotFound:
+        return True
+    assert False
+
+
+###########################
+# Function: test_answer
+# Description: tests answering functionality as a student
+# Inputs:
+#      - bot: bot that sends commands to test TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_answer(bot):
+    await dpytest.message('!answer 1 \"Hello\"')
+
+    sleep(.5)
+
+
+###########################
+# Function: test_instr_answer
+# Description: tests answering functionality as an instructor
+# Inputs:
+#      - testing_bot: bot that sends commands to test TeachersPetBot
+#      - guild_id: id of the guild that is using the TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_instr_answer(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    # answer question as instructor
+    qna_channel = discord.utils.get(bot.get_all_channels(), name='q-and-a')
+    await dpytest.message('!answer 1 \"Hello World\"')
+
+    sleep(0.5)
+
+
+###########################
+# Function: test_instr_answer_invalid_1
+# Description: tests answering functionality as an instructor incorrectly
+# Inputs:
+#      - bot: bot that sends commands to test TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_instr_answer_invalid_1(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    # answer question as instructor
+    qna_channel = discord.utils.get(bot.get_all_channels(), name='q-and-a')
+
+    try:
+        await dpytest.message('!answer 1')
+        sleep(.5)
+    except discord.ext.commands.errors.MissingRequiredArgument:
+        return True
+
+    assert False
+
+
+###########################
+# Function: test_instr_answer_invalid_1
+# Description: tests answering functionality as an instructor incorrectly
+# Inputs:
+#      - bot: bot that sends commands to test TeachersPetBot
+# Outputs: None
+###########################
+@pytest.mark.asyncio
+async def test_instr_answer_invalid_1(bot):
+    await dpytest.empty_queue()
+    guild0 = dpytest.get_config().guilds[0]
+    user0 = dpytest.get_config().guilds[0].members[0]
+    instructorRole = dpytest.backend.make_role(name="Instructor", guild=guild0, id_num=5, colour=0, permissions=8,
+                                               hoist=False,
+                                               mentionable=False)
+    dpytest.backend.update_member(user0, nick=None, roles=[instructorRole])
+
+    # answer question as instructor
+    qna_channel = discord.utils.get(bot.get_all_channels(), name='q-and-a')
+
+    try:
+        await dpytest.message('!answer \"test\"')
+        sleep(.5)
+    except discord.ext.commands.errors.MissingRequiredArgument:
+        return True
+
+    assert False
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/TeachersPetBot/test/utils.py</source>
+<document_content>
+import asyncio
+from time import sleep
+
+async def wait_for_msg(testing_bot, channel, content):
+    sleep(0.6)
+    try:
+        return await testing_bot.wait_for('message', timeout=2, check=lambda x: x.guild.id == channel.guild.id and x.author.name == 'TeachersPetBot' and content in x.content)
+    except asyncio.TimeoutError:
+        messages = await channel.history(limit=1).flatten()
+        if not (len(messages) != 0 and content in messages[0].content):
+            print(f'Message content {content} not found')
+            raise Exception()
+        return messages[0]
+
+
+async def wait_for_channel_create(testing_bot, guild_id, name):
+    try:
+        return await testing_bot.wait_for('guild_channel_create', timeout=2, check=lambda x: x.guild.id == guild_id and x.name == name)
+    except asyncio.TimeoutError:
+        new_channel = next((ch for ch in testing_bot.get_guild(guild_id).text_channels if ch.name == name), None)
+        if new_channel is None:
+            print(f'Channel {name} not found')
+            raise Exception()
+        return new_channel
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/TeachersPetBot/test/files/assignments.csv</source>
+<document_content>
+title,link,desc,date,due_hr,due_min,,
+Example,URL,text,MM-DD-YYYY,2,15,,DO NOT Delete This example - It will be ignored when the file is processed
+Assignment 1,www.hw.com,this is fake. Don't click on that link.,12/5/2021,2,15,,
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/TeachersPetBot/test/files/test.csv</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/TeachersPetBot/bot.py</source>
+<document_content>
+import logging
+import os
+import discord
+from discord import Intents
+from discord.ext import commands
+from discord.utils import get
+from discord_components import DiscordComponents
+from dotenv import load_dotenv
+from src import profanity, db, office_hours, cal
+
+logging.basicConfig(level=logging.INFO)
+
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+GUILD = os.getenv("GUILD")
+
+intents = Intents.all()
+bot = commands.Bot(command_prefix='!', description='This is TeachersPetBot!', intents=intents)
+
+
+@bot.event
+async def on_ready():
+    """
+    Function:
+        on_ready
+    Description:
+        Runs when the bot starts up
+    Input:
+        None
+    Output:
+        Initialization of database and cog system
+    """
+    DiscordComponents(bot)
+    db.connect()
+    db.add_Tables(db)
+    guild = discord.utils.get(bot.guilds, name=GUILD)
+    for guild in bot.guilds:
+        await start_bot(guild)
+        await create_voice_channels(guild)
+    office_hours.init(bot)
+    print(
+        f"{bot.user} is connected to the following guild:\n"
+        f"{guild.name}(id: {guild.id})"
+    )
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            bot.load_extension(f"cogs.{filename[:-3]}")
+    bot.load_extension("jishaku")
+    await bot.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.watching, name="Over This Server")
+    )
+    print("READY!")
+    await cal.init(bot)
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
+
+
+@bot.event
+async def on_guild_join(guild):
+    """
+    Function:
+        on_guild_join
+    Description:
+        Runs when the bot joins a guild (server)
+    Input:
+        - guild: the server that the bot is added into
+    Output:
+        Sends welcome message, create roles and channels
+    """
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).send_messages:
+            await channel.send('Hi there, I\'m TeachersPetBot, and I\'m here' +
+                               ' to help you manage your class discord! Let\'s do some quick setup. ')
+            # create roles if they don't exist
+            if 'Instructor' in guild.roles:
+                await channel.send("Instructor Role already exists")
+            else:
+                await guild.create_role(name="Instructor", colour=discord.Colour(0x0062ff),
+                                        permissions=discord.Permissions.all())
+            # Assign Instructor role to admin
+            leader = guild.owner
+            leadrole = get(guild.roles, name='Instructor')
+            await channel.send(leader.name + " has been given Instructor role!")
+            await leader.add_roles(leadrole, reason=None, atomic=True)
+            await channel.send("To assign more Instructors, type \"!setInstructor.py @<member>\"")
+            # Create Text channels if they don't exist
+            if 'instructor-commands' not in guild.text_channels:
+                await guild.create_text_channel('instructor-commands')
+                await channel.send("instructor-commands channel has been added!")
+            if 'q-and-a' not in guild.text_channels:
+                await guild.create_text_channel('q-and-a')
+                await channel.send("q-and-a channel has been added!")
+            if 'course-calendar' not in guild.text_channels:
+                await guild.create_text_channel('course-calendar')
+                await channel.send("course-calendar channel has been added!")
+
+        break
+    await start_bot(guild)
+    await create_voice_channels(guild)
+
+
+@bot.event
+async def on_message(message):
+    """
+     Function:
+         on_message
+     Description:
+         Runs when a message is sent to the server. Checks for profanity.
+     Input:
+         - message: the message a user sent to a channel of the server
+     Output:
+         Deletes inappropriate messages
+     """
+
+    if message.author == bot.user:
+        return
+
+    if profanity.check_profanity(message.content):
+        await message.channel.send(message.author.name + ' says: ' +
+                                   profanity.censor_profanity(message.content))
+        await message.delete()
+
+    await bot.process_commands(message)
+
+    if message.content == 'hey bot':
+        response = 'hey yourself ;)'
+        await message.channel.send(response)
+
+
+@bot.event
+async def on_message_edit(before, after):
+    """
+    Function:
+        on_message_edit
+    Description:
+        Run when a user edits a message. Checks for profanity.
+    Inputs:
+        - before: the old message
+        - after: the new message
+    Output:
+        Deletes inappropriate messages
+    """
+    if profanity.check_profanity(after.content):
+        await after.channel.send(after.author.name + ' says: ' +
+                                 profanity.censor_profanity(after.content))
+        await after.delete()
+
+
+@bot.command(name="shutdown", help="Shuts down the bot, only usable by the owner")
+@commands.has_permissions(administrator=True)
+async def shutdown(ctx):
+    """
+    Function:
+        shutdown
+    Description:
+        Shuts down the bot. Can only be used by server owner.
+    Input:
+        - ctx: current context
+    Output:
+        Deletes the database and sends a message indicating successful shutdown
+    """
+    db.shutdown()
+    await ctx.send('Shutting Down bot')
+    print("Bot closed successfully")
+    ctx.bot.logout()
+    db.delete_db()
+    exit()
+
+
+async def start_bot(guild):
+    """
+    Function:
+        start_bot
+    Description:
+        Run when the bot starts or when a new guild (server) is added
+    Input:
+        - guild: the server the bot is added to
+    Output:
+        Creates roles and create text channels
+    """
+    print("Bot is now online")
+    check = False
+
+    for role in guild.roles:
+        if role.name == "Instructor":
+            check = True
+
+            check2 = False
+
+            for role2 in guild.owner.roles:
+                if role2.name == "Instructor":
+                    check2 = True
+                    break
+
+            if not check2:
+                await guild.owner.add_roles(role, reason=None, atomic=True)
+            break
+
+    if not check:
+        role = await guild.create_role(name="Instructor", colour=discord.Colour(0x0062ff),
+                                       permissions=discord.Permissions.all())
+        await guild.owner.add_roles(role, reason=None, atomic=True)
+
+    check = False
+
+    for channel in guild.text_channels:
+        if channel.name == "q-and-a":
+            check = True
+            break
+    if not check:
+        await guild.create_text_channel('q-and-a')
+
+
+async def create_voice_channels(guild):
+    """
+    Function:
+        create_voice_channels
+    Description:
+        Creates voice channels
+    Input:
+        - guild: server in which voice channels are created
+    Output:
+        Create voice channels with limits for the number of users in that channel
+    """
+
+    for channel in guild.voice_channels:
+        if channel.category is not None and (channel.category.name != 'General Office Hours' or channel.category.name != 'Teams'):
+            await channel.delete()
+
+    for cat in guild.categories:
+        if cat.name == 'General Office Hours' or cat.name == 'Groups' or cat.name == 'Teams' or cat.name == 'TA Office Hours':
+
+            await cat.delete()
+
+    await guild.create_category_channel("TA Office Hours")
+
+    category = await guild.create_category("General Office Hours")
+    await guild.create_voice_channel("General Office Hours", user_limit=2, category=category)
+
+    category2 = await guild.create_category("Teams")
+    for i in range(1, 41):
+        await guild.create_voice_channel("Group " + str(i), user_limit=6, category=category2)
+
+''' run bot command '''
+bot.run(TOKEN)
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/TeachersPetBot/BotBackup.py</source>
+<document_content>
+import os
+import logging
+import discord
+from discord.utils import get
+from discord.ext import commands
+from dotenv import load_dotenv
+from discord_components import DiscordComponents
+
+from src import event_creation
+from src import cal
+from src import office_hours
+from src import profanity
+from src import qna
+from src import db
+
+logging.basicConfig(level=logging.INFO)
+
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+GUILD = os.getenv("GUILD")
+# GUILD = 'TeachersPet-Dev'
+TESTING_MODE = None
+
+UNVERIFIED_ROLE_NAME = os.getenv("UNVERIFIED_ROLE_NAME")
+
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix='!', description='This is TeachersPetBot!', intents=intents)
+
+
+###########################
+# Function: on_ready
+# Description: run on bot start-up
+###########################
+@bot.event
+async def on_ready():
+    ''' run on bot start-up '''
+    global TESTING_MODE
+    TESTING_MODE = False
+
+    DiscordComponents(bot)
+    db.connect()
+    db.mutation_query('''
+        CREATE TABLE IF NOT EXISTS ta_office_hours (
+            guild_id    INT,
+            ta          VARCHAR(50),
+            day         INT,
+            begin_hr    INT,
+            begin_min   INT,
+            end_hr      INT,
+            end_min     INT
+        )
+    ''')
+
+    db.mutation_query('''
+        CREATE TABLE IF NOT EXISTS exams (
+            guild_id    INT,
+            title       VARCHAR(50),
+            desc        VARCHAR(300),
+            date        VARCHAR(10),
+            begin_hr    INT,
+            begin_min   INT,
+            end_hr      INT,
+            end_min     INT
+        )
+    ''')
+
+    db.mutation_query('''
+        CREATE TABLE IF NOT EXISTS assignments (
+            guild_id    INT,
+            title       VARCHAR(50),
+            link        VARCHAR(300),
+            desc        VARCHAR(300),
+            date        VARCHAR(10),
+            due_hr      INT,
+            due_min     INT
+        )
+    ''')
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            bot.load_extension(f"cogs.{filename[:-3]}")
+
+    await bot.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.watching, name="Over This Server")
+    )
+    print("READY!")
+
+    # event_creation.init(bot)
+    # office_hours.init(bot)
+    # await cal.init(bot)
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
+
+    ###########################
+    # Function: on_guild_join
+    # Description: run when a user joins a guild with the bot present
+    # Inputs:
+    #      - guild: the guild the user joined from
+    ###########################
+    @ bot.event
+    async def on_guild_join(guild):
+        ''' run on member joining guild '''
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).send_messages:
+                await channel.send('Hi there, I\'m TeachersPetBot, and I\'m here' +
+                                   ' to help you manage your class discord! Let\'s do some quick setup. ')
+                # create roles if they don't exist
+                if 'Instructor' in guild.roles:
+                    await channel.send("Instructor Role already exists")
+                else:
+                    await guild.create_role(name="Instructor", colour=discord.Colour(0x0062ff),
+                                            permissions=discord.Permissions.all())
+                # Assign Instructor role to admin
+                leader = guild.owner
+                leadrole = get(guild.roles, name='Instructor')
+                await channel.send(leader.name + " has been given Instructor role!")
+                await leader.add_roles(leadrole, reason=None, atomic=True)
+                await channel.send("To assign more Instructors, type \"!setInstructor.py @<member>\"")
+                # Create Text channels if they don't exist
+                if 'instructor-commands' not in guild.text_channels:
+                    await guild.create_text_channel('instructor-commands')
+                    await channel.send("instructor-commands channel has been added!")
+                if 'q-and-a' not in guild.text_channels:
+                    await guild.create_text_channel('q-and-a')
+                    await channel.send("q-and-a channel has been added!")
+                if 'course-calendar' not in guild.text_channels:
+                    await guild.create_text_channel('course-calendar')
+                    await channel.send("course-calendar channel has been added!")
+
+            break
+
+    ###########################
+    # Function: on_message
+    # Description: run when a message is sent to a discord the bot occupies
+    # Inputs:
+    #      - message: the message the user sent to a channel
+    ###########################
+    @bot.event
+    async def on_message(message):
+        ''' run on message sent to a channel '''
+        # allow messages from test bot
+        if message.author.bot and message.author.id == 897663217755623458:
+            ctx = await bot.get_context(message)
+            await bot.invoke(ctx)
+
+        if message.author == bot.user:
+            return
+
+        if profanity.check_profanity(message.content):
+            await message.channel.send(message.author.name + ' says: ' +
+                                       profanity.censor_profanity(message.content))
+            await message.delete()
+
+        await bot.process_commands(message)
+
+        if message.content == 'hey bot':
+            response = 'hey yourself ;)'
+            await message.channel.send(response)
+
+    ###########################
+    # Function: on_message_edit
+    # Description: run when a user edits a message
+    # Inputs:
+    #      - before: the old message
+    #      - after: the new message
+    ###########################
+    @bot.event
+    async def on_message_edit(before, after):
+        ''' run on message edited '''
+        if profanity.check_profanity(after.content):
+            await after.channel.send(after.author.name + ' says: ' +
+                                     profanity.censor_profanity(after.content))
+            await after.delete()
+
+    ###########################
+    # Function: test
+    # Description: Simple test command that shows commands are working.
+    # Inputs:
+    #      - ctx: context of the command
+    # Outputs:
+    #      - Sends test successful message back to channel that called test
+    ###########################
+    @bot.command()
+    async def test(ctx):
+        ''' simple sanity check '''
+        await ctx.send('test successful')
+
+    ###########################
+    # Function: set_instructor
+    # Description: Command used to give Instructor role out by instructors
+    # Inputs:
+    #      - ctx: context of the command
+    #      - member: user to give role
+    # Outputs:
+    #      - Sends confirmation back to channel
+    ###########################
+    @bot.command(name='setInstructor.py', help='Set member to Instructor.')
+    @commands.has_role('Instructor')
+    async def set_instructor(ctx, member: discord.Member):
+        ''' set instructor role command '''
+        irole = get(ctx.guild.roles, name='Instructor')
+        await member.add_roles(irole, reason=None, atomic=True)
+        await ctx.channel.send(member.name + " has been given Instructor role!")
+
+    ###########################
+    # Function: create_event
+    # Description: command to create event and send to event_creation module
+    # Ensures command author is Instructor
+    # Inputs:
+    #      - ctx: context of the command
+    # Outputs:
+    #      - Options to create event
+    ###########################
+    @bot.command(name='create', help='Create a new event.')
+    # @commands.dm_only()
+    @commands.has_role('Instructor')
+    async def create_event(ctx):
+        ''' run event creation interface '''
+        await event_creation.create_event(ctx, TESTING_MODE)
+
+    ###########################
+    # Function: oh
+    # Description: command related office hour and send to office_hours module
+    # Inputs:
+    #      - ctx: context of the command
+    #      - command: specific command to run
+    #      - *args: arguments for command
+    # Outputs:
+    #      - Office hour details and options
+    ###########################
+    @bot.command(name='oh', help='Operations relevant for office hours.')
+    async def office_hour_command(ctx, command, *args):
+        ''' run office hour commands with various args '''
+        await office_hours.office_hour_command(ctx, command, *args)
+
+    ###########################
+    # Function: ask
+    # Description: command to ask question and sends to qna module
+    # Inputs:
+    #      - ctx: context of the command
+    #      - question: question text
+    # Outputs:
+    #      - User question in new post
+    ###########################
+    @bot.command(name='ask', help='Ask question. Please put question text in quotes.')
+    async def ask_question(ctx, question):
+        ''' ask question command '''
+        # make sure to check that this is actually being asked in the Q&A channel
+        if ctx.channel.name == 'q-and-a':
+            await qna.question(ctx, question)
+        else:
+            await ctx.author.send('Please send questions to the #q-and-a channel.')
+            await ctx.message.delete()
+
+    ###########################
+    # Function: answer
+    # Description: command to answer question and sends to qna module
+    # Inputs:
+    #      - ctx: context of the command
+    #      - q_num: question number to answer
+    #      - answer: answer text
+    # Outputs:
+    #      - User answer in question post
+    ###########################
+    @bot.command(name='answer', help='Answer specific question. Please put answer text in quotes.')
+    async def answer_question(ctx, q_num, answer):
+        ''' answer question command '''
+        # make sure to check that this is actually being asked in the Q&A channel
+        if ctx.channel.name == 'q-and-a':
+            await qna.answer(ctx, q_num, answer)
+        else:
+            await ctx.author.send('Please send answers to the #q-and-a channel.')
+            await ctx.message.delete()
+
+    ###########################
+    # Function: begin_tests
+    # Description: Start the automated testing
+    # Inputs:
+    #      - ctx: context of the command
+    ###########################
+    @bot.command('begin-tests')
+    async def begin_tests(ctx):
+        ''' start test command '''
+        global TESTING_MODE
+
+        TESTING_MODE = True
+
+        test_oh_chan = next((ch for ch in ctx.guild.text_channels
+                             if 'office-hour-test' in ch.name), None)
+        if test_oh_chan:
+            await office_hours.close_oh(ctx.guild, 'test')
+
+        await office_hours.open_oh(ctx.guild, 'test')
+
+    ###########################
+    # Function: end_tests
+    # Description: Finalize automated testing
+    # Inputs:
+    #      - ctx: context of the command
+    ###########################
+    @bot.command('end-tests')
+    async def end_tests(ctx):
+        ''' end tests command '''
+
+        await office_hours.close_oh(ctx.guild, 'test')
+
+        # TODO maybe use ctx.bot.logout()
+        await ctx.bot.close()
+        # quit(0)
+
+    if __name__ == '__main__':
+        bot.run(TOKEN)
+
+    ###########################
+    # Function: test_dummy
+    # Description: Run the bot
+    ###########################
+    def test_dummy():
+        ''' run bot command '''
+        bot.run(TOKEN)
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/TeachersPetBot/conftest.py</source>
+<document_content>
+import os
+import sys
+from os.path import abspath
+from os.path import dirname as d
+
+import discord.ext.test as dpytest
+import pytest
+from discord import Intents
+from discord.ext.commands import Bot
+from setuptools import glob
+
+intents = Intents.all()
+
+root_dir = d(d(abspath("test/test_bot.py")))
+sys.path.append(root_dir)
+
+
+# Default parameters for the simulated dpytest bot. Loads the bot with commands from the /cogs directory
+# Ran everytime pytest is called
+@pytest.fixture
+def bot(event_loop):
+    bot = Bot(intents=intents, command_prefix="!", loop=event_loop)
+    dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(dir)
+    os.chdir('cogs')
+    for filename in os.listdir(os.getcwd()):
+        if filename.endswith('.py') and not filename.startswith('create'):
+            bot.load_extension(f"cogs.{filename[:-3]}")
+    dpytest.configure(bot)
+    return bot
+
+
+# Cleans up leftover files generated through dpytest
+def pytest_sessionfinish():
+    # Clean up attachment files
+    files = glob.glob('./dpytest_*.dat')
+    for path in files:
+        try:
+            os.remove(path)
+        except Exception as e:
+            print(f"Error while deleting file {path}: {e}")
+    print("\npySession closed successfully")
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/ask_and_answer.py</source>
+<document_content>
+import discord
+from discord.ext import commands
+
+# ----------------------------------------------------------------------------------------------
+# Returns the ping of the bot, useful for testing bot lag and as a simple functionality command
+# ----------------------------------------------------------------------------------------------
+from src import qna
+
+
+class qanda(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    ###########################
+    # Function: ask
+    # Description: command to ask question and sends to qna module
+    # Inputs:
+    #      - ctx: context of the command
+    #      - question: question text
+    # Outputs:
+    #      - User question in new post
+    ###########################
+    @commands.command(name='ask', help='Ask question. Please put question text in quotes.')
+    async def ask_question(self, ctx, question):
+        ''' ask question command '''
+        # make sure to check that this is actually being asked in the Q&A channel
+        if ctx.channel.name == 'q-and-a':
+            await qna.question(ctx, question)
+        else:
+            await ctx.author.send('Please send questions to the #q-and-a channel.')
+            await ctx.message.delete()
+
+    @commands.command(name='answer', help='Answer specific question. Please put answer text in quotes.')
+    async def answer_question(self, ctx, q_num, answer):
+        """
+        Function:
+            answer
+        Description:
+            command to answer question and sends to qna module
+        Inputs:
+            - ctx: context of the command
+            - q_num: question number to answer
+            - answer: answer text
+        Outputs:
+            User answer in question post
+        """
+        # make sure to check that this is actually being asked in the Q&A channel
+        if ctx.channel.name == 'q-and-a':
+            await qna.answer(ctx, q_num, answer)
+        else:
+            await ctx.author.send('Please send answers to the #q-and-a channel.')
+            await ctx.message.delete()
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(qanda(bot))
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/create.py</source>
+<document_content>
+import csv
+import os
+
+import discord
+from discord.ext import commands
+
+# ----------------------------------------------------------------------------------------------
+# Returns the ping of the bot, useful for testing bot lag and as a simple functionality command
+# ----------------------------------------------------------------------------------------------
+from src import event_creation
+
+
+class Create(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name='create', help='Create a new event.')
+    # @commands.dm_only()
+    @commands.has_role('Instructor')
+    async def create_event(self, ctx):
+        """
+        Function:
+            create_event
+        Description:
+            ommand to create event and send to event_creation module
+        Inputs:
+            - ctx: context of the command
+        Outputs:
+            Options to create event
+        """
+        TESTING_MODE = False
+
+        await event_creation.create_event(ctx, self.bot, False)
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(Create(bot))
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/hello.py</source>
+<document_content>
+from discord.ext import commands
+
+
+# -----------------------------------------------------------------------
+# A basic "Hello World!" command, used to verify basic bot functionality
+# -----------------------------------------------------------------------
+class Helpful(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    # -----------------------------------------------------------------------------------
+    #    Function: hello(self, ctx)
+    #    Description: prints "Hello World", used as a test function
+    #    Inputs:
+    #    - self: used to access parameters passed to the class through the constructor
+    #    - ctx: used to access the values passed through the current context
+    #    Outputs: prints "Hello World!"
+    # ----------------------------------------------------------------------------------
+    @commands.command(name='hello', help='The most basic Hello World! function')
+    async def hello(self, ctx):
+        await ctx.send("Hello World!")
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(Helpful(bot))
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/member_information.py</source>
+<document_content>
+import discord
+from discord.ext import commands
+
+# ---------------------------------------------------------------------------------------
+# Contains Instructor only commands for getting member information
+# ---------------------------------------------------------------------------------------
+class Helper(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name="whois", help="This command is used to get information about the member")
+    @commands.has_role("Instructor")
+    async def get_member_information(self, ctx, *, member_name: str = None):
+        """
+        Function:
+            get_member_information(self, ctx, *, member_name: str = None)
+        Description:
+            Instructor command for getting information about member based on member_username
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - member_name: username of the member
+        """
+        msg = ctx.message.content
+        await ctx.message.delete()
+        if ctx.channel.name == "instructor-commands": # check for channel
+            if member_name is None: # Error handling for None member_name
+                embed = discord.Embed(
+                    description="!whois command should be used in following way:"
+                    + "\n\n`!whois member_username`",
+                    color=discord.colour.Color.red(),
+                )
+                await ctx.author.send(embed=embed)
+                return
+            member = ctx.guild.get_member_named(member_name)
+            if member:
+                roles = [role for role in member.roles]
+                embed = discord.Embed(
+                    colour=discord.Colour.orange(),
+                    timestamp=ctx.message.created_at,
+                    title=str(member),
+                )
+                # embed information about member
+                embed.set_thumbnail(url=member.avatar_url)
+                embed.set_footer(text=f"Requested by {ctx.author}")
+                embed.add_field(name="Display Name:", value=member.display_name)
+                embed.add_field(name="ID:", value=member.id)
+                embed.add_field(
+                    name="Created Account On:",
+                    value=member.created_at.strftime("%a, %#d %B %Y, %I:%M %p UTC"),
+                )
+                if member.joined_at is not None:
+                    embed.add_field(
+                        name="Joined Server On:",
+                        value=(
+                            member.joined_at.strftime("%a, %#d %B %Y, %I:%M %p UTC")
+                        ),
+                    )
+                embed.add_field(
+                    name="Roles:", value="".join([role.mention for role in roles[1:]])
+                )
+                embed.add_field(name="Highest Role:", value=member.top_role.mention)
+                await ctx.send(embed=embed)
+            else:
+                embed = discord.Embed(
+                    description="!whois could not find member with username\n\n`{member_name}`",
+                    color=discord.colour.Color.red(),
+                )
+                await ctx.author.send(embed=embed)
+        else:
+            embed = discord.Embed(
+                description="`!whois` can only be used in the `instructor-commands` channel."
+                + "\n\nYou entered the following command:\n\n`"
+                + msg
+                + "`",
+                color=discord.colour.Color.red(),
+            )
+            await ctx.author.send(embed=embed)
+
+# add the file to the bot's cog system
+# --------------------------------------
+def setup(bot):
+    bot.add_cog(Helper(bot))
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/notification.py</source>
+<document_content>
+import discord
+from discord import Client
+from discord.ext import commands
+import json
+import os
+import asyncio
+import time
+import smtplib
+from email.message import EmailMessage
+from datetime import datetime
+
+from src import logmsg
+
+BOT = None
+
+
+class Deadline(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.reminders = json.load(open("data/remindme/reminders.json"))
+        self.notifs = json.load(open("data/remindme/groupremind.json"))
+        self.units = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 604800, "month": 2592000}
+
+
+    @commands.command(name="addhw",
+                      help="add homework and due-date !addhw CLASSNAME HW_NAME MMM DD YYYY optional(HH:MM) ex. !addhw CSC510 HW2 SEP 25 2024 17:02")
+    async def duedate(self, ctx, coursename: str, hwcount: str, *, date: str):
+        """
+        Function:
+            duedate(self, ctx, coursename: str, hwcount: str, *, date: str)
+        Description:
+            Adds the homework to json in the specified format
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - coursename: name of the course for which homework is to be added
+            - hwcount: name of the homework
+            - date: due date of the assignment
+        Outputs:
+            returns either an error stating a reason for failure or returns a success message
+          indicating that the reminder has been added
+        """
+        author = ctx.message.author
+        # print('Author: '+str(author)+' coursename: '+coursename+' homework count: '+hwcount+' date: '+str(date))
+        try:
+            duedate = datetime.strptime(date, '%b %d %Y %H:%M')
+            # print(seconds)
+        except ValueError:
+            try:
+                duedate = datetime.strptime(date, '%b %d %Y')
+            except:
+                await ctx.send("Due date could not be parsed")
+                return
+        a_timedelta = duedate - datetime.today()
+        seconds = (time.time() + a_timedelta.total_seconds())
+        flag = True
+        if self.reminders:
+            for reminder in self.reminders:
+                if ((reminder["COURSE"] == coursename) and (reminder["HOMEWORK"] == hwcount)):
+                    flag = False
+                    break
+        if (flag):
+            self.reminders.append({"ID": author.id, "COURSE": coursename, "HOMEWORK": hwcount, "DUEDATE": str(duedate),
+                                   "FUTURE": seconds})
+            json.dump(self.reminders, open("data/remindme/reminders.json", "w"))
+            await ctx.send(
+                "A date has been added for: {} homework named: {} which is due on: {} by {}.".format(coursename,
+                                                                                                     hwcount,
+                                                                                                     str(duedate),
+                                                                                                     author))
+        else:
+            await ctx.send("This homework has already been added..!!")
+        ###########################
+    # Function: create voice channel
+    # Description: command to ask question and sends to qna module
+    # Inputs:
+    #      - ctx: context of the command
+    #      - question: question text
+    # Outputs:
+    #      - User question in new post
+    ###########################
+    @commands.command(name='voice_channel', help='Create voice channel. Please input channel name, category, limit '
+                                                 'and number of channels. ex. !voice_channel teams meeting 10 3')
+    async def voice_channel(self, ctx, channelname: str, catename: str, limit: str, num: str):
+        ''' Create voice channel command '''
+        TESTING_MODE = False
+        ''' create voice channel input flow '''
+        GUILD = os.getenv("GUILD")
+        discord.utils.get(BOT.guilds, name=GUILD)
+        # if ctx.channel.name == 'instructor-commands':
+        cat_exist = False
+        for guild in BOT.guilds:
+            # Category
+            for cat in guild.categories:
+                if cat.name == catename:
+                    cat_exist = True
+                    print('exist')
+                    if int(num) == 1:
+                        await guild.create_voice_channel(channelname, user_limit=int(limit), category=cat)
+                    else:
+                        for i in range(int(num)):
+                            temp = channelname + str(i + 1)
+                            await guild.create_voice_channel(temp, user_limit=int(limit), category=cat)
+
+
+        if not cat_exist:
+            category = await guild.create_category(catename)
+            print('exist')
+            if int(num) == 1:
+                await guild.create_voice_channel(channelname, user_limit=int(limit), category=category)
+            else:
+                for i in range(int(num)):
+                    temp = channelname + str(i + 1)
+                    await guild.create_voice_channel(temp, user_limit=int(limit), category=category)
+
+        await ctx.send("Voice channel has been created!!")
+
+    @duedate.error
+    async def duedate_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                'To use the addhw command, do: !addhw CLASSNAME HW_NAME MMM DD YYYY optional(HH:MM) \n ( For example: !addhw CSC510 HW2 SEP 25 2024 17:02 )')
+
+    @commands.command(name="listreminders", pass_context=True, help="lists all reminders")
+    async def listreminders(self, ctx):
+        to_remove = []
+        for reminder in self.reminders:
+            # if reminder["FUTURE"] <= int(time.time()):
+            try:
+                # await ctx.send("{} homework named: {} which is due on: {} by {}".format(self.bot.get_user(reminder["ID"]), reminder["TEXT"]))
+                # await ctx.send("{} homework named: {} which is due on: {} by {}".format(reminder["COURSE"], reminder["HOMEWORK"],reminder["DUEDATE"],self.bot.get_user(reminder["ID"])))
+                embed = discord.Embed(colour=discord.Colour.gold(), timestamp=ctx.message.created_at,
+                                      title=reminder["COURSE"])
+                embed.set_footer(text=f"Requested by {ctx.author}")
+                embed.add_field(name="Homework Title", value=reminder["HOMEWORK"], inline=False)
+                embed.add_field(name="Due Date:", value=reminder["DUEDATE"], inline=False)
+                post_author = "<@" + str(reminder["ID"]) + ">"
+                embed.add_field(name="Posted By:", value=post_author, inline=False)
+                await ctx.send(embed=embed)
+            except (discord.errors.Forbidden, discord.errors.NotFound):
+                to_remove.append(reminder)
+            except discord.errors.HTTPException:
+                pass
+            else:
+                to_remove.append(reminder)
+        if not self.reminders:
+            await ctx.send("Mission Accomplished..!! You don't have any more dues..!!")
+
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        await ctx.send('Unidentified command..please use !help to get the list of available comamnds' + str(error))
+
+
+    @commands.command(name="deletereminder", pass_context=True,
+                      help="delete a specific reminder using course name and homework name using !deletereminder CLASSNAME HW_NAME ex. !deletereminder CSC510 HW2 ")
+    async def deleteReminder(self, ctx, courseName: str, hwName: str):
+        """
+        Function:
+            deleteReminder(self, ctx, courseName: str, hwName: str)
+        Description:
+            Delete a reminder using Classname and Homework name
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - coursename: name of the course for which homework is to be added
+            - hwName: name of the homework
+        Outputs:
+            returns either an error stating a reason for failure or
+         returns a success message indicating that the reminder has been deleted
+        """
+        author = ctx.message.author
+        to_remove = []
+        for reminder in self.reminders:
+            # print('in json '+str(reminder["HOMEWORK"])+' hwName '+hwName)
+            if ((reminder["HOMEWORK"] == hwName) and (reminder["COURSE"] == courseName)):
+                # print('true '+hwName)
+                to_remove.append(reminder)
+                # print('to_remove '+ str(to_remove))
+        for reminder in to_remove:
+            self.reminders.remove(reminder)
+        if to_remove:
+            json.dump(self.reminders, open("data/remindme/reminders.json", "w"))
+            await ctx.send("Following reminder has been deleted: Course: {}, Homework Name: {}, Due Date: {}".format(
+                str(reminder["COURSE"]), str(reminder["HOMEWORK"]), str(reminder["DUEDATE"])))
+
+    @deleteReminder.error
+    async def deleteReminder_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                'To use the deletereminder command, do: !deletereminder CLASSNAME HW_NAME \n ( For example: !deletereminder CSC510 HW2 )')
+
+
+    @commands.command(name="changeduedate", pass_context=True,
+                      help="update the assignment date. !changeduedate CLASSNAME HW_NAME MMM DD YYYY optional(HH:MM) ex. !changeduedate CSC510 HW2 SEP 25 2024 17:02 ")
+    async def changeduedate(self, ctx, classid: str, hwid: str, *, date: str):
+        """
+        Function:
+            changeduedate(self, ctx, classid: str, hwid: str, *, date: str)
+        Description:
+            Update the 'Due date' for a homework by providing the classname and homewwork name
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - classid: name of the course for which homework is to be added
+            - hwid: name of the homework
+            - date: due date of the assignment
+        Outputs:
+            returns either an error stating a reason for failure or
+          returns a success message indicating that the reminder has been updated
+        """
+        author = ctx.message.author
+        flag = False
+        try:
+            duedate = datetime.strptime(date, '%b %d %Y %H:%M')
+        except ValueError:
+            try:
+                duedate = datetime.strptime(date, '%b %d %Y')
+            except:
+                await ctx.send("Due date could not be parsed")
+                return
+        for reminder in self.reminders:
+            flag = False
+            if ((reminder["HOMEWORK"] == hwid) and (reminder["COURSE"] == classid)):
+                reminder["DUEDATE"] = str(duedate)
+                a_timedelta = duedate - datetime.today()
+                seconds = (time.time() + a_timedelta.total_seconds())
+                reminder["FUTURE"] = seconds
+                reminder["ID"] = author.id
+                flag = True
+                if (flag):
+                    json.dump(self.reminders, open("data/remindme/reminders.json", "w"))
+                    # await ctx.send("{} {} has been updated with following date: {}".format(classid, hwid, reminder["DUEDATE"]))
+                    embed = discord.Embed(colour=discord.Colour.blurple(), timestamp=ctx.message.created_at,
+                                          title="Updated Courses:")
+                    embed.set_footer(text=f"Requested by {ctx.author}")
+                    embed.add_field(name="Coursework", value=classid, inline=False)
+                    embed.add_field(name="Homework:", value=hwid, inline=False)
+                    embed.add_field(name="Due Date:", value=reminder["DUEDATE"], inline=False)
+                    await ctx.send(embed=embed)
+                    # await ctx.send("Data updated..!!")
+
+    @changeduedate.error
+    async def changeduedate_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                'To use the changeduedate command, do: !changeduedate CLASSNAME HW_NAME MMM DD YYYY optional(HH:MM) \n ( For example: !changeduedate CSC510 HW2 SEP 25 2024 17:02 )')
+
+    # -----------------------------------------------------------------------------------------------------------------
+    #    Function:
+    #    Description:
+    #    Inputs:
+    #
+    #    Outputs:
+    # -----------------------------------------------------------------------------------------------------------------
+
+    @commands.command(name="duethisweek", pass_context=True,
+                      help="check all the homeworks that are due this week !duethisweek")
+    async def duethisweek(self, ctx):
+        """
+        Function:
+            duethisweek(self, ctx)
+        Description:
+            Displays all the homeworks that are due this week along with the coursename and due date
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+        Outputs:
+            returns either an error stating a reason for failure
+            or returns a list of all the assignments that are due this week
+        """
+        time = ctx.message.created_at
+
+        if len(self.reminders) == 0:
+            await ctx.send("No dues this week")
+
+        flag = False
+
+        for reminder in self.reminders:
+            timeleft = datetime.strptime(reminder["DUEDATE"], '%Y-%m-%d %H:%M:%S') - time
+            print("timeleft: " + str(timeleft) + " days left: " + str(timeleft.days))
+            if timeleft.days <= 7:
+                flag = True
+                # await ctx.send("{} {} is due this week at {}".format(reminder["COURSE"], reminder["HOMEWORK"],reminder["DUEDATE"]))
+                await ctx.send("Following homeworks are due this week")
+                embed = discord.Embed(colour=discord.Colour.blurple(), timestamp=ctx.message.created_at,
+                                      title="Due this week")
+                embed.set_footer(text=f"Requested by {ctx.author}")
+                embed.add_field(name="Coursework", value=reminder["COURSE"], inline=False)
+                embed.add_field(name="Homework:", value=reminder["HOMEWORK"], inline=False)
+                embed.add_field(name="Due Date:", value=reminder["DUEDATE"], inline=False)
+                await ctx.send(embed=embed)
+
+        if not flag:
+            await ctx.send("No dues this week")
+
+
+    @commands.command(name="duetoday", pass_context=True, help="check all the homeworks that are due today !duetoday")
+    async def duetoday(self, ctx):
+        """
+        Function:
+            duetoday(self, ctx)
+        Description:
+            Displays all the homeworks that are due today
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+        Outputs:
+            returns either an error stating a reason for failure or
+           returns a list of all the assignments that are due on the day the command is run
+        """
+        flag = True
+        for reminder in self.reminders:
+            timedate = datetime.strptime(reminder["DUEDATE"], '%Y-%m-%d %H:%M:%S')
+            if timedate.date() == ctx.message.created_at.date():
+                flag = False
+                # await ctx.send("{} {} is due today at {}".format(reminder["COURSE"], reminder["HOMEWORK"], timedate.time()))
+                await ctx.send("Following homeworks are due today")
+                embed = discord.Embed(colour=discord.Colour.blurple(), timestamp=ctx.message.created_at,
+                                      title="Due this week")
+                embed.set_footer(text=f"Requested by {ctx.author}")
+                embed.add_field(name="Coursework", value=reminder["COURSE"], inline=False)
+                embed.add_field(name="Homework:", value=reminder["HOMEWORK"], inline=False)
+                embed.add_field(name="Due Date:", value=reminder["DUEDATE"], inline=False)
+                await ctx.send(embed=embed)
+        if (flag):
+            await ctx.send("You have no dues today..!!")
+
+    @commands.command(name="coursedue", pass_context=True,
+                      help="check all the homeworks that are due for a specific course !coursedue coursename ex. !coursedue CSC505")
+    async def coursedue(self, ctx, courseid: str):
+        """
+        Function:
+            coursedue(self, ctx, courseid: str)
+        Description:
+            Displays all the homeworks that are due for a specific course
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - courseid: name of the course for which homework is to be added
+        Outputs:
+            returns either an error stating a reason for failure or
+          a list of assignments that are due for the provided courseid
+        """
+        course_due = []
+        for reminder in self.reminders:
+            if reminder["COURSE"] == courseid:
+                course_due.append(reminder)
+                # await  ctx.send("{} is due at {}".format(reminder["HOMEWORK"], reminder["DUEDATE"]))
+                embed = discord.Embed(colour=discord.Colour.blurple(), timestamp=ctx.message.created_at,
+                                      title="Due for this course")
+                embed.add_field(name="Homework:", value=reminder["HOMEWORK"], inline=False)
+                embed.add_field(name="Due Date:", value=reminder["DUEDATE"], inline=False)
+                await ctx.send(embed=embed)
+        if not course_due:
+            await ctx.send("Rejoice..!! You have no pending homeworks for {}..!!".format(courseid))
+
+    @coursedue.error
+    async def coursedue_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                'To use the coursedue command, do: !coursedue CLASSNAME \n ( For example: !coursedue CSC510 )')
+
+    # ---------------------------------------------------------------------------------
+    #    Function:
+    #    Description:
+    #    Inputs:
+    #    - self: used to access parameters passed to the class through the constructor
+    #    - ctx: used to access the values passed through the current context
+    #    Outputs:
+    # ---------------------------------------------------------------------------------
+
+    @commands.command(name="clearreminders", pass_context=True, help="deletes all reminders")
+    async def clearallreminders(self, ctx):
+        """
+        Function:
+            clearallreminders(self, ctx)
+        Description:
+            Delete all the reminders
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+        Outputs:
+            returns either an error stating a reason for failure or
+             returns a success message stating that reminders have been deleted
+        """
+        to_remove = []
+        for reminder in self.reminders:
+            to_remove.append(reminder)
+        for reminder in to_remove:
+            self.reminders.remove(reminder)
+        if to_remove:
+            json.dump(self.reminders, open("data/remindme/reminders.json", "w"))
+            await ctx.send("All reminders have been cleared..!!")
+        else:
+            await ctx.send("No reminders to delete..!!")
+
+    @commands.command(name="notifyme", pass_context=True, help="provides a way to set up notifications ex. !notifyme 1 minutes Complete CSC510 Project2")
+    async def notify_me(self, ctx, quantity: int, time_unit: str, *, text: str):
+        time_unit = time_unit.lower()
+        msg_email = ""
+        contact = ""
+        author = ctx.message.author
+        s = ""
+        if time_unit.endswith("s"):
+            time_unit = time_unit[:-1]
+            s = "s"
+        if not time_unit in self.units:
+            await ctx.send("Invalid unit of time. Select from seconds/minutes/hours/days/weeks/months")
+            return
+        if quantity < 1:
+            await ctx.send("Quantity must not be 0 or negative")
+            return
+        if len(text) > 1960:
+            await ctx.send("Text is too long.")
+            return
+
+        seconds = self.units[time_unit] * quantity
+        future = int(time.time() + seconds)
+
+        def check(msg):
+            # print("inside msg: msg"+msg)
+            return msg.author == ctx.author and msg.channel == ctx.channel and msg.content.lower() in ["y", "n"]
+
+        def check_answer(msg):
+            # print("inside msg: msg"+msg)
+            return msg.author == ctx.author and msg.channel == ctx.channel and msg.content.lower() in ["email", "text"]
+
+        def check_email(msg):
+            # print("inside msg: msg"+msg)
+            return msg.author == ctx.author and msg.channel == ctx.channel
+
+        def check_phone(msg):
+            # print("inside msg: msg"+msg)
+            return msg.author == ctx.author and msg.channel == ctx.channel
+
+        await ctx.send("Would you like to receive reminder on your email or phone? [y/n]")
+        #logmsg.logerror(ctx.channel.id)
+        # print("The id is here" + ctx.channel.id)
+        msg = await BOT.wait_for("message", check=check)
+        if msg.content.lower() == "y":
+            await ctx.send("Great..!! So, [email/text]..??")
+            msg_answer = await BOT.wait_for("message", check=check_answer)
+            if msg_answer.content.lower() == "email":
+                await ctx.send("Enter your email id")
+                msg_email_text = await BOT.wait_for("message", check=check_email)
+                msg_email = msg_email_text.content.strip()
+                await ctx.send("I will remind you through mail")
+            elif msg_answer.content.lower() == "text":
+                await ctx.send("Enter your contact number")
+                msg_contact = await BOT.wait_for("message", check=check_phone)
+                contact = msg_contact.content.strip()
+                await ctx.send("I will remind you through text")
+
+        self.notifs.append({"ID": author.id, "FUTURE": future, "TEXT": text, "EMAIL": msg_email, "PHONE": contact, "GUILD": ctx.channel.id})
+
+        await ctx.send("I will remind you that in {} {}.".format(str(quantity), time_unit + s))
+        json.dump(self.notifs, open("data/remindme/groupremind.json", "w"))
+
+    async def notification_reminders(self):
+        print("inside delete old notifications")
+        while self is self.bot.get_cog("Deadline"):
+            to_remove = []
+            for notif in self.notifs:
+                if notif["FUTURE"] <= int(time.time()):
+                    try:
+                        # await ctx.send("A reminder has been deleted")
+                        await self.bot.wait_until_ready()
+                        channel = self.bot.get_channel(notif["GUILD"]);
+                        await channel.send(
+                            "<@{}>, You asked me to remind you this: {}".format(notif["ID"], notif["TEXT"]))
+                        if notif["EMAIL"]:
+                            await self.email_alert("You have a reminder, Sir",
+                                                   "You asked me to remind you this: {}".format(notif["TEXT"]),
+                                                   notif["EMAIL"])
+                        if notif["PHONE"]:
+                            await self.phone_alert("You have a reminder, Sir",
+                                                   "You asked me to remind you this: {}".format(notif["TEXT"]),
+                                                   notif["PHONE"])
+                        print("Deleting an old notification..!!")
+                    except (discord.errors.Forbidden, discord.errors.NotFound):
+                        to_remove.append(notif)
+                    except discord.errors.HTTPException:
+                        pass
+                    # except AttributeError as e:
+                    #     logerror.logerror(str(e), logerror.get_today())
+                    else:
+                        to_remove.append(notif)
+            for notif in to_remove:
+                self.notifs.remove(notif)
+            if to_remove:
+                json.dump(self.notifs, open("data/remindme/groupremind.json", "w"))
+            await asyncio.sleep(5)
+
+    async def email_alert(self, subject, body, to):
+        msg = EmailMessage()
+        msg.set_content(body)
+        msg['subject'] = subject
+        msg['to'] = to
+        user = "teacher.petbot@gmail.com"
+        msg['from'] = user
+        password = "bbyfvjamujjjwrna"
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(user, password)
+        server.send_message(msg)
+
+        server.quit()
+
+    async def phone_alert(self, subject, body, to):
+        msg = EmailMessage()
+        msg.set_content(body)
+        msg['subject'] = subject
+        msg['to'] = to + "@tmomail.net"
+        user = "teacher.petbot@gmail.com"
+        msg['from'] = user
+        password = "bbyfvjamujjjwrna"
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(user, password)
+        server.send_message(msg)
+
+        server.quit()
+
+    async def delete_old_reminders(self):
+        """
+        Function:
+            delete_old_reminders(self)
+        Description:
+            asynchronously keeps on tracking the json file for expired reminders and cleans them.
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+        Outputs:
+            deletes the expired reminders and sends a message
+        """
+        print("inside delete old reminders")
+        while self is self.bot.get_cog("Deadline"):
+            to_remove = []
+            for reminder in self.reminders:
+                if reminder["FUTURE"] <= int(time.time()):
+                    try:
+                        # await ctx.send("A reminder has been deleted")
+                        channel = self.bot.get_channel(897661152371290172);
+                        await channel.send(
+                            "The due date for {} {} which was {} set by <@{}> has now passed".format(reminder["COURSE"],
+                                                                                                     reminder[
+                                                                                                         "HOMEWORK"],
+                                                                                                     reminder[
+                                                                                                         "DUEDATE"],
+                                                                                                     reminder["ID"]))
+                        print("Deleting an old reminder..!!")
+                    except (discord.errors.Forbidden, discord.errors.NotFound):
+                        to_remove.append(reminder)
+                    except discord.errors.HTTPException:
+                        pass
+                    else:
+                        to_remove.append(reminder)
+            for reminder in to_remove:
+                self.reminders.remove(reminder)
+            if to_remove:
+                json.dump(self.reminders, open("data/remindme/reminders.json", "w"))
+            await asyncio.sleep(5)
+
+
+# -----------------------------------------------------------------------------
+# checks if the folder that is going to hold json exists else creates a new one
+# -----------------------------------------------------------------------------
+def check_folders():
+    if not os.path.exists("data/remindme"):
+        print("Creating data/remindme folder...")
+        os.makedirs("data/remindme")
+
+
+# ----------------------------------------------------
+# checks if a json file exists else creates a new one
+# ----------------------------------------------------
+def check_files():
+    f = "data/remindme/reminders.json"
+    group = "data/remindme/groupremind.json"
+
+    print("Creating file...")
+    if not os.path.exists(f):
+        print("Creating empty reminders.json...")
+        json.dump([], open(f, "w"))
+
+    if not os.path.exists(group):
+        print("Creating group reminders file")
+        json.dump([], open(group, "w"))
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    check_folders()
+    check_files()
+    n = Deadline(bot)
+    loop = asyncio.get_event_loop()
+    loop_notify = asyncio.get_event_loop()
+    loop.create_task(n.delete_old_reminders())
+    loop_notify.create_task(n.notification_reminders())
+    global BOT
+    BOT = bot
+    bot.add_cog(n)
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/oh.py</source>
+<document_content>
+import discord
+from discord.ext import commands
+
+# ----------------------------------------------------------------------------------------------
+# Returns the ping of the bot, useful for testing bot lag and as a simple functionality command
+# ----------------------------------------------------------------------------------------------
+from src import office_hours
+
+
+class Helpful(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name='oh', help='Operations relevant for office hours.')
+    async def office_hour_command(self, ctx, command, *args):
+        """
+        Function:
+            oh
+        Description:
+            command related office hour and send to office_hours module
+        Inputs:
+            - ctx: context of the command
+            - command: specific command to run
+            - *args: arguments for command
+        Outputs:
+            Office hour details and options
+        """
+        await office_hours.office_hour_command(ctx, command, *args)
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(Helpful(bot))
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/ping.py</source>
+<document_content>
+import discord
+from discord.ext import commands
+
+
+# ----------------------------------------------------------------------------------------------
+# Returns the ping of the bot, useful for testing bot lag and as a simple functionality command
+# ----------------------------------------------------------------------------------------------
+class Helpful(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def ping(self, ctx):
+        """
+        Function:
+           ping(self, ctx)
+        Description:
+           prints the current ping of the bot, used as a test function
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+        Outputs:
+            prints the current ping of the bot, with an upper bound of 999999999 to avoid float errors
+        """
+        # We set an upper bound on the ping of the bot to prevent float_infinity situations which crash testing
+        await ctx.send(f"Pong! My ping currently is {round(min(999999999, self.bot.latency * 1000))}ms")
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(Helpful(bot))
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/polling.py</source>
+<document_content>
+import datetime
+import discord
+from discord.ext import commands
+
+# ---------------------------------------------------------------------------------------
+# Contains Instructor only commands for polling
+# ---------------------------------------------------------------------------------------
+class Helper(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    # contains reactions for multipoll
+    @property
+    def reactions(self):
+        return {
+            1: "1️⃣",
+            2: "2️⃣",
+            3: "3️⃣",
+            4: "4️⃣",
+            5: "5️⃣",
+            6: "6️⃣",
+            7: "7️⃣",
+            8: "8️⃣",
+            9: "9️⃣",
+            10: "🔟",
+        }
+
+    # ----------------------------------------------------------------------------------------------
+    #    Function:
+    #    Description:
+    #    Inputs:
+    #
+    #    - *:
+    #    -
+    # ----------------------------------------------------------------------------------------------
+    @commands.command(name="poll", help = "This command is used for poll with 2 choices")
+    @commands.has_role("Instructor")
+    async def poll(self, ctx, *, poll: str = None):
+        """
+        Function:
+            poll(self, ctx, *, poll: str = None)
+        Description:
+            Instructor command for creating poll with 2 choices
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - poll: question for poll
+        """
+        msg = ctx.message.content
+        await ctx.message.delete()
+        if ctx.channel.name == "instructor-commands":
+            if poll is None: # Error handling for empty poll
+                embed = discord.Embed(
+                    description="!poll command should be used in following way:"
+                    + "\n\n`!poll poll_content`",
+                    color=discord.colour.Color.red(),
+                )
+                await ctx.author.send(embed=embed)
+                return
+            general_channel = None
+            for channel in ctx.guild.text_channels: # finding general channel
+                if channel.name == "general":
+                    general_channel = channel
+                    break
+            if general_channel:
+                embed = discord.Embed(
+                    description=f"**{poll}**\n\n",
+                    timestamp=datetime.datetime.utcnow(),
+                    color=discord.colour.Color.blue(),
+                )
+                embed.set_footer(text=f"Poll created by {str(ctx.author)}")
+                msg = await general_channel.send(embed=embed)
+                await msg.add_reaction("👍")
+                await msg.add_reaction("👎")
+        else:
+            embed = discord.Embed(
+                description="`!poll` can only be used in the `instructor-commands` channel."
+                + "\n\nYou entered the following command:\n\n`"
+                + msg
+                + "`",
+                color=discord.colour.Color.red(),
+            )
+            await ctx.author.send(embed=embed)
+
+    # ----------------------------------------------------------------------------------------------
+    #    Function:
+    #    Description:
+    #    Inputs:
+
+    # ----------------------------------------------------------------------------------------------
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """
+        Function:
+            on_reaction(self, reaction)
+        Description:
+            Listener to avoid members from selecting both choices in 2 choice poll
+        Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - reaction: reaction on the poll
+        """
+        user = payload.member
+        if user.bot : return
+        msg = (await self.bot.get_guild(payload.guild_id)
+              .get_channel(payload.channel_id)
+              .fetch_message(payload.message_id))
+        emoji = payload.emoji
+        users = []
+        if msg.author.bot and("👍"and"👎")in[str(i)for i in msg.reactions]:
+            for react in msg.reactions:
+                if str(react)=="👍":
+                    async for reactor in react.users():
+                        if reactor.bot:continue
+                        if reactor in users:
+                            await msg.remove_reaction(emoji, user)
+                            return
+                        users.append(reactor)
+                elif str(react)=="👎":
+                    async for reactor in react.users():
+                        if reactor.bot:continue
+                        if reactor in users:
+                            # remove one reaction if member has reacted both
+                            await msg.remove_reaction(emoji, user)
+                            return
+                    return
+
+    # ----------------------------------------------------------------------------------------------
+    #    Function:
+    #    Description:
+    #    Inputs:
+
+    # ----------------------------------------------------------------------------------------------
+    @commands.command(name="multipoll", help = "This command is used for poll with multiple choice")
+    @commands.has_role("Instructor")
+    async def multi_choice(self, ctx, desc: str = None, *choices):
+        """
+        Function:
+           multi_choice(self, ctx, desc: str = None, *choices)
+       Description:
+           Instructor command for creating multi choice multi option poll
+       Inputs:
+            - self: used to access parameters passed to the class through the constructor
+            - ctx: used to access the values passed through the current context
+            - *choices: variable arguments for choices for the poll
+       """
+        msg = ctx.message.content
+        await ctx.message.delete()
+        if ctx.channel.name == "instructor-commands": # check if command is used in
+                                                      # Instructor commands channel
+            if desc is None: # Error handling for multipoll without desc
+                embed = discord.Embed(
+                    description='!multipoll command should be used in following way:'
+                    + '\n\n`!multipoll "poll_content" "poll_choice1" "poll_choice2"...`',
+                    color=discord.colour.Color.red(),
+                )
+                await ctx.author.send(embed=embed)
+                return
+            general_channel = None
+            for channel in ctx.guild.text_channels:
+                if channel.name == "general":
+                    general_channel = channel
+                    break
+            if general_channel:
+                if len(choices) < 2: # Error handling for multipoll with < 2 choices
+                    embed = discord.Embed(
+                        description="You have to enter two or more choices to make a multipoll."
+                        + "\n\nYou entered the following command:\n\n`"
+                        + msg
+                        + "`",
+                        color=discord.colour.Color.red(),
+                    )
+                    return await ctx.author.send(embed=embed)
+                if len(choices) > 10: # Error handling for multipoll with > 10 choices
+                    embed = discord.Embed(
+                        description="You can't make a multipoll with more than 10 choices."
+                        + "\n\nYou entered the following command:\n\n`"
+                        + msg
+                        + "`",
+                        color=discord.colour.Color.red(),
+                    )
+                    return await ctx.author.send(embed=embed)
+                embed = discord.Embed(
+                    description=f"**{desc}**\n\n"
+                    + "\n\n".join(
+                        f"{str(self.reactions[i])}  {choice}"
+                        for i, choice in enumerate(choices, 1)
+                    ),
+                    timestamp=datetime.datetime.utcnow(),
+                    color=discord.colour.Color.gold(),
+                )
+                embed.set_footer(text=f"Poll created by {str(ctx.author)}")
+                msg = await general_channel.send(embed=embed)
+                for i in range(1, len(choices) + 1):
+                    await msg.add_reaction(self.reactions[i])
+        else:
+            embed = discord.Embed(
+                description="`!multipoll` can only be used in the `instructor-commands` channel."
+                + "\n\nYou entered the following command:\n\n`"
+                + msg
+                + "`",
+                color=discord.colour.Color.red(),
+            )
+            await ctx.author.send(embed=embed)
+
+
+# add the file to the bot's cog system
+# --------------------------------------
+def setup(bot):
+    bot.add_cog(Helper(bot))
+
+</document_content>
+</document>
+<document index="28">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/setInstructor.py</source>
+<document_content>
+# Copyright (c) 2021 War-Keeper
+import discord
+from discord.utils import get
+from discord.ext import commands
+
+
+# -----------------------------------------------------------------------
+# A basic "Hello World!" command, used to verify basic bot functionality
+# -----------------------------------------------------------------------
+class setInstructor(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name='setInstructor', help='Set member to Instructor.')
+    @commands.has_role('Instructor')
+    async def set_instructor(self, ctx, member_name: str = None):
+
+        """
+        Function:
+            set_instructor
+        Description:
+            Command used to give Instructor role out by instructors
+        Inputs:
+            - ctx: context of the command
+            - member: user to give role
+        Outputs:
+            - Sends confirmation back to channel
+        """
+        if member_name is None:
+            await ctx.send('To use the setInstructor command, do: !setInstructor DISCORDNAME \n ( For example: !setInstructor Steve )')
+            return
+        guild = ctx.guild
+        member = ctx.guild.get_member_named(member_name)  # finding member using member id
+        if member:
+            irole = get(guild.roles, name='Instructor')
+            await member.add_roles(irole, reason=None, atomic=True)
+            await ctx.channel.send(member.name + " has been given Instructor role!")
+        else:
+            await ctx.send("Could not find a member with that name")
+            return
+
+    @set_instructor.error
+    async def set_instructor_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                'To use the setInstructor command, do: !setInstructor DISCORDNAME \n ( For example: !setInstructor Steve )')
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(setInstructor(bot))
+
+</document_content>
+</document>
+<document index="29">
+<source>/Users/malcolm/dev/TeachersPetBot/cogs/take.py</source>
+<document_content>
+import csv
+import os
+
+import discord
+from discord.ext import commands
+
+from src import cal
+
+# ----------------------------------------------------------------------------------------------
+# Returns the ping of the bot, useful for testing bot lag and as a simple functionality command
+# ----------------------------------------------------------------------------------------------
+from src import cal, db
+
+
+class Create(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+
+    @commands.command(name='importevents', help='Create a create events from csv file.')
+    # @commands.dm_only()
+    @commands.has_role('Instructor')
+    async def import_events(self, ctx):
+        try:
+            ''' run event creation interface '''
+            temp = 'data/events/' + str(ctx.message.guild.id)
+
+            if not os.path.exists(temp):
+                os.makedirs(temp)
+
+            def check(m):
+                return m.content is not None and m.author == ctx.author
+
+            # Ask for a file if there are no attachments in the initital message
+            if len(ctx.message.attachments) == 0:
+                await ctx.send("Please upload your file below.")
+
+                # Loops until we receive a file.
+                while True:
+                    event_msg = await self.bot.wait_for("message", check=check)
+
+                    if len(event_msg.attachments) != 1:
+                        await ctx.send(
+                            "No file detected. Please upload your file below.\nYou can do this by dropping "
+                            "the file directly into Discord. Do not write out the file contents in a message.")
+                    else:
+                        ctx.message.attachments = event_msg.attachments
+                        break
+
+            if ctx.message.attachments[0].filename.endswith('.csv'):
+                if ctx.message.attachments[0].filename.startswith('exams'):
+                    await ctx.message.attachments[0].save(
+                        temp + '/exams.csv')
+                    await self.read_exams(ctx)
+
+                if ctx.message.attachments[0].filename.startswith('assignments'):
+                    await ctx.message.attachments[0].save(
+                        temp + '/assignments.csv')
+                    await self.read_assignments(ctx)
+        except Exception as e:
+            print(e)
+            # if ctx.message.attachments[0].filename.startswith('ta_office_hours'):
+            #     await event_creation.read_assignments(ctx)
+
+    @commands.command(name='templates', help='Get file templates for creating events from csv file.')
+    @commands.has_role('Instructor')
+    async def get_event_sample_csv(self, ctx):
+        ''' run event creation interface '''
+        await ctx.send(file=discord.File(r'data\sample_event_csv_files\exams.csv'))
+        await ctx.send(file=discord.File(r'data\sample_event_csv_files\assignments.csv'))
+        await ctx.send(file=discord.File(r'data\sample_event_csv_files\ta_office_hours.csv'))
+
+    async def read_exams(self, ctx):
+        temp = 'data/events/' + str(ctx.message.guild.id) + '/'
+        with open(temp + 'exams.csv', mode='r') as f:
+            reader = csv.reader(f, delimiter=',')
+            line_count = 0
+            for row in reader:
+                if line_count > 1:
+                    print(f'Testing {", ".join(row)}')
+                    db.mutation_query(
+                        'INSERT INTO exams VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                        [ctx.guild.id, row[0], row[1], row[2], row[3], row[4], row[5], row[6]]
+                    )
+                line_count += 1
+        await ctx.send('File Submitted and Exams successfully created!')
+
+        await cal.display_events(ctx)
+
+    async def read_assignments(self, ctx):
+        temp = 'data/events/' + str(ctx.message.guild.id) + '/'
+        with open(temp + 'assignments.csv', mode='r') as f:
+            reader = csv.reader(f, delimiter=',')
+            line_count = 0
+            for row in reader:
+                if line_count > 1:
+                    print(f'Testing {", ".join(row)}')
+                    db.mutation_query(
+                        'INSERT INTO assignments VALUES (?, ?, ?, ?, ?, ?, ?)',
+                        [ctx.guild.id, row[0], row[1], row[2], row[3], row[4], row[5]]
+                    )
+                    print(db.select_query('SELECT * FROM assignments'))
+                line_count += 1
+        await ctx.send('File Submitted and Assignments successfully created!')
+        await cal.display_events(ctx)
+
+
+# -------------------------------------
+# add the file to the bot's cog system
+# -------------------------------------
+def setup(bot):
+    bot.add_cog(Create(bot))
+
+# Copyright (c) 2021 War-Keeper
+
+</document_content>
+</document>
+<document index="30">
+<source>/Users/malcolm/dev/TeachersPetBot/configs/PycharmStyleSyntax.xml</source>
+<document_content>
+<profile version="1.0">
+  <option name="myName" value="Default" />
+  <inspection_tool class="PyArgumentEqualDefaultInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+  <inspection_tool class="PyAugmentAssignmentInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+  <inspection_tool class="PyCompatibilityInspection" enabled="true" level="WARNING" enabled_by_default="true">
+    <option name="ourVersions">
+      <value>
+        <list size="3">
+          <item index="0" class="java.lang.String" itemvalue="3.8" />
+          <item index="1" class="java.lang.String" itemvalue="3.9" />
+          <item index="2" class="java.lang.String" itemvalue="3.10" />
+        </list>
+      </value>
+    </option>
+  </inspection_tool>
+  <inspection_tool class="PyMandatoryEncodingInspection" enabled="true" level="WARNING" enabled_by_default="true" />
+  <inspection_tool class="PyMissingOrEmptyDocstringInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+  <inspection_tool class="PyMissingTypeHintsInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+</profile>
+</document_content>
+</document>
+<document index="31">
+<source>/Users/malcolm/dev/TeachersPetBot/configs/README.md</source>
+<document_content>
+# TeachersPetBot Style, Format and Syntax Checkers
+
+This folder holds the config files for our format, style and syntax checkers.
+
+<ol>
+<li>PycharmStyleSyntax.xml - settings file for Pycharm's "code inspection" settings, which is a combined format and syntax checker.
+<li>pycodestyle.config - A config file for our style checker. We used pycodestyle (https://pypi.org/project/pycodestyle/)
+<li>pylintrc - settings file for pylint, which is a general code analyzer. Checks for common bugs, non recommended design patterns, and more.
+</ol>
+
+</document_content>
+</document>
+<document index="32">
+<source>/Users/malcolm/dev/TeachersPetBot/configs/pycodestyle.config</source>
+<document_content>
+[pycodestyle]
+count = False
+ignore = E722, W391, W291
+max-line-length = 160
+statistics = True
+
+</document_content>
+</document>
+<document index="33">
+<source>/Users/malcolm/dev/TeachersPetBot/configs/pylintrc</source>
+<document_content>
+[MASTER]
+
+# A comma-separated list of package or module names from where C extensions may
+# be loaded. Extensions are loading into the active Python interpreter and may
+# run arbitrary code.
+extension-pkg-allow-list=
+
+# A comma-separated list of package or module names from where C extensions may
+# be loaded. Extensions are loading into the active Python interpreter and may
+# run arbitrary code. (This is an alternative name to extension-pkg-allow-list
+# for backward compatibility.)
+extension-pkg-whitelist=
+
+# Return non-zero exit code if any of these messages/categories are detected,
+# even if score is above --fail-under value. Syntax same as enable. Messages
+# specified are enabled, while categories only check already-enabled messages.
+fail-on=
+
+# Specify a score threshold to be exceeded before program exits with error.
+fail-under=5.0
+
+# Files or directories to be skipped. They should be base names, not paths.
+ignore=docs,checkers,test,venv
+
+# Add files or directories matching the regex patterns to the ignore-list. The
+# regex matches against paths.
+ignore-paths=
+
+# Files or directories matching the regex patterns are skipped. The regex
+# matches against base names, not paths.
+ignore-patterns=
+
+# Python code to execute, usually for sys.path manipulation such as
+# pygtk.require().
+#init-hook=
+
+# Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
+# number of processors available to use.
+jobs=1
+
+# Control the amount of potential inferred values when inferring a single
+# object. This can help the performance when dealing with large functions or
+# complex, nested conditions.
+limit-inference-results=100
+
+# List of plugins (as comma separated values of python module names) to load,
+# usually to register additional checkers.
+load-plugins=
+
+# Pickle collected data for later comparisons.
+persistent=yes
+
+# Min Python version to use for version dependend checks. Will default to the
+# version used to run pylint.
+py-version=3.9
+
+# When enabled, pylint would attempt to guess common misconfiguration and emit
+# user-friendly hints instead of false-positive error messages.
+suggestion-mode=yes
+
+# Allow loading of arbitrary C extensions. Extensions are imported into the
+# active Python interpreter and may run arbitrary code.
+unsafe-load-any-extension=no
+
+
+[MESSAGES CONTROL]
+
+# Only show warnings with the listed confidence levels. Leave empty to show
+# all. Valid levels: HIGH, INFERENCE, INFERENCE_FAILURE, UNDEFINED.
+confidence=HIGH
+
+# Disable the message, report, category or checker with the given id(s). You
+# can either give multiple identifiers separated by comma (,) or put this
+# option multiple times (only on the command line, not in the configuration
+# file where it should appear only once). You can also use "--disable=all" to
+# disable everything first and then reenable specific checks. For example, if
+# you want to run only the similarities checker, you can use "--disable=all
+# --enable=similarities". If you want to run only the classes checker, but have
+# no Warning level messages displayed, use "--disable=all --enable=classes
+# --disable=W".
+disable=raw-checker-failed,
+        bad-inline-option,
+        locally-disabled,
+        file-ignored,
+        suppressed-message,
+        useless-suppression,
+        deprecated-pragma,
+        use-symbolic-message-instead
+
+# Enable the message, report, category or checker with the given id(s). You can
+# either give multiple identifier separated by comma (,) or put this option
+# multiple time (only on the command line, not in the configuration file where
+# it should appear only once). See also the "--disable" option for examples.
+enable=c-extension-no-member
+
+
+[REPORTS]
+
+# Python expression which should return a score less than or equal to 10. You
+# have access to the variables 'error', 'warning', 'refactor', and 'convention'
+# which contain the number of messages in each category, as well as 'statement'
+# which is the total number of statements analyzed. This score is used by the
+# global evaluation report (RP0004).
+evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
+
+# Template used to display messages. This is a python new-style format string
+# used to format the message information. See doc for all details.
+#msg-template=
+
+# Set the output format. Available formats are text, parseable, colorized, json
+# and msvs (visual studio). You can also give a reporter class, e.g.
+# mypackage.mymodule.MyReporterClass.
+output-format=text
+
+# Tells whether to display a full report or only the messages.
+reports=no
+
+# Activate the evaluation score.
+score=yes
+
+
+[REFACTORING]
+
+# Maximum number of nested blocks for function / method body
+max-nested-blocks=5
+
+# Complete name of functions that never returns. When checking for
+# inconsistent-return-statements if a never returning function is called then
+# it will be considered as an explicit return statement and no message will be
+# printed.
+never-returning-functions=sys.exit,argparse.parse_error
+
+
+[BASIC]
+
+# Naming style matching correct argument names.
+argument-naming-style=snake_case
+
+# Regular expression matching correct argument names. Overrides argument-
+# naming-style.
+#argument-rgx=
+
+# Naming style matching correct attribute names.
+attr-naming-style=snake_case
+
+# Regular expression matching correct attribute names. Overrides attr-naming-
+# style.
+#attr-rgx=
+
+# Bad variable names which should always be refused, separated by a comma.
+bad-names=foo,
+          bar,
+          baz,
+          toto,
+          tutu,
+          tata
+
+# Bad variable names regexes, separated by a comma. If names match any regex,
+# they will always be refused
+bad-names-rgxs=
+
+# Naming style matching correct class attribute names.
+class-attribute-naming-style=any
+
+# Regular expression matching correct class attribute names. Overrides class-
+# attribute-naming-style.
+#class-attribute-rgx=
+
+# Naming style matching correct class constant names.
+class-const-naming-style=UPPER_CASE
+
+# Regular expression matching correct class constant names. Overrides class-
+# const-naming-style.
+#class-const-rgx=
+
+# Naming style matching correct class names.
+class-naming-style=PascalCase
+
+# Regular expression matching correct class names. Overrides class-naming-
+# style.
+#class-rgx=
+
+# Naming style matching correct constant names.
+const-naming-style=UPPER_CASE
+
+# Regular expression matching correct constant names. Overrides const-naming-
+# style.
+#const-rgx=
+
+# Minimum line length for functions/classes that require docstrings, shorter
+# ones are exempt.
+docstring-min-length=-1
+
+# Naming style matching correct function names.
+function-naming-style=snake_case
+
+# Regular expression matching correct function names. Overrides function-
+# naming-style.
+#function-rgx=
+
+# Good variable names which should always be accepted, separated by a comma.
+good-names=i,
+           j,
+           k,
+           ex,
+           Run,
+           _
+
+# Good variable names regexes, separated by a comma. If names match any regex,
+# they will always be accepted
+good-names-rgxs=
+
+# Include a hint for the correct naming format with invalid-name.
+include-naming-hint=no
+
+# Naming style matching correct inline iteration names.
+inlinevar-naming-style=any
+
+# Regular expression matching correct inline iteration names. Overrides
+# inlinevar-naming-style.
+#inlinevar-rgx=
+
+# Naming style matching correct method names.
+method-naming-style=snake_case
+
+# Regular expression matching correct method names. Overrides method-naming-
+# style.
+#method-rgx=
+
+# Naming style matching correct module names.
+module-naming-style=snake_case
+
+# Regular expression matching correct module names. Overrides module-naming-
+# style.
+#module-rgx=
+
+# Colon-delimited sets of names that determine each other's naming style when
+# the name regexes allow several styles.
+name-group=
+
+# Regular expression which should only match function or class names that do
+# not require a docstring.
+no-docstring-rgx=^_
+
+# List of decorators that produce properties, such as abc.abstractproperty. Add
+# to this list to register other decorators that produce valid properties.
+# These decorators are taken in consideration only for invalid-name.
+property-classes=abc.abstractproperty
+
+# Naming style matching correct variable names.
+variable-naming-style=snake_case
+
+# Regular expression matching correct variable names. Overrides variable-
+# naming-style.
+#variable-rgx=
+
+
+[FORMAT]
+
+# Expected format of line ending, e.g. empty (any line ending), LF or CRLF.
+expected-line-ending-format=
+
+# Regexp for a line that is allowed to be longer than the limit.
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+
+# Number of spaces of indent required inside a hanging or continued line.
+indent-after-paren=4
+
+# String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
+# tab).
+indent-string='    '
+
+# Maximum number of characters on a single line.
+max-line-length=100
+
+# Maximum number of lines in a module.
+max-module-lines=1000
+
+# Allow the body of a class to be on the same line as the declaration if body
+# contains single statement.
+single-line-class-stmt=no
+
+# Allow the body of an if to be on the same line as the test if there is no
+# else.
+single-line-if-stmt=no
+
+
+[LOGGING]
+
+# The type of string formatting that logging methods do. `old` means using %
+# formatting, `new` is for `{}` formatting.
+logging-format-style=old
+
+# Logging modules to check that the string format arguments are in logging
+# function parameter format.
+logging-modules=logging
+
+
+[MISCELLANEOUS]
+
+# List of note tags to take in consideration, separated by a comma.
+notes=FIXME,
+      XXX,
+      TODO
+
+# Regular expression of note tags to take in consideration.
+#notes-rgx=
+
+
+[SIMILARITIES]
+
+# Comments are removed from the similarity computation
+ignore-comments=yes
+
+# Docstrings are removed from the similarity computation
+ignore-docstrings=yes
+
+# Imports are removed from the similarity computation
+ignore-imports=no
+
+# Signatures are removed from the similarity computation
+ignore-signatures=no
+
+# Minimum lines number of a similarity.
+min-similarity-lines=4
+
+
+[SPELLING]
+
+# Limits count of emitted suggestions for spelling mistakes.
+max-spelling-suggestions=4
+
+# Spelling dictionary name. Available dictionaries: none. To make it work,
+# install the 'python-enchant' package.
+spelling-dict=
+
+# List of comma separated words that should be considered directives if they
+# appear and the beginning of a comment and should not be checked.
+spelling-ignore-comment-directives=fmt: on,fmt: off,noqa:,noqa,nosec,isort:skip,mypy:
+
+# List of comma separated words that should not be checked.
+spelling-ignore-words=
+
+# A path to a file that contains the private dictionary; one word per line.
+spelling-private-dict-file=
+
+# Tells whether to store unknown words to the private dictionary (see the
+# --spelling-private-dict-file option) instead of raising a message.
+spelling-store-unknown-words=no
+
+
+[STRING]
+
+# This flag controls whether inconsistent-quotes generates a warning when the
+# character used as a quote delimiter is used inconsistently within a module.
+check-quote-consistency=no
+
+# This flag controls whether the implicit-str-concat should generate a warning
+# on implicit string concatenation in sequences defined over several lines.
+check-str-concat-over-line-jumps=no
+
+
+[TYPECHECK]
+
+# List of decorators that produce context managers, such as
+# contextlib.contextmanager. Add to this list to register other decorators that
+# produce valid context managers.
+contextmanager-decorators=contextlib.contextmanager
+
+# List of members which are set dynamically and missed by pylint inference
+# system, and so shouldn't trigger E1101 when accessed. Python regular
+# expressions are accepted.
+generated-members=
+
+# Tells whether missing members accessed in mixin class should be ignored. A
+# mixin class is detected if its name ends with "mixin" (case insensitive).
+ignore-mixin-members=yes
+
+# Tells whether to warn about missing members when the owner of the attribute
+# is inferred to be None.
+ignore-none=yes
+
+# This flag controls whether pylint should warn about no-member and similar
+# checks whenever an opaque object is returned when inferring. The inference
+# can return multiple potential results while evaluating a Python object, but
+# some branches might not be evaluated, which results in partial inference. In
+# that case, it might be useful to still emit no-member and other checks for
+# the rest of the inferred objects.
+ignore-on-opaque-inference=yes
+
+# List of class names for which member attributes should not be checked (useful
+# for classes with dynamically set attributes). This supports the use of
+# qualified names.
+ignored-classes=optparse.Values,thread._local,_thread._local
+
+# List of module names for which member attributes should not be checked
+# (useful for modules/projects where namespaces are manipulated during runtime
+# and thus existing member attributes cannot be deduced by static analysis). It
+# supports qualified module names, as well as Unix pattern matching.
+ignored-modules=
+
+# Show a hint with possible names when a member name was not found. The aspect
+# of finding the hint is based on edit distance.
+missing-member-hint=yes
+
+# The minimum edit distance a name should have in order to be considered a
+# similar match for a missing member name.
+missing-member-hint-distance=1
+
+# The total number of similar names that should be taken in consideration when
+# showing a hint for a missing member.
+missing-member-max-choices=1
+
+# List of decorators that change the signature of a decorated function.
+signature-mutators=
+
+
+[VARIABLES]
+
+# List of additional names supposed to be defined in builtins. Remember that
+# you should avoid defining new builtins when possible.
+additional-builtins=
+
+# Tells whether unused global variables should be treated as a violation.
+allow-global-unused-variables=yes
+
+# List of names allowed to shadow builtins
+allowed-redefined-builtins=
+
+# List of strings which can identify a callback function by name. A callback
+# name must start or end with one of those strings.
+callbacks=cb_,
+          _cb
+
+# A regular expression matching the name of dummy variables (i.e. expected to
+# not be used).
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+
+# Argument names that match this expression will be ignored. Default to name
+# with leading underscore.
+ignored-argument-names=_.*|^ignored_|^unused_
+
+# Tells whether we should check for unused import in __init__ files.
+init-import=no
+
+# List of qualified module names which can have objects that can redefine
+# builtins.
+redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io
+
+
+[CLASSES]
+
+# Warn about protected attribute access inside special methods
+check-protected-access-in-special-methods=no
+
+# List of method names used to declare (i.e. assign) instance attributes.
+defining-attr-methods=__init__,
+                      __new__,
+                      setUp,
+                      __post_init__
+
+# List of member names, which should be excluded from the protected access
+# warning.
+exclude-protected=_asdict,
+                  _fields,
+                  _replace,
+                  _source,
+                  _make
+
+# List of valid names for the first argument in a class method.
+valid-classmethod-first-arg=cls
+
+# List of valid names for the first argument in a metaclass class method.
+valid-metaclass-classmethod-first-arg=cls
+
+
+[DESIGN]
+
+# List of qualified class names to ignore when counting class parents (see
+# R0901)
+ignored-parents=
+
+# Maximum number of arguments for function / method.
+max-args=5
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes=7
+
+# Maximum number of boolean expressions in an if statement (see R0916).
+max-bool-expr=5
+
+# Maximum number of branch for function / method body.
+max-branches=12
+
+# Maximum number of locals for function / method body.
+max-locals=15
+
+# Maximum number of parents for a class (see R0901).
+max-parents=7
+
+# Maximum number of public methods for a class (see R0904).
+max-public-methods=20
+
+# Maximum number of return / yield for function / method body.
+max-returns=6
+
+# Maximum number of statements in function / method body.
+max-statements=50
+
+# Minimum number of public methods for a class (see R0903).
+min-public-methods=2
+
+
+[IMPORTS]
+
+# List of modules that can be imported at any level, not just the top level
+# one.
+allow-any-import-level=
+
+# Allow wildcard imports from modules that define __all__.
+allow-wildcard-with-all=no
+
+# Analyse import fallback blocks. This can be used to support both Python 2 and
+# 3 compatible code, which means that the block might have code that exists
+# only in one or another interpreter, leading to false positives when analysed.
+analyse-fallback-blocks=no
+
+# Deprecated modules which should not be used, separated by a comma.
+deprecated-modules=
+
+# Output a graph (.gv or any supported image format) of external dependencies
+# to the given file (report RP0402 must not be disabled).
+ext-import-graph=
+
+# Output a graph (.gv or any supported image format) of all (i.e. internal and
+# external) dependencies to the given file (report RP0402 must not be
+# disabled).
+import-graph=
+
+# Output a graph (.gv or any supported image format) of internal dependencies
+# to the given file (report RP0402 must not be disabled).
+int-import-graph=
+
+# Force import order to recognize a module as part of the standard
+# compatibility libraries.
+known-standard-library=
+
+# Force import order to recognize a module as part of a third party library.
+known-third-party=enchant
+
+# Couples of modules and preferred modules, separated by a comma.
+preferred-modules=
+
+
+[EXCEPTIONS]
+
+# Exceptions that will emit a warning when being caught. Defaults to
+# "BaseException, Exception".
+overgeneral-exceptions=BaseException,
+                       Exception
+</document_content>
+</document>
+<document index="34">
+<source>/Users/malcolm/dev/TeachersPetBot/__init__.py</source>
+<document_content>
+__pdoc__ = {}
+__pdoc__['setup'] = False
+__pdoc__['initialize_db_script'] = False
+__pdoc__['test'] = False
+</document_content>
+</document>
+<document index="35">
+<source>/Users/malcolm/dev/TeachersPetBot/initialize_db_script.py</source>
+<document_content>
+import sqlite3
+
+conn = sqlite3.connect("db.sqlite")
+
+c = conn.cursor()
+
+SQL_STATEMENT = """CREATE TABLE ta_office_hours (
+    guild_id    INT,
+    ta          VARCHAR(50),
+    day         INT,
+    begin_hr    INT,
+    begin_min   INT,
+    end_hr      INT,
+    end_min     INT
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """CREATE TABLE exams (
+    guild_id    INT,
+    title       VARCHAR(50),
+    desc        VARCHAR(300),
+    date        VARCHAR(10),
+    begin_hr    INT,
+    begin_min   INT,
+    end_hr      INT,
+    end_min     INT
+);"""
+
+c.execute(SQL_STATEMENT)
+
+
+SQL_STATEMENT = """CREATE TABLE assignments (
+    guild_id    INT,
+    title       VARCHAR(50),
+    link        VARCHAR(300),
+    desc        VARCHAR(300),
+    date        VARCHAR(10),
+    due_hr      INT,
+    due_min     INT
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """INSERT INTO assignments VALUES(
+    1,
+    "Assignment #1",
+    "https://drive.google.com/assign1.html",
+    "Covers lecture material up to to the due date.",
+    "09-25-2021",
+    18,
+    30
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """INSERT INTO assignments VALUES(
+    1,
+    "Assignment #1.2",
+    "https://drive.google.com/assign1.html",
+    "Covers lecture material up to to the due date.",
+    "09-26-2021",
+    18,
+    30
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """INSERT INTO assignments VALUES(
+    1,
+    "Assignment #2",
+    "https://drive.google.com/assign2.html",
+    "Covers lecture material up to to the due date.",
+    "09-28-2021",
+    18,
+    30
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """INSERT INTO exams VALUES(
+    1,
+    "Exam 1",
+    "All materials up to the date of the exam.",
+    "09-29-2021",
+    10,
+    30,
+    11,
+    30
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """INSERT INTO exams VALUES(
+    1,
+    "Exam 2",
+    "All materials up to the date of the exam, except material covered by previous exam.",
+    "10-06-2021",
+    16,
+    30,
+    18,
+    30
+);"""
+
+c.execute(SQL_STATEMENT)
+
+SQL_STATEMENT = """INSERT INTO exams VALUES(
+    1,
+    "Final Exam",
+    "Final exam - covers everything taught!",
+    "12-02-2021",
+    14,
+    30,
+    18,
+    30
+);"""
+
+
+c.execute(SQL_STATEMENT)
+
+conn.commit()
+
+conn.close()
+</document_content>
+</document>
+</documents>
