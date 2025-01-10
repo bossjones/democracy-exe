@@ -12,9 +12,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import structlog
 import yaml
 
-import structlog
 
 logger = structlog.get_logger(__name__)
 

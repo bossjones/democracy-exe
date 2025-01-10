@@ -16,6 +16,7 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, ca
 
 import structlog
 
+
 logger = structlog.get_logger(__name__)
 from pydantic import (
     AliasChoices,

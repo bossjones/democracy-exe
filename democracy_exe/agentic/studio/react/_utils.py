@@ -11,13 +11,14 @@ from functools import lru_cache
 
 import _schemas as schemas
 import langsmith
+import structlog
 
 from langchain.chat_models import init_chat_model
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnableConfig
-import structlog
+
 
 logger = structlog.get_logger(__name__)
 from pinecone import Pinecone, ServerlessSpec

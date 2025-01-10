@@ -11,11 +11,12 @@ from functools import lru_cache
 
 import _schemas as schemas
 import langsmith
+import structlog
 
 from langchain_core.runnables import RunnableConfig
 from langchain_fireworks import FireworksEmbeddings
 from langchain_openai import OpenAIEmbeddings
-import structlog
+
 
 logger = structlog.get_logger(__name__)
 from pinecone import Pinecone, ServerlessSpec

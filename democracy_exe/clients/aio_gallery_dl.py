@@ -18,24 +18,16 @@ import bpdb
 import gallery_dl
 import structlog
 
-
-logger = structlog.get_logger(__name__)
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
 from democracy_exe.aio_settings import aiosettings
 from democracy_exe.utils.file_functions import expand_path_str, tilda
 
 
+logger = structlog.get_logger(__name__)
+
 T = TypeVar("T")
 R = TypeVar("R")
-
-
-
-
-
-
-from pydantic import ConfigDict, SecretStr
-
 
 class HttpConfig(BaseModel):
     """Configuration for HTTP downloader settings."""
@@ -454,9 +446,7 @@ if __name__ == "__main__":
     import rich
 
     from langsmith import tracing_context
-    import structlog
 
-logger = structlog.get_logger(__name__)
 
     async def main() -> None:
         """Run the AsyncGalleryDL tool asynchronously."""

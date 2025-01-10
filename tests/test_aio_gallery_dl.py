@@ -17,12 +17,6 @@ import pytest_asyncio
 import structlog
 
 from langsmith import tracing_context
-
-
-logger = structlog.get_logger(__name__)
-
-import structlog
-
 from structlog.testing import capture_logs
 
 import pytest
@@ -39,6 +33,7 @@ if TYPE_CHECKING:
 
     from pytest_mock.plugin import MockerFixture
 
+logger = structlog.get_logger(__name__)
 
 # @pytest.fixture(autouse=True, scope="function")
 # def setup_loguru(caplog: LogCaptureFixture) -> Generator[None, None, None]:

@@ -23,13 +23,14 @@ from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, TypeVar, Union
 
+import structlog
+
 from discord.utils import maybe_coroutine
 
 from democracy_exe import constants
 from democracy_exe.aio_settings import aiosettings
 from democracy_exe.types import CoroType, FuncType, TypeGuard
 
-import structlog
 
 logger = structlog.get_logger(__name__)
 

@@ -21,6 +21,7 @@ import _utils
 import configuration
 import langsmith
 import rich
+import structlog
 import tiktoken
 
 from langchain.chat_models import init_chat_model
@@ -40,7 +41,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
-import structlog
+
 
 logger = structlog.get_logger(__name__)
 from prompts import CREATE_INSTRUCTIONS, MODEL_SYSTEM_MESSAGE, TRUSTCALL_INSTRUCTION

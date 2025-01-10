@@ -17,6 +17,7 @@ from democracy_exe.aio_settings import aiosettings
 TenacityParameters = dict[str, Any]
 import structlog
 
+
 logger = structlog.get_logger(__name__)
 
 

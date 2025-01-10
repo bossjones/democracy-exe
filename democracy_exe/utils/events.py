@@ -7,8 +7,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import discord
-
 import structlog
+
 
 logger = structlog.get_logger(__name__)
 

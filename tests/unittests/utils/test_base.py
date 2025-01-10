@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, List, Literal, Set, Union
 
 import structlog
 
+
 logger = structlog.get_logger(__name__)
 
 import pytest
