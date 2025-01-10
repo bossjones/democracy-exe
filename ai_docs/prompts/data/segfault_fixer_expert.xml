@@ -144,6 +144,16 @@
             <point>Environment variables should be managed with proper cleanup</point>
             <point>State dictionaries should have explicit type definitions (TypedDict)</point>
             <point>Async operations should handle sleep and timing properly</point>
+            <point>Use profiler.log_thread_frames to capture thread stack traces at crash time</point>
+            <point>Enable asyncio debug mode to identify blocking operations in event loop</point>
+            <point>Monitor event loop scheduling for insufficient locking around updates</point>
+            <point>Track task leaks using profiler.log_current_tasks</point>
+            <point>Verify proper cleanup of event listeners during component shutdown</point>
+            <point>Check for dangling event loop references in worker threads</point>
+            <point>Monitor for blocking I/O operations inside event loop</point>
+            <point>Track thread pool overload conditions</point>
+            <point>Verify proper task cancellation during cleanup</point>
+            <point>Monitor for nested event loop creation</point>
         </diagnostic_points>
 
         <environment_settings>
@@ -1654,4 +1664,255 @@
             </usage>
         </tool>
     </diagnostic_tools>
+
+    <diagnostic_points>
+        <point>Use profiler.log_thread_frames to capture thread stack traces at crash time</point>
+        <point>Enable asyncio debug mode to identify blocking operations in event loop</point>
+        <point>Monitor event loop scheduling for insufficient locking around updates</point>
+        <point>Track task leaks using profiler.log_current_tasks</point>
+        <point>Verify proper cleanup of event listeners during component shutdown</point>
+        <point>Check for dangling event loop references in worker threads</point>
+        <point>Monitor for blocking I/O operations inside event loop</point>
+        <point>Track thread pool overload conditions</point>
+        <point>Verify proper task cancellation during cleanup</point>
+        <point>Monitor for nested event loop creation</point>
+    </diagnostic_points>
+
+    <diagnostic_tools>
+        <tool>
+            <name>profiler.log_thread_frames</name>
+            <description>Captures thread stack traces to identify problematic thread operations</description>
+            <usage>
+                <![CDATA[
+                # Enable thread frame logging
+                await hass.services.async_call(
+                    "profiler",
+                    "log_thread_frames",
+                    {}
+                )
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>profiler.log_event_loop_scheduled</name>
+            <description>Logs scheduled event loop operations to identify blocking or leaked tasks</description>
+            <usage>
+                <![CDATA[
+                # Log scheduled event loop operations
+                await hass.services.async_call(
+                    "profiler",
+                    "log_event_loop_scheduled",
+                    {}
+                )
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>profiler.log_current_tasks</name>
+            <description>Helps identify task leaks and startup delays</description>
+            <usage>
+                <![CDATA[
+                # Log current tasks
+                await hass.services.async_call(
+                    "profiler",
+                    "log_current_tasks",
+                    {}
+                )
+                ]]>
+            </usage>
+        </tool>
+    </diagnostic_tools>
+
+    <implementation_patterns>
+        <pattern name="event_loop_debug">
+            <description>Pattern for debugging event loop issues using asyncio debug mode</description>
+            <example>
+                <![CDATA[
+                import asyncio
+
+                async def setup_debug():
+                    # Enable asyncio debug mode
+                    loop = asyncio.get_running_loop()
+                    loop.set_debug(True)
+
+                    # Configure debug logging
+                    logging.basicConfig(level=logging.DEBUG)
+                    logging.getLogger('asyncio').setLevel(logging.DEBUG)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="thread_frame_analysis">
+            <description>Pattern for analyzing thread stack traces during crashes</description>
+            <example>
+                <![CDATA[
+                import threading
+                import traceback
+
+                def log_all_thread_frames():
+                    """Log stack frames from all threads."""
+                    for thread in threading.enumerate():
+                        if thread.is_alive():
+                            stack = traceback.extract_stack(thread._frame)
+                            logger.error(f"Thread {thread.name} frames: {stack}")
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="task_leak_detection">
+            <description>Pattern for detecting and preventing task leaks</description>
+            <example>
+                <![CDATA[
+                async def monitor_tasks():
+                    """Monitor for leaked tasks."""
+                    while True:
+                        tasks = asyncio.all_tasks()
+                        for task in tasks:
+                            if not task.done() and task.get_coro().__name__ not in EXPECTED_TASKS:
+                                logger.warning(f"Potential task leak: {task.get_coro().__name__}")
+                        await asyncio.sleep(60)
+                ]]>
+            </example>
+        </pattern>
+    </implementation_patterns>
+
+    <testing_patterns>
+        <pattern name="event_loop_testing">
+            <description>Pattern for testing event loop behavior and cleanup</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_event_loop_cleanup():
+                    """Test proper event loop cleanup."""
+                    loop = asyncio.get_running_loop()
+
+                    # Create test tasks
+                    task = asyncio.create_task(asyncio.sleep(0.1))
+
+                    # Verify proper cleanup
+                    await task
+                    assert not task.done(), "Task should be completed"
+                    assert not asyncio.all_tasks(loop) - {asyncio.current_task()}, "No lingering tasks"
+                ]]>
+            </example>
+        </pattern>
+    </testing_patterns>
+
+    <monitoring_patterns>
+        <pattern name="event_loop_monitoring">
+            <description>Pattern for monitoring event loop health and scheduling</description>
+            <example>
+                <![CDATA[
+                async def monitor_event_loop():
+                    """Monitor event loop health and scheduling."""
+                    loop = asyncio.get_running_loop()
+
+                    # Log scheduled callbacks
+                    for handle in loop._scheduled:
+                        logger.info(f"Scheduled: {handle._callback}")
+
+                    # Monitor loop timing
+                    loop.slow_callback_duration = 0.1  # Log callbacks taking > 0.1s
+                    loop.call_exception_handler = custom_exception_handler
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="thread_pool_monitoring">
+            <description>Pattern for monitoring thread pool health and utilization</description>
+            <example>
+                <![CDATA[
+                def monitor_thread_pool(executor):
+                    """Monitor thread pool health."""
+                    while True:
+                        workers = len(executor._threads)
+                        tasks = len(executor._work_queue.queue)
+                        logger.info(f"Thread pool status: {workers} workers, {tasks} pending tasks")
+                        if tasks > workers * 2:
+                            logger.warning("Thread pool potentially overloaded")
+                        time.sleep(30)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="resource_monitoring">
+            <description>Pattern for monitoring resource usage and cleanup</description>
+            <example>
+                <![CDATA[
+                class ResourceMonitor:
+                    def __init__(self):
+                        self._resources = weakref.WeakSet()
+                        self._lock = asyncio.Lock()
+
+                    async def register(self, resource):
+                        """Register a resource for monitoring."""
+                        async with self._lock:
+                            self._resources.add(resource)
+
+                    async def check_leaks(self):
+                        """Check for resource leaks."""
+                        async with self._lock:
+                            for resource in self._resources:
+                                if not resource.closed:
+                                    logger.warning(f"Leaked resource: {resource}")
+                ]]>
+            </example>
+        </pattern>
+    </monitoring_patterns>
+
+    <debugging_tools>
+        <tool>
+            <name>event_loop_debugger</name>
+            <description>Tool for debugging event loop issues</description>
+            <usage>
+                <![CDATA[
+                class EventLoopDebugger:
+                    def __init__(self):
+                        self.loop = asyncio.get_running_loop()
+                        self.loop.set_debug(True)
+                        self.loop.slow_callback_duration = 0.1
+
+                    def install_handlers(self):
+                        """Install debug handlers."""
+                        self.loop.set_exception_handler(self._exception_handler)
+
+                    def _exception_handler(self, loop, context):
+                        """Custom exception handler with enhanced logging."""
+                        logger.error(f"Event loop error: {context}")
+                        if 'exception' in context:
+                            logger.error(f"Exception details:", exc_info=context['exception'])
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>task_monitor</name>
+            <description>Tool for monitoring task lifecycle and leaks</description>
+            <usage>
+                <![CDATA[
+                class TaskMonitor:
+                    def __init__(self):
+                        self._tasks = weakref.WeakSet()
+                        self._lock = asyncio.Lock()
+
+                    async def register_task(self, task):
+                        """Register a task for monitoring."""
+                        async with self._lock:
+                            self._tasks.add(task)
+                            task.add_done_callback(self._task_done)
+
+                    def _task_done(self, task):
+                        """Handle task completion."""
+                        try:
+                            exc = task.exception()
+                            if exc:
+                                logger.error(f"Task failed: {task.get_name()}", exc_info=exc)
+                        except asyncio.CancelledError:
+                            logger.info(f"Task cancelled: {task.get_name()}")
+                ]]>
+            </usage>
+        </tool>
+    </debugging_tools>
 </segfault_guidelines>

@@ -96,3 +96,9 @@ Find quotes from the the cpython test_asyncio filesthat are relevant to writing 
 
 
 Find quotes from the langgraph_api/langraph_cli python files that are relevant to fixing this  Fatal Python error: Segmentation fault error. Place these in <quotes> tags. Then, based on these quotes, list all information that would help the a programer fix these issues. Place your diagnostic information in <info> tags.
+
+---
+
+@home_assistant_code.xml @segfault_fixer_expert.xml
+
+Find quotes from the home_assistant python docs and files that are relevant to fixing this Fatal Python error: Segmentation fault error. Place these in <quotes> tags. Then, based on these quotes, list all information that would help the a programer fix these issues. Place your diagnostic information in <info> tags. We will use this information to enrich segfault_fixer_expert.xml. @Web

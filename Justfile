@@ -1041,6 +1041,13 @@ generate-ai-docs:
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli \
 			--cxml -o ai_docs/prompts/data/langgraph_cli_code.xml
 
+	uv run files-to-prompt  /Users/malcolm/dev/home-assistant/core/homeassistant/core.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/block_async_io.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/util/async_.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/util/logging.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/util/loop.py \
+		--cxml -o ai_docs/prompts/data/home_assistant_code.xml
+
 	@echo "AI documentation generation complete"
 
 # Regenerate democracy-exe ai docs
@@ -1048,6 +1055,7 @@ regenerate-democracy-exe-ai-docs:
 	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/exceptions /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/exceptions/__init__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/factories /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/models /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/services /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/shell /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/subcommands /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/utils --cxml -o ai_docs/prompts/data/democracy_exe_exceptions.xml
 
 	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__init__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__main__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__version__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/aio_settings.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/asynctyper.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/base.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/cli.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/constants.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/debugger.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/foo.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/llm_manager.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/main.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/requirements.txt /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/types.py --cxml -o ai_docs/prompts/data/democracy_exe_init.xml
+
 
 
 # Run unit tests in debug mode with extended output
