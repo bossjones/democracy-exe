@@ -502,9 +502,38 @@ if TYPE_CHECKING:
     from _pytest.logging import LogCaptureFixture
     from _pytest.monkeypatch import MonkeyPatch
     from pytest_mock.plugin import MockerFixture
+
+from freezegun import freeze_time  # Required for timestamp testing
 ```
 
-3. Log Capture Patterns:
+3. Testing Timestamps:
+```python
+@freeze_time("2024-01-01 12:00:00")  # Freeze time for predictable timestamps
+def test_timestamp_processor() -> None:
+    """Test timestamp processor adds correct timestamp."""
+    ts = TimeStamper(fmt="iso", utc=True)
+    event_dict = ts(None, None, {})
+
+    assert event_dict["timestamp"] == "2024-01-01T12:00:00Z"
+
+@freeze_time("2024-01-01 12:00:00", tz_offset=2)  # Test with timezone offset
+def test_timestamp_with_offset() -> None:
+    """Test timestamp processor with timezone offset."""
+    ts = TimeStamper(fmt="iso", utc=False)
+    event_dict = ts(None, None, {})
+
+    assert event_dict["timestamp"] == "2024-01-01T14:00:00"
+
+def test_unix_timestamp() -> None:
+    """Test UNIX timestamp - note that freezegun doesn't work with time.time()."""
+    ts = TimeStamper(fmt=None, utc=True)  # UNIX timestamp
+    event_dict = ts(None, None, {})
+
+    # Can only test type since we can't freeze time.time()
+    assert isinstance(event_dict["timestamp"], float)
+```
+
+4. Log Capture Patterns:
 ```python
 def test_log_capture_context() -> None:
     """Test log capture using context manager."""
@@ -528,7 +557,7 @@ def fixture_configure_structlog(log_output: structlog.testing.LogCapture) -> Non
     structlog.configure(processors=[log_output])
 ```
 
-4. Testing Scenarios to Cover:
+5. Testing Scenarios to Cover:
    - Basic logging functionality
    - Log level filtering
    - Context binding and preservation
@@ -539,7 +568,7 @@ def fixture_configure_structlog(log_output: structlog.testing.LogCapture) -> Non
    - Integration with stdlib logging
    - Validate log level filtering behavior
 
-5. Example Test Cases:
+6. Example Test Cases:
 ```python
 def test_bound_logger(log_output: structlog.testing.LogCapture) -> None:
     """Test bound logger context preservation."""
@@ -571,7 +600,7 @@ def test_log_levels() -> None:
     assert [log["log_level"] for log in cap_logs] == ["debug", "info", "warning"]
 ```
 
-6. Testing Best Practices:
+7. Testing Best Practices:
    - Reset structlog configuration before each test
    - Disable cache_logger_on_first_use during tests
    - Test both successful and error cases
@@ -580,7 +609,7 @@ def test_log_levels() -> None:
    - Validate context preservation
    - Check thread safety if applicable
 
-7. Common Testing Gotchas:
+8. Common Testing Gotchas:
    - Cached loggers won't be affected by capture_logs
    - Configuration must be reset between tests
    - Loggers must be created after configuration
@@ -772,3 +801,109 @@ Always follow these practices:
 </best_practices>
 
 When asked about structlog implementation or testing, I'll follow this structured approach to provide comprehensive, well-documented solutions that handle both the implementation and verification aspects of structured logging.
+
+<timestamp_testing_standards>
+When testing timestamp-related functionality in structlog, follow these key principles:
+
+1. Always Use `freeze_time` for Timestamp Testing:
+```python
+from freezegun import freeze_time
+
+@freeze_time("2024-01-01 12:00:00")
+def test_timestamp_format() -> None:
+    """Test timestamp formatting with frozen time."""
+    ts = TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
+    event_dict = ts(None, None, {})
+    assert event_dict["timestamp"] == "2024-01-01 12:00:00"
+```
+
+2. Testing Different Time Formats:
+```python
+class TestTimeStamper:
+    @freeze_time("2024-01-01 12:00:00")
+    def test_iso_format(self) -> None:
+        """Test ISO format timestamp."""
+        ts = TimeStamper(fmt="iso", utc=True)
+        event_dict = ts(None, None, {})
+        assert event_dict["timestamp"] == "2024-01-01T12:00:00Z"
+
+    @freeze_time("2024-01-01 12:00:00")
+    def test_custom_format(self) -> None:
+        """Test custom strftime format."""
+        ts = TimeStamper(fmt="%Y/%m/%d")
+        event_dict = ts(None, None, {})
+        assert event_dict["timestamp"] == "2024/01/01"
+```
+
+3. Testing Timezone Handling:
+```python
+class TestTimezoneHandling:
+    @freeze_time("2024-01-01 12:00:00", tz_offset=2)
+    def test_local_timezone(self) -> None:
+        """Test timestamp in local timezone."""
+        ts = TimeStamper(fmt="iso", utc=False)
+        event_dict = ts(None, None, {})
+        assert event_dict["timestamp"] == "2024-01-01T14:00:00"
+
+    @freeze_time("2024-01-01 12:00:00")
+    def test_utc_timezone(self) -> None:
+        """Test UTC timestamp."""
+        ts = TimeStamper(fmt="iso", utc=True)
+        event_dict = ts(None, None, {})
+        assert event_dict["timestamp"] == "2024-01-01T12:00:00Z"
+```
+
+4. Testing UNIX Timestamps:
+```python
+def test_unix_timestamp() -> None:
+    """
+    Test UNIX timestamp behavior.
+
+    Note: freezegun does not work with time.time(), so we can only
+    test the type and presence of the timestamp.
+    """
+    ts = TimeStamper(fmt=None, utc=True)  # UNIX timestamp mode
+    event_dict = ts(None, None, {})
+
+    assert "timestamp" in event_dict
+    assert isinstance(event_dict["timestamp"], float)
+```
+
+5. Testing Custom Keys:
+```python
+@freeze_time("2024-01-01 12:00:00")
+def test_custom_timestamp_key() -> None:
+    """Test using custom key for timestamp."""
+    ts = TimeStamper(fmt="iso", key="event_time")
+    event_dict = ts(None, None, {})
+    assert event_dict["event_time"] == "2024-01-01T12:00:00"
+```
+
+Key Considerations:
+1. Always use `@freeze_time` decorator or context manager for deterministic timestamp testing
+2. Remember that `freeze_time` doesn't work with `time.time()` for UNIX timestamps
+3. Test both UTC and local timezone scenarios when relevant
+4. Test timezone offsets when working with local times
+5. Include tests for all supported timestamp formats
+6. Test custom timestamp keys
+7. Verify timezone markers (e.g., 'Z' suffix for UTC ISO format)
+8. Test timestamp processor in the full processor chain
+
+Common Pitfalls:
+1. Not using `freeze_time` for timestamp assertions
+2. Assuming `time.time()` can be frozen (it cannot)
+3. Not testing both UTC and local time scenarios
+4. Missing timezone offset tests
+5. Not verifying timezone markers in output
+6. Hardcoding timezone-dependent assertions
+
+Best Practices:
+1. Use `freeze_time` consistently across all timestamp tests
+2. Test all supported timestamp formats
+3. Include timezone-aware tests
+4. Test timestamp processor in isolation and in chains
+5. Verify timestamp format compliance
+6. Test custom timestamp keys
+7. Include edge cases (e.g., timezone transitions)
+8. Document timezone assumptions in test docstrings
+</timestamp_testing_standards>
