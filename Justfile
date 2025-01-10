@@ -1122,3 +1122,21 @@ generate-external-docs path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:
 generate-advice path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:
 	#!/usr/bin/env bash
 	uv run files-to-prompt {{path}} -c | uv run llm -m {{model}} -s 'step by step advice on how to implement automated tests for this, which is hard because the tests need to work a number of different ways within this project. Provide all code at the end.'
+
+
+generate-langgraph-dockerfile-langraph-simple:
+	@echo "🚀 Updating requirements.txt from pyproject.toml for use with Langgraph studio"
+	./update_requirements.sh
+	langgraph dockerfile -c langgraph.json Dockerfile
+	cat Dockerfile
+
+# Build docker image for debugging and testing containers (NOTE: this is a langgraph specific dockerfile, use this to verify that the langgraph studio version of the dockerfile is working)
+docker-build-langraph:
+	@just generate-langgraph-dockerfile-langraph-simple
+	echo "" >> Dockerfile
+	echo "CMD bash -l" >> Dockerfile
+	docker build -f Dockerfile -t democracy-langraph .
+
+# Run docker image for debugging
+docker-run-langraph:
+	docker run -it --entrypoint=/bin/bash democracy-langraph -l

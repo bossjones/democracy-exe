@@ -63,16 +63,15 @@
         "RUN --mount=type=cache,target=/root/.cache/uv \\",
         "    --mount=type=bind,source=uv.lock,target=uv.lock \\",
         "    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \\",
-        "    --mount=type=bind,source=democracy_exe/requirements.txt,target=requirements.txt \\",
-        "    pip install -U pip && \\",
-        "    uv sync --frozen --no-install-project --no-dev && \\",
-        "    PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -r requirements.txt -e . /deps/*",
+        "    uv sync --locked --system --no-dev --no-install-project",
 
 
         "# Copy project and install",
 
         "COPY . /deps/democracy-exe",
-        "RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --frozen",
+        "RUN --mount=type=cache,target=/root/.cache/uv \\",
+        "    --mount=type=bind,source=uv.lock,target=uv.lock \\",
+        "    uv sync --locked --system --no-dev",
 
         "# RUN uv tool dir --bin && ls -lta && pwd && ls -lta /deps && tree /deps && cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile && echo \"alias pip='uv pip'\" >> ~/.bashrc && echo \"alias pip='uv pip'\" >> ~/.profile",
 
@@ -124,11 +123,13 @@
     "env_vars": {
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
-        "UV_CACHE_DIR": "/root/.cache/uv/",
+        "UV_CACHE_DIR": "/root/.cache/uv",
         "UV_COMPILE_BYTECODE": "1",
         "UV_LINK_MODE": "copy",
         "UV_PIP_DEFAULT_PYTHON": "/usr/bin/python3",
         "UV_SYSTEM_PYTHON": "1",
+        "PYTHONASYNCIODEBUG": "1",
+        "PYTHONFAULTHANDLER": "1",
         "TAPLO_VERSION": "0.9.3",
         "PYTHONPATH": "${PYTHONPATH}:${PWD}"
     }

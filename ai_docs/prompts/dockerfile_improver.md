@@ -325,41 +325,36 @@ Build Optimization Steps:
        PYTHONFAULTHANDLER=1
    ```
 
-   b. s6-overlay Setup:
+   b. Basic Setup:
    ```dockerfile
    ENV UV_SYSTEM_PYTHON=1 \
        UV_PIP_DEFAULT_PYTHON=/usr/bin/python3 \
-       UV_CACHE_DIR=/home/asruser/.cache/uv \
-       UV_LINK_MODE=copy \
-       SIGNAL_BUILD_STOP=99 \
-       S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
-       S6_KILL_FINISH_MAXTIME=5000 \
-       S6_KILL_GRACETIME=3000
+       UV_CACHE_DIR=/root/.cache/uv \
+       UV_LINK_MODE=copy
    ```
 
 8. Security Best Practices:
-   Example 1 - Using Inherited User:
+   Example 1 - Basic File Permissions:
    ```dockerfile
-   # The NOT_ROOT_USER (asruser) is already set up in the base image
-   COPY --chown=${NOT_ROOT_USER}:${NOT_ROOT_USER} . /app
-   USER ${NOT_ROOT_USER}
+   # Set appropriate file permissions
+   COPY . /app
+   RUN chmod -R 755 /app
    ```
 
-   Example 2 - Permissions Management:
+   Example 2 - Cache Directory Management:
    ```dockerfile
-   # Ensure cache directory permissions
-   USER root
-   RUN chown -R ${NOT_ROOT_USER}:${NOT_ROOT_USER} /home/${NOT_ROOT_USER}/.cache/uv
-   USER ${NOT_ROOT_USER}
+   # Ensure cache directory exists with proper permissions
+   RUN mkdir -p /root/.cache/uv && \
+       chmod 755 /root/.cache/uv
    ```
 
 Common Pitfalls to Avoid:
 1. Not using cache mounts (leads to slower builds)
 2. Installing dev dependencies in production
-3. Not using the inherited NOT_ROOT_USER environment variable
+3. Not using proper file permissions
 4. Not using lock files
 5. Mixing UV cache with other build caches
-6. Incorrect file permissions for NOT_ROOT_USER
+6. Incorrect cache directory permissions
 7. Using uv pip instead of uv sync for better performance
 8. Improper cache invalidation
 9. Not installing Rust before running the UV installer

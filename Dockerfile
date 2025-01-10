@@ -4,7 +4,7 @@ FROM langchain/langgraph-api:3.12
 ENV UV_SYSTEM_PYTHON=1 \
     UV_PIP_DEFAULT_PYTHON=/usr/bin/python3 \
     UV_LINK_MODE=copy \
-    UV_CACHE_DIR=/root/.cache/uv/ \
+    UV_CACHE_DIR=/root/.cache/uv \
     PYTHONASYNCIODEBUG=1 \
     DEBIAN_FRONTEND=noninteractive \
     TAPLO_VERSION=0.9.3 \
