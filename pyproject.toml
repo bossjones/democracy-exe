@@ -228,6 +228,7 @@ dev-dependencies = [
     "pytest-skipuntil>=0.2.0",
     "pytest-freezegun",
     "better-exceptions>=0.3.3",
+    "cogapp>=3.4.1",
 ]
 
 [tool.uv.sources]
