@@ -28,8 +28,6 @@ import bpdb
 import cv2
 import discord
 import numpy as np
-
-# from loguru import logger
 import structlog
 
 from discord.ext import commands

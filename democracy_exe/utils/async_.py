@@ -17,7 +17,6 @@ from concurrent.futures import ThreadPoolExecutor
 from traceback import extract_stack
 from typing import Any, TypeVar
 
-# from loguru import logger
 import structlog
 
 from codetiming import Timer

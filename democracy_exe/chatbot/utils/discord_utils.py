@@ -20,8 +20,6 @@ import aiofiles
 import aiohttp
 import discord
 import rich
-
-# from loguru import logger
 import structlog
 
 from codetiming import Timer

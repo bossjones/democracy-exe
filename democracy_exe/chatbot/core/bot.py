@@ -17,8 +17,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, Ty
 import aiohttp
 import discord
 import pysnooper
-
-# from loguru import logger
 import structlog
 
 from discord import (

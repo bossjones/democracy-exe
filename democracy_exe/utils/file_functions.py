@@ -18,8 +18,6 @@ from typing import TYPE_CHECKING, List, Optional
 import aiofiles
 import pandas as pd
 import rich
-
-# from loguru import logger
 import structlog
 
 

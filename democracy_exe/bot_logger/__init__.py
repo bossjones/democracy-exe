@@ -83,7 +83,7 @@
 
 # import loguru
 
-# from loguru import logger
+
 from __future__ import annotations
 
 import logging
@@ -116,7 +116,7 @@ from democracy_exe.models.loggers import LoggerModel, LoggerPatch
 # # from __future__ import annotations
 
 # # import loguru
-# # from loguru import logger as _logger
+#  as _logger
 
 
 # # class LoggerDelegator:

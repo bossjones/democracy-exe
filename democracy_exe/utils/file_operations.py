@@ -23,8 +23,6 @@ from typing import Any, Dict, List, Tuple, Union
 import aiofiles
 import aiofiles.os
 import aiohttp
-
-# from loguru import logger
 import structlog
 
 from discord import Attachment, File

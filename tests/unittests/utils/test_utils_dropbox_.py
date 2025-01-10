@@ -18,8 +18,6 @@ from urllib.parse import parse_qs, urlencode
 
 import pytest_asyncio
 import requests
-
-# from loguru import logger
 import structlog
 
 from dropbox.exceptions import ApiError, AuthError

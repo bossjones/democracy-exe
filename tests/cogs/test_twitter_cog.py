@@ -19,8 +19,6 @@ import discord
 import discord.ext.test as dpytest
 import pytest_asyncio
 import rich
-
-# from loguru import logger
 import structlog
 
 from discord.client import _LoopSentinel

@@ -6,8 +6,6 @@ from dataclasses import dataclass, field, fields
 from typing import Annotated, Any, Optional, Type, TypeVar
 
 import rich
-
-# from loguru import logger
 import structlog
 
 from langchain_core.runnables import RunnableConfig, ensure_config

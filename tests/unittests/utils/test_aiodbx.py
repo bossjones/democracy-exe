@@ -39,8 +39,6 @@ from io import BytesIO
 
 import aiofiles
 import aiohttp
-
-# from loguru import logger
 import structlog
 
 

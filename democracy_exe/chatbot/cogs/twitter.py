@@ -20,8 +20,6 @@ from typing import Any, Dict, Final, List, Optional, Tuple, Union, cast
 
 import bpdb
 import discord
-
-# from loguru import logger
 import structlog
 
 from discord.ext import commands

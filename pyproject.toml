@@ -48,7 +48,6 @@ dependencies = [
     "imutils>=0.5.4",
     "lazy-object-proxy>=1.10.0",
     "logging-tree>=1.10",
-    "loguru>=0.7.2",
     "lxml>=5.3.0",
     "markdown>=3.7",
     "matplotlib>=3.9.2",
@@ -226,7 +225,6 @@ dev-dependencies = [
     "nbqa[toolchain]>=1.9.1",
     "commitizen>=1.0.0",
     "pytest-aioresponses>=0.2.0",
-    "pytest-loguru>=0.4.0",
     "pytest-skipuntil>=0.2.0",
     "pytest-freezegun",
 ]
@@ -1843,7 +1841,7 @@ max-line-length-suggestions = 72
 # Possible choices: ['old', 'new']
 logging-format-style = "new"
 
-logging-modules = ["logging", "loguru"]
+logging-modules = ["logging", "structlog"]
 
 # [tool.pylint.similarities]
 # ignore-comments = true

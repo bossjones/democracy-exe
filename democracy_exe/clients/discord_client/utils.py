@@ -11,8 +11,6 @@ import logging
 from typing import List, Optional
 
 import discord
-
-# from loguru import logger
 import structlog
 
 from discord import Message as DiscordMessage

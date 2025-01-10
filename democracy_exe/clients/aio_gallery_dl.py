@@ -16,8 +16,6 @@ from typing import Any, Dict, List, Optional, TypeVar, Union, cast, overload
 import aiofiles
 import bpdb
 import gallery_dl
-
-# from loguru import logger
 import structlog
 
 

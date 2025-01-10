@@ -37,8 +37,6 @@ import bpdb
 import discord
 import pysnooper
 import rich
-
-# from loguru import logger
 import structlog
 import typer
 

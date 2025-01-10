@@ -10,8 +10,6 @@ from typing import List, Optional, Tuple
 
 import aiohttp
 import discord
-
-# from loguru import logger
 import structlog
 
 

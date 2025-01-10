@@ -6,8 +6,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import discord
-
-# from loguru import logger
 import structlog
 
 from discord import DMChannel, Guild, Message, TextChannel, Thread

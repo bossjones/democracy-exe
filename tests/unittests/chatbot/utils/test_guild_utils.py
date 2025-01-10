@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
-# from loguru import logger
 import structlog
 
 

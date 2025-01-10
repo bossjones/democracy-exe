@@ -19,8 +19,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import aiohttp
 import discord
 import rich
-
-# from loguru import logger
 import structlog
 
 from discord import Attachment, File, HTTPException, Message

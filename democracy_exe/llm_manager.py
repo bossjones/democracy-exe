@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 
 import openai
-
-# from loguru import logger
 import structlog
 
 from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch, RunnableLambda, RunnableMap

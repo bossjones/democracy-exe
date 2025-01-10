@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import Any, Dict, Final, List, Optional, TypedDict, Union
 
 import discord
-
-# from loguru import logger
 import structlog
 
 

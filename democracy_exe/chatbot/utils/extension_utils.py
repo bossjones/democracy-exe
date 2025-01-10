@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Any, List
 
 import aiofiles
 import pysnooper
-
-# from loguru import logger
 import structlog
 
 from discord.ext import commands

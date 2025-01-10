@@ -9,8 +9,6 @@ from __future__ import annotations
 from typing import Any, Optional, Union, cast
 
 import discord
-
-# from loguru import logger
 import structlog
 
 from discord import DMChannel, Guild, Member, Message, TextChannel, Thread, User

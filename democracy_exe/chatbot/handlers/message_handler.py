@@ -12,8 +12,6 @@ import re
 from typing import Any, Optional, Union, cast
 
 import discord
-
-# from loguru import logger
 import structlog
 
 from discord import DMChannel, Message, TextChannel, Thread

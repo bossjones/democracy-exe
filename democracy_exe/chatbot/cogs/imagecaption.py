@@ -16,8 +16,6 @@ from urllib.parse import urlparse
 
 import discord
 import requests
-
-# from loguru import logger
 import structlog
 import torch
 

@@ -33,8 +33,6 @@ import cv2
 import numpy as np
 import pytz
 import rich
-
-# from loguru import logger
 import structlog
 import torch
 import torchvision.transforms as transforms

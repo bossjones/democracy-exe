@@ -21,8 +21,6 @@ from urllib.parse import quote as _uriquote
 
 import aiofiles
 import aiohttp
-
-# from loguru import logger
 import structlog
 
 
