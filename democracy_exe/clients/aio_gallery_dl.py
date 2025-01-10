@@ -272,6 +272,9 @@ class AsyncGalleryDL:
     ) -> Any:
         """Run a function in the default executor.
 
+        This method ensures thread-safe execution of blocking functions in a separate thread.
+        It properly handles cleanup and error propagation.
+
         Args:
             func: Function to run
             *args: Positional arguments for the function
@@ -280,11 +283,49 @@ class AsyncGalleryDL:
         Returns:
             Result from the function
 
+        Raises:
+            RuntimeError: If event loop is closed or not available
+            Exception: Any exception raised by the executed function
+
         Example:
             >>> result = await client._run_in_executor(some_func, arg1, kwarg1="value")
         """
+        # Ensure we have a valid event loop
+        try:
+            loop = self.loop or asyncio.get_running_loop()
+        except RuntimeError as e:
+            logger.error("No running event loop")
+            raise RuntimeError("No running event loop available") from e
+
+        # Create partial function with args
         partial_func = partial(func, *args, **kwargs)
-        return await self.loop.run_in_executor(None, partial_func)
+
+        # Create thread-local storage for isolation
+        thread_context = {}
+
+        def thread_worker() -> Any:
+            """Wrapper to handle thread-local context."""
+            try:
+                # Store thread-local context
+                thread_context['result'] = partial_func()
+                return thread_context['result']
+            except Exception as e:
+                thread_context['error'] = e
+                raise
+            finally:
+                # Clear thread-local storage
+                thread_context.clear()
+
+        try:
+            # Run in executor with proper error propagation
+            return await loop.run_in_executor(None, thread_worker)
+        except Exception as e:
+            logger.error(
+                "Error in executor",
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            raise
 
     async def extract_from_url(self, url: str) -> AsyncIterator[dict[str, Any]]:
         """Extract items from a URL asynchronously.

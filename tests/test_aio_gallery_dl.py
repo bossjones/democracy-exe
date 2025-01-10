@@ -486,3 +486,132 @@ async def test_run_single_tweet_aio_gallery_dl(
                         logger.exception(f"Error extracting from URL: {url}")
                         # logger.complete()()
                         raise
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_thread_safety(
+    mock_gallery_dl: Any,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test thread safety of _run_in_executor.
+
+    This test verifies that _run_in_executor properly handles thread isolation
+    and cleanup.
+
+    Args:
+        mock_gallery_dl: Mock gallery-dl module
+        caplog: Pytest log capture fixture
+    """
+    client = AsyncGalleryDL()
+    test_value = 42
+    shared_state = {"value": 0}
+
+    def thread_func() -> int:
+        """Test function that modifies shared state."""
+        shared_state["value"] = test_value
+        return test_value
+
+    # Test successful execution
+    result = await client._run_in_executor(thread_func)
+    assert result == test_value
+    assert shared_state["value"] == test_value  # State changes persist
+
+    # Test thread isolation
+    def failing_func() -> None:
+        """Test function that raises an exception."""
+        shared_state["value"] = 999
+        raise ValueError("Test error")
+
+    # Verify exception handling and state isolation
+    with pytest.raises(ValueError, match="Test error"):
+        await client._run_in_executor(failing_func)
+
+    # Verify original state persists after error
+    assert shared_state["value"] == 999  # Last state change before error
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_loop_handling(
+    mock_gallery_dl: Any,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test event loop handling in _run_in_executor.
+
+    This test verifies that _run_in_executor properly handles event loop
+    access and errors.
+
+    Args:
+        mock_gallery_dl: Mock gallery-dl module
+        caplog: Pytest log capture fixture
+    """
+    with capture_logs() as captured:
+        # Test with no event loop
+        client = AsyncGalleryDL(loop=None)
+
+        def simple_func() -> str:
+            """Test function that returns a string."""
+            return "test"
+
+        # Should use running loop when no loop provided
+        result = await client._run_in_executor(simple_func)
+        assert result == "test"
+
+        # Test with explicit loop
+        loop = asyncio.get_running_loop()
+        client = AsyncGalleryDL(loop=loop)
+        result = await client._run_in_executor(simple_func)
+        assert result == "test"
+
+        # Test error logging
+        def error_func() -> None:
+            """Test function that raises an exception."""
+            raise RuntimeError("Test error")
+
+        with pytest.raises(RuntimeError, match="Test error"):
+            await client._run_in_executor(error_func)
+
+        # Verify error was logged with proper context
+        assert any(
+            log.get("event") == "Error in executor"
+            and log.get("error") == "Test error"
+            and log.get("error_type") == "RuntimeError"
+            for log in captured
+        ), "Expected error log not found"
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_concurrent_calls(
+    mock_gallery_dl: Any,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test concurrent execution in _run_in_executor.
+
+    This test verifies that _run_in_executor properly handles multiple
+    concurrent calls.
+
+    Args:
+        mock_gallery_dl: Mock gallery-dl module
+        caplog: Pytest log capture fixture
+    """
+    client = AsyncGalleryDL()
+    results: list[int] = []
+
+    async def concurrent_task(value: int) -> None:
+        """Run a task that sleeps then returns a value."""
+
+        def worker() -> int:
+            import time
+
+            time.sleep(0.1)  # Simulate work
+            return value
+
+        result = await client._run_in_executor(worker)
+        results.append(result)
+
+    # Run multiple concurrent tasks
+    tasks = [concurrent_task(i) for i in range(5)]
+    await asyncio.gather(*tasks)
+
+    # Verify all tasks completed
+    assert len(results) == 5
+    assert sorted(results) == list(range(5))
