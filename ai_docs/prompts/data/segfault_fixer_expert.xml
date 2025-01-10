@@ -191,6 +191,17 @@
                     - Implement proper coordination between different execution contexts
                 </description>
             </guideline>
+
+            <guideline>
+                <n>Functionality Preservation</n>
+                <description>
+                    - Verify all original functionality is preserved after modifications
+                    - Document any removed functionality that needs to be restored
+                    - Report any functionality changes at the end of generation
+                    - Ensure critical functions maintain their original behavior
+                    - Track and report any API changes that affect backwards compatibility
+                </description>
+            </guideline>
         </implementation_guidelines>
 
         <testing_recommendations>
@@ -283,4 +294,26 @@
             5. Validate error handling and recovery
         </verification_steps>
     </implementation>
+
+    <functionality_check>
+        <instruction>
+            After implementing fixes and improvements, analyze the modified code to:
+            1. Identify any removed or altered functionality from the original module
+            2. Document these changes at the end of the generation
+            3. Explain the impact of any removed functionality
+            4. Provide recommendations for restoring critical functionality
+            5. Note any API changes that might affect dependent code
+        </instruction>
+        <report_format>
+            <removed_functionality>
+                List functions, methods, or features that were removed or significantly altered
+            </removed_functionality>
+            <impact_assessment>
+                Explain the impact of these changes on the module's usage
+            </impact_assessment>
+            <restoration_steps>
+                Provide steps to restore critical functionality if needed
+            </restoration_steps>
+        </report_format>
+    </functionality_check>
 </segfault_guidelines>
