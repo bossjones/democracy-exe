@@ -14,7 +14,7 @@ from asyncio.events import AbstractEventLoop
 from collections.abc import Awaitable, Callable, Coroutine
 from concurrent.futures import ThreadPoolExecutor
 from traceback import extract_stack
-from typing import Any, Optional, TypeVar
+from typing import Any, List, Optional, TypeVar
 
 import structlog
 
@@ -523,17 +523,19 @@ def force_sync(fn):
     return wrapper
 
 
-def fire_coroutine_threadsafe(coro: Coroutine, loop: AbstractEventLoop) -> None:
+def fire_coroutine_threadsafe(coro: Coroutine, loop: AbstractEventLoop) -> asyncio.Future:
     """
-    Submit a coroutine object to a given event loop with improved error handling.
+    Submit a coroutine object to a given event loop with improved safety.
 
-    This method does not provide a way to retrieve the result and
-    is intended for fire-and-forget use. This reduces the
-    work involved to fire the function on the loop.
+    This method provides a way to run a coroutine on a different event loop
+    and retrieve its result through the returned Future object.
 
     Args:
         coro: Coroutine to run
         loop: Event loop to run the coroutine in
+
+    Returns:
+        asyncio.Future: A Future object that will contain the result of the coroutine
 
     Raises:
         RuntimeError: If called from within the event loop
@@ -547,18 +549,38 @@ def fire_coroutine_threadsafe(coro: Coroutine, loop: AbstractEventLoop) -> None:
         raise TypeError(f"A coroutine object is required: {coro}")
 
     done_event = ThreadSafeEvent()
+    future_ref: list[asyncio.Future | None] = [None]  # Use a list to store future reference
+    future_ready = threading.Event()
 
     def callback() -> None:
         """Handle the firing of a coroutine with proper error handling."""
         try:
             future = ensure_future(coro, loop=loop)
+            future_ref[0] = future  # Store future reference
             future.add_done_callback(lambda _: done_event.set())
+            future_ready.set()  # Signal that future is ready
+
+            def _on_cancel(fut: asyncio.Future) -> None:
+                """Handle future cancellation."""
+                if not fut.cancelled():
+                    return
+                # Get the task and cancel it
+                task = asyncio.tasks._get_current_task(loop)  # type: ignore
+                if task is not None:
+                    task.cancel()
+
+            future.add_done_callback(_on_cancel)
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error in coroutine", error=str(e))
             done_event.set()
+            future_ready.set()
 
     try:
         loop.call_soon_threadsafe(callback)
+        # Wait for the future to be created
+        if not future_ready.wait(timeout=0.1):
+            logger.warning("Timeout waiting for future to be created")
+        return future_ref[0] if future_ref[0] is not None else asyncio.Future(loop=loop)
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error scheduling coroutine", error=str(e))
         raise
