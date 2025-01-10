@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<segfault_guidelines>
+    <system>
+        This document serves as an expert guide for analyzing and fixing segmentation faults in Python applications, with a specific focus on concurrent operations, resource management, and thread safety in the context of LangChain and LangGraph applications.
+    </system>
+
+    <context>
+        The democracy-exe project experiences segmentation faults during concurrent operations, particularly in LangSmith client background threads and LangGraph SSE handling. This document provides comprehensive analysis and actionable guidelines for fixing these issues through proper resource management, thread safety, and async operation handling.
+    </context>
+
+    <instructions>
+        1. Follow the diagnostic points to identify similar issues in your code
+        2. Implement the recommended fixes based on priority
+        3. Use the provided code patterns as templates for implementation
+        4. Add appropriate tests based on the testing recommendations
+        5. Ensure all implementations follow the style preferences
+    </instructions>
+
+    <style_preferences>
+        - Use comprehensive error handling with proper cleanup
+        - Implement full type annotations for all functions
+        - Add detailed docstrings following Google style
+        - Use clear, descriptive variable and function names
+        - Include comments explaining complex concurrent operations
+        - Follow async/await best practices consistently
+        - Maintain clear separation between blocking and non-blocking code
+    </style_preferences>
+
+    <quotes>
+        <quote source="error_trace">
+            Thread 0x0000ffff5fe0f180 shows issues in LangSmith client background thread operations, particularly in _multipart_ingest_ops and _tracing_thread_handle_batch
+        </quote>
+        <quote source="error_trace">
+            Current thread shows the error occurring in langgraph_api/sse.py during stream_response, indicating potential issues with SSE handling
+        </quote>
+        <quote source="error_trace">
+            Multiple threads show concurrent operations involving asyncio, threading, and multiprocessing
+        </quote>
+        <quote source="democracy_exe/utils/async_.py">
+            Detected I/O inside the event loop. This is causing stability issues. Please report issue for integration doing I/O
+        </quote>
+        <quote source="democracy_exe/utils/aiodbx.py">
+            SafeFileHandler implements proper error handling and cleanup with async context management
+        </quote>
+        <quote source="democracy_exe/clients/aio_gallery_dl.py">
+            Run a function in the default executor to avoid blocking the event loop
+        </quote>
+        <quote source="democracy_exe/chatbot/cogs/autocrop.py">
+            Thread pools being shut down without waiting: pool.shutdown(wait=False)
+        </quote>
+    </quotes>
+
+    <best_practices>
+        <practice category="Thread Safety">
+            <name>Use Proper Synchronization</name>
+            <description>Always use appropriate locking mechanisms when accessing shared resources across threads</description>
+            <example>
+                ```python
+                self._lock = asyncio.Lock()
+                async with self._lock:
+                    # Access shared resource here
+                ```
+            </example>
+        </practice>
+
+        <practice category="Resource Management">
+            <name>Implement Context Managers</name>
+            <description>Use async context managers for proper resource cleanup</description>
+            <example>
+                ```python
+                async def __aexit__(self, exc_type, exc_val, exc_tb):
+                    try:
+                        await self.cleanup()
+                    finally:
+                        await self.close()
+                ```
+            </example>
+        </practice>
+
+        <practice category="Error Handling">
+            <name>Comprehensive Error Management</name>
+            <description>Implement proper error handling with cleanup in all async operations</description>
+            <example>
+                ```python
+                try:
+                    async with self._cleanup_lock:
+                        await self._perform_operation()
+                except Exception as e:
+                    logger.error(f"Operation failed: {e}")
+                    await self._cleanup()
+                    raise
+                ```
+            </example>
+        </practice>
+    </best_practices>
+
+    <info>
+        <diagnostic_points>
+            <point>The segfault occurs during concurrent operations involving LangSmith client background threads</point>
+            <point>Server-Sent Events (SSE) handling in LangGraph API may be triggering memory corruption</point>
+            <point>Multiple Python extension modules are loaded which could contribute to thread safety issues</point>
+            <point>The error involves interaction between asyncio, threading, and multiprocessing</point>
+            <point>I/O operations being performed inside event loop causing stability issues</point>
+            <point>Thread pools being shut down prematurely without proper cleanup</point>
+            <point>Resources not being properly cleaned up in async context managers</point>
+            <point>Missing synchronization for shared resource access across threads</point>
+        </diagnostic_points>
+
+        <recommended_fixes>
+            <fix priority="high">
+                <issue>LangSmith Client Thread Safety</issue>
+                <solution>
+                    <step>Ensure LangSmith client is properly initialized with thread-safe configuration</step>
+                    <step>Implement proper cleanup of background threads</step>
+                    <step>Add thread synchronization mechanisms for shared resources</step>
+                    <step>Use asyncio.Lock() for thread synchronization</step>
+                    <step>Implement proper cleanup in async context managers</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>SSE Stream Handling</issue>
+                <solution>
+                    <step>Implement proper resource cleanup in stream_response</step>
+                    <step>Add error boundaries around SSE stream handling</step>
+                    <step>Ensure proper closing of connections and cleanup of resources</step>
+                    <step>Use SafeFileHandler pattern for file operations</step>
+                    <step>Add proper exception handling with cleanup in finally blocks</step>
+                </solution>
+            </fix>
+
+            <fix priority="medium">
+                <issue>Extension Module Interactions</issue>
+                <solution>
+                    <step>Review extension module initialization order</step>
+                    <step>Ensure proper GIL handling in extension modules</step>
+                    <step>Add cleanup handlers for extension module resources</step>
+                    <step>Move I/O operations to executors using run_in_executor</step>
+                </solution>
+            </fix>
+
+            <fix priority="medium">
+                <issue>Concurrent Operations</issue>
+                <solution>
+                    <step>Implement proper shutdown sequence for all threads</step>
+                    <step>Add proper exception handling in thread workers</step>
+                    <step>Use thread pools with proper lifecycle management</step>
+                    <step>Ensure thread pools are shut down with wait=True when appropriate</step>
+                    <step>Add proper coordination between asyncio, threading and multiprocessing</step>
+                </solution>
+            </fix>
+        </recommended_fixes>
+
+        <implementation_guidelines>
+            <guideline>
+                <name>Thread Safety</name>
+                <description>
+                    - Use thread-local storage for thread-specific data
+                    - Implement proper locking mechanisms using asyncio.Lock()
+                    - Ensure proper resource cleanup on thread exit
+                    - Add synchronization for shared resource access
+                    - Use thread pools with proper lifecycle management
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Resource Management</name>
+                <description>
+                    - Implement proper context managers for resource cleanup
+                    - Use SafeFileHandler pattern for file operations
+                    - Add proper error handling and cleanup in finally blocks
+                    - Ensure proper closing of connections and resources
+                    - Implement proper cleanup in async context managers
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Memory Management</name>
+                <description>
+                    - Monitor memory usage in background threads
+                    - Implement proper cleanup of large objects
+                    - Use memory profiling tools to identify leaks
+                    - Ensure proper cleanup of resources in __aexit__ methods
+                    - Add proper exception handling with cleanup
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Error Handling</name>
+                <description>
+                    - Add comprehensive error logging
+                    - Implement proper error propagation
+                    - Add error recovery mechanisms
+                    - Add error boundaries around thread operations
+                    - Ensure proper cleanup in error cases
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Event Loop Safety</name>
+                <description>
+                    - Move I/O operations out of event loop using run_in_executor
+                    - Add proper error boundaries around async operations
+                    - Avoid mixing blocking and non-blocking code
+                    - Use proper async context management
+                    - Implement proper coordination between different execution contexts
+                </description>
+            </guideline>
+        </implementation_guidelines>
+
+        <testing_recommendations>
+            <recommendation>Add stress tests for concurrent operations</recommendation>
+            <recommendation>Implement memory leak tests</recommendation>
+            <recommendation>Add thread safety tests</recommendation>
+            <recommendation>Test proper cleanup of resources</recommendation>
+            <recommendation>Add tests for proper thread pool lifecycle management</recommendation>
+            <recommendation>Test error handling and recovery mechanisms</recommendation>
+            <recommendation>Add tests for proper async context management</recommendation>
+            <recommendation>Test proper coordination between different execution contexts</recommendation>
+        </testing_recommendations>
+
+        <code_patterns>
+            <pattern name="SafeFileHandler">
+                <description>Pattern for safe file operations with proper cleanup</description>
+                <example>
+                    async with SafeFileHandler(path, mode="r") as f:
+                        content = await f.read()
+                </example>
+            </pattern>
+
+            <pattern name="ThreadPoolExecutor">
+                <description>Pattern for proper thread pool management</description>
+                <example>
+                    with ThreadPoolExecutor() as pool:
+                        try:
+                            result = await loop.run_in_executor(pool, func)
+                        finally:
+                            pool.shutdown(wait=True)
+                </example>
+            </pattern>
+
+            <pattern name="AsyncContextManager">
+                <description>Pattern for proper async resource management</description>
+                <example>
+                    async def __aexit__(self, exc_type, exc_val, exc_tb):
+                        try:
+                            await self.cleanup()
+                        finally:
+                            await self.close()
+                </example>
+            </pattern>
+
+            <pattern name="EventLoopSafety">
+                <description>Pattern for safe event loop operations</description>
+                <example>
+                    async def io_operation():
+                        return await loop.run_in_executor(None, blocking_io_func)
+                </example>
+            </pattern>
+        </code_patterns>
+    </info>
+
+    <implementation>
+        <priority_order>
+            1. Fix immediate thread safety issues in LangSmith client
+            2. Implement proper SSE stream handling
+            3. Add proper resource cleanup in async contexts
+            4. Improve thread pool lifecycle management
+            5. Add comprehensive error boundaries
+        </priority_order>
+
+        <verification_steps>
+            1. Run memory leak tests
+            2. Perform stress testing with concurrent operations
+            3. Verify proper resource cleanup
+            4. Check thread pool shutdown behavior
+            5. Validate error handling and recovery
+        </verification_steps>
+    </implementation>
+</segfault_guidelines>
