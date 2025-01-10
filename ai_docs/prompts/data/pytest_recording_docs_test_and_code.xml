@@ -1,0 +1,2333 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/__init__.py</source>
+<document_content>
+import pytest
+
+# Relevant only for VCRpy < 4.4.0
+pytest.register_assert_rewrite("vcr.matchers")
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/_vcr.py</source>
+<document_content>
+import os
+from dataclasses import dataclass
+from itertools import chain, starmap
+from types import ModuleType
+from typing import Callable, List, Tuple
+
+from _pytest.config import Config
+from _pytest.mark.structures import Mark
+from vcr import VCR
+from vcr.cassette import CassetteContextDecorator
+from vcr.persisters.filesystem import FilesystemPersister
+from vcr.serialize import deserialize
+
+try:
+    # VCR.py >=5
+    from vcr.cassette import CassetteNotFoundError
+except ImportError:
+    # VCR.py <5
+    CassetteNotFoundError = ValueError
+
+from .utils import ConfigType, merge_kwargs, unique, unpack
+
+
+def load_cassette(cassette_path: str, serializer: ModuleType) -> Tuple[List, List]:
+    try:
+        with open(cassette_path, encoding="utf8") as f:
+            cassette_content = f.read()
+    except OSError:
+        return [], []
+    return deserialize(cassette_content, serializer)
+
+
+@dataclass
+class CombinedPersister(FilesystemPersister):
+    """Load extra cassettes, but saves only the first one."""
+
+    extra_paths: List[str]
+
+    def load_cassette(self, cassette_path: str, serializer: ModuleType) -> Tuple[List, List]:
+        all_paths = chain.from_iterable(((cassette_path,), self.extra_paths))
+        # Pairs of 2 lists per cassettes:
+        all_content = (load_cassette(path, serializer) for path in unique(all_paths))
+        # Two iterators from all pairs from above: all requests, all responses
+        # Notes.
+        # 1. It is possible to do it with accumulators, for loops and `extend` calls,
+        #    but the functional approach is faster
+        # 2. It could be done more efficient, but the `deserialize` implementation should be adjusted as well
+        #    But it is a private API, which could be changed.
+        requests, responses = starmap(unpack, zip(*all_content))
+        requests, responses = list(requests), list(responses)
+        if not requests or not responses:
+            raise CassetteNotFoundError("No cassettes found.")
+        return requests, responses
+
+
+def use_cassette(
+    default_cassette: str,
+    vcr_cassette_dir: str,
+    record_mode: str,
+    markers: List[Mark],
+    config: ConfigType,
+    pytestconfig: Config,
+) -> CassetteContextDecorator:
+    """Create a VCR instance and return an appropriate context manager for the given cassette configuration."""
+    merged_config = merge_kwargs(config, markers)
+    if "record_mode" in merged_config:
+        record_mode = merged_config["record_mode"]
+    path_transformer = get_path_transformer(merged_config)
+    if record_mode == "rewrite":
+        path = path_transformer(os.path.join(vcr_cassette_dir, default_cassette))
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        record_mode = "new_episodes"
+    vcr = VCR(
+        path_transformer=path_transformer,
+        cassette_library_dir=vcr_cassette_dir,
+        record_mode=record_mode,
+    )
+
+    def extra_path_transformer(path: str) -> str:
+        """Paths in extras can be handled as relative and as absolute.
+
+        Relative paths will be checked in `vcr_cassette_dir`.
+        """
+        if not os.path.isabs(path):
+            return os.path.join(vcr_cassette_dir, path)
+        return path
+
+    extra_paths = [extra_path_transformer(path) for marker in markers for path in marker.args]
+    persister = CombinedPersister(extra_paths)
+    vcr.register_persister(persister)
+    pytestconfig.hook.pytest_recording_configure(config=pytestconfig, vcr=vcr)
+    return vcr.use_cassette(default_cassette, **merged_config)
+
+
+def get_path_transformer(config: ConfigType) -> Callable:
+    if "serializer" in config:
+        suffix = ".{}".format(config["serializer"])
+    else:
+        suffix = ".yaml"
+    return VCR.ensure_suffix(suffix)
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/exceptions.py</source>
+<document_content>
+class UsageError(Exception):
+    """Error in plugin usage."""
+
+    __module__ = "builtins"
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/hooks.py</source>
+<document_content>
+from _pytest.config import Config
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from vcr import VCR
+
+
+def pytest_recording_configure(config: Config, vcr: "VCR") -> None:
+    pass  # pragma: no cover
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/network.py</source>
+<document_content>
+import re
+import socket
+import sys
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
+from urllib.parse import urlparse
+
+try:
+    import pycurl
+
+    @dataclass
+    class Curl:
+        """Proxy to real pycurl.Curl.
+
+        If `perform` is called then it will raise an error if network is disabled via `disable`
+        """
+
+        handle: pycurl.Curl = field(default_factory=pycurl.Curl)
+        url = None  # type: Optional[str]
+
+        def __getattribute__(self, item: str) -> Any:
+            handle = object.__getattribute__(self, "handle")
+            if _disable_pycurl and item == "perform":
+                host = urlparse(self.url).hostname
+                if not host or is_host_in_allowed_hosts(host, _allowed_hosts):
+                    return getattr(handle, item)
+                raise RuntimeError("Network is disabled")
+            if item == "handle":
+                return handle
+            if item == "setopt":
+                return object.__getattribute__(self, "setopt")
+            return getattr(handle, item)
+
+        def __setattr__(self, key: str, value: Any) -> None:
+            if key == "handle":
+                object.__setattr__(self, key, value)
+            else:
+                setattr(self.handle, key, value)
+
+        def setopt(self, option: int, value: Any) -> None:
+            if option == pycurl.URL:
+                self.url = value
+            self.handle.setopt(option, value)
+
+except ImportError:
+    pycurl = None  # type: ignore
+    Curl = None  # type: ignore
+
+# `socket.socket` is not patched, because it could be needed for live servers (e.g. pytest-httpbin)
+# But methods that could connect to remote are patched to prevent network access
+_original_connect = socket.socket.connect
+_original_connect_ex = socket.socket.connect_ex
+
+# Global switch for pycurl disabling
+_disable_pycurl = False
+_allowed_hosts = None  # type: ignore
+
+
+@dataclass(unsafe_hash=True)
+class PyCurlWrapper:
+    """Imitate pycurl module."""
+
+    def __getattribute__(self, item: str) -> Any:
+        if item == "Curl":
+            return Curl
+        return getattr(pycurl, item)
+
+
+def check_pycurl_installed(func: Callable) -> Callable:
+    """No-op if pycurl is not installed."""
+
+    def inner(*args: Any, **kwargs: Any) -> Any:
+        if pycurl is None:
+            return  # type: ignore
+        return func(*args, **kwargs)
+
+    return inner
+
+
+@check_pycurl_installed
+def install_pycurl_wrapper() -> None:
+    sys.modules["pycurl"] = PyCurlWrapper()  # type: ignore
+
+
+@check_pycurl_installed
+def uninstall_pycurl_wrapper() -> None:
+    sys.modules["pycurl"] = pycurl
+
+
+def block_pycurl(allowed_hosts: Optional[List[str]] = None) -> None:
+    global _disable_pycurl
+    global _allowed_hosts
+    _disable_pycurl = True
+    _allowed_hosts = allowed_hosts
+
+
+def unblock_pycurl() -> None:
+    global _disable_pycurl
+    global _allowed_hosts
+    _disable_pycurl = False
+    _allowed_hosts = None
+
+
+def block_socket(allowed_hosts: Optional[List[str]] = None) -> None:
+    socket.socket.connect = make_network_guard(_original_connect, allowed_hosts=allowed_hosts)  # type: ignore
+    socket.socket.connect_ex = make_network_guard(_original_connect_ex, allowed_hosts=allowed_hosts)  # type: ignore
+
+
+def unblock_socket() -> None:
+    socket.socket.connect = _original_connect  # type: ignore
+    socket.socket.connect_ex = _original_connect_ex  # type: ignore
+
+
+def make_network_guard(original_func: Callable, allowed_hosts: Optional[List[str]] = None) -> Callable:
+    def network_guard(self: Any, address: Union[Tuple, str, bytes], *args: Any, **kwargs: Any) -> Any:
+        host = ""  # type: Union[str, bytes, bytearray]
+        if self.family in (socket.AF_INET, socket.AF_INET6):
+            host = address[0]  # type: ignore
+        elif self.family == socket.AF_UNIX:
+            host = address  # type: ignore
+        if is_host_in_allowed_hosts(host, allowed_hosts):
+            return original_func(self, address, *args, **kwargs)
+        raise RuntimeError("Network is disabled")
+
+    return network_guard
+
+
+def block(allowed_hosts: Optional[List[str]] = None) -> None:
+    block_socket(allowed_hosts=allowed_hosts)
+    # NOTE: Applying socket blocking makes curl hangs - it should be carefully patched
+    block_pycurl(allowed_hosts=allowed_hosts)
+
+
+def unblock() -> None:
+    unblock_pycurl()
+    unblock_socket()
+
+
+@contextmanager
+def blocking_context(allowed_hosts: Optional[List[str]] = None) -> Iterator[None]:
+    """Block connections via socket and pycurl.
+
+    Note:
+    ----
+        Only connections to remotes are blocked in `socket`.
+        Local servers are not touched since it could interfere with live servers needed for tests (e.g. pytest-httpbin)
+
+    """
+    block(allowed_hosts=allowed_hosts)
+    try:
+        yield
+    finally:
+        # an error could happen somewhere else when this ctx manager is on `yield`
+        unblock()
+
+
+def to_string(value: Union[str, bytes, bytearray]) -> str:
+    if isinstance(value, (bytes, bytearray)):
+        return value.decode()
+    return value
+
+
+def is_host_in_allowed_hosts(host: Union[str, bytes, bytearray], allowed_hosts: Optional[List[str]]) -> bool:
+    """Match provided host to a list of host regexps."""
+    if allowed_hosts is not None:
+        combined = "(" + ")|(".join(allowed_hosts) + ")"
+        return bool(re.match(combined, to_string(host)))
+    return False
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/plugin.py</source>
+<document_content>
+import os
+from typing import Any, Dict, Iterator, List, Optional, TYPE_CHECKING
+
+import pytest
+from _pytest.config import Config, PytestPluginManager
+from _pytest.config.argparsing import Parser
+from _pytest.fixtures import SubRequest
+from _pytest.mark.structures import Mark
+
+if TYPE_CHECKING:
+    from vcr.cassette import Cassette
+
+from . import hooks, network
+from .utils import merge_kwargs
+from .validation import validate_block_network_mark
+
+RECORD_MODES = ("once", "new_episodes", "none", "all", "rewrite")
+
+
+def pytest_configure(config: Config) -> None:
+    if config.pluginmanager.has_plugin("vcr"):
+        raise RuntimeError(
+            "`pytest-recording` is incompatible with `pytest-vcr`. "
+            "Please, uninstall `pytest-vcr` in order to use `pytest-recording`."
+        )
+    config.addinivalue_line("markers", "vcr: Mark the test as using VCR.py.")
+    config.addinivalue_line("markers", "block_network: Block network access except for VCR recording.")
+    config.addinivalue_line("markers", "default_cassette: Override the default cassette name.")
+    config.addinivalue_line(
+        "markers",
+        "allowed_hosts: List of regexes to match hosts to where connection must be allowed.",
+    )
+    network.install_pycurl_wrapper()
+
+
+def pytest_unconfigure() -> None:
+    network.uninstall_pycurl_wrapper()
+
+
+def pytest_addoption(parser: Parser) -> None:
+    group = parser.getgroup("recording")
+    group.addoption(
+        "--record-mode",
+        action="store",
+        default=None,
+        choices=RECORD_MODES,
+        help='VCR.py record mode. Default to "none".',
+    )
+    group.addoption(
+        "--block-network",
+        action="store_true",
+        default=False,
+        help="Block network access except for VCR recording.",
+    )
+    group.addoption(
+        "--allowed-hosts",
+        action="store",
+        default=None,
+        help="List of regexes, separated by comma, to match hosts to where connection must be allowed.",
+    )
+    group.addoption(
+        "--disable-recording",
+        action="store_true",
+        default=False,
+        help="Disable VCR.py integration.",
+    )
+
+
+def pytest_addhooks(pluginmanager: PytestPluginManager) -> None:
+    pluginmanager.add_hookspecs(hooks)
+
+
+@pytest.fixture(scope="session")  # type: ignore
+def record_mode(request: SubRequest) -> str:
+    """When recording is disabled the VCR recording mode should be "none" to prevent network access."""
+    return request.config.getoption("--record-mode") or "none"
+
+
+@pytest.fixture(scope="session")  # type: ignore
+def disable_recording(request: SubRequest) -> bool:
+    """Disable VCR.py integration."""
+    return request.config.getoption("--disable-recording")
+
+
+@pytest.fixture  # type: ignore
+def vcr_config() -> Dict:
+    """A shareable configuration for VCR.use_cassette call."""
+    return {}
+
+
+@pytest.fixture  # type: ignore
+def allowed_hosts(request: SubRequest) -> List[str]:
+    """List of regexes to match hosts to where connection must be allowed."""
+    block_network = request.node.get_closest_marker(name="block_network")
+    config = request.getfixturevalue("vcr_config")
+    # Take `--allowed-hosts` with the most priority:
+    #  - `block_network` mark
+    #  - CLI option
+    #  - `vcr_config` fixture
+    allowed_hosts = (
+        getattr(block_network, "kwargs", {}).get("allowed_hosts")
+        or request.config.getoption("--allowed-hosts")
+        or config.get("allowed_hosts")
+    )
+    if isinstance(allowed_hosts, str):
+        allowed_hosts = allowed_hosts.split(",")
+    return allowed_hosts
+
+
+@pytest.fixture  # type: ignore
+def vcr_markers(request: SubRequest) -> List[Mark]:
+    """All markers applied to the certain test together with cassette names associated with each marker."""
+    return list(request.node.iter_markers(name="vcr"))
+
+
+@pytest.fixture(autouse=True)  # type: ignore
+def block_network(request: SubRequest, record_mode: str, vcr_markers: List[Mark]) -> Iterator[None]:
+    """Block network access in tests except for "none" VCR recording mode."""
+    block_network = request.node.get_closest_marker(name="block_network")
+    if block_network is not None:
+        validate_block_network_mark(block_network)
+    if vcr_markers:
+        # Take `record_mode` with the most priority:
+        #  - Explicit CLI option
+        #  - The `vcr_config` fixture
+        #  - The `vcr` mark
+        config = request.getfixturevalue("vcr_config")
+        merged_config = merge_kwargs(config, vcr_markers)
+        # If `--record-mode` was not explicitly passed in CLI, then take one from the merged config
+        if request.config.getoption("--record-mode") is None:
+            record_mode = merged_config.get("record_mode", "none")
+    # If network blocking is enabled there is one exception - if VCR is in recording mode (any mode except "none")
+    if (block_network or request.config.getoption("--block-network")) and (not vcr_markers or record_mode == "none"):
+        allowed_hosts = request.getfixturevalue("allowed_hosts")
+        with network.blocking_context(allowed_hosts=allowed_hosts):
+            yield
+    else:
+        yield
+
+
+@pytest.fixture(autouse=True)  # type: ignore
+def vcr(
+    request: SubRequest,
+    vcr_markers: List[Mark],
+    vcr_cassette_dir: str,
+    record_mode: str,
+    disable_recording: bool,
+    pytestconfig: Config,
+) -> Iterator[Optional["Cassette"]]:
+    """Install a cassette if a test is marked with `pytest.mark.vcr`."""
+    if disable_recording:
+        yield None
+    elif vcr_markers:
+        from ._vcr import use_cassette
+
+        config = request.getfixturevalue("vcr_config")
+        default_cassette = request.getfixturevalue("default_cassette_name")
+        with use_cassette(
+            default_cassette,
+            vcr_cassette_dir,
+            record_mode,
+            vcr_markers,
+            config,
+            pytestconfig,
+        ) as cassette:
+            yield cassette
+    else:
+        yield None
+
+
+@pytest.fixture(scope="module")  # type: ignore
+def vcr_cassette_dir(request: SubRequest) -> str:
+    """Each test module has its own cassettes directory to avoid name collisions.
+
+    For example each test module could have test function with the same names:
+      - test_users.py:test_create
+      - test_profiles.py:test_create
+    """
+    module = request.node.fspath  # current test file
+    return os.path.join(module.dirname, "cassettes", module.purebasename)
+
+
+@pytest.fixture  # type: ignore
+def default_cassette_name(request: SubRequest) -> str:
+    marker = request.node.get_closest_marker("default_cassette")
+    if marker is not None:
+        assert marker.args, (
+            "You should pass the cassette name as an argument " "to the `pytest.mark.default_cassette` marker"
+        )
+        return marker.args[0]
+    return get_default_cassette_name(request.cls, request.node.name)
+
+
+def get_default_cassette_name(test_class: Any, test_name: str) -> str:
+    if test_class:
+        cassette_name = "{}.{}".format(test_class.__name__, test_name)
+    else:
+        cassette_name = test_name
+    # The cassette name should not contain characters that are forbidden in a file name
+    # In this case there is a possibility to have a collision if there will be names with different
+    # forbidden chars but the same resulting string.
+    # Possible solution is to add a hash to the resulting name, but this probability is too low to have such fix.
+    for ch in r"<>?%*:|\"'/\\":
+        cassette_name = cassette_name.replace(ch, "-")
+    return cassette_name
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/utils.py</source>
+<document_content>
+from copy import deepcopy
+from itertools import chain
+from typing import Any, Dict, Iterable, Iterator, List
+from _pytest.mark.structures import Mark
+
+ConfigType = Dict[str, Any]
+
+
+def unique(sequence: Iterable) -> Iterator:
+    seen = set()
+    for item in sequence:
+        if item not in seen:
+            seen.add(item)
+            yield item
+
+
+def unpack(*args: Any) -> Iterable:
+    return chain.from_iterable(args)
+
+
+def merge_kwargs(config: ConfigType, markers: List[Mark]) -> ConfigType:
+    """Merge all kwargs into a single dictionary to pass to `vcr.use_cassette`."""
+    kwargs = deepcopy(config)
+    for marker in reversed(markers):
+        kwargs.update(marker.kwargs)
+    return kwargs
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/pytest-recording/src/pytest_recording/validation.py</source>
+<document_content>
+from _pytest.mark import Mark
+
+from .exceptions import UsageError
+
+ALLOWED_BLOCK_NETWORK_ARGUMENTS = ["allowed_hosts"]
+
+
+def validate_block_network_mark(mark: Mark) -> None:
+    """Validate the input arguments for the `block_network` pytest mark."""
+    if mark.args or list(mark.kwargs) not in ([], ALLOWED_BLOCK_NETWORK_ARGUMENTS):
+        allowed_arguments = ", ".join("`{}`".format(arg) for arg in ALLOWED_BLOCK_NETWORK_ARGUMENTS)
+        raise UsageError(
+            "Invalid arguments to `block_network`. "
+            "It accepts only the following keyword arguments: {}. "
+            "Got args: {!r}; kwargs: {!r}".format(allowed_arguments, mark.args, mark.kwargs)
+        )
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/pytest-recording/tests/conftest.py</source>
+<document_content>
+import pytest
+
+pytest_plugins = "pytester"
+
+
+@pytest.fixture
+def create_file(testdir):
+    def inner(path, content):
+        path = testdir.tmpdir.join(path)
+        path.ensure().write(content)
+        return path
+
+    return inner
+
+
+CASSETTE_TEMPLATE = """
+version: 1
+interactions:
+- request:
+    body: null
+    headers: {{}}
+    method: GET
+    uri: http://httpbin.org{}
+  response:
+    body: {{string: '{}'}}
+    headers: {{}}
+    status: {{code: 200, message: OK}}"""
+GET_CASSETTE = CASSETTE_TEMPLATE.format("/get", '{"get": true}')
+IP_CASSETTE = CASSETTE_TEMPLATE.format("/ip", '{"ip": true}')
+
+
+@pytest.fixture
+def get_cassette():
+    return GET_CASSETTE
+
+
+@pytest.fixture
+def ip_cassette():
+    return IP_CASSETTE
+
+
+@pytest.fixture
+def get_response_cassette(create_file, get_cassette):
+    return create_file("get.yaml", get_cassette)
+
+
+@pytest.fixture
+def ip_response_cassette(create_file, ip_cassette):
+    return create_file("ip.yaml", ip_cassette)
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/pytest-recording/tests/test_blocking_network.py</source>
+<document_content>
+import pytest
+from packaging import version
+
+try:
+    import pycurl
+except ImportError as exc:
+    if "No module named" not in str(exc):
+        # Case with different SSL backends should be loud and visible
+        # Could happen with development when environment is recreated (e.g. locally)
+        raise
+    pycurl = None
+
+
+def assert_network_blocking(testdir, dirname):
+    result = testdir.runpytest("--record-mode=all")
+    # Then all network requests in tests with block_network mark except for marked with pytest.mark.vcr should fail
+    result.assert_outcomes(passed=3)
+
+    # And a cassette is recorded for the case where pytest.mark.vcr is applied
+    cassette_path = testdir.tmpdir.join("cassettes/{}/test_recording.yaml".format(dirname))
+    assert cassette_path.exists()
+
+
+def test_blocked_network_recording_cli_arg(testdir):
+    # When record is enabled via a CLI arg
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+def test_no_blocking(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.block_network
+@pytest.mark.vcr
+def test_recording(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.block_network
+def test_error(httpbin):
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        assert requests.get(httpbin.url + "/ip").status_code == 200
+    """
+    )
+    assert_network_blocking(testdir, "test_blocked_network_recording_cli_arg")
+
+
+def test_blocked_network_recording_vcr_config(testdir):
+    # When record is enabled via the `vcr_config` fixture
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+@pytest.fixture(autouse=True)
+def vcr_config():
+    return {"record_mode": "once"}
+
+
+def test_no_blocking(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.block_network
+@pytest.mark.vcr
+def test_recording(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.block_network
+def test_error(httpbin):
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        assert requests.get(httpbin.url + "/ip").status_code == 200
+    """
+    )
+    assert_network_blocking(testdir, "test_blocked_network_recording_vcr_config")
+
+
+def test_blocked_network_recording_vcr_mark(testdir):
+    # When record is enabled via the `vcr` mark
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+def test_no_blocking(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.block_network
+@pytest.mark.vcr(record_mode="once")
+def test_recording(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.block_network
+def test_error(httpbin):
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        assert requests.get(httpbin.url + "/ip").status_code == 200
+    """
+    )
+    assert_network_blocking(testdir, "test_blocked_network_recording_vcr_mark")
+
+
+def test_socket_connect(testdir):
+    # When socket.socket is aliased in some module
+    testdir.makepyfile(
+        another="""
+from socket import socket, AF_INET, SOCK_STREAM
+
+def call(port):
+    s = socket(AF_INET, SOCK_STREAM)
+    try:
+        return s.connect(("127.0.0.1", port))
+    finally:
+        s.close()
+"""
+    )
+    testdir.makepyfile(
+        """
+from another import call
+import pytest
+
+@pytest.mark.block_network
+def test_no_blocking(httpbin):
+    _, port = httpbin.url.rsplit(":", 1)
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        call(int(port))
+    """
+    )
+
+    result = testdir.runpytest()
+    # Then socket.socket.connect should fail
+    result.assert_outcomes(passed=1)
+
+
+def test_unix_socket(testdir):
+    testdir.makepyfile(
+        """
+from socket import socket, AF_UNIX, SOCK_STREAM
+import pytest
+
+def call(socket_name):
+    s = socket(AF_UNIX, SOCK_STREAM)
+    try:
+        return s.connect(socket_name)
+    finally:
+        s.close()
+
+@pytest.mark.block_network(allowed_hosts=["./allowed_socket"])
+def test_allowed():
+    # Error from actual socket call, that means it was not blocked
+    with pytest.raises(IOError):
+        call("./allowed_socket")
+
+@pytest.mark.block_network(allowed_hosts=["./allowed_socket"])
+def test_blocked():
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        call("./blocked_socket")
+    """
+    )
+
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=2)
+
+
+def test_other_socket(testdir):
+    # When not AF_UNIX, AF_INET or AF_INET6 socket is used
+    testdir.makepyfile(
+        """
+from socket import socket, AF_NETLINK, SOCK_RAW
+import pytest
+
+def call():
+    s = socket(AF_NETLINK, SOCK_RAW)
+    try:
+        return s.connect((0, 0))
+    finally:
+        s.close()
+
+@pytest.mark.block_network(allowed_hosts=["./allowed_socket", "127.0.0.1", "0"])
+def test_blocked():
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        call()
+    """
+    )
+    # Then socket.socket.connect call is blocked, even if resource name is in the allowed list
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_block_network(testdir):
+    # When record is disabled
+    testdir.makepyfile(
+        """
+import socket
+import pytest
+import requests
+import vcr.errors
+
+@pytest.mark.block_network
+@pytest.mark.vcr
+def test_with_vcr_mark(httpbin):
+    with pytest.raises(vcr.errors.CannotOverwriteExistingCassetteException, match=r"overwrite existing cassette"):
+        requests.get(httpbin.url + "/ip")
+    assert socket.socket.connect.__name__ == "network_guard"
+    assert socket.socket.connect_ex.__name__ == "network_guard"
+
+@pytest.mark.block_network
+def test_no_vcr_mark(httpbin):
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        requests.get(httpbin.url + "/ip")
+
+
+@pytest.mark.block_network(allowed_hosts=["127.0.0.2"])
+def test_no_vcr_mark_bytes():
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((b"127.0.0.1", 80))
+
+@pytest.mark.block_network(allowed_hosts=["127.0.0.2"])
+def test_no_vcr_mark_bytearray():
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((bytearray(b"127.0.0.1"), 80))
+    """
+    )
+
+    result = testdir.runpytest("-s")
+    result.assert_outcomes(passed=4)
+
+
+@pytest.mark.parametrize(
+    "marker, cmd_options, vcr_cfg",
+    (
+        pytest.param(
+            '@pytest.mark.block_network(allowed_hosts=["127.0.0.*", "127.0.1.1"])',
+            "",
+            "",
+            id="block_marker",
+        ),
+        pytest.param(
+            "",
+            ("--block-network", "--allowed-hosts=127.0.0.*,127.0.1.1"),
+            "",
+            id="block_cmd",
+        ),
+        pytest.param(
+            "@pytest.mark.block_network()",
+            "",
+            "@pytest.fixture(autouse=True)\ndef vcr_config():\n    return {'allowed_hosts': '127.0.0.*,127.0.1.1'}",
+            id="vcr_cfg",
+        ),
+    ),
+)
+def test_block_network_with_allowed_hosts(testdir, marker, cmd_options, vcr_cfg):
+    testdir.makepyfile(
+        """
+import socket
+import pytest
+import requests
+
+{vcr_cfg}
+
+{marker}
+def test_allowed(httpbin):
+    response = requests.get(httpbin.url + "/ip")
+    assert response.status_code == 200
+    assert socket.socket.connect.__name__ == "network_guard"
+    assert socket.socket.connect_ex.__name__ == "network_guard"
+
+{marker}
+def test_blocked():
+    with pytest.raises(RuntimeError, match="^Network is disabled$"):
+        requests.get("http://example.com")
+    assert socket.socket.connect.__name__ == "network_guard"
+    assert socket.socket.connect_ex.__name__ == "network_guard"
+    """.format(
+            marker=marker,
+            vcr_cfg=vcr_cfg,
+        )
+    )
+
+    result = testdir.runpytest(*cmd_options)
+    result.assert_outcomes(passed=2)
+
+
+def test_block_network_via_cmd(testdir):
+    # When `--block-network` option is passed to CMD
+    testdir.makepyfile(
+        """
+import socket
+import pytest
+import requests
+import vcr.errors
+
+@pytest.mark.vcr
+def test_with_vcr_mark(httpbin):
+    with pytest.raises(vcr.errors.CannotOverwriteExistingCassetteException, match=r"overwrite existing cassette"):
+        requests.get(httpbin.url + "/ip")
+    assert socket.socket.connect.__name__ == "network_guard"
+    assert socket.socket.connect_ex.__name__ == "network_guard"
+
+
+def test_no_vcr_mark(httpbin):
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        requests.get(httpbin.url + "/ip")
+    """
+    )
+
+    result = testdir.runpytest("--block-network")
+    # Then all network interactions in all tests should be blocked
+    result.assert_outcomes(passed=2)
+
+
+def test_block_network_via_cmd_with_recording(testdir):
+    # When `--block-network` option is passed to CMD and VCR recording is enabled
+    testdir.makepyfile(
+        """
+import socket
+import pytest
+import requests
+import vcr.errors
+
+@pytest.mark.vcr
+def test_recording(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+def test_no_vcr_mark(httpbin):
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        requests.get(httpbin.url + "/ip")
+    """
+    )
+
+    result = testdir.runpytest("--block-network", "--record-mode=all")
+    # Then only tests with `pytest.mark.vcr` should record cassettes, other tests with network should raise errors
+    result.assert_outcomes(passed=2)
+
+    # And a cassette is recorded for the case where pytest.mark.vcr is applied
+    cassette_path = testdir.tmpdir.join("cassettes/test_block_network_via_cmd_with_recording/test_recording.yaml")
+    assert cassette_path.exists()
+
+
+@pytest.mark.skipif(pycurl is None, reason="Requires pycurl installed.")
+def test_pycurl(testdir):
+    # When pycurl is used for network access
+    testdir.makepyfile(
+        r"""
+import json
+import sys
+import pytest
+import pycurl
+from io import BytesIO
+
+
+@pytest.mark.block_network
+def test_error(httpbin):
+    buffer = BytesIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, httpbin.url + "/ip")
+    c.setopt(c.WRITEDATA, buffer)
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        c.perform()
+    c.close()
+
+def test_work(httpbin):
+    buffer = BytesIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, httpbin.url + "/ip")
+    c.setopt(c.WRITEDATA, buffer)
+    c.perform()
+    c.close()
+    assert json.loads(buffer.getvalue()) == {"origin":"127.0.0.1"}
+    """
+    )
+
+    result = testdir.runpytest()
+    # It should be blocked as well
+    result.assert_outcomes(passed=2)
+
+
+@pytest.mark.skipif(pycurl is None, reason="Requires pycurl installed.")
+def test_pycurl_with_allowed_hosts(testdir):
+    # When pycurl is used for network access
+    testdir.makepyfile(
+        r"""
+import json
+import sys
+import pytest
+import pycurl
+from io import BytesIO
+
+
+@pytest.mark.block_network(allowed_hosts=["127.0.0.*", "127.0.1.1"])
+def test_allowed(httpbin):
+    buffer = BytesIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, httpbin.url + "/ip")
+    c.setopt(c.WRITEDATA, buffer)
+    c.perform()
+    c.close()
+    assert json.loads(buffer.getvalue()) == {"origin":"127.0.0.1"}
+
+@pytest.mark.block_network(allowed_hosts=["127.0.0.*", "127.0.1.1"])
+def test_blocked(httpbin):
+    buffer = BytesIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, "http://example.com")
+    c.setopt(c.WRITEDATA, buffer)
+    with pytest.raises(RuntimeError, match=r"^Network is disabled$"):
+        c.perform()
+    c.close()
+    """
+    )
+
+    result = testdir.runpytest("-s")
+    # It should be blocked as well
+    result.assert_outcomes(passed=2)
+
+
+@pytest.mark.skipif(pycurl is None, reason="Requires pycurl installed.")
+def test_pycurl_setattr():
+    # When pycurl is used for network access
+    # And an attribute is set on an instance
+    curl = pycurl.Curl()
+    curl.attr = 42
+    # Then it should be proxied to the original Curl instance itself
+    assert curl.handle.attr == 42
+
+
+@pytest.mark.skipif(pycurl is None, reason="Requires pycurl installed.")
+def test_pycurl_url_error():
+    # When pycurl is used for network access
+    # And a wrapper may fail on URL manipulation due to missing URL
+    curl = pycurl.Curl()
+    # Then original pycurl error must be raised
+    with pytest.raises(pycurl.error, match="No URL set"):
+        curl.perform()
+
+
+@pytest.mark.skipif(pycurl is None, reason="Requires pycurl installed.")
+def test_sys_modules(testdir):
+    # When pycurl is patched
+    testdir.makepyfile(
+        """
+import sys
+import pytest
+
+@pytest.mark.block_network
+def test_sys_modules():
+    set(sys.modules.values())
+    """
+    )
+
+    result = testdir.runpytest()
+    # Patched module should be hashable - use case for auto-reloaders and similar (e.g. in Django)
+    # The patch should behave as close to real modules as possible
+    result.assert_outcomes(passed=1)
+
+
+def test_critical_error(testdir):
+    # When a critical error happened and the `network.disable` ctx manager is interrupted on `yield`
+    testdir.makepyfile(
+        """
+import socket
+from pytest_recording.network import blocking_context
+
+def test_critical_error():
+    try:
+        with blocking_context():
+            assert socket.socket.connect.__name__ == "network_guard"
+            assert socket.socket.connect_ex.__name__ == "network_guard"
+            raise ValueError
+    except ValueError:
+        pass
+    assert socket.socket.connect.__name__ == "connect"
+    assert socket.socket.connect_ex.__name__ == "connect_ex"
+    """
+    )
+    result = testdir.runpytest()
+    # Then socket and pycurl should be unpatched anyway
+    result.assert_outcomes(passed=1)
+    # NOTE. In reality, it is not likely to happen - e.g. if pytest will partially crash and will not call the teardown
+    # part of the generator, but this try/finally implementation could also guard against errors on manual
+
+
+IS_PYTEST_ABOVE_54 = version.parse(pytest.__version__) >= version.parse("5.4.0")
+
+
+@pytest.mark.parametrize("args", ("foo=42", "42"))
+def test_invalid_input_arguments(testdir, args):
+    # When the `block_network` mark receives an unknown argument
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+@pytest.mark.block_network({})
+def test_request():
+    requests.get("https://google.com")
+    """.format(args)
+    )
+    result = testdir.runpytest()
+    # Then there should be an error
+    if IS_PYTEST_ABOVE_54:
+        result.assert_outcomes(errors=1)
+    else:
+        result.assert_outcomes(error=1)
+    expected = "Invalid arguments to `block_network`. It accepts only the following keyword arguments: `allowed_hosts`."
+    assert expected in result.stdout.str()
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/pytest-recording/tests/test_plugin.py</source>
+<document_content>
+# -*- coding: utf-8 -*-
+import pytest
+from pytest_recording.plugin import RECORD_MODES
+
+
+@pytest.mark.parametrize(
+    "args, expected",
+    [(("--record-mode={}".format(mode),), mode) for mode in RECORD_MODES] + [((), "none")],
+)
+def test_record_mode(testdir, args, expected):
+    testdir.makepyfile(
+        """
+        def test_mode(record_mode):
+            assert record_mode == "{}"
+    """.format(expected)
+    )
+
+    # Record mode depends on the passed CMD arguments
+    result = testdir.runpytest(*args)
+    result.assert_outcomes(passed=1)
+    assert result.ret == 0
+
+
+def test_help_message(testdir):
+    result = testdir.runpytest("--help")
+    result.stdout.fnmatch_lines(["recording:", "*--record-mode=*", "*VCR.py record mode.*"])
+
+
+def test_pytest_vcr_incompatibility(testdir, mocker):
+    try:
+        mocker.patch("pluggy._manager.PluginManager.has_plugin", return_value=True)
+    except (AttributeError, ImportError):
+        # Older `pluggy`
+        mocker.patch("pluggy.manager.PluginManager.has_plugin", return_value=True)
+    testdir.makepyfile(
+        """
+        def test_():
+            pass
+    """
+    )
+
+    # Record mode depends on the passed CMD arguments
+    result = testdir.runpytest()
+    assert (
+        "INTERNALERROR> RuntimeError: `pytest-recording` is incompatible with `pytest-vcr`. "
+        "Please, uninstall `pytest-vcr` in order to use `pytest-recording`." in result.errlines
+    )
+    assert result.ret == 3
+
+
+def test_default_cassette_marker(testdir):
+    # When the `default_cassette` marker is defined
+    testdir.makepyfile(
+        """
+        import pytest
+
+        CASSETTE_NAME = "foo.yaml"
+
+        @pytest.mark.default_cassette(CASSETTE_NAME)
+        def test_marker(default_cassette_name):
+            assert default_cassette_name == CASSETTE_NAME
+        """
+    )
+    # Then the default_cassette_name fixture should be overridden
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+    assert result.ret == 0
+
+
+def test_lazy_vcr_config(testdir):
+    # When test does not involve VCR
+    testdir.makepyfile(
+        """
+        import pytest
+
+        @pytest.fixture
+        def vcr_config():
+            raise RuntimeError("Should not run")
+
+        def test_marker():
+            pass
+        """
+    )
+    # Then the `vcr_config` fixture should not be evaluated
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+    assert result.ret == 0
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/pytest-recording/tests/test_recording.py</source>
+<document_content>
+import json
+import string
+
+import pytest
+import yaml
+
+
+def test_cassette_recording(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.vcr
+        def test_{}(httpbin):
+            assert requests.get(httpbin.url + "/get").status_code == 200
+
+        @pytest.mark.vcr
+        class TestSomething:
+            def test_with_network(self, httpbin):
+                assert requests.get(httpbin.url + "/get").status_code == 200
+
+        @pytest.mark.vcr
+        def test_without_network():
+            pass
+    """.format(string.ascii_letters)
+    )
+
+    # If recording is enabled
+    result = testdir.runpytest("--record-mode=all")
+    result.assert_outcomes(passed=3)
+
+    # Then tests that use network will create cassettes
+    cassette_path = testdir.tmpdir.join("cassettes/test_cassette_recording/test_{}.yaml".format(string.ascii_letters))
+    assert cassette_path.size()
+    cassette_path = testdir.tmpdir.join("cassettes/test_cassette_recording/TestSomething.test_with_network.yaml")
+    assert cassette_path.size()
+
+    # And tests that do not use network will not create any cassettes
+    cassette_path = testdir.tmpdir.join("cassettes/test_cassette_recording/test_without_network.yaml")
+    assert not cassette_path.exists()
+
+
+def test_disable_recording(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.vcr
+        def test_(httpbin):
+            assert requests.get(httpbin.url + "/get").status_code == 200
+    """
+    )
+
+    # If recording is disabled
+    result = testdir.runpytest("--disable-recording")
+    result.assert_outcomes(passed=1)
+
+    # Then there should be no cassettes
+    cassette_path = testdir.tmpdir.join("cassettes/test_disable_recording/test_.yaml")
+    assert not cassette_path.exists()
+
+
+def test_record_mode_in_mark(testdir):
+    # See GH-47
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.vcr(record_mode="once")
+        def test_record_mode(httpbin):
+            assert requests.get(httpbin.url + "/get").status_code == 200
+    """
+    )
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+    cassette_path = testdir.tmpdir.join("cassettes/test_record_mode_in_mark/test_record_mode.yaml")
+    assert cassette_path.size()
+
+
+def test_override_default_cassette(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.default_cassette("foo.yaml")
+        @pytest.mark.vcr(record_mode="once")
+        def test_record_mode(httpbin):
+            assert requests.get(httpbin.url + "/get").status_code == 200
+    """
+    )
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+    cassette_path = testdir.tmpdir.join("cassettes/test_override_default_cassette/foo.yaml")
+    assert cassette_path.size()
+
+
+def test_record_mode_in_config(testdir):
+    # See GH-47
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.fixture(scope="module")
+        def vcr_config():
+            return {"record_mode": "once"}
+
+        @pytest.mark.vcr
+        def test_record_mode(httpbin):
+            assert requests.get(httpbin.url + "/get").status_code == 200
+    """
+    )
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+    cassette_path = testdir.tmpdir.join("cassettes/test_record_mode_in_config/test_record_mode.yaml")
+    assert cassette_path.size()
+
+
+def test_cassette_recording_rewrite(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.vcr
+        def test_with_network(httpbin):
+            assert requests.get(httpbin.url + "/uuid").status_code == 200
+
+        @pytest.mark.vcr
+        class TestSomething:
+            def test_with_network(self, httpbin):
+                assert requests.get(httpbin.url + "/uuid").status_code == 200
+    """
+    )
+
+    # If recording is enabled
+    result = testdir.runpytest("--record-mode=rewrite")
+    result.assert_outcomes(passed=2)
+
+    # Then tests that use network will create cassettes
+    test_function_cassette_path = testdir.tmpdir.join(
+        "cassettes/test_cassette_recording_rewrite/test_with_network.yaml"
+    )
+    test_function_size = test_function_cassette_path.size()
+    assert test_function_size
+    # Cassette should contain uuid as response
+    with open(str(test_function_cassette_path), encoding="utf8") as cassette:
+        cassette = yaml.load(cassette, Loader=yaml.BaseLoader)
+        test_function_cassette_uuid = cassette["interactions"][0]["response"]["body"]["string"]
+
+    test_class_cassette_path = testdir.tmpdir.join(
+        "cassettes/test_cassette_recording_rewrite/TestSomething.test_with_network.yaml"
+    )
+    test_class_size = test_class_cassette_path.size()
+    assert test_class_size
+    with open(str(test_class_cassette_path), encoding="utf8") as cassette:
+        cassette = yaml.load(cassette, Loader=yaml.BaseLoader)
+        test_class_cassette_uuid = cassette["interactions"][0]["response"]["body"]["string"]
+
+    # Second run will pass as well
+    result = testdir.runpytest("--record-mode=rewrite")
+    result.assert_outcomes(passed=2)
+    # And cassette size has not changed
+    assert test_function_cassette_path.size() == test_function_size
+    # But uuid is different
+    with open(str(test_function_cassette_path), encoding="utf8") as cassette:
+        cassette = yaml.load(cassette, Loader=yaml.BaseLoader)
+        assert test_function_cassette_uuid != cassette["interactions"][0]["response"]["body"]["string"]
+
+    assert test_class_cassette_path.size() == test_class_size
+    with open(str(test_class_cassette_path), encoding="utf8") as cassette:
+        cassette = yaml.load(cassette, Loader=yaml.BaseLoader)
+        assert test_class_cassette_uuid != cassette["interactions"][0]["response"]["body"]["string"]
+
+
+def test_custom_cassette_name(testdir):
+    # When a custom cassette name is passed to pytest.mark.vcr
+    cassette = testdir.tmpdir.join("cassettes/test_custom_cassette_name/test_with_network.yaml")
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.vcr("{}")
+        def test_with_network(httpbin):
+            assert requests.get(httpbin.url + "/get").status_code == 200
+    """.format(cassette)
+    )
+
+    result = testdir.runpytest("--record-mode=all")
+    result.assert_outcomes(passed=1)
+
+    # Then tests with custom cassette names specified will create appropriate cassettes
+    # And writing will happen to the default cassette
+    assert cassette.size()
+
+
+def test_custom_cassette_name_rewrite(testdir):
+    # When a custom cassette name is passed to pytest.mark.vcr
+    cassette = testdir.tmpdir.join("cassettes/test_custom_cassette_name_rewrite/test_with_network.yaml")
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+
+        @pytest.mark.vcr("{}")
+        def test_with_network(httpbin):
+            assert requests.get(httpbin.url + "/uuid").status_code == 200
+    """.format(cassette)
+    )
+
+    result = testdir.runpytest("--record-mode=rewrite")
+    result.assert_outcomes(passed=1)
+
+    # Then tests with custom cassette names specified will create appropriate cassettes
+    # And writing will happen to the default cassette
+    cassette_size = cassette.size()
+    assert cassette_size
+    with open(str(cassette), encoding="utf8") as file:
+        file = yaml.load(file, Loader=yaml.BaseLoader)
+        uuid = file["interactions"][0]["response"]["body"]["string"]
+
+    # Second run will pass as well
+    result = testdir.runpytest("--record-mode=rewrite")
+    result.assert_outcomes(passed=1)
+    # And cassette size is the same
+    assert cassette.size() == cassette_size
+    # But uuid in response is different
+    with open(str(cassette), encoding="utf8") as file:
+        file = yaml.load(file, Loader=yaml.BaseLoader)
+        assert uuid != file["interactions"][0]["response"]["body"]["string"]
+
+
+def test_default_cassette_recording(testdir, ip_response_cassette):
+    # When a cassette is applied on a module level
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr("{}")]
+
+def test_network(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+    assert requests.get(httpbin.url + "/get").status_code == 200
+    """.format(ip_response_cassette)
+    )
+
+    result = testdir.runpytest("--record-mode=all")
+    result.assert_outcomes(passed=1)
+
+    # Then writing should happen only to the closest cassette
+    cassette_path = testdir.tmpdir.join("cassettes/test_default_cassette_recording/test_network.yaml")
+    assert cassette_path.size()
+
+
+def test_forbidden_characters(testdir):
+    # When a test name contains characters that will lead to a directory creation
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr()]
+
+@pytest.mark.parametrize("value", ("/A", "../foo", "/foo/../bar", "foo/../../bar"))
+def test_network(httpbin, value):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+    """
+    )
+
+    result = testdir.runpytest("--record-mode=all")
+    result.assert_outcomes(passed=4)
+
+    # Then those characters should be replaced
+    assert not testdir.tmpdir.join("cassettes/test_forbidden_characters/test_network[").exists()
+    cassette_path = testdir.tmpdir.join("cassettes/test_forbidden_characters/test_network[-A].yaml")
+    assert cassette_path.size()
+    cassettes_dir = testdir.tmpdir.join("cassettes/test_forbidden_characters")
+    assert len(cassettes_dir.listdir()) == 4
+
+
+def test_json_serializer(testdir):
+    custom_cassette_path = testdir.tmpdir.join("custom.json")
+    # When the `serializer` config option is set to "json"
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr()]
+
+@pytest.mark.vcr(serializer="json")
+def test_network(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+
+@pytest.mark.vcr("{}", serializer="json")
+def test_custom_name(httpbin):
+    assert requests.get(httpbin.url + "/ip").status_code == 200
+    """.format(custom_cassette_path)
+    )
+
+    result = testdir.runpytest("--record-mode=all", "-s")
+    result.assert_outcomes(passed=2)
+
+    # Then the created cassette should have "json" extension
+    cassette_path = testdir.tmpdir.join("cassettes/test_json_serializer/test_network.json")
+    assert cassette_path.size()
+
+    # and contain a valid JSON
+    data = cassette_path.read_text("utf8")
+    json.loads(data)
+
+    # and a custom cassette is not created
+    assert not custom_cassette_path.exists()
+
+
+@pytest.mark.parametrize(
+    "code",
+    (
+        """
+import pytest
+import requests
+
+@pytest.mark.vcr("{}")
+@pytest.mark.vcr("{}")
+def test_with_network(httpbin):
+    assert requests.get(httpbin.url + "/get").status_code == 200
+""",
+        """
+import pytest
+import requests
+
+pytestmark = pytest.mark.vcr("{}")
+
+@pytest.mark.vcr("{}")
+def test_with_network(httpbin):
+    assert requests.get(httpbin.url + "/get").status_code == 200
+""",
+    ),
+)
+def test_multiple_marks(testdir, code):
+    first_cassette = testdir.tmpdir.join("custom.yaml")
+    second_cassette = testdir.tmpdir.join("custom2.yaml")
+    testdir.makepyfile(code.format(first_cassette, second_cassette))
+
+    # If recording is enabled
+    result = testdir.runpytest("--record-mode=all")
+    result.assert_outcomes(passed=1)
+
+    # And only the default cassette is writable
+    assert testdir.tmpdir.join("cassettes/test_multiple_marks/test_with_network.yaml").size()
+    assert not second_cassette.exists()
+    assert not first_cassette.exists()
+
+
+def test_kwargs_overriding(testdir):
+    # Example from the docs
+    testdir.makepyfile(
+        """
+import pytest
+
+pytestmark = [pytest.mark.vcr(ignore_localhost=True)]
+
+@pytest.fixture(scope="module")
+def vcr_config():
+    return {"filter_headers": ["authorization"]}
+
+def make_request(**kwargs):
+    return type("Request", (), kwargs)
+
+@pytest.mark.vcr(filter_headers=[])
+def test_one(vcr):
+    # Headers should be untouched
+    request = make_request(headers={"authorization": "something"})
+    assert vcr._before_record_request(request).headers == {"authorization": "something"}
+
+    # Check `ignore_localhost`
+    request = make_request(host="127.0.0.1")
+    assert vcr._before_record_request(request) is None
+
+
+@pytest.mark.vcr(filter_query_parameters=["api_key"])
+def test_two(vcr):
+    request = make_request(
+        uri="https://www.example.com?api_key=secret",
+        headers={"authorization": "something"},
+        query=(("api_key", "secret"),)
+    )
+    processed = vcr._before_record_request(request)
+    assert processed.headers == {}
+    assert processed.uri == "https://www.example.com"
+
+    # Check `ignore_localhost`
+    request = make_request(
+        uri="http://127.0.0.1",
+        host="127.0.0.1",
+        headers={"authorization": "something"},
+        query=(("api_key", "secret"),)
+    )
+    assert vcr._before_record_request(request) is None
+    """
+    )
+
+    # Different kwargs should be merged properly
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=2)
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/pytest-recording/tests/test_replaying.py</source>
+<document_content>
+import pytest
+import vcr
+from pytest_recording._vcr import load_cassette
+
+VCR_VERSION = tuple(map(int, vcr.__version__.split(".")))
+
+
+def test_no_cassette(testdir):
+    """If pytest.mark.vcr is applied and there is no cassette - an exception happens."""
+    testdir.makepyfile(
+        """
+        import pytest
+        import requests
+        import vcr
+
+        @pytest.mark.vcr
+        def test_vcr_used():
+            with pytest.raises(vcr.errors.CannotOverwriteExistingCassetteException):
+                requests.get('http://localhost/get')
+    """
+    )
+
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_combine_cassettes(testdir, get_response_cassette, ip_response_cassette):
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+@pytest.mark.vcr("{}")
+@pytest.mark.vcr("{}")
+def test_combined():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    assert requests.get("http://httpbin.org/ip").text == '{{"ip": true}}'
+
+def test_no_vcr(httpbin):
+    assert requests.get(httpbin.url + "/headers").status_code == 200
+""".format(get_response_cassette, ip_response_cassette)
+    )
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=2)
+
+
+def test_combine_cassettes_module_level(testdir, get_response_cassette, ip_response_cassette):
+    # When there there is a module-level mark and a test-level mark
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+import vcr
+
+pytestmark = pytest.mark.vcr("{}")
+
+@pytest.mark.vcr("{}")
+def test_combined():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    assert requests.get("http://httpbin.org/ip").text == '{{"ip": true}}'
+
+def test_single_cassette():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    with pytest.raises(vcr.errors.CannotOverwriteExistingCassetteException):
+        requests.get("http://httpbin.org/ip")
+        """.format(get_response_cassette, ip_response_cassette)
+    )
+    # Then their cassettes are combined
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=2)
+
+
+def test_empty_module_mark(testdir, get_response_cassette):
+    # When a module-level mark is empty
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+import vcr
+
+pytestmark = pytest.mark.vcr()
+
+@pytest.mark.vcr("{}")
+def test_combined():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+""".format(get_response_cassette)
+    )
+    # Then it is noop for tests that already have pytest.mark.vcr applied
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_merged_kwargs(testdir, get_response_cassette):
+    # When there are multiple pytest.mark.vcr with different kwargs
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+ORIGINAL = object()
+OVERRIDDEN = object()
+
+def before_request(request):
+    return ORIGINAL
+
+def override_before_request(request):
+    return OVERRIDDEN
+
+
+pytestmark = pytest.mark.vcr(before_record_request=before_request)
+
+GET_CASSETTE = "{}"
+
+@pytest.mark.vcr
+def test_custom_path(vcr):
+    assert vcr._before_record_request("mock") is ORIGINAL
+
+@pytest.mark.vcr(before_record_request=override_before_request)
+def test_custom_path_with_kwargs(vcr):
+    assert vcr._before_record_request("mock") is OVERRIDDEN
+    """.format(get_response_cassette)
+    )
+    # Then each test function should have cassettes with merged kwargs
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=2)
+
+
+def test_single_kwargs(testdir):
+    # When the closest vcr mark contains kwargs
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+def before_request(request):
+    raise ValueError("Before")
+
+@pytest.mark.vcr(before_record_request=before_request)
+def test_single_kwargs():
+    with pytest.raises(ValueError, match="Before"):
+        requests.get("http://httpbin.org/get")
+
+    """
+    )
+    # Then the VCR instance associated with the test function should get these kwargs
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_multiple_cassettes_in_mark(testdir, get_response_cassette, ip_response_cassette):
+    # When multiple cassettes are specified in pytest.mark.vcr
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+@pytest.mark.vcr("{}", "{}")
+def test_custom_path():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    assert requests.get("http://httpbin.org/ip").text == '{{"ip": true}}'
+    """.format(get_response_cassette, ip_response_cassette)
+    )
+    # Then they should be combined with each other
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_repeated_cassettes(testdir, mocker, get_response_cassette):
+    # When the same cassette is specified multiple times in the same mark or in different ones
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+CASSETTE = "{}"
+
+pytestmark = [pytest.mark.vcr(CASSETTE)]
+
+@pytest.mark.vcr(CASSETTE, CASSETTE)
+def test_custom_path():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    """.format(get_response_cassette)
+    )
+    # Then the cassette will be loaded only once
+    # And will not produce any errors
+    mocked_load_cassette = mocker.patch("pytest_recording._vcr.load_cassette", wraps=load_cassette)
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+    # Default one + extra one
+    assert mocked_load_cassette.call_count == 2
+
+
+def test_class_mark(testdir, get_response_cassette, ip_response_cassette):
+    # When pytest.mark.vcr is applied to a class
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr("{}")]
+
+@pytest.mark.vcr("{}")
+class TestSomething:
+
+    @pytest.mark.vcr()
+    def test_custom_path(self):
+        assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+        assert requests.get("http://httpbin.org/ip").text == '{{"ip": true}}'
+    """.format(get_response_cassette, ip_response_cassette)
+    )
+    # Then it should be combined with the other marks
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_own_mark(testdir, get_response_cassette, create_file, ip_cassette):
+    # When a test doesn't have its own mark
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr("{}")]
+
+
+def test_own():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    assert requests.get("http://httpbin.org/ip").text == '{{"ip": true}}'
+    """.format(get_response_cassette)
+    )
+    create_file("cassettes/test_own_mark/test_own.yaml", ip_cassette)
+    # Then it should use a cassette with a default name
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+@pytest.mark.parametrize("scope", ("function", "module", "session"))
+def test_global_config(testdir, scope):
+    # When there is a `vcr_config` fixture
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+EXPECTED = object()
+
+@pytest.fixture(scope="{}")
+def vcr_config():
+    return {{"before_record_request": before_request}}
+
+def before_request(request):
+    return EXPECTED
+
+@pytest.mark.vcr
+def test_own(vcr):
+    assert vcr._before_record_request("mock") is EXPECTED
+    """.format(scope)
+    )
+    # Then its config values should be merged with test-specific ones
+    result = testdir.runpytest("-s")
+    result.assert_outcomes(passed=1)
+
+
+def test_name_collision(testdir, create_file, ip_cassette, get_cassette):
+    # When different test files contains tests with the same names
+    testdir.makepyfile(
+        test_a="""
+import pytest
+import requests
+
+@pytest.mark.vcr
+def test_feature():
+    assert requests.get("http://httpbin.org/get").text == '{"get": true}'
+    """
+    )
+    testdir.makepyfile(
+        test_b="""
+import pytest
+import requests
+
+@pytest.mark.vcr
+def test_feature():
+    assert requests.get("http://httpbin.org/ip").text == '{"ip": true}'
+    """
+    )
+    # Then cassettes should not collide with each other, they should be separate
+    create_file("cassettes/test_a/test_feature.yaml", get_cassette)
+    create_file("cassettes/test_b/test_feature.yaml", ip_cassette)
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=2)
+
+
+def test_global_mark(testdir, create_file, get_cassette):
+    # When only global vcr mark is applied without parameters
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr]
+
+
+def test_feature():
+    assert requests.get("http://httpbin.org/get").text == '{"get": true}'
+    """
+    )
+    # Then tests without own marks should use test function names for cassettes
+    create_file("cassettes/test_global_mark/test_feature.yaml", get_cassette)
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+@pytest.mark.skipif(
+    VCR_VERSION >= (4, 4, 0),
+    reason="Newer VCRpy versions do not use the `assert` statement in matchers",
+)
+def test_assertions_rewrite(testdir, create_file, get_cassette):
+    # When a response match is not found
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+pytestmark = [pytest.mark.vcr]
+
+def test_feature():
+    assert requests.post("http://httpbin.org/get?a=1").text == "{'get': true}"
+    """
+    )
+    create_file("cassettes/test_assertions_rewrite/test_feature.yaml", get_cassette)
+    result = testdir.runpytest()
+    result.assert_outcomes(failed=1)
+    # Then assertions should be rewritten
+    result.stdout.fnmatch_lines(["*assert 'POST' == 'GET'", "*Left contains one more item: ('a', '1')"])
+
+
+def test_default_cassette_always_exist(testdir, create_file, ip_cassette, get_response_cassette):
+    # When any test with VCR mark is performed
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+
+@pytest.mark.vcr("{}")
+def test_feature():
+    assert requests.get("http://httpbin.org/get").text == '{{"get": true}}'
+    assert requests.get("http://httpbin.org/ip").text == '{{"ip": true}}'
+    """.format(get_response_cassette)
+    )
+    # Then the default cassette should always be used together with the extra one
+    create_file("cassettes/test_default_cassette_always_exist/test_feature.yaml", ip_cassette)
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_relative_cassette_path(testdir, create_file, ip_cassette, get_cassette):
+    # When a relative path is used in `pytest.mark.vcr`
+    testdir.makepyfile(
+        """
+import pytest
+import requests
+
+
+@pytest.mark.vcr("ip_cassette.yaml")
+def test_feature():
+    assert requests.get("http://httpbin.org/get").text == '{"get": true}'
+    assert requests.get("http://httpbin.org/ip").text == '{"ip": true}'
+    """
+    )
+    create_file("cassettes/test_relative_cassette_path/test_feature.yaml", get_cassette)
+    create_file("cassettes/test_relative_cassette_path/ip_cassette.yaml", ip_cassette)
+    result = testdir.runpytest()
+    # Then it should be properly loaded and used
+    result.assert_outcomes(passed=1)
+
+
+def test_recording_configure_hook(testdir):
+    testdir.makeconftest(
+        """
+def pytest_recording_configure(config, vcr):
+    print("HOOK IS CALLED")
+        """
+    )
+    testdir.makepyfile(
+        """
+import pytest
+
+@pytest.mark.vcr
+def test_feature():
+    pass
+    """
+    )
+    result = testdir.runpytest("-s")
+    assert "test_recording_configure_hook.py HOOK IS CALLED" in result.outlines
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/pytest-recording/tests/test_utils.py</source>
+<document_content>
+import pytest
+from pytest_recording.utils import unique
+
+
+@pytest.mark.parametrize("sequence, expected", (([], []), ([1, 1, 3, 5], [1, 3, 5])))
+def test_unique(sequence, expected):
+    assert list(unique(sequence)) == expected
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/pytest-recording/docs/changelog.rst</source>
+<document_content>
+.. _changelog:
+
+Changelog
+=========
+
+`Unreleased`_
+-------------
+
+`0.13.2`_ - 2024-07-09
+----------------------
+
+- Add lazy loading of VCR to reduce plugin overhead. `#145`_
+- Documentation improvements.
+
+`0.13.1`_ - 2023-12-07
+----------------------
+
+- Add support for Python 3.12.
+- Add trove classifier for license.
+
+`0.13.0`_ - 2023-08-01
+----------------------
+
+- Drop support for Python 3.5 and 3.6. `#97`_
+- Add support for VCR.py 5.0.0. `#118`_
+- Drop direct dependency on ``attrs``.
+- Build: Switch the build backend to `Hatch <https://hatch.pypa.io/>`_.
+
+`0.12.2`_ - 2023-02-16
+----------------------
+
+- Add support for Python 3.10 and 3.11. `#99`_
+
+`0.12.1`_ - 2022-06-20
+----------------------
+
+- Allow ``block_network.allowed_hosts`` configuration via ``vcr_config`` fixture. `#82`_
+
+`0.12.0`_ - 2021-07-08
+----------------------
+
+Fixed
+~~~~~
+
+- Honor ``record_mode`` set via the ``vcr_config`` fixture or the ``vcr`` mark when ``block_network`` is applied. `#68`_
+
+Changed
+~~~~~~~
+
+- Validate input arguments for the ``block_network`` pytest mark. `#69`_
+
+`0.11.0`_ - 2020-11-25
+----------------------
+
+Added
+~~~~~
+
+- ``--disable-recording`` CLI option to completely disable the VCR.py integration. `#64`_
+
+`0.10.0`_ - 2020-10-06
+----------------------
+
+Added
+~~~~~
+
+- The ``pytest.mark.default_cassette`` marker that overrides the default cassette name.
+
+`0.9.0`_ - 2020-08-13
+---------------------
+
+Added
+~~~~~
+
+- Type annotations to the plugin's internals.
+
+Fixed
+~~~~~
+
+- ``TypeError`` when using network blocking with address as ``bytes`` or ``bytearray``. `#55`_
+
+Removed
+~~~~~~~
+
+- Python 2 support. `#53`_
+
+`0.8.1`_ - 2020-06-13
+---------------------
+
+Fixed
+~~~~~
+
+- Honor ``record_mode`` passed via ``pytest.mark.vcr`` mark or in ``vcr_config`` fixture. `#47`_
+
+`0.8.0`_ - 2020-06-06
+---------------------
+
+Added
+~~~~~
+
+- New ``pytest_recording_configure`` hook that can be used for registering custom matchers, persisters, etc. `#45`_
+
+`0.7.0`_ - 2020-04-18
+---------------------
+
+Added
+~~~~~
+
+- New ``rewrite`` mode that removes cassette before recording. `#37`_
+
+`0.6.0`_ - 2020-01-23
+---------------------
+
+Changed
+~~~~~~~
+
+- Restore undocumented ability to use relative paths in ``pytest.mark.vcr``. `#34`_
+
+`0.5.0`_ - 2020-01-09
+---------------------
+
+Changed
+~~~~~~~
+
+- Default cassette (usually named as the test function name) always exists. This changes the behavior in two ways.
+  Firstly, recording will happen only to the default cassette and will not happen to any cassette passed as an argument to ``pytest.mark.vcr``
+  Secondly, it will allow "shared" + "specific" usage pattern, when the default cassette contains data relevant only to
+  the specific test and the custom one contains shared data, which is currently only possible with specifying full paths
+  to both cassettes in ``pytest.mark.vcr``.
+
+`0.4.0`_ - 2019-12-19
+---------------------
+
+Added
+~~~~~
+
+- Ability to list allowed hosts for ``block_network``. `#7`_
+
+`0.3.6`_ - 2019-12-17
+---------------------
+
+Fixed
+~~~~~
+
+- Setting attributes on ``pycurl.Curl`` instances
+
+`0.3.5`_ - 2019-11-18
+---------------------
+
+Fixed
+~~~~~
+
+- Broken packaging in ``0.3.4``.
+
+`0.3.4`_ - 2019-10-21
+---------------------
+
+Added
+~~~~~
+
+- An error is raised if ``pytest-vcr`` is installed. ``pytest-recording`` is not compatible with it. `#20`_
+
+`0.3.3`_ - 2019-08-18
+---------------------
+
+Added
+~~~~~
+
+- Pytest assertion rewriting for not matched requests.
+
+`0.3.2`_ - 2019-08-01
+---------------------
+
+Fixed
+~~~~~
+
+- Do not add "yaml" extension to cassettes if JSON serializer is used. `#10`_
+
+`0.3.1`_ - 2019-07-28
+---------------------
+
+Added
+~~~~~
+
+- ``network.block`` / ``network.unblock`` functions for manual network blocking manipulations. `#8`_
+
+`0.3.0`_ - 2019-07-20
+---------------------
+
+Added
+~~~~~
+
+- A pytest mark to block all network requests, except for VCR recording.
+
+`0.2.0`_ - 2019-07-18
+---------------------
+
+Added
+~~~~~
+
+- Reusable ``vcr_config`` fixture for ``VCR.use_cassette`` call. `#2`_
+
+0.1.0 - 2019-07-16
+------------------
+
+- Initial public release
+
+.. _Unreleased: https://github.com/kiwicom/pytest-recording/compare/v0.13.2...HEAD
+.. _0.13.2: https://github.com/kiwicom/pytest-recording/compare/v0.13.1...v0.13.2
+.. _0.13.1: https://github.com/kiwicom/pytest-recording/compare/v0.13.0...v0.13.1
+.. _0.13.0: https://github.com/kiwicom/pytest-recording/compare/v0.12.2...v0.13.0
+.. _0.12.2: https://github.com/kiwicom/pytest-recording/compare/v0.12.1...v0.12.2
+.. _0.12.1: https://github.com/kiwicom/pytest-recording/compare/v0.12.0...v0.12.1
+.. _0.12.0: https://github.com/kiwicom/pytest-recording/compare/v0.11.0...v0.12.0
+.. _0.11.0: https://github.com/kiwicom/pytest-recording/compare/v0.10.0...v0.11.0
+.. _0.10.0: https://github.com/kiwicom/pytest-recording/compare/v0.9.0...v0.10.0
+.. _0.9.0: https://github.com/kiwicom/pytest-recording/compare/v0.8.1...v0.9.0
+.. _0.8.1: https://github.com/kiwicom/pytest-recording/compare/v0.8.0...v0.8.1
+.. _0.8.0: https://github.com/kiwicom/pytest-recording/compare/v0.7.0...v0.8.0
+.. _0.7.0: https://github.com/kiwicom/pytest-recording/compare/v0.6.0...v0.7.0
+.. _0.6.0: https://github.com/kiwicom/pytest-recording/compare/v0.5.0...v0.6.0
+.. _0.5.0: https://github.com/kiwicom/pytest-recording/compare/v0.4.0...v0.5.0
+.. _0.4.0: https://github.com/kiwicom/pytest-recording/compare/v0.3.6...v0.4.0
+.. _0.3.6: https://github.com/kiwicom/pytest-recording/compare/v0.3.4...v0.3.6
+.. _0.3.5: https://github.com/kiwicom/pytest-recording/compare/v0.3.4...v0.3.4
+.. _0.3.4: https://github.com/kiwicom/pytest-recording/compare/v0.3.3...v0.3.4
+.. _0.3.3: https://github.com/kiwicom/pytest-recording/compare/v0.3.2...v0.3.3
+.. _0.3.2: https://github.com/kiwicom/pytest-recording/compare/v0.3.1...v0.3.2
+.. _0.3.1: https://github.com/kiwicom/pytest-recording/compare/v0.3.0...v0.3.1
+.. _0.3.0: https://github.com/kiwicom/pytest-recording/compare/v0.2.0...v0.3.0
+.. _0.2.0: https://github.com/kiwicom/pytest-recording/compare/v0.1.0...v0.2.0
+
+.. _#145: https://github.com/kiwicom/pytest-recording/issues/145
+.. _#118: https://github.com/kiwicom/pytest-recording/pull/118
+.. _#99: https://github.com/kiwicom/pytest-recording/pull/99
+.. _#97: https://github.com/kiwicom/pytest-recording/issues/97
+.. _#82: https://github.com/kiwicom/pytest-recording/pull/82
+.. _#69: https://github.com/kiwicom/pytest-recording/issues/69
+.. _#68: https://github.com/kiwicom/pytest-recording/issues/68
+.. _#64: https://github.com/kiwicom/pytest-recording/issues/64
+.. _#55: https://github.com/kiwicom/pytest-recording/issues/55
+.. _#53: https://github.com/kiwicom/pytest-recording/issues/53
+.. _#47: https://github.com/kiwicom/pytest-recording/issues/47
+.. _#45: https://github.com/kiwicom/pytest-recording/issues/45
+.. _#37: https://github.com/kiwicom/pytest-recording/issues/37
+.. _#34: https://github.com/kiwicom/pytest-recording/issues/34
+.. _#20: https://github.com/kiwicom/pytest-recording/issues/20
+.. _#10: https://github.com/kiwicom/pytest-recording/issues/10
+.. _#8: https://github.com/kiwicom/pytest-recording/issues/8
+.. _#7: https://github.com/kiwicom/pytest-recording/issues/7
+.. _#2: https://github.com/kiwicom/pytest-recording/issues/2
+
+</document_content>
+</document>
+</documents>

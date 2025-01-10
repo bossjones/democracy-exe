@@ -228,6 +228,7 @@ uv-upgrade: uv-upgrade-all
 uv-lock-check:
 	uv lock --check
 
+# check if uv lock is up to date
 uv-lock-check-dry-run:
 	uv lock --check --dry-run
 
@@ -860,7 +861,7 @@ pyright-createstubs-missing:
 		uv run pyright --createstub "$package"
 	done
 
-# Generate AI docs
+# Generate AI documentation from source files
 generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml"
 	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/tests/cogs \
@@ -949,6 +950,86 @@ generate-ai-docs:
 
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/cerebro.xml"
 	uv run files-to-prompt /Users/malcolm/dev/universityofprofessorex/cerebro-bot/cerebro_bot/cogs/autoresize.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/cerebro_bot/autoresize_cog.xml
+
+	# Democracy-exe logsetup documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/bossjones/democracy-exe/tests/test_logsetup.py \
+			/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/bot_logger/logsetup.py \
+			--cxml -o ai_docs/prompts/democracy_exe_logsetup.xml
+
+	# Structlog test examples
+	uv run files-to-prompt \
+			/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/bot_logger/logsetup.py \
+			/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/bot_logger/logsetup.py \
+			--cxml -o ai_docs/prompts/structlog_test_examples.xml
+
+	# DPyTest documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/dpytest/discord \
+			/Users/malcolm/dev/dpytest/tests \
+			/Users/malcolm/dev/dpytest/docs \
+			--cxml -o ai_docs/prompts/dpytest_docs_test_and_code.xml
+
+	# KoalaBot documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/KoalaBot/koalabot.py \
+			/Users/malcolm/dev/KoalaBot/tests \
+			/Users/malcolm/dev/KoalaBot/koala \
+			--cxml -o ai_docs/prompts/data/KoalaBot_docs_test_and_code.xml
+
+	# ClassMateBot documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/ClassMateBot/conftest.py \
+			/Users/malcolm/dev/ClassMateBot/bot.py \
+			/Users/malcolm/dev/ClassMateBot/test \
+			/Users/malcolm/dev/ClassMateBot/cogs \
+			--cxml -o ai_docs/prompts/data/ClassMateBot_docs_test_and_code.xml
+
+	# TeachersPetBot documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/TeachersPetBot/src \
+			/Users/malcolm/dev/TeachersPetBot/test \
+			/Users/malcolm/dev/TeachersPetBot/bot.py \
+			/Users/malcolm/dev/TeachersPetBot/BotBackup.py \
+			/Users/malcolm/dev/TeachersPetBot/conftest.py \
+			/Users/malcolm/dev/TeachersPetBot/cogs \
+			/Users/malcolm/dev/TeachersPetBot/configs \
+			/Users/malcolm/dev/TeachersPetBot/__init__.py \
+			/Users/malcolm/dev/TeachersPetBot/initialize_db_script.py \
+			--cxml -o ai_docs/prompts/data/TeachersPetBot_docs_test_and_code.xml
+
+	# Democracy-exe full documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/bossjones/democracy-exe \
+			--cxml -o ai_docs/prompts/data/democracy_exe_with_segfault.xml
+
+	# CPython asyncio tests documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/cpython/Lib/test/test_asyncio \
+			--cxml -o ai_docs/prompts/data/cpython_test_asyncio.xml
+
+	# VCRpy documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/vcrpy/vcr \
+			/Users/malcolm/dev/vcrpy/tests \
+			/Users/malcolm/dev/vcrpy/docs \
+			--cxml -o ai_docs/prompts/data/vcrpy_docs_test_and_code.xml
+
+	# Pytest-recording documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/pytest-recording/src \
+			/Users/malcolm/dev/pytest-recording/tests \
+			/Users/malcolm/dev/pytest-recording/docs \
+			--cxml -o ai_docs/prompts/data/pytest_recording_docs_test_and_code.xml
+
+	# Langgraph documentation
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/langgraph/langgraph \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/langgraph/tests \
+			--cxml -o ai_docs/prompts/data/langgraph_docs_test_and_code.xml
+
+	echo "AI documentation generation complete"
+
 
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
@@ -1070,32 +1151,32 @@ logs-langgraph-studio:
 
 # Access the Docker VM debug shell
 docker-debug-shell:
-    socat -d -d ~/Library/Containers/com.docker.docker/Data/debug-shell.sock pty,rawer
-    @echo "Now run 'screen /dev/ttys0xx' in a new terminal (replace ttys0xx with the PTY output)"
+		socat -d -d ~/Library/Containers/com.docker.docker/Data/debug-shell.sock pty,rawer
+		@echo "Now run 'screen /dev/ttys0xx' in a new terminal (replace ttys0xx with the PTY output)"
 
 # Access Docker VM using a privileged container
 docker-vm-shell:
-    docker run -it --rm --privileged --pid=host --name nsenter1 justincormack/nsenter1
+		docker run -it --rm --privileged --pid=host --name nsenter1 justincormack/nsenter1
 
 # View overall Docker disk usage
 docker-disk-usage:
-    docker system df
+		docker system df
 
 # View detailed Docker disk usage
 docker-disk-usage-verbose:
-    docker system df -v
+		docker system df -v
 
 # List Docker images and their sizes
 docker-list-images:
-    docker image ls
+		docker image ls
 
 # List all containers and their sizes
 docker-list-containers:
-    docker container ls -a
+		docker container ls -a
 
 # Check the size of the Docker disk image file
 docker-check-image-size:
-    ls -klsh ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
+		ls -klsh ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
 
 # Remove unused Docker objects
 docker-prune:
@@ -1104,15 +1185,15 @@ docker-prune:
 
 # Aggressively reclaim space (use with caution)
 docker-reclaim-space:
-    docker run --privileged --pid=host docker/desktop-reclaim-space
+		docker run --privileged --pid=host docker/desktop-reclaim-space
 
 # Run all disk usage checks
 docker-check-all:
-    @just docker-disk-usage
-    @just docker-disk-usage-verbose
-    @just docker-list-images
-    @just docker-list-containers
-    @just docker-check-image-size
+		@just docker-disk-usage
+		@just docker-disk-usage-verbose
+		@just docker-list-images
+		@just docker-list-containers
+		@just docker-check-image-size
 
 # Generate external documentation with configurable path and model
 generate-external-docs path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:

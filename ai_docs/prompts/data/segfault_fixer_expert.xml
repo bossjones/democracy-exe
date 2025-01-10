@@ -1,0 +1,1128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<segfault_guidelines>
+    <system>
+        This document serves as an expert guide for analyzing and fixing segmentation faults in Python applications, with a specific focus on concurrent operations, resource management, and thread safety in the context of LangChain and LangGraph applications.
+    </system>
+
+    <context>
+        The democracy-exe project experiences segmentation faults during concurrent operations, particularly in LangSmith client background threads and LangGraph SSE handling. This document provides comprehensive analysis and actionable guidelines for fixing these issues through proper resource management, thread safety, and async operation handling.
+    </context>
+
+    <instructions>
+        1. Follow the diagnostic points to identify similar issues in your code
+        2. Implement the recommended fixes based on priority
+        3. Use the provided code patterns as templates for implementation
+        4. Add appropriate tests based on the testing recommendations
+        5. Ensure all implementations follow the style preferences
+    </instructions>
+
+    <style_preferences>
+        - Use comprehensive error handling with proper cleanup
+        - Implement full type annotations for all functions
+        - Add detailed docstrings following Google style
+        - Use clear, descriptive variable and function names
+        - Include comments explaining complex concurrent operations
+        - Follow async/await best practices consistently
+        - Maintain clear separation between blocking and non-blocking code
+    </style_preferences>
+
+    <quotes>
+        <quote source="error_trace">
+            Thread 0x0000ffff5fe0f180 shows issues in LangSmith client background thread operations, particularly in _multipart_ingest_ops and _tracing_thread_handle_batch
+        </quote>
+        <quote source="error_trace">
+            Current thread shows the error occurring in langgraph_api/sse.py during stream_response, indicating potential issues with SSE handling
+        </quote>
+        <quote source="error_trace">
+            Multiple threads show concurrent operations involving asyncio, threading, and multiprocessing
+        </quote>
+        <quote source="democracy_exe/utils/async_.py">
+            Detected I/O inside the event loop. This is causing stability issues. Please report issue for integration doing I/O
+        </quote>
+        <quote source="democracy_exe/utils/aiodbx.py">
+            SafeFileHandler implements proper error handling and cleanup with async context management
+        </quote>
+        <quote source="democracy_exe/clients/aio_gallery_dl.py">
+            Run a function in the default executor to avoid blocking the event loop
+        </quote>
+        <quote source="democracy_exe/chatbot/cogs/autocrop.py">
+            Thread pools being shut down without waiting: pool.shutdown(wait=False)
+        </quote>
+        <quote source="democracy_exe/utils/async_.py">
+            I/O must be done in the executor; Use `await hass.async_add_executor_job()` at {found_frame.filename[index:]}, line {found_frame.lineno}: {found_frame.line.strip()}
+        </quote>
+        <quote source="democracy_exe/utils/aiodbx.py">
+            async with self._cleanup_lock: if self._closed: return
+        </quote>
+        <quote source="democracy_exe/utils/twitter_utils/storage.py">
+            Proper cleanup pattern: try: await self.cleanup() finally: await self.close()
+        </quote>
+        <quote source="democracy_exe/chatbot/terminal_bot.py">
+            SEM = asyncio.Semaphore(1) # Thread synchronization example
+        </quote>
+        <quote source="democracy_exe/__init__.py">
+            Ensure proper initialization sequence for LangSmith and LangGraph components
+        </quote>
+        <quote source="democracy_exe/aio_settings.py">
+            Configure thread and process pools with appropriate lifecycle management
+        </quote>
+        <quote source="democracy_exe/base.py">
+            Implement proper resource cleanup in base classes for consistent behavior
+        </quote>
+    </quotes>
+
+    <info>
+        <diagnostic_points>
+            <point>The segfault occurs during concurrent operations involving LangSmith client background threads</point>
+            <point>Server-Sent Events (SSE) handling in LangGraph API may be triggering memory corruption</point>
+            <point>Multiple Python extension modules are loaded which could contribute to thread safety issues</point>
+            <point>The error involves interaction between asyncio, threading, and multiprocessing</point>
+            <point>I/O operations being performed inside event loop causing stability issues</point>
+            <point>Thread pools being shut down prematurely without proper cleanup</point>
+            <point>Resources not being properly cleaned up in async context managers</point>
+            <point>Missing synchronization for shared resource access across threads</point>
+            <point>Improper handling of cleanup locks leading to resource leaks</point>
+            <point>Lack of proper error boundaries in async operations</point>
+            <point>Missing thread synchronization in critical sections</point>
+            <point>Improper shutdown sequence for thread pools and executors</point>
+            <point>Initialization sequence may not properly handle component dependencies</point>
+            <point>Resource cleanup during shutdown may be incomplete or out of order</point>
+            <point>Thread pool configuration may not be optimized for the application's needs</point>
+            <point>Base class implementations may not consistently handle resource cleanup</point>
+            <point>Nested event loops can cause deadlocks and segfaults</point>
+            <point>Improper state isolation between sync/async calls can cause corruption</point>
+            <point>Missing exception context can hide root causes of failures</point>
+            <point>Thread safety violations in sync wrappers can cause crashes</point>
+            <point>Resource cleanup failures can lead to memory leaks</point>
+            <point>Missing event loop in worker threads can cause operations to fail</point>
+            <point>Improper loop cleanup can lead to resource leaks</point>
+            <point>Nested event loops can cause deadlocks</point>
+            <point>State isolation failures between threads can corrupt data</point>
+            <point>Loop creation/cleanup errors can leave resources dangling</point>
+        </diagnostic_points>
+
+        <recommended_fixes>
+            <fix priority="high">
+                <issue>LangSmith Client Thread Safety</issue>
+                <solution>
+                    <step>Ensure LangSmith client is properly initialized with thread-safe configuration</step>
+                    <step>Implement proper cleanup of background threads</step>
+                    <step>Add thread synchronization mechanisms for shared resources</step>
+                    <step>Use asyncio.Lock() for thread synchronization</step>
+                    <step>Implement proper cleanup in async context managers</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>SSE Stream Handling</issue>
+                <solution>
+                    <step>Implement proper resource cleanup in stream_response</step>
+                    <step>Add error boundaries around SSE stream handling</step>
+                    <step>Ensure proper closing of connections and cleanup of resources</step>
+                    <step>Use SafeFileHandler pattern for file operations</step>
+                    <step>Add proper exception handling with cleanup in finally blocks</step>
+                </solution>
+            </fix>
+
+            <fix priority="medium">
+                <issue>Extension Module Interactions</issue>
+                <solution>
+                    <step>Review extension module initialization order</step>
+                    <step>Ensure proper GIL handling in extension modules</step>
+                    <step>Add cleanup handlers for extension module resources</step>
+                    <step>Move I/O operations to executors using run_in_executor</step>
+                </solution>
+            </fix>
+
+            <fix priority="medium">
+                <issue>Concurrent Operations</issue>
+                <solution>
+                    <step>Implement proper shutdown sequence for all threads</step>
+                    <step>Add proper exception handling in thread workers</step>
+                    <step>Use thread pools with proper lifecycle management</step>
+                    <step>Ensure thread pools are shut down with wait=True when appropriate</step>
+                    <step>Add proper coordination between asyncio, threading and multiprocessing</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Sync/Async Conversion Safety</issue>
+                <solution>
+                    <step>Prevent nested event loop creation</step>
+                    <step>Ensure proper state isolation between calls</step>
+                    <step>Preserve exception context in conversions</step>
+                    <step>Implement proper thread safety in wrappers</step>
+                    <step>Add comprehensive resource cleanup</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Thread Event Loop Management</issue>
+                <solution>
+                    <step>Create new event loop for each worker thread</step>
+                    <step>Set loop as current in thread context</step>
+                    <step>Clean up loop in finally block</step>
+                    <step>Reset loop to None after cleanup</step>
+                    <step>Handle loop errors gracefully</step>
+                </solution>
+            </fix>
+        </recommended_fixes>
+
+        <implementation_guidelines>
+            <guideline>
+                <name>Thread Safety</name>
+                <description>
+                    - Use thread-local storage for thread-specific data
+                    - Implement proper locking mechanisms using asyncio.Lock()
+                    - Ensure proper resource cleanup on thread exit
+                    - Add synchronization for shared resource access
+                    - Use thread pools with proper lifecycle management
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Resource Management</name>
+                <description>
+                    - Implement proper context managers for resource cleanup
+                    - Use SafeFileHandler pattern for file operations
+                    - Add proper error handling and cleanup in finally blocks
+                    - Ensure proper closing of connections and resources
+                    - Implement proper cleanup in async context managers
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Memory Management</name>
+                <description>
+                    - Monitor memory usage in background threads
+                    - Implement proper cleanup of large objects
+                    - Use memory profiling tools to identify leaks
+                    - Ensure proper cleanup of resources in __aexit__ methods
+                    - Add proper exception handling with cleanup
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Error Handling</name>
+                <description>
+                    - Add comprehensive error logging
+                    - Implement proper error propagation
+                    - Add error recovery mechanisms
+                    - Add error boundaries around thread operations
+                    - Ensure proper cleanup in error cases
+                </description>
+            </guideline>
+
+            <guideline>
+                <name>Event Loop Safety</name>
+                <description>
+                    - Move I/O operations out of event loop using run_in_executor
+                    - Add proper error boundaries around async operations
+                    - Avoid mixing blocking and non-blocking code
+                    - Use proper async context management
+                    - Implement proper coordination between different execution contexts
+                </description>
+            </guideline>
+
+            <guideline>
+                <n>Functionality Preservation</n>
+                <description>
+                    - Verify all original functionality is preserved after modifications
+                    - Document any removed functionality that needs to be restored
+                    - Report any functionality changes at the end of generation
+                    - Ensure critical functions maintain their original behavior
+                    - Track and report any API changes that affect backwards compatibility
+                </description>
+            </guideline>
+        </implementation_guidelines>
+
+        <testing_recommendations>
+            <recommendation>Add stress tests for concurrent operations</recommendation>
+            <recommendation>Implement memory leak tests</recommendation>
+            <recommendation>Add thread safety tests</recommendation>
+            <recommendation>Test proper cleanup of resources</recommendation>
+            <recommendation>Add tests for proper thread pool lifecycle management</recommendation>
+            <recommendation>Test error handling and recovery mechanisms</recommendation>
+            <recommendation>Add tests for proper async context management</recommendation>
+            <recommendation>Test proper coordination between different execution contexts</recommendation>
+            <recommendation>Ensure event loops are properly scoped and managed in tests</recommendation>
+            <recommendation>Test thread-safe operations from both async and non-async contexts</recommendation>
+            <recommendation>Verify proper cleanup of event loop references</recommendation>
+            <recommendation>Test thread synchronization with explicit coordination mechanisms</recommendation>
+
+            <async_testing_patterns>
+                <pattern name="event_loop_management">
+                    <description>
+                        When testing async code that involves event loops:
+                        - Store event loops at appropriate scope (function, class, module)
+                        - Verify event loop is running before use
+                        - Clean up event loop references after use
+                        - Handle event loop access from different threads properly
+                        - Use proper fixture scopes for event loops
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio(loop_scope="module")
+                        class TestAsync:
+                            # Store loop at class level for shared access
+                            _loop: asyncio.AbstractEventLoop | None = None
+
+                            async def test_remember_loop(self) -> None:
+                                """Test loop storage for shared tests."""
+                                current_loop = asyncio.get_running_loop()
+                                assert isinstance(current_loop, asyncio.AbstractEventLoop)
+                                TestAsync._loop = current_loop
+                                assert current_loop.is_running()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_safe_event_testing">
+                    <description>
+                        When testing thread-safe event coordination:
+                        - Create events in proper async context
+                        - Use explicit thread synchronization
+                        - Test multiple concurrent waiters
+                        - Verify proper cleanup in all scenarios
+                        - Test error handling in different contexts
+                        - Use appropriate timeouts to prevent hangs
+                    </description>
+                    <example>
+                        <![CDATA[
+                        async def test_thread_safe_event(self) -> None:
+                            event = ThreadSafeEvent()  # Create in async context
+                            results: list[bool] = []
+                            ready_event = threading.Event()  # Thread coordination
+
+                            async def waiter() -> None:
+                                try:
+                                    await asyncio.wait_for(event.wait(), timeout=2.0)
+                                    results.append(True)
+                                except TimeoutError:
+                                    results.append(False)
+
+                            def thread_set() -> None:
+                                ready_event.wait(timeout=1.0)  # Wait for signal
+                                event.set()
+
+                            # Coordinate threads explicitly
+                            thread = threading.Thread(target=thread_set)
+                            thread.start()
+                            ready_event.set()
+                            await asyncio.gather(*[waiter() for _ in range(5)])
+                            thread.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="resource_cleanup_verification">
+                    <description>
+                        When testing resource cleanup:
+                        - Verify all resources are properly closed
+                        - Test cleanup during normal operation
+                        - Test cleanup during exceptions
+                        - Verify resource state after cleanup
+                        - Test operations after cleanup
+                        - Ensure proper reference cleanup
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # Test cleanup and post-cleanup state
+                        event.close()
+                        assert event._closed, "Event should be closed"
+                        assert event._event is None, "Internal event should be None"
+                        assert event._loop is None, "Event loop reference should be cleared"
+
+                        # Verify operations after cleanup
+                        event.set()  # Should return silently
+                        event.clear()  # Should return silently
+                        with pytest.raises(RuntimeError, match="Event is closed"):
+                            await event.wait()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_context_validation">
+                    <description>
+                        When testing operations across different thread contexts:
+                        - Test creation in async vs non-async contexts
+                        - Verify proper error handling in wrong contexts
+                        - Test thread-safe operations from different threads
+                        - Ensure proper error messages for context violations
+                        - Test thread coordination mechanisms
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # Test creating event in non-async context
+                        def create_event_in_thread() -> None:
+                            with pytest.raises(RuntimeError,
+                                match="must be created from an async context"):
+                                ThreadSafeEvent()
+
+                        thread = threading.Thread(target=create_event_in_thread)
+                        thread.start()
+                        thread.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern>
+                    <name>Thread-Safe Event Loop Access</name>
+                    <description>When accessing event loop methods from background threads, always use thread-safe methods.</description>
+                    <recommendations>
+                        <item>Use call_soon_threadsafe() instead of direct method calls on the event loop</item>
+                        <item>Store the event loop at object creation time to ensure consistent access</item>
+                        <item>Verify objects requiring event loop access are created in async context</item>
+                        <item>Handle RuntimeError when getting event loop from non-async context</item>
+                    </recommendations>
+                    <example>
+                        <![CDATA[
+                        class ThreadSafeAsyncObject:
+                            def __init__(self):
+                                try:
+                                    self._loop = asyncio.get_running_loop()
+                                except RuntimeError:
+                                    raise RuntimeError("Must be created from async context")
+
+                            def wake_up_waiter(self, waiter):
+                                # Use call_soon_threadsafe for thread-safe operations
+                                self._loop.call_soon_threadsafe(waiter.set_result, None)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern>
+                    <name>Semaphore Testing</name>
+                    <description>Guidelines for testing async semaphores and similar synchronization primitives.</description>
+                    <recommendations>
+                        <item>Test both async and sync contexts</item>
+                        <item>Verify proper cleanup of resources</item>
+                        <item>Test error conditions and timeout scenarios</item>
+                        <item>Use explicit synchronization between threads</item>
+                        <item>Add sleep intervals to allow state changes to propagate</item>
+                        <item>Test with more waiters than semaphore value</item>
+                        <item>Verify final state after all operations</item>
+                    </recommendations>
+                    <example>
+                        <![CDATA[
+                        async def test_semaphore():
+                            sem = AsyncSemaphore(2)
+                            waiters = []
+                            ready_event = threading.Event()
+
+                            async def waiter():
+                                await sem.acquire()
+                                await asyncio.sleep(0.1)  # Hold semaphore
+                                sem.release()
+
+                            # Start multiple waiters
+                            for _ in range(5):
+                                waiters.append(asyncio.create_task(waiter()))
+
+                            # Coordinate with background thread
+                            thread = threading.Thread(target=thread_func)
+                            thread.start()
+                            ready_event.set()
+
+                            await asyncio.gather(*waiters)
+                            thread.join()
+
+                            # Verify final state
+                            assert sem._count == initial_count
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern>
+                    <name>Resource Cleanup</name>
+                    <description>Ensure proper cleanup of async resources to prevent memory leaks and segfaults.</description>
+                    <recommendations>
+                        <item>Always close/cleanup resources in both success and error cases</item>
+                        <item>Wake up and clear all waiters when closing resources</item>
+                        <item>Release all held resources during cleanup</item>
+                        <item>Set clear state flags to prevent further operations</item>
+                        <item>Use context managers when possible</item>
+                    </recommendations>
+                    <example>
+                        <![CDATA[
+                        def close(self):
+                            with self._lock:
+                                self._closed = True
+                                # Wake up waiters
+                                for waiter in self._waiters:
+                                    if not waiter.done():
+                                        waiter.set_exception(RuntimeError("Resource closed"))
+                                self._waiters.clear()
+                                # Release resources
+                                while self._count < self._value:
+                                    self._semaphore.release()
+                                    self._count += 1
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_decorator_testing">
+                    <description>
+                        When testing async decorators that interact with threads:
+                        - Use explicit thread synchronization with threading.Event
+                        - Handle both Future and Task objects appropriately
+                        - Ensure proper cleanup in all execution paths
+                        - Test cancellation with proper state verification
+                        - Verify thread pool states before and after operations
+                    </description>
+                    <example>
+                        <![CDATA[
+                        async def test_thread_decorator():
+                            # Set up thread synchronization
+                            execution_started = threading.Event()
+                            execution_continue = threading.Event()
+                            thread_pool_manager = ThreadPoolManager()
+
+                            try:
+                                @to_async_thread
+                                def thread_func(x: int) -> int:
+                                    execution_started.set()  # Signal start
+                                    execution_continue.wait()  # Wait for signal
+                                    return x * 2
+
+                                # Test with proper thread coordination
+                                execution_continue.set()
+                                result = await thread_func(21)
+                                assert result == 42
+
+                                # Reset for next test
+                                execution_started.clear()
+                                execution_continue.clear()
+
+                                # Test cancellation
+                                future = thread_func(10)
+                                await asyncio.sleep(0.1)
+                                assert execution_started.is_set()
+                                future.cancel()
+
+                                try:
+                                    await future
+                                except asyncio.CancelledError:
+                                    pass  # Expected
+                            finally:
+                                # Ensure events are set to prevent hanging
+                                execution_continue.set()
+                                execution_started.set()
+                                # Clean up thread pools
+                                thread_pool_manager.shutdown_all(wait=True)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="future_vs_task_handling">
+                    <description>
+                        Guidelines for handling Future vs Task objects in tests:
+                        - Understand when decorators return Futures vs Tasks
+                        - Use appropriate cancellation methods for each type
+                        - Verify state transitions correctly
+                        - Handle cleanup appropriately for each type
+                        - Test both sync and async cancellation paths
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # For Tasks (coroutines)
+                        task = asyncio.create_task(coro())
+                        task.cancel()
+                        await task  # Handle CancelledError
+
+                        # For Futures (from thread operations)
+                        future = thread_func()  # Returns Future directly
+                        future.cancel()
+                        await future  # Handle CancelledError
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_pool_verification">
+                    <description>
+                        Guidelines for verifying thread pool state:
+                        - Check pool state before and after operations
+                        - Verify proper shutdown behavior
+                        - Test with multiple pools
+                        - Ensure cleanup in both success and error paths
+                        - Monitor for resource leaks
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # Test thread pool lifecycle
+                        pools = [thread_pool_manager.create_pool(max_workers=1)
+                                for _ in range(3)]
+                        try:
+                            # Verify active state
+                            assert all(not pool._shutdown for pool in pools)
+
+                            # Run work
+                            futures = []
+                            for pool in pools:
+                                futures.append(pool.submit(work_func))
+
+                            # Wait for completion
+                            for future in futures:
+                                future.result()
+                        finally:
+                            # Verify cleanup
+                            thread_pool_manager.shutdown_all(wait=True)
+                            assert all(pool._shutdown for pool in pools)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="comprehensive_cleanup">
+                    <description>
+                        Guidelines for comprehensive cleanup in async tests:
+                        - Use try/except/finally blocks consistently
+                        - Clean up thread synchronization primitives
+                        - Handle both expected and unexpected errors
+                        - Verify resource state after cleanup
+                        - Prevent test hanging
+                    </description>
+                    <example>
+                        <![CDATA[
+                        try:
+                            # Test operations
+                            await async_operation()
+                        except Exception as e:
+                            # Handle expected errors
+                            cleanup_resources()
+                            raise  # Re-raise after cleanup
+                        finally:
+                            # Always cleanup
+                            execution_continue.set()  # Prevent hanging
+                            execution_started.set()
+                            if not thread_pool_manager._closed:
+                                thread_pool_manager.shutdown_all(wait=True)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="sync_async_conversion_testing">
+                    <description>
+                        Guidelines for testing sync/async conversion decorators:
+                        - Test nested event loop prevention
+                        - Verify state isolation between calls
+                        - Check exception context preservation
+                        - Test thread safety in concurrent scenarios
+                        - Ensure proper resource cleanup
+                        - Verify error propagation
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_sync_async_conversion():
+                            cleanup_called = threading.Event()
+                            results: list[int] = []
+                            errors: list[Exception] = []
+
+                            @to_sync
+                            async def async_func():
+                                try:
+                                    await asyncio.sleep(0.1)
+                                finally:
+                                    cleanup_called.set()
+
+                            # Test nested event loop prevention
+                            with pytest.raises(RuntimeError) as exc_info:
+                                @to_sync
+                                async def nested():
+                                    await asyncio.sleep(0.1)
+                                    asyncio.run(asyncio.sleep(0.1))
+                                nested()
+
+                            # Test thread safety
+                            def worker():
+                                try:
+                                    async_func()
+                                except Exception as e:
+                                    errors.append(e)
+
+                            threads = [threading.Thread(target=worker)
+                                     for _ in range(5)]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+
+                            assert not errors, "Thread safety violation"
+                            assert cleanup_called.is_set(), "Cleanup failed"
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="event_loop_safety">
+                    <description>
+                        Guidelines for preventing event loop issues:
+                        - Prevent nested event loop creation
+                        - Handle event loop cleanup properly
+                        - Ensure proper loop state in threads
+                        - Verify loop isolation between calls
+                        - Test loop error propagation
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_event_loop_safety():
+                            # Test nested loop prevention
+                            with pytest.raises(RuntimeError):
+                                asyncio.run(asyncio.sleep(0.1))  # In sync context
+
+                            # Test loop cleanup
+                            async def coro():
+                                await asyncio.sleep(0.1)
+                            asyncio.run(coro())  # Should clean up loop
+
+                            # Test loop isolation
+                            def thread_func():
+                                asyncio.run(coro())  # Each thread gets own loop
+                            threads = [threading.Thread(target=thread_func)
+                                     for _ in range(3)]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="exception_context">
+                    <description>
+                        Guidelines for testing exception handling in sync/async conversion:
+                        - Preserve original exception context
+                        - Test exception type conversion
+                        - Verify exception attributes
+                        - Check stack trace preservation
+                        - Test nested exception handling
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_exception_context():
+                            @to_sync
+                            async def failing_func():
+                                raise ValueError("Async error")
+
+                            def get_error_context():
+                                try:
+                                    raise RuntimeError("Original")
+                                except RuntimeError:
+                                    failing_func()
+
+                            with pytest.raises(ValueError) as exc_info:
+                                get_error_context()
+                            assert "Async error" in str(exc_info.value)
+                            assert exc_info.type is ValueError
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_event_loop_management">
+                    <description>
+                        Guidelines for managing event loops in threaded environments:
+                        - Create new event loop for each thread
+                        - Set and unset event loops properly
+                        - Clean up loops after use
+                        - Handle loop state isolation
+                        - Prevent loop leaks
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def worker() -> None:
+                            try:
+                                # Create new loop for this thread
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+                                try:
+                                    # Run async operations
+                                    result = async_func()
+                                finally:
+                                    # Clean up loop
+                                    loop.close()
+                                    asyncio.set_event_loop(None)
+                            except Exception as e:
+                                errors.append(e)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="sync_async_state_isolation">
+                    <description>
+                        Guidelines for maintaining state isolation in sync/async conversions:
+                        - Verify state isolation between threads
+                        - Test concurrent access patterns
+                        - Check state cleanup
+                        - Monitor for state leaks
+                        - Verify state consistency
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_state_isolation():
+                            state_values: list[int] = []
+
+                            @to_sync
+                            async def stateful_func():
+                                local_val = 42  # Thread-local state
+                                await asyncio.sleep(0.1)
+                                state_values.append(local_val)
+
+                            # Run concurrent threads
+                            threads = [Thread(target=worker)
+                                     for _ in range(3)]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+
+                            # Verify state
+                            assert len(state_values) == 3
+                            assert all(v == 42 for v in state_values)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="event_loop_error_handling">
+                    <description>
+                        Guidelines for handling event loop errors:
+                        - Handle loop creation failures
+                        - Manage nested loop errors
+                        - Clean up after loop errors
+                        - Preserve error context
+                        - Prevent loop leaks in error cases
+                    </description>
+                    <example>
+                        <![CDATA[
+                        try:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            try:
+                                # Operations that might fail
+                                result = async_operation()
+                            except Exception as e:
+                                logger.error("Operation failed",
+                                           error=str(e))
+                                raise
+                            finally:
+                                try:
+                                    loop.close()
+                                finally:
+                                    asyncio.set_event_loop(None)
+                        except Exception as e:
+                            handle_error(e)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="coroutine_cleanup">
+                    <description>
+                        Guidelines for proper coroutine cleanup in tests:
+                        - Always clean up created coroutines, even in error cases
+                        - Handle "never awaited" warnings by explicitly closing coroutines
+                        - Use try/finally blocks to ensure cleanup
+                        - Understand the difference between coroutines, Tasks, and Futures
+                        - Properly handle coroutines in nested event loop tests
+                    </description>
+                    <example>
+                        <![CDATA[
+                        def test_coroutine_cleanup():
+                            # Create but don't run the coroutine
+                            coro = asyncio.sleep(1)
+                            try:
+                                # Test operation that might fail
+                                result = some_operation(coro)
+                            finally:
+                                # Clean up the coroutine directly
+                                coro.close()
+
+                        def test_task_cleanup():
+                            # For Tasks, we can check done() state
+                            task = asyncio.create_task(some_coro())
+                            try:
+                                result = await task
+                            except Exception:
+                                if not task.done():
+                                    task.cancel()
+                                    try:
+                                        await task
+                                    except asyncio.CancelledError:
+                                        pass
+
+                        def test_nested_event_loop():
+                            coro = asyncio.sleep(0.1)
+                            try:
+                                # This should raise
+                                asyncio.run(coro)
+                            finally:
+                                # Always clean up the coroutine
+                                coro.close()
+                        ]]>
+                    </example>
+                    <diagnostic_points>
+                        <point>Coroutine objects don't have done() method - that's for Tasks/Futures</point>
+                        <point>Unclosed coroutines lead to "never awaited" warnings</point>
+                        <point>Missing cleanup can cause resource leaks</point>
+                        <point>Improper cleanup in error cases can mask original errors</point>
+                        <point>Nested event loop tests need explicit coroutine management</point>
+                    </diagnostic_points>
+                    <recommendations>
+                        <item>Always use try/finally for coroutine cleanup</item>
+                        <item>Use close() directly on coroutine objects</item>
+                        <item>For Tasks, check done() state and handle cancellation</item>
+                        <item>Handle cleanup in both success and error paths</item>
+                        <item>Use proper exception handling to preserve error context</item>
+                    </recommendations>
+                </pattern>
+
+            </async_testing_patterns>
+
+            <test_patterns>
+                <pattern name="AsyncFixture">
+                    <description>Pattern for async fixture setup and teardown</description>
+                    <example>
+                        <![CDATA[
+                        @pytest_asyncio.fixture
+                        async def database():
+                            db = await setup_test_db()
+                            yield db
+                            await db.cleanup()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="SharedLoopTest">
+                    <description>Pattern for tests sharing an event loop</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio(loop_scope="module")
+                        class TestSharedLoop:
+                            loop: asyncio.AbstractEventLoop
+
+                            async def test_remember_loop(self):
+                                self.loop = asyncio.get_running_loop()
+
+                            async def test_using_loop(self):
+                                assert self.loop is asyncio.get_running_loop()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncErrorBoundary">
+                    <description>Pattern for testing async error handling</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_error_boundary():
+                            with pytest.raises(CustomError) as exc_info:
+                                async with error_boundary():
+                                    await failing_operation()
+                            assert "expected error" in str(exc_info.value)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ResourceCleanup">
+                    <description>Pattern for comprehensive resource cleanup in tests</description>
+                    <example>
+                        <![CDATA[
+                        @pytest_asyncio.fixture(autouse=True)
+                        async def cleanup_resources():
+                            yield
+                            await asyncio.gather(*[
+                                resource.cleanup()
+                                for resource in active_resources
+                            ])
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncGeneratorTest">
+                    <description>Pattern for testing async generators and cleanup</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_async_generator():
+                            agen = async_generator_func()
+                            try:
+                                async for item in agen:
+                                    assert item is not None
+                            finally:
+                                await agen.aclose()  # Proper cleanup of async generator
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncMocking">
+                    <description>Pattern for mocking async functions and methods</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_with_async_mock(mocker):
+                            async def async_mock(*args, **kwargs):
+                                return "mocked"
+
+                            mocker.patch(
+                                "module.async_function",
+                                side_effect=async_mock
+                            )
+                            result = await function_under_test()
+                            assert result == "mocked"
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncContextVerification">
+                    <description>Pattern for verifying async context manager behavior</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_async_context():
+                            entered = False
+                            exited = False
+
+                            class TestContext:
+                                async def __aenter__(self):
+                                    nonlocal entered
+                                    entered = True
+                                    return self
+
+                                async def __aexit__(self, exc_type, exc_val, exc_tb):
+                                    nonlocal exited
+                                    exited = True
+
+                            async with TestContext():
+                                assert entered
+                                assert not exited
+                            assert exited
+                        ]]>
+                    </example>
+                </pattern>
+            </test_patterns>
+
+            <configuration>
+                <pytest_config>
+                    <![CDATA[
+                    # pytest.ini or pyproject.toml
+                    [tool.pytest.ini_options]
+                    asyncio_mode = "auto"
+                    markers = [
+                        "asyncio: mark test as async",
+                        "integration: mark as integration test",
+                    ]
+                    ]]>
+                </pytest_config>
+            </configuration>
+
+            <code_patterns>
+                <pattern name="SafeFileHandler">
+                    <description>Pattern for safe file operations with proper cleanup</description>
+                    <example>
+                        <![CDATA[
+                        async with SafeFileHandler(path, mode="r") as f:
+                            content = await f.read()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ThreadPoolExecutor">
+                    <description>Pattern for proper thread pool management</description>
+                    <example>
+                        <![CDATA[
+                        with ThreadPoolExecutor() as pool:
+                            try:
+                                result = await loop.run_in_executor(pool, func)
+                            finally:
+                                pool.shutdown(wait=True)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncContextManager">
+                    <description>Pattern for proper async resource management</description>
+                    <example>
+                        <![CDATA[
+                        async def __aexit__(self, exc_type, exc_val, exc_tb):
+                            try:
+                                await self.cleanup()
+                            finally:
+                                await self.close()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="EventLoopSafety">
+                    <description>Pattern for safe event loop operations</description>
+                    <example>
+                        <![CDATA[
+                        async def io_operation():
+                            return await loop.run_in_executor(None, blocking_io_func)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ThreadSynchronization">
+                    <description>Pattern for proper thread synchronization</description>
+                    <example>
+                        <![CDATA[
+                        self._lock = asyncio.Lock()
+                        async with self._lock:
+                            await self._perform_operation()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ComprehensiveCleanup">
+                    <description>Pattern for comprehensive resource cleanup</description>
+                    <example>
+                        <![CDATA[
+                        async def cleanup(self):
+                            async with self._cleanup_lock:
+                                try:
+                                    await self._cleanup_resources()
+                                finally:
+                                    self._closed = True
+                        ]]>
+                    </example>
+                </pattern>
+            </code_patterns>
+        </testing_recommendations>
+    </info>
+
+    <implementation>
+        <priority_order>
+            1. Fix immediate thread safety issues in LangSmith client
+            2. Implement proper SSE stream handling
+            3. Add proper resource cleanup in async contexts
+            4. Improve thread pool lifecycle management
+            5. Add comprehensive error boundaries
+        </priority_order>
+
+        <verification_steps>
+            1. Run memory leak tests
+            2. Perform stress testing with concurrent operations
+            3. Verify proper resource cleanup
+            4. Check thread pool shutdown behavior
+            5. Validate error handling and recovery
+        </verification_steps>
+    </implementation>
+
+    <functionality_check>
+        <instruction>
+            After implementing fixes and improvements, analyze the modified code to:
+            1. Identify any removed or altered functionality from the original module
+            2. Document these changes at the end of the generation
+            3. Explain the impact of any removed functionality
+            4. Provide recommendations for restoring critical functionality
+            5. Note any API changes that might affect dependent code
+        </instruction>
+        <report_format>
+            <removed_functionality>
+                List functions, methods, or features that were removed or significantly altered
+            </removed_functionality>
+            <impact_assessment>
+                Explain the impact of these changes on the module's usage
+            </impact_assessment>
+            <restoration_steps>
+                Provide steps to restore critical functionality if needed
+            </restoration_steps>
+        </report_format>
+    </functionality_check>
+</segfault_guidelines>

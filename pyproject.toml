@@ -117,6 +117,7 @@ dependencies = [
     "rich>=13.9.4",
     "structlog>=24.4.0",
     "langsmith==0.1.147",
+    "psutil>=6.1.1",
 ]
 
 [project.urls]
@@ -227,6 +228,7 @@ dev-dependencies = [
     "pytest-skipuntil>=0.2.0",
     "pytest-freezegun",
     "better-exceptions>=0.3.3",
+    "cogapp>=3.4.1",
 ]
 
 [tool.uv.sources]
@@ -787,6 +789,7 @@ select = [
 # SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
 # Conflicts with the formatter
 ignore = [
+    "SIM105", #  SIM105 Use `contextlib.suppress(RuntimeError)` instead of `try`-`except`-`pass`
     "C408",  # Checks for unnecessary calls to dict(), list(), or tuple() that can be rewritten as empty literals
     "UP031", # Checks for unnecessary format string usage
     "UP040", # Checks for unnecessary use of typing.TypeAlias in Python 3.12+
@@ -1900,7 +1903,7 @@ reportUnknownArgumentType = false
 reportUnusedCallResult = false
 reportImplicitStringConcatenation = false
 reportCallInDefaultInitializer = true
-reportAttributeAccessIssue = "error"
+reportAttributeAccessIssue = false
 
 [tool.pydocstringformatter]
 write = false

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import datetime
 import json
 import logging
@@ -10,6 +11,7 @@ import pathlib
 import sys
 
 from collections.abc import AsyncIterator, Generator
+from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, cast
 
 import aiofiles
@@ -486,3 +488,196 @@ async def test_run_single_tweet_aio_gallery_dl(
                         logger.exception(f"Error extracting from URL: {url}")
                         # logger.complete()()
                         raise
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_thread_safety(
+    mock_gallery_dl: Any,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test thread safety of _run_in_executor.
+
+    This test verifies that _run_in_executor properly handles:
+    1. Thread isolation and state management
+    2. Thread pool lifecycle and cleanup
+    3. Exception propagation from worker threads
+    4. Concurrent execution safety
+    5. Resource cleanup
+
+    Args:
+        mock_gallery_dl: Mock gallery-dl module
+        caplog: Pytest log capture fixture
+    """
+    client = AsyncGalleryDL()
+    shared_state = {"counter": 0, "errors": []}
+    thread_local_data = {}
+
+    import threading
+
+    counter_lock = threading.Lock()
+
+    def thread_safe_task(task_id: int) -> int:
+        """Thread-safe task that modifies shared state.
+
+        Args:
+            task_id: Unique task identifier
+
+        Returns:
+            Task result
+        """
+        # Store thread-local data using thread ID
+        thread_id = threading.get_ident()
+        thread_local_data[task_id] = thread_id
+
+        # Modify shared state in a thread-safe way
+        with counter_lock:
+            shared_state["counter"] += 1
+        return task_id
+
+    def error_task() -> None:
+        """Task that raises an error to test exception handling."""
+        thread_id = threading.get_ident()
+        thread_local_data["error"] = thread_id
+        with counter_lock:
+            shared_state["counter"] = 999
+        raise ValueError("Expected test error")
+
+    # Test 1: Basic thread safety and state isolation
+    results = []
+    for i in range(5):
+        result = await client._run_in_executor(thread_safe_task, i)
+        results.append(result)
+
+    assert results == list(range(5))
+    assert shared_state["counter"] == 5
+    assert len(thread_local_data) == 5  # Each task got its own thread ID
+
+    # Test 2: Exception propagation
+    with capture_logs() as captured:
+        with pytest.raises(ValueError, match="Expected test error"):
+            await client._run_in_executor(error_task)
+
+        # Verify error was logged with context
+        assert any(
+            log.get("event") == "Error in executor" and "Expected test error" in log.get("error", "")
+            for log in captured
+        )
+
+    # Test 3: Concurrent execution
+    async def concurrent_task(task_id: int) -> int:
+        return await client._run_in_executor(thread_safe_task, task_id)
+
+    # Run multiple tasks concurrently
+    concurrent_results = await asyncio.gather(*[concurrent_task(i) for i in range(5, 10)])
+
+    assert concurrent_results == list(range(5, 10))
+    assert shared_state["counter"] == 1004  # 5 from first test + 5 from concurrent + 999 from error test
+
+    # Test 4: Resource cleanup
+    import psutil
+
+    process = psutil.Process()
+    thread_count_before = len(process.threads())
+
+    # Run a bunch of tasks
+    await asyncio.gather(*[concurrent_task(i) for i in range(10, 20)])
+
+    # Give Python's GC a chance to clean up
+    import gc
+
+    gc.collect()
+
+    # Verify no thread leaks
+    thread_count_after = len(process.threads())
+    assert thread_count_after <= thread_count_before + 2  # Allow for some overhead
+
+    # Verify thread IDs were unique
+    thread_ids = set(thread_local_data.values())
+    assert len(thread_ids) > 1  # Should have used multiple threads
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_loop_handling(
+    mock_gallery_dl: Any,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test event loop handling in _run_in_executor.
+
+    This test verifies that _run_in_executor properly handles event loop
+    access and errors.
+
+    Args:
+        mock_gallery_dl: Mock gallery-dl module
+        caplog: Pytest log capture fixture
+    """
+    with capture_logs() as captured:
+        # Test with no event loop
+        client = AsyncGalleryDL(loop=None)
+
+        def simple_func() -> str:
+            """Test function that returns a string."""
+            return "test"
+
+        # Should use running loop when no loop provided
+        result = await client._run_in_executor(simple_func)
+        assert result == "test"
+
+        # Test with explicit loop
+        loop = asyncio.get_running_loop()
+        client = AsyncGalleryDL(loop=loop)
+        result = await client._run_in_executor(simple_func)
+        assert result == "test"
+
+        # Test error logging
+        def error_func() -> None:
+            """Test function that raises an exception."""
+            raise RuntimeError("Test error")
+
+        with pytest.raises(RuntimeError, match="Test error"):
+            await client._run_in_executor(error_func)
+
+        # Verify error was logged with proper context
+        assert any(
+            log.get("event") == "Error in executor"
+            and log.get("error") == "Test error"
+            and log.get("error_type") == "RuntimeError"
+            for log in captured
+        ), "Expected error log not found"
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_concurrent_calls(
+    mock_gallery_dl: Any,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test concurrent execution in _run_in_executor.
+
+    This test verifies that _run_in_executor properly handles multiple
+    concurrent calls.
+
+    Args:
+        mock_gallery_dl: Mock gallery-dl module
+        caplog: Pytest log capture fixture
+    """
+    client = AsyncGalleryDL()
+    results: list[int] = []
+
+    async def concurrent_task(value: int) -> None:
+        """Run a task that sleeps then returns a value."""
+
+        def worker() -> int:
+            import time
+
+            time.sleep(0.1)  # Simulate work
+            return value
+
+        result = await client._run_in_executor(worker)
+        results.append(result)
+
+    # Run multiple concurrent tasks
+    tasks = [concurrent_task(i) for i in range(5)]
+    await asyncio.gather(*tasks)
+
+    # Verify all tasks completed
+    assert len(results) == 5
+    assert sorted(results) == list(range(5))

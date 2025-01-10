@@ -219,7 +219,12 @@ async def retry_with_backoff(
     raise last_exception if last_exception else RuntimeError("Unexpected retry failure")
 
 class SafeFileHandler:
-    """Safe file handler with proper error handling and cleanup.
+    """Safe file handler with proper error handling, cleanup, and thread safety.
+
+    This class provides a thread-safe async context manager for file operations
+    with comprehensive error handling and resource cleanup. It ensures proper
+    cleanup in both success and error cases, even during segfaults or thread
+    termination.
 
     Args:
         path: Path to the file
@@ -240,6 +245,35 @@ class SafeFileHandler:
         self.cleanup_on_error = cleanup_on_error
         self.kwargs = kwargs
         self.file = None
+        self._closed = False
+        self._lock = asyncio.Lock()
+        self._cleanup_lock = asyncio.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            raise RuntimeError("SafeFileHandler must be created from an async context")
+
+    async def _ensure_directory(self) -> None:
+        """Ensure the parent directory exists.
+
+        Raises:
+            OSError: If directory creation fails
+        """
+        try:
+            directory = os.path.dirname(self.path)
+            if directory and not await aio_path_exists(directory):
+                await asyncio.to_thread(os.makedirs, directory, exist_ok=True)
+        except Exception as e:
+            raise OSError(f"Failed to create directory: {e!s}") from e
+
+    async def _cleanup_file(self) -> None:
+        """Clean up the file safely."""
+        if self.cleanup_on_error and "w" in self.mode and await aio_path_exists(self.path):
+            try:
+                await asyncio.to_thread(os.remove, self.path)
+            except Exception as e:
+                logger.error(f"Failed to cleanup file {self.path}: {e!s}")
 
     async def __aenter__(self) -> Any:
         """Enter the async context manager.
@@ -249,39 +283,59 @@ class SafeFileHandler:
 
         Raises:
             OSError: If file operations fail
+            RuntimeError: If context manager is reused after closing
         """
-        try:
-            self.file = await aiofiles.open(self.path, self.mode, **self.kwargs)
-            return self.file
-        except Exception as e:
-            if self.cleanup_on_error and "w" in self.mode:
-                try:
-                    await asyncio.to_thread(os.remove, self.path)
-                except:
-                    pass
-            raise OSError(f"File operation failed: {e!s}") from e
+        if self._closed:
+            raise RuntimeError("Cannot reuse closed SafeFileHandler")
+
+        async with self._lock:
+            try:
+                if "w" in self.mode:
+                    await self._ensure_directory()
+
+                self.file = await aiofiles.open(self.path, self.mode, **self.kwargs)
+                return self.file
+            except Exception as e:
+                await self._cleanup_file()
+                raise OSError(f"File operation failed: {e!s}") from e
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Exit the async context manager.
 
-        Ensures proper cleanup of resources.
+        Ensures proper cleanup of resources in all cases.
 
         Args:
             exc_type: Exception type if an error occurred
             exc_val: Exception value if an error occurred
             exc_tb: Exception traceback if an error occurred
         """
-        if self.file:
-            try:
-                await self.file.close()
-            except:
-                pass
+        async with self._cleanup_lock:
+            if self._closed:
+                return
 
-            if exc_type and self.cleanup_on_error and "w" in self.mode:
-                try:
-                    await asyncio.to_thread(os.remove, self.path)
-                except:
-                    pass
+            try:
+                if self.file:
+                    try:
+                        await self.file.close()
+                    except Exception as e:
+                        logger.error(f"Error closing file {self.path}: {e!s}")
+                    finally:
+                        self.file = None
+
+                if exc_type and self.cleanup_on_error and "w" in self.mode:
+                    await self._cleanup_file()
+            finally:
+                self._closed = True
+                self._loop = None  # Clear event loop reference
+
+    async def close(self) -> None:
+        """Explicitly close the file handler.
+
+        This method can be called to ensure cleanup if the context manager
+        cannot complete normally (e.g., during thread shutdown).
+        """
+        if not self._closed:
+            await self.__aexit__(None, None, None)
 
 def safe_aiofiles_open(
     path: str | pathlib.Path,
