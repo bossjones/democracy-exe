@@ -1,6 +1,7 @@
 # pyright: reportUnusedFunction=false
 # pyright: reportUndefinedVariable=false
 # pyright: reportInvalidTypeForm=false
+# pyright: reportAttributeAccessIssue=false
 
 from __future__ import annotations
 
