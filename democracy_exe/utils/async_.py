@@ -79,42 +79,54 @@ class AsyncContextManager:
 
 
 class ThreadSafeEvent:
-    """A thread-safe event wrapper for coordinating between threads and coroutines."""
+    """A thread-safe event wrapper for coordinating between threads and coroutines.
+
+    This class provides a thread-safe wrapper around asyncio.Event that can be used
+    to coordinate between threads and coroutines. The event loop is stored at creation
+    time and used for all operations to ensure thread safety.
+    """
 
     def __init__(self) -> None:
+        """Initialize the event with the current event loop."""
         self._event = asyncio.Event()
         self._lock = threading.Lock()
         self._is_set = False
         self._closed = False
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            raise RuntimeError("ThreadSafeEvent must be created from an async context")
 
     def set(self) -> None:
-        """Set the event."""
+        """Set the event in a thread-safe manner."""
         with self._lock:
             if self._closed:
                 return
             self._is_set = True
             if self._event and not self._event.is_set():
                 try:
-                    loop = asyncio.get_event_loop()
-                    loop.call_soon_threadsafe(self._event.set)
+                    self._loop.call_soon_threadsafe(self._event.set)
                 except Exception as e:  # pylint: disable=broad-except
                     logger.error("Error setting event", error=str(e))
 
     def clear(self) -> None:
-        """Clear the event."""
+        """Clear the event in a thread-safe manner."""
         with self._lock:
             if self._closed:
                 return
             self._is_set = False
             if self._event and self._event.is_set():
                 try:
-                    loop = asyncio.get_event_loop()
-                    loop.call_soon_threadsafe(self._event.clear)
+                    self._loop.call_soon_threadsafe(self._event.clear)
                 except Exception as e:  # pylint: disable=broad-except
                     logger.error("Error clearing event", error=str(e))
 
     async def wait(self) -> None:
-        """Wait for the event to be set."""
+        """Wait for the event to be set.
+
+        Raises:
+            RuntimeError: If the event is closed
+        """
         if self._closed:
             raise RuntimeError("Event is closed")
         if not self._is_set:
@@ -125,6 +137,7 @@ class ThreadSafeEvent:
         with self._lock:
             self._closed = True
             self._event = None
+            self._loop = None  # type: ignore
 
 
 class AsyncSemaphore(AsyncContextManager):

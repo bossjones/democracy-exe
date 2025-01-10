@@ -76,27 +76,98 @@ class TestUtilsAsync:
         assert current_loop.is_running()
 
     async def test_thread_safe_event(self) -> None:
-        """Test ThreadSafeEvent functionality."""
+        """Test ThreadSafeEvent functionality with comprehensive coverage.
+
+        This test verifies:
+        1. Initial state of the event
+        2. Setting event from another thread
+        3. Multiple waiters receiving the event
+        4. Clearing event from another thread
+        5. Error handling after close
+        6. Thread safety of all operations
+        """
+        # Create event in async context to get the event loop
         event = async_.ThreadSafeEvent()
 
         # Test initial state
         assert not event._is_set
         assert not event._closed
+        assert event._loop is not None
+        assert isinstance(event._loop, asyncio.AbstractEventLoop)
 
-        # Test set/wait
-        threading.Thread(target=lambda: time.sleep(0.1) or event.set()).start()
-        await event.wait()
-        assert event._is_set
+        # Test set/wait with multiple waiters
+        results: list[bool] = []
+        waiters = []
+        ready_event = threading.Event()  # Synchronize thread start
 
-        # Test clear
-        event.clear()
-        assert not event._is_set
+        async def waiter() -> None:
+            """Wait for the event with timeout."""
+            try:
+                await asyncio.wait_for(event.wait(), timeout=2.0)
+                results.append(True)
+            except TimeoutError:
+                results.append(False)
 
-        # Test close
+        # Start multiple waiters
+        for _ in range(5):
+            waiters.append(asyncio.create_task(waiter()))
+
+        # Test set from another thread
+        def thread_set() -> None:
+            """Set the event from a background thread."""
+            ready_event.wait(timeout=1.0)  # Wait for main thread signal
+            event.set()
+
+        thread = threading.Thread(target=thread_set)
+        thread.start()
+
+        # Signal thread to proceed and wait for waiters
+        ready_event.set()
+        await asyncio.gather(*waiters)
+        thread.join()
+
+        # Verify all waiters succeeded
+        assert all(results), "All waiters should have received the event"
+        assert event._is_set, "Event should still be set"
+
+        # Test clear from another thread
+        clear_done = threading.Event()
+
+        def thread_clear() -> None:
+            """Clear the event from a background thread."""
+            event.clear()
+            clear_done.set()
+
+        thread = threading.Thread(target=thread_clear)
+        thread.start()
+        clear_done.wait(timeout=1.0)  # Wait for clear to complete
+        thread.join()
+
+        assert not event._is_set, "Event should be cleared"
+
+        # Test error handling in set/clear after close
         event.close()
-        assert event._closed
+        assert event._closed, "Event should be closed"
+        assert event._event is None, "Internal event should be None"
+        assert event._loop is None, "Event loop reference should be cleared"
+
+        # Set/clear should not raise after close
+        event.set()  # Should return silently
+        event.clear()  # Should return silently
+
+        # Wait should raise after close
         with pytest.raises(RuntimeError, match="Event is closed"):
             await event.wait()
+
+        # Test creating event in non-async context
+        def create_event_in_thread() -> None:
+            """Try to create event in non-async context."""
+            with pytest.raises(RuntimeError, match="must be created from an async context"):
+                async_.ThreadSafeEvent()
+
+        thread = threading.Thread(target=create_event_in_thread)
+        thread.start()
+        thread.join()
 
     async def test_async_semaphore(self) -> None:
         """Test AsyncSemaphore functionality."""
