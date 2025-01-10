@@ -1,0 +1,1685 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial001.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+@app.get("/items/")
+async def read_item(skip: int = 0, limit: int = 10):
+    return fake_items_db[skip : skip + limit]
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial002.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str, q: Union[str, None] = None):
+    if q:
+        return {"item_id": item_id, "q": q}
+    return {"item_id": item_id}
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial002_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str, q: str | None = None):
+    if q:
+        return {"item_id": item_id, "q": q}
+    return {"item_id": item_id}
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial003.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str, q: Union[str, None] = None, short: bool = False):
+    item = {"item_id": item_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+        item.update(
+            {"description": "This is an amazing item that has a long description"}
+        )
+    return item
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial003_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str, q: str | None = None, short: bool = False):
+    item = {"item_id": item_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+        item.update(
+            {"description": "This is an amazing item that has a long description"}
+        )
+    return item
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial004.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/users/{user_id}/items/{item_id}")
+async def read_user_item(
+    user_id: int, item_id: str, q: Union[str, None] = None, short: bool = False
+):
+    item = {"item_id": item_id, "owner_id": user_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+        item.update(
+            {"description": "This is an amazing item that has a long description"}
+        )
+    return item
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial004_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/users/{user_id}/items/{item_id}")
+async def read_user_item(
+    user_id: int, item_id: str, q: str | None = None, short: bool = False
+):
+    item = {"item_id": item_id, "owner_id": user_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+        item.update(
+            {"description": "This is an amazing item that has a long description"}
+        )
+    return item
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial005.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_user_item(item_id: str, needy: str):
+    item = {"item_id": item_id, "needy": needy}
+    return item
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial006.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_user_item(
+    item_id: str, needy: str, skip: int = 0, limit: Union[int, None] = None
+):
+    item = {"item_id": item_id, "needy": needy, "skip": skip, "limit": limit}
+    return item
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial006_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_user_item(
+    item_id: str, needy: str, skip: int = 0, limit: int | None = None
+):
+    item = {"item_id": item_id, "needy": needy, "skip": skip, "limit": limit}
+    return item
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params/tutorial006b.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_user_item(
+    item_id: str, needy: str, skip: int = 0, limit: Union[int, None] = None
+):
+    item = {"item_id": item_id, "needy": needy, "skip": skip, "limit": limit}
+    return item
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial001.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Union[str, None] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial001_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str | None = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial002.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Union[str, None] = Query(default=None, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial002_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[str, None], Query(max_length=50)] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial002_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(max_length=50)] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial002_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str | None = Query(default=None, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial003.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Union[str, None] = Query(default=None, min_length=3, max_length=50)
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial003_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[Union[str, None], Query(min_length=3, max_length=50)] = None
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial003_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[str | None, Query(min_length=3, max_length=50)] = None
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial003_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[Union[str, None], Query(min_length=3, max_length=50)] = None
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial003_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str | None = Query(default=None, min_length=3, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial004.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Union[str, None] = Query(
+        default=None, min_length=3, max_length=50, pattern="^fixedquery$"
+    ),
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial004_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        Union[str, None], Query(min_length=3, max_length=50, pattern="^fixedquery$")
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial004_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        str | None, Query(min_length=3, max_length=50, pattern="^fixedquery$")
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial004_an_py310_regex.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        str | None, Query(min_length=3, max_length=50, regex="^fixedquery$")
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial004_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        Union[str, None], Query(min_length=3, max_length=50, pattern="^fixedquery$")
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="28">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial004_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: str | None = Query(
+        default=None, min_length=3, max_length=50, pattern="^fixedquery$"
+    ),
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="29">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial005.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str = Query(default="fixedquery", min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="30">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial005_an.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = "fixedquery"):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="31">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial005_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = "fixedquery"):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="32">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str = Query(min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="33">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006_an.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)]):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="34">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)]):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="35">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006b.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str = Query(default=..., min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="36">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006b_an.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="37">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006b_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="38">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006c.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Union[str, None] = Query(default=..., min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="39">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006c_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[str, None], Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="40">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006c_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="41">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006c_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[str, None], Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="42">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006c_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str | None = Query(default=..., min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="43">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006d.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+from pydantic import Required
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str = Query(default=Required, min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="44">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006d_an.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+from pydantic import Required
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = Required):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="45">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial006d_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+from pydantic import Required
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = Required):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="46">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial007.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Union[str, None] = Query(default=None, title="Query string", min_length=3)
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="47">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial007_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[Union[str, None], Query(title="Query string", min_length=3)] = None
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="48">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial007_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[str | None, Query(title="Query string", min_length=3)] = None
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="49">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial007_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[Union[str, None], Query(title="Query string", min_length=3)] = None
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="50">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial007_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: str | None = Query(default=None, title="Query string", min_length=3)
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="51">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial008.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Union[str, None] = Query(
+        default=None,
+        title="Query string",
+        description="Query string for the items to search in the database that have a good match",
+        min_length=3,
+    ),
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="52">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial008_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        Union[str, None],
+        Query(
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+        ),
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="53">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial008_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        str | None,
+        Query(
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+        ),
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="54">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial008_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        Union[str, None],
+        Query(
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+        ),
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="55">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial008_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: str | None = Query(
+        default=None,
+        title="Query string",
+        description="Query string for the items to search in the database that have a good match",
+        min_length=3,
+    ),
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="56">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial009.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Union[str, None] = Query(default=None, alias="item-query")):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="57">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial009_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[str, None], Query(alias="item-query")] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="58">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial009_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(alias="item-query")] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="59">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial009_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[str, None], Query(alias="item-query")] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="60">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial009_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: str | None = Query(default=None, alias="item-query")):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="61">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial010.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Union[str, None] = Query(
+        default=None,
+        alias="item-query",
+        title="Query string",
+        description="Query string for the items to search in the database that have a good match",
+        min_length=3,
+        max_length=50,
+        pattern="^fixedquery$",
+        deprecated=True,
+    ),
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="62">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial010_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        Union[str, None],
+        Query(
+            alias="item-query",
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+            max_length=50,
+            pattern="^fixedquery$",
+            deprecated=True,
+        ),
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="63">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial010_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        str | None,
+        Query(
+            alias="item-query",
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+            max_length=50,
+            pattern="^fixedquery$",
+            deprecated=True,
+        ),
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="64">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial010_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: Annotated[
+        Union[str, None],
+        Query(
+            alias="item-query",
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+            max_length=50,
+            pattern="^fixedquery$",
+            deprecated=True,
+        ),
+    ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="65">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial010_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    q: str | None = Query(
+        default=None,
+        alias="item-query",
+        title="Query string",
+        description="Query string for the items to search in the database that have a good match",
+        min_length=3,
+        max_length=50,
+        pattern="^fixedquery$",
+        deprecated=True,
+    ),
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+</document_content>
+</document>
+<document index="66">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial011.py</source>
+<document_content>
+from typing import List, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Union[List[str], None] = Query(default=None)):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="67">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial011_an.py</source>
+<document_content>
+from typing import List, Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[List[str], None], Query()] = None):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="68">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial011_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[list[str] | None, Query()] = None):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="69">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial011_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[Union[list[str], None], Query()] = None):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="70">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial011_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: list[str] | None = Query(default=None)):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="71">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial011_py39.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Union[list[str], None] = Query(default=None)):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="72">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial012.py</source>
+<document_content>
+from typing import List
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: List[str] = Query(default=["foo", "bar"])):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="73">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial012_an.py</source>
+<document_content>
+from typing import List
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[List[str], Query()] = ["foo", "bar"]):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="74">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial012_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[list[str], Query()] = ["foo", "bar"]):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="75">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial012_py39.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: list[str] = Query(default=["foo", "bar"])):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="76">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial013.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: list = Query(default=[])):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="77">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial013_an.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[list, Query()] = []):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="78">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial013_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[list, Query()] = []):
+    query_items = {"q": q}
+    return query_items
+
+</document_content>
+</document>
+<document index="79">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial014.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    hidden_query: Union[str, None] = Query(default=None, include_in_schema=False)
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
+
+</document_content>
+</document>
+<document index="80">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial014_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Query
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    hidden_query: Annotated[Union[str, None], Query(include_in_schema=False)] = None
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
+
+</document_content>
+</document>
+<document index="81">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial014_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    hidden_query: Annotated[str | None, Query(include_in_schema=False)] = None
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
+
+</document_content>
+</document>
+<document index="82">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial014_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    hidden_query: Annotated[Union[str, None], Query(include_in_schema=False)] = None
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
+
+</document_content>
+</document>
+<document index="83">
+<source>/Users/malcolm/dev/fastapi/docs_src/query_params_str_validations/tutorial014_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    hidden_query: str | None = Query(default=None, include_in_schema=False)
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
+
+</document_content>
+</document>
+</documents>

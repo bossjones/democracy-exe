@@ -7,6 +7,10 @@ import pathlib
 
 from typing import TYPE_CHECKING
 
+import structlog
+
+from structlog.testing import capture_logs
+
 import pytest
 
 from pytest_mock import MockerFixture
@@ -21,6 +25,8 @@ if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
 
     from pytest_mock.plugin import MockerFixture
+
+logger = structlog.get_logger(__name__)
 
 
 @pytest.fixture
@@ -86,23 +92,34 @@ async def test_arun_success(
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("test content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("test content")
 
-    result = await delete_file_tool.arun({"file_name": "test.txt", "directory": str(test_dir), "force": True})
+        result = await delete_file_tool.arun({"file_name": "test.txt", "directory": str(test_dir), "force": True})
 
-    # Verify response
-    assert result["status"] == "success"
-    assert result["file_path"] == str(test_dir / "test.txt")
-    assert result.get("error") is None
+        # Verify response
+        assert result["status"] == "success"
+        assert result["file_path"] == str(test_dir / "test.txt")
+        assert result.get("error") is None
 
-    # Verify file was deleted
-    assert not test_file.exists()
+        # Verify file was deleted
+        assert not test_file.exists()
 
-    # Verify logging
-    assert "Starting asynchronous file deletion" in caplog.text
-    assert "Asynchronous file deletion completed successfully" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_success:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(
+            log.get("event").startswith("Starting asynchronous file deletion for test.txt") for log in captured
+        ), "Expected 'Starting asynchronous file deletion' message not found in logs"
+
+        assert any(log.get("event") == "Asynchronous file deletion completed successfully" for log in captured), (
+            "Expected 'Asynchronous file deletion completed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -117,23 +134,31 @@ async def test_arun_without_force(
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("test content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("test content")
 
-    result = await delete_file_tool.arun({"file_name": "test.txt", "directory": str(test_dir), "force": False})
+        result = await delete_file_tool.arun({"file_name": "test.txt", "directory": str(test_dir), "force": False})
 
-    # Verify response requires confirmation
-    assert result["status"] == "confirmation_required"
-    assert result["file_path"] == str(test_dir / "test.txt")
-    assert result["requires_confirmation"] is True
+        # Verify response requires confirmation
+        assert result["status"] == "confirmation_required"
+        assert result["file_path"] == str(test_dir / "test.txt")
+        assert result["requires_confirmation"] is True
 
-    # Verify file was not deleted
-    assert test_file.exists()
-    assert test_file.read_text() == "test content"
+        # Verify file was not deleted
+        assert test_file.exists()
+        assert test_file.read_text() == "test content"
 
-    # Verify logging
-    assert "Force flag not set, requiring confirmation" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_without_force:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Force flag not set, requiring confirmation" for log in captured), (
+            "Expected 'Force flag not set, requiring confirmation' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -148,15 +173,27 @@ async def test_arun_nonexistent_file(
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    result = await delete_file_tool.arun({"file_name": "nonexistent.txt", "directory": str(test_dir), "force": True})
+    with capture_logs() as captured:
+        result = await delete_file_tool.arun({
+            "file_name": "nonexistent.txt",
+            "directory": str(test_dir),
+            "force": True,
+        })
 
-    # Verify error response
-    assert result["status"] == "error"
-    assert "File does not exist" in result["error"]
-    assert result["file_path"] == ""
+        # Verify error response
+        assert result["status"] == "error"
+        assert "File does not exist" in result["error"]
+        assert result["file_path"] == ""
 
-    # Verify logging
-    assert "File does not exist" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_nonexistent_file:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Path validation failed: File does not exist:") for log in captured), (
+            "Expected 'Path validation failed: File does not exist' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -168,23 +205,34 @@ def test_run_success(delete_file_tool: DeleteFileTool, test_dir: pathlib.Path, c
         test_dir: Temporary test directory
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("test content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("test content")
 
-    result = delete_file_tool.run({"file_name": "test.txt", "directory": str(test_dir), "force": True})
+        result = delete_file_tool.run({"file_name": "test.txt", "directory": str(test_dir), "force": True})
 
-    # Verify response
-    assert result["status"] == "success"
-    assert result["file_path"] == str(test_dir / "test.txt")
-    assert result.get("error") is None
+        # Verify response
+        assert result["status"] == "success"
+        assert result["file_path"] == str(test_dir / "test.txt")
+        assert result.get("error") is None
 
-    # Verify file was deleted
-    assert not test_file.exists()
+        # Verify file was deleted
+        assert not test_file.exists()
 
-    # Verify logging
-    assert "Starting synchronous file deletion" in caplog.text
-    assert "File deletion completed successfully" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_success:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(
+            log.get("event").startswith("Starting synchronous file deletion for test.txt") for log in captured
+        ), "Expected 'Starting synchronous file deletion' message not found in logs"
+
+        assert any(log.get("event") == "File deletion completed successfully" for log in captured), (
+            "Expected 'File deletion completed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -199,27 +247,38 @@ def test_run_with_default_directory(
         tmp_path: Pytest fixture providing temporary directory
         monkeypatch: Pytest fixture for modifying environment
     """
-    # Change working directory to tmp_path
-    monkeypatch.chdir(tmp_path)
+    with capture_logs() as captured:
+        # Change working directory to tmp_path
+        monkeypatch.chdir(tmp_path)
 
-    # Create scratchpad directory and test file
-    scratchpad_dir = tmp_path / "scratchpad"
-    scratchpad_dir.mkdir()
-    test_file = scratchpad_dir / "test.txt"
-    test_file.write_text("test content")
+        # Create scratchpad directory and test file
+        scratchpad_dir = tmp_path / "scratchpad"
+        scratchpad_dir.mkdir()
+        test_file = scratchpad_dir / "test.txt"
+        test_file.write_text("test content")
 
-    result = delete_file_tool.run({"file_name": "test.txt", "force": True})
+        result = delete_file_tool.run({"file_name": "test.txt", "force": True})
 
-    # Verify response
-    assert result["status"] == "success"
-    assert result["file_path"] == str(scratchpad_dir / "test.txt")
+        # Verify response
+        assert result["status"] == "success"
+        assert result["file_path"] == str(scratchpad_dir / "test.txt")
 
-    # Verify file was deleted
-    assert not test_file.exists()
+        # Verify file was deleted
+        assert not test_file.exists()
 
-    # Verify logging
-    assert "Starting synchronous file deletion" in caplog.text
-    assert "File deletion completed successfully" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_with_default_directory:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(
+            log.get("event").startswith("Starting synchronous file deletion for test.txt") for log in captured
+        ), "Expected 'Starting synchronous file deletion' message not found in logs"
+
+        assert any(log.get("event") == "File deletion completed successfully" for log in captured), (
+            "Expected 'File deletion completed successfully' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -234,27 +293,34 @@ def test_run_permission_error(
         mocker: Pytest mocker fixture
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("test content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("test content")
 
-    # Mock os.remove to raise PermissionError
-    mocker.patch("os.remove", side_effect=PermissionError("Permission denied"))
+        # Mock os.remove to raise PermissionError
+        mocker.patch("os.remove", side_effect=PermissionError("Permission denied"))
 
-    result = delete_file_tool.run({"file_name": "test.txt", "directory": str(test_dir), "force": True})
+        result = delete_file_tool.run({"file_name": "test.txt", "directory": str(test_dir), "force": True})
 
-    # Verify error response
-    assert result["status"] == "error"
-    assert "Permission denied" in result["error"]
-    assert result["file_path"] == ""
+        # Verify error response
+        assert result["status"] == "error"
+        assert "Permission denied" in result["error"]
+        assert result["file_path"] == ""
 
-    # Verify file was not deleted
-    assert test_file.exists()
-    assert test_file.read_text() == "test content"
+        # Verify file was not deleted
+        assert test_file.exists()
+        assert test_file.read_text() == "test content"
 
-    # Verify logging
-    assert "File deletion failed" in caplog.text
-    assert "Permission denied" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_permission_error:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("File deletion failed: Permission denied") for log in captured), (
+            "Expected 'File deletion failed' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
@@ -270,24 +336,31 @@ async def test_arun_io_error(
         mocker: Pytest mocker fixture
         caplog: Pytest fixture for capturing log messages
     """
-    # Create test file
-    test_file = test_dir / "test.txt"
-    test_file.write_text("test content")
+    with capture_logs() as captured:
+        # Create test file
+        test_file = test_dir / "test.txt"
+        test_file.write_text("test content")
 
-    # Mock os.remove to raise IOError
-    mocker.patch("os.remove", side_effect=OSError("Device busy"))
+        # Mock os.remove to raise IOError
+        mocker.patch("os.remove", side_effect=OSError("Device busy"))
 
-    result = await delete_file_tool.arun({"file_name": "test.txt", "directory": str(test_dir), "force": True})
+        result = await delete_file_tool.arun({"file_name": "test.txt", "directory": str(test_dir), "force": True})
 
-    # Verify error response
-    assert result["status"] == "error"
-    assert "Device busy" in result["error"]
-    assert result["file_path"] == ""
+        # Verify error response
+        assert result["status"] == "error"
+        assert "Device busy" in result["error"]
+        assert result["file_path"] == ""
 
-    # Verify file was not deleted
-    assert test_file.exists()
-    assert test_file.read_text() == "test content"
+        # Verify file was not deleted
+        assert test_file.exists()
+        assert test_file.read_text() == "test content"
 
-    # Verify logging
-    assert "Asynchronous file deletion failed" in caplog.text
-    assert "Device busy" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_io_error:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event").startswith("Asynchronous file deletion failed: Device busy") for log in captured), (
+            "Expected 'Asynchronous file deletion failed' message not found in logs"
+        )

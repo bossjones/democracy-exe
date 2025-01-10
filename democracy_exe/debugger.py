@@ -7,8 +7,10 @@ import logging
 from typing import Any
 
 import rich
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 from rich import print
 
 

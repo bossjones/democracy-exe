@@ -1,0 +1,2018 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/requests-mock/tests/pytest/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/requests-mock/tests/pytest/pytest.ini</source>
+<document_content>
+[pytest]
+requests_mock_case_sensitive=false
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/requests-mock/tests/pytest/test_with_pytest.py</source>
+<document_content>
+try:
+    from http import HTTPStatus
+    HTTP_STATUS_FOUND = HTTPStatus.FOUND
+except ImportError:
+    from httplib import FOUND as HTTP_STATUS_FOUND
+
+import pytest
+import requests
+import requests_mock
+
+
+def test_simple(requests_mock):
+    requests_mock.get('https://httpbin.org/get', text='data')
+    assert 'data' == requests.get('https://httpbin.org/get').text
+
+
+def test_redirect_and_nesting():
+    url_inner = "inner-mock://example.test/"
+    url_middle = "middle-mock://example.test/"
+    url_outer = "outer-mock://example.test/"
+    url_base = "https://www.example.com/"
+
+    text_middle = 'middle' + url_middle
+    text_outer = 'outer' + url_outer
+    text_base = 'outer' + url_base
+
+    with requests_mock.Mocker() as outer_mock:
+        outer_mock.get(url_base, text=text_base)
+        outer_mock.get(url_outer, text=text_outer)
+
+        with requests_mock.Mocker(real_http=True) as middle_mock:
+            middle_mock.get(url_middle, text=text_middle)
+
+            with requests_mock.Mocker() as inner_mock:
+                inner_mock.post(url_inner,
+                                status_code=HTTP_STATUS_FOUND,
+                                headers={'location': url_base})
+                inner_mock.get(url_base, real_http=True)
+
+                assert text_base == requests.post(url_inner).text  # nosec
+
+                with pytest.raises(requests_mock.NoMockAddress):
+                    requests.get(url_middle)
+
+                with pytest.raises(requests_mock.NoMockAddress):
+                    requests.get(url_outer)
+
+            # back to middle mock
+            with pytest.raises(requests_mock.NoMockAddress):
+                requests.post(url_inner)
+
+            assert text_middle == requests.get(url_middle).text  # nosec
+            assert text_outer == requests.get(url_outer).text  # nosec
+
+        # back to outter mock
+        with pytest.raises(requests_mock.NoMockAddress):
+            requests.post(url_inner)
+
+        with pytest.raises(requests_mock.NoMockAddress):
+            requests.get(url_middle)
+
+        assert text_outer == requests.get(url_outer).text  # nosec
+
+
+def test_mixed_mocks():
+    url = 'mock://example.test/'
+    with requests_mock.Mocker() as global_mock:
+        global_mock.get(url, text='global')
+        session = requests.Session()
+        text = session.get(url).text
+        assert text == 'global'  # nosec
+        with requests_mock.Mocker(session=session) as session_mock:
+            session_mock.get(url, real_http=True)
+            text = session.get(url).text
+            assert text == 'global'  # nosec
+
+
+def test_threaded_sessions():
+    """
+    When using requests_futures.FuturesSession() with a ThreadPoolExecutor
+    there is a race condition where one threaded request removes the
+    monkeypatched get_adapter() method from the Session before another threaded
+    request is finished using it.
+    """
+    from requests_futures.sessions import FuturesSession
+
+    url1 = 'http://www.example.com/requests-mock-fake-url1'
+    url2 = 'http://www.example.com/requests-mock-fake-url2'
+
+    with requests_mock.Mocker() as m:
+        # respond with 204 so we know its us
+        m.get(url1, status_code=204)
+        m.get(url2, status_code=204)
+
+        # NOTE(phodge): just firing off two .get() requests right after each
+        # other was a pretty reliable way to reproduce the race condition on my
+        # intel Macbook Pro but YMMV. Guaranteeing the race condition to
+        # reappear might require replacing the Session.send() with a wrapper
+        # that delays kicking off the request for url1 until the request for
+        # url2 has restored the original session.get_adapter(), but replacing
+        # Session.send() could be difficult because the requests_mock.Mocker()
+        # context manager has *already* monkeypatched this method.
+        session = FuturesSession()
+        future1 = session.get(url1)
+        future2 = session.get(url2)
+
+        # verify both requests were handled by the mock dispatcher
+        assert future1.result().status_code == 204
+        assert future2.result().status_code == 204
+
+
+class TestClass(object):
+
+    def configure(self, requests_mock):
+        requests_mock.get('https://httpbin.org/get', text='data')
+
+    def test_one(self, requests_mock):
+        self.configure(requests_mock)
+        assert 'data' == requests.get('https://httpbin.org/get').text
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/__init__.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+from requests_mock.adapter import Adapter, ANY
+from requests_mock.exceptions import MockException, NoMockAddress
+from requests_mock.mocker import mock, Mocker, MockerCore
+from requests_mock.mocker import DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT
+from requests_mock.response import create_response, CookieJar
+
+
+__all__ = ['Adapter',
+           'ANY',
+           'create_response',
+           'CookieJar',
+           'mock',
+           'Mocker',
+           'MockerCore',
+           'MockException',
+           'NoMockAddress',
+
+           'DELETE',
+           'GET',
+           'HEAD',
+           'OPTIONS',
+           'PATCH',
+           'POST',
+           'PUT',
+           ]
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/__init__.pyi</source>
+<document_content>
+# Stubs for requests_mock
+
+from requests_mock.adapter import (
+    ANY as ANY,
+    Adapter as Adapter,
+    Callback as Callback,
+    AdditionalMatcher as AdditionalMatcher,
+)
+from requests_mock.exceptions import (
+    MockException as MockException,
+    NoMockAddress as NoMockAddress,
+)
+from requests_mock.mocker import (
+    DELETE as DELETE,
+    GET as GET,
+    HEAD as HEAD,
+    Mocker as Mocker,
+    MockerCore as MockerCore,
+    OPTIONS as OPTIONS,
+    PATCH as PATCH,
+    POST as POST,
+    PUT as PUT,
+    mock as mock,
+)
+from requests_mock.request import (
+    Request as Request,
+    _RequestObjectProxy as _RequestObjectProxy,  # For backward compatibility
+)
+from requests_mock.response import (
+    CookieJar as CookieJar,
+    create_response as create_response,
+    Context as Context,
+)
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/adapter.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import urllib.parse
+import weakref
+
+from requests.adapters import BaseAdapter
+from requests.utils import requote_uri
+
+from requests_mock import exceptions
+from requests_mock.request import _RequestObjectProxy
+from requests_mock.response import _MatcherResponse
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+try:
+    import purl
+    purl_types = (purl.URL,)
+except ImportError:
+    purl = None
+    purl_types = ()
+
+ANY = object()
+
+
+class _RequestHistoryTracker(object):
+
+    def __init__(self):
+        self.request_history = []
+
+    def _add_to_history(self, request):
+        self.request_history.append(request)
+
+    @property
+    def last_request(self):
+        """Retrieve the latest request sent"""
+        try:
+            return self.request_history[-1]
+        except IndexError:
+            return None
+
+    @property
+    def called(self):
+        return self.call_count > 0
+
+    @property
+    def called_once(self):
+        return self.call_count == 1
+
+    @property
+    def call_count(self):
+        return len(self.request_history)
+
+    def reset(self):
+        self.request_history = []
+
+
+class _RunRealHTTP(Exception):
+    """A fake exception to jump out of mocking and allow a real request.
+
+    This exception is caught at the mocker level and allows it to execute this
+    request through the real requests mechanism rather than the mocker.
+
+    It should never be exposed to a user.
+    """
+
+
+class _Matcher(_RequestHistoryTracker):
+    """Contains all the information about a provided URL to match."""
+
+    def __init__(self, method, url, responses, complete_qs, request_headers,
+                 additional_matcher, real_http, case_sensitive):
+        """
+        :param bool complete_qs: Match the entire query string. By default URLs
+            match if all the provided matcher query arguments are matched and
+            extra query arguments are ignored. Set complete_qs to true to
+            require that the entire query string needs to match.
+        """
+        super(_Matcher, self).__init__()
+
+        self._method = method
+        self._url = url
+        self._responses = responses
+        self._complete_qs = complete_qs
+        self._request_headers = request_headers
+        self._real_http = real_http
+        self._additional_matcher = additional_matcher
+
+        # url can be a regex object or ANY so don't always run urlparse
+        if isinstance(url, str):
+            url_parts = urllib.parse.urlparse(url)
+            self._scheme = url_parts.scheme.lower()
+            self._netloc = url_parts.netloc.lower()
+            self._path = requote_uri(url_parts.path or '/')
+            self._query = url_parts.query
+
+            if not case_sensitive:
+                self._path = self._path.lower()
+                self._query = self._query.lower()
+
+        elif isinstance(url, purl_types):
+            self._scheme = url.scheme()
+            self._netloc = url.netloc()
+            self._path = url.path()
+            self._query = url.query()
+
+            if not case_sensitive:
+                self._path = self._path.lower()
+                self._query = self._query.lower()
+
+        else:
+            self._scheme = None
+            self._netloc = None
+            self._path = None
+            self._query = None
+
+    def _match_method(self, request):
+        if self._method is ANY:
+            return True
+
+        if request.method.lower() == self._method.lower():
+            return True
+
+        return False
+
+    def _match_url(self, request):
+        if self._url is ANY:
+            return True
+
+        # regular expression matching
+        if hasattr(self._url, 'search'):
+            return self._url.search(request.url) is not None
+
+        # scheme is always matched case insensitive
+        if self._scheme and request.scheme.lower() != self._scheme:
+            return False
+
+        # netloc is always matched case insensitive
+        if self._netloc and request.netloc.lower() != self._netloc:
+            return False
+
+        if (request.path or '/') != self._path:
+            return False
+
+        # construct our own qs structure as we remove items from it below
+        request_qs = urllib.parse.parse_qs(request.query,
+                                           keep_blank_values=True)
+        matcher_qs = urllib.parse.parse_qs(self._query, keep_blank_values=True)
+
+        for k, vals in matcher_qs.items():
+            for v in vals:
+                try:
+                    request_qs.get(k, []).remove(v)
+                except ValueError:
+                    return False
+
+        if self._complete_qs:
+            for v in request_qs.values():
+                if v:
+                    return False
+
+        return True
+
+    def _match_headers(self, request):
+        for k, vals in self._request_headers.items():
+
+            try:
+                header = request.headers[k]
+            except KeyError:
+                # NOTE(jamielennox): This seems to be a requests 1.2/2
+                # difference, in 2 they are just whatever the user inputted in
+                # 1 they are bytes. Let's optionally handle both and look at
+                # removing this when we depend on requests 2.
+                if not isinstance(k, str):
+                    return False
+
+                try:
+                    header = request.headers[k.encode('utf-8')]
+                except KeyError:
+                    return False
+
+            if header != vals:
+                return False
+
+        return True
+
+    def _match_additional(self, request):
+        if callable(self._additional_matcher):
+            return self._additional_matcher(request)
+
+        if self._additional_matcher is not None:
+            raise TypeError("Unexpected format of additional matcher.")
+
+        return True
+
+    def _match(self, request):
+        return (self._match_method(request) and
+                self._match_url(request) and
+                self._match_headers(request) and
+                self._match_additional(request))
+
+    def __call__(self, request):
+        if not self._match(request):
+            return None
+
+        # doing this before _add_to_history means real requests are not stored
+        # in the request history. I'm not sure what is better here.
+        if self._real_http:
+            raise _RunRealHTTP()
+
+        if len(self._responses) > 1:
+            response_matcher = self._responses.pop(0)
+        else:
+            response_matcher = self._responses[0]
+
+        self._add_to_history(request)
+        return response_matcher.get_response(request)
+
+
+class Adapter(BaseAdapter, _RequestHistoryTracker):
+    """A fake adapter than can return predefined responses.
+
+    """
+    def __init__(self, case_sensitive=False):
+        super(Adapter, self).__init__()
+        self._case_sensitive = case_sensitive
+        self._matchers = []
+
+    def send(self, request, **kwargs):
+        request = _RequestObjectProxy(request,
+                                      case_sensitive=self._case_sensitive,
+                                      **kwargs)
+        self._add_to_history(request)
+
+        for matcher in reversed(self._matchers):
+            try:
+                resp = matcher(request)
+            except Exception:
+                request._matcher = weakref.ref(matcher)
+                raise
+
+            if resp is not None:
+                request._matcher = weakref.ref(matcher)
+                resp.connection = self
+                logger.debug('{} {} {}'.format(request._request.method,
+                                               request._request.url,
+                                               resp.status_code))
+                return resp
+
+        raise exceptions.NoMockAddress(request)
+
+    def close(self):
+        pass
+
+    def register_uri(self, method, url, response_list=None, **kwargs):
+        """Register a new URI match and fake response.
+
+        :param str method: The HTTP method to match.
+        :param str url: The URL to match.
+        """
+        complete_qs = kwargs.pop('complete_qs', False)
+        additional_matcher = kwargs.pop('additional_matcher', None)
+        request_headers = kwargs.pop('request_headers', {})
+        real_http = kwargs.pop('_real_http', False)
+        json_encoder = kwargs.pop('json_encoder', None)
+
+        if response_list and kwargs:
+            raise RuntimeError('You should specify either a list of '
+                               'responses OR response kwargs. Not both.')
+        elif real_http and (response_list or kwargs):
+            raise RuntimeError('You should specify either response data '
+                               'OR real_http. Not both.')
+        elif not response_list:
+            if json_encoder is not None:
+                kwargs['json_encoder'] = json_encoder
+            response_list = [] if real_http else [kwargs]
+
+        # NOTE(jamielennox): case_sensitive is not present as a kwarg because i
+        # think there would be an edge case where the adapter and register_uri
+        # had different values.
+        # Ideally case_sensitive would be a value passed to match() however
+        # this would change the contract of matchers so we pass ito to the
+        # proxy and the matcher separately.
+        responses = [_MatcherResponse(**k) for k in response_list]
+        matcher = _Matcher(method,
+                           url,
+                           responses,
+                           case_sensitive=self._case_sensitive,
+                           complete_qs=complete_qs,
+                           additional_matcher=additional_matcher,
+                           request_headers=request_headers,
+                           real_http=real_http)
+        self.add_matcher(matcher)
+        return matcher
+
+    def add_matcher(self, matcher):
+        """Register a custom matcher.
+
+        A matcher is a callable that takes a `requests.Request` and returns a
+        `requests.Response` if it matches or None if not.
+
+        :param callable matcher: The matcher to execute.
+        """
+        self._matchers.append(matcher)
+
+    def reset(self):
+        super(Adapter, self).reset()
+        for matcher in self._matchers:
+            matcher.reset()
+
+
+__all__ = ['Adapter']
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/adapter.pyi</source>
+<document_content>
+# Stubs for requests_mock.adapter
+
+from http.cookiejar import CookieJar
+from io import IOBase
+from typing import Any, Callable, Dict, List, NewType, Optional, Pattern, Type, TypeVar, Union
+
+from requests import Response
+from requests.adapters import BaseAdapter
+from urllib3.response import HTTPResponse
+
+from requests_mock.request import Request
+from requests_mock.response import Context
+
+AnyMatcher = NewType("AnyMatcher", object)
+
+ANY: AnyMatcher = ...
+
+T = TypeVar('T')
+Callback = Callable[[Request, Context], T]
+Matcher = Callable[[Request], Optional[Response]]
+AdditionalMatcher = Callable[[Request], bool]
+
+class _RequestHistoryTracker:
+    request_history: List[Request] = ...
+    def __init__(self) -> None: ...
+    @property
+    def last_request(self) -> Optional[Request]: ...
+    @property
+    def called(self) -> bool: ...
+    @property
+    def called_once(self) -> bool: ...
+    @property
+    def call_count(self) -> int: ...
+
+class _RunRealHTTP(Exception): ...
+
+class _Matcher(_RequestHistoryTracker):
+    def __init__(
+        self,
+        method: Any,
+        url: Any,
+        responses: Any,
+        complete_qs: Any,
+        request_headers: Any,
+        additional_matcher: AdditionalMatcher,
+        real_http: Any,
+        case_sensitive: Any
+    ) -> None: ...
+    def __call__(self, request: Request) -> Optional[Response]: ...
+
+class Adapter(BaseAdapter, _RequestHistoryTracker):
+    def __init__(self, case_sensitive: bool = ...) -> None: ...
+    def register_uri(
+        self,
+        method: Union[str, AnyMatcher],
+        url: Union[str, Pattern[str], AnyMatcher],
+        response_list: Optional[List[Dict[str, Any]]] = ...,
+        *,
+        request_headers: Dict[str, str] = ...,
+        complete_qs: bool = ...,
+        status_code: int = ...,
+        reason: str = ...,
+        headers: Dict[str, str] = ...,
+        cookies: Union[CookieJar, Dict[str, str]] = ...,
+        json: Union[Any, Callback[Any]] = ...,
+        text: Union[str, Callback[str]] = ...,
+        content: Union[bytes, Callback[bytes]] = ...,
+        body: Union[IOBase, Callback[IOBase]] = ...,
+        raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+        exc: Union[Exception, Type[Exception]] = ...,
+        additional_matcher: AdditionalMatcher = ...,
+        **kwargs: Any
+    ) -> _Matcher: ...
+    def add_matcher(self, matcher: Matcher) -> None: ...
+    def reset(self) -> None: ...
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/exceptions.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
+class MockException(Exception):
+    """Base Exception for library"""
+
+
+class NoMockAddress(MockException):
+    """The requested URL was not mocked"""
+
+    def __init__(self, request):
+        self.request = request
+
+    def __str__(self):
+        return "No mock address: %s %s" % (self.request.method,
+                                           self.request.url)
+
+
+class InvalidRequest(MockException):
+    """This call cannot be made under a mocked environment"""
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/exceptions.pyi</source>
+<document_content>
+# Stubs for requests_mock.exceptions
+
+from typing import Any
+
+from requests import Request
+
+class MockException(Exception): ...
+
+class NoMockAddress(MockException):
+    request: Any = ...
+    def __init__(self, request: Request) -> None: ...
+
+class InvalidRequest(MockException): ...
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/mocker.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import contextlib
+import functools
+import sys
+import threading
+import types
+
+import requests
+
+from requests_mock import adapter
+from requests_mock import exceptions
+
+DELETE = 'DELETE'
+GET = 'GET'
+HEAD = 'HEAD'
+OPTIONS = 'OPTIONS'
+PATCH = 'PATCH'
+POST = 'POST'
+PUT = 'PUT'
+
+_original_send = requests.Session.send
+
+# NOTE(phodge): we need to use an RLock (reentrant lock) here because
+# requests.Session.send() is reentrant. See further comments where we
+# monkeypatch get_adapter()
+_send_lock = threading.RLock()
+
+
+@contextlib.contextmanager
+def threading_rlock(timeout):
+    kwargs = {}
+    if sys.version_info.major >= 3:
+        # python2 doesn't support the timeout argument
+        kwargs['timeout'] = timeout
+
+    if not _send_lock.acquire(**kwargs):
+        m = "Could not acquire threading lock - possible deadlock scenario"
+        raise Exception(m)
+
+    try:
+        yield
+    finally:
+        _send_lock.release()
+
+
+def _is_bound_method(method):
+    """
+    bound_method 's self is a obj
+    unbound_method 's self is None
+    """
+    if isinstance(method, types.MethodType) and hasattr(method, '__self__'):
+        return True
+
+    return False
+
+
+def _set_method(target, name, method):
+    """ Set a mocked method onto the target.
+
+    Target may be either an instance of a Session object of the
+    requests.Session class. First we Bind the method if it's an instance.
+
+    If method is a bound_method, can direct setattr
+    """
+    if not isinstance(target, type) and not _is_bound_method(method):
+        method = types.MethodType(method, target)
+
+    setattr(target, name, method)
+
+
+class MockerCore(object):
+    """A wrapper around common mocking functions.
+
+    Automate the process of mocking the requests library. This will keep the
+    same general options available and prevent repeating code.
+    """
+
+    _PROXY_FUNCS = {
+        'last_request',
+        'add_matcher',
+        'request_history',
+        'called',
+        'called_once',
+        'call_count',
+        'reset',
+    }
+
+    case_sensitive = False
+    """case_sensitive handles a backwards incompatible bug. The URL used to
+    match against our matches and that is saved in request_history is always
+    lowercased. This is incorrect as it reports incorrect history to the user
+    and doesn't allow case sensitive path matching.
+
+    Unfortunately fixing this change is backwards incompatible in the 1.X
+    series as people may rely on this behaviour. To work around this you can
+    globally set:
+
+    requests_mock.mock.case_sensitive = True
+
+    or for pytest set in your configuration:
+
+    [pytest]
+    requests_mock_case_sensitive = True
+
+    which will prevent the lowercase being executed and return case sensitive
+    url and query information.
+
+    This will become the default in a 2.X release. See bug: #1584008.
+    """
+
+    def __init__(self, session=None, **kwargs):
+        if session and not isinstance(session, requests.Session):
+            raise TypeError("Only a requests.Session object can be mocked")
+
+        self._mock_target = session or requests.Session
+        self.case_sensitive = kwargs.pop('case_sensitive', self.case_sensitive)
+        self._adapter = (
+            kwargs.pop('adapter', None) or
+            adapter.Adapter(case_sensitive=self.case_sensitive)
+        )
+
+        self._json_encoder = kwargs.pop('json_encoder', None)
+        self.real_http = kwargs.pop('real_http', False)
+        self._last_send = None
+
+        if kwargs:
+            raise TypeError('Unexpected Arguments: %s' % ', '.join(kwargs))
+
+    def start(self):
+        """Start mocking requests.
+
+        Install the adapter and the wrappers required to intercept requests.
+        """
+        if self._last_send:
+            raise RuntimeError('Mocker has already been started')
+
+        # backup last `send` for restoration on `self.stop`
+        self._last_send = self._mock_target.send
+        self._last_get_adapter = self._mock_target.get_adapter
+
+        def _fake_get_adapter(session, url):
+            return self._adapter
+
+        def _fake_send(session, request, **kwargs):
+            # NOTE(phodge): we need to use a threading lock here in case there
+            # are multiple threads running - one thread could restore the
+            # original get_adapter() just as a second thread is about to
+            # execute _original_send() below
+            with threading_rlock(timeout=10):
+                # mock get_adapter
+                #
+                # NOTE(phodge): requests.Session.send() is actually
+                # reentrant due to how it resolves redirects with nested
+                # calls to send(), however the reentry occurs _after_ the
+                # call to self.get_adapter(), so it doesn't matter that we
+                # will restore _last_get_adapter before a nested send() has
+                # completed as long as we monkeypatch get_adapter() each
+                # time immediately before calling original send() like we
+                # are doing here.
+                _set_method(session, "get_adapter", _fake_get_adapter)
+
+                # NOTE(jamielennox): self._last_send vs _original_send. Whilst
+                # it seems like here we would use _last_send there is the
+                # possibility that the user has messed up and is somehow
+                # nesting their mockers.  If we call last_send at this point
+                # then we end up calling this function again and the outer
+                # level adapter ends up winning.  All we really care about here
+                # is that our adapter is in place before calling send so we
+                # always jump directly to the real function so that our most
+                # recently patched send call ends up putting in the most recent
+                # adapter. It feels funny, but it works.
+
+                try:
+                    return _original_send(session, request, **kwargs)
+                except exceptions.NoMockAddress:
+                    if not self.real_http:
+                        raise
+                except adapter._RunRealHTTP:
+                    # this mocker wants you to run the request through the real
+                    # requests library rather than the mocking. Let it.
+                    pass
+                finally:
+                    # restore get_adapter
+                    _set_method(session, "get_adapter", self._last_get_adapter)
+
+            # if we are here it means we must run the real http request
+            # Or, with nested mocks, to the parent mock, that is why we use
+            # _last_send here instead of _original_send
+            if isinstance(self._mock_target, type):
+                return self._last_send(session, request, **kwargs)
+            else:
+                return self._last_send(request, **kwargs)
+
+        _set_method(self._mock_target, "send", _fake_send)
+
+    def stop(self):
+        """Stop mocking requests.
+
+        This should have no impact if mocking has not been started.
+        When nesting mockers, make sure to stop the innermost first.
+        """
+        if self._last_send:
+            self._mock_target.send = self._last_send
+            self._last_send = None
+
+    # for familiarity with MagicMock
+    def reset_mock(self):
+        self.reset()
+
+    def __getattr__(self, name):
+        if name in self._PROXY_FUNCS:
+            try:
+                return getattr(self._adapter, name)
+            except AttributeError:
+                pass
+
+        raise AttributeError(name)
+
+    def register_uri(self, *args, **kwargs):
+        # you can pass real_http here, but it's private to pass direct to the
+        # adapter, because if you pass direct to the adapter you'll see the exc
+        kwargs['_real_http'] = kwargs.pop('real_http', False)
+        kwargs.setdefault('json_encoder', self._json_encoder)
+        return self._adapter.register_uri(*args, **kwargs)
+
+    def request(self, *args, **kwargs):
+        return self.register_uri(*args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        return self.request(GET, *args, **kwargs)
+
+    def options(self, *args, **kwargs):
+        return self.request(OPTIONS, *args, **kwargs)
+
+    def head(self, *args, **kwargs):
+        return self.request(HEAD, *args, **kwargs)
+
+    def post(self, *args, **kwargs):
+        return self.request(POST, *args, **kwargs)
+
+    def put(self, *args, **kwargs):
+        return self.request(PUT, *args, **kwargs)
+
+    def patch(self, *args, **kwargs):
+        return self.request(PATCH, *args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        return self.request(DELETE, *args, **kwargs)
+
+
+class Mocker(MockerCore):
+    """The standard entry point for mock Adapter loading.
+    """
+
+    #: Defines with what should method name begin to be patched
+    TEST_PREFIX = 'test'
+
+    def __init__(self, **kwargs):
+        """Create a new mocker adapter.
+
+        :param str kw: Pass the mock object through to the decorated function
+            as this named keyword argument, rather than a positional argument.
+        :param bool real_http: True to send the request to the real requested
+            uri if there is not a mock installed for it. Defaults to False.
+        """
+        self._kw = kwargs.pop('kw', None)
+        super(Mocker, self).__init__(**kwargs)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.stop()
+
+    def __call__(self, obj):
+        if isinstance(obj, type):
+            return self.decorate_class(obj)
+
+        return self.decorate_callable(obj)
+
+    def copy(self):
+        """Returns an exact copy of current mock
+        """
+        m = type(self)(
+            kw=self._kw,
+            real_http=self.real_http,
+            case_sensitive=self.case_sensitive
+        )
+        return m
+
+    def decorate_callable(self, func):
+        """Decorates a callable
+
+        :param callable func: callable to decorate
+        """
+        @functools.wraps(func)
+        def inner(*args, **kwargs):
+            with self.copy() as m:
+                if self._kw:
+                    kwargs[self._kw] = m
+                else:
+                    args = list(args)
+                    args.append(m)
+
+                return func(*args, **kwargs)
+
+        return inner
+
+    def decorate_class(self, klass):
+        """Decorates methods in a class with request_mock
+
+        Method will be decorated only if it name begins with `TEST_PREFIX`
+
+        :param object klass: class which methods will be decorated
+        """
+        for attr_name in dir(klass):
+            if not attr_name.startswith(self.TEST_PREFIX):
+                continue
+
+            attr = getattr(klass, attr_name)
+            if not hasattr(attr, '__call__'):
+                continue
+
+            m = self.copy()
+            setattr(klass, attr_name, m(attr))
+
+        return klass
+
+
+mock = Mocker
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/mocker.pyi</source>
+<document_content>
+# Stubs for requests_mock.mocker
+
+from json import JSONEncoder
+from http.cookiejar import CookieJar
+from io import IOBase
+from typing import Any, Callable, Dict, List, Optional, Pattern, Type, TypeVar, Union, overload
+
+from requests import Response, Session
+from urllib3.response import HTTPResponse
+
+from requests_mock.adapter import AnyMatcher, _Matcher, Callback, AdditionalMatcher
+from requests_mock.request import Request
+
+DELETE: str
+GET: str
+HEAD: str
+OPTIONS: str
+PATCH: str
+POST: str
+PUT: str
+
+class MockerCore:
+    case_sensitive: bool = ...
+    def __init__(self, **kwargs: Any) -> None: ...
+    def start(self) -> None: ...
+    def stop(self) -> None: ...
+    def add_matcher(self, matcher: Callable[[Request], Optional[Response]]) -> None: ...
+    @property
+    def request_history(self) -> List[Request]: ...
+    @property
+    def last_request(self) -> Optional[Request]: ...
+    @property
+    def called(self) -> bool: ...
+    @property
+    def called_once(self) -> bool: ...
+    @property
+    def call_count(self) -> int: ...
+    def reset(self) -> None: ...
+    def reset_mock(self) -> None: ...
+
+    def register_uri(
+      self,
+      method: Union[str, AnyMatcher],
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def request(
+      self,
+      method: Union[str, AnyMatcher],
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def get(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def head(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def options(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def post(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def put(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def patch(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+    def delete(
+      self,
+      url: Union[str, Pattern[str], AnyMatcher],
+      response_list: Optional[List[Dict[str, Any]]] = ...,
+      *,
+      request_headers: Dict[str, str] = ...,
+      complete_qs: bool = ...,
+      status_code: int = ...,
+      reason: str = ...,
+      headers: Dict[str, str] = ...,
+      cookies: Union[CookieJar, Dict[str, str]] = ...,
+      json: Union[Any, Callback[Any]] = ...,
+      text: Union[str, Callback[str]] = ...,
+      content: Union[bytes, Callback[bytes]] = ...,
+      body: Union[IOBase, Callback[IOBase]] = ...,
+      raw: Union[HTTPResponse, Callback[HTTPResponse]] = ...,
+      exc: Union[Exception, Type[Exception]] = ...,
+      additional_matcher: AdditionalMatcher = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+      **kwargs: Any,
+    ) -> _Matcher: ...
+
+_T = TypeVar('_T')
+_CallableT = TypeVar("_CallableT", bound=Callable)
+
+class Mocker(MockerCore):
+    TEST_PREFIX: str = ...
+    real_http: bool = ...
+
+    def __init__(
+      self,
+      *,
+      kw: str = ...,
+      case_sensitive: bool = ...,
+      adapter: Any = ...,
+      session: Optional[Session] = ...,
+      real_http: bool = ...,
+      json_encoder: Optional[Type[JSONEncoder]] = ...,
+    ) -> None: ...
+    def __enter__(self) -> Any: ...
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None: ...
+    @overload
+    def __call__(self, obj: type[_T]) -> type[_T]: ...
+    @overload
+    def __call__(self, obj: _CallableT) -> _CallableT: ...
+    def copy(self) -> Mocker: ...
+    def decorate_callable(self, func: _CallableT) -> _CallableT: ...
+    def decorate_class(self, klass: Type[_T]) -> Type[_T]: ...
+
+mock = Mocker
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/py.typed</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/request.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import copy
+import json
+import urllib.parse
+
+import requests
+
+
+class _RequestObjectProxy(object):
+    """A wrapper around a requests.Request that gives some extra information.
+
+    This will be important both for matching and so that when it's save into
+    the request_history users will be able to access these properties.
+    """
+
+    def __init__(self, request, **kwargs):
+        self._request = request
+        self._matcher = None
+        self._url_parts_ = None
+        self._qs = None
+
+        # All of these params should always exist but we use a default
+        # to make the test setup easier.
+        self._timeout = kwargs.pop('timeout', None)
+        self._allow_redirects = kwargs.pop('allow_redirects', None)
+        self._verify = kwargs.pop('verify', None)
+        self._stream = kwargs.pop('stream', None)
+        self._cert = kwargs.pop('cert', None)
+        self._proxies = copy.deepcopy(kwargs.pop('proxies', {}))
+
+        # FIXME(jamielennox): This is part of bug #1584008 and should default
+        # to True (or simply removed) in a major version bump.
+        self._case_sensitive = kwargs.pop('case_sensitive', False)
+
+    def __getattr__(self, name):
+        # there should be a better way to exclude this, but I don't want to
+        # implement __setstate__ just not forward it to the request. You can't
+        # actually define the method and raise AttributeError there either.
+        if name in ('__setstate__',):
+            raise AttributeError(name)
+
+        return getattr(self._request, name)
+
+    @property
+    def _url_parts(self):
+        if self._url_parts_ is None:
+            url = self._request.url
+
+            if not self._case_sensitive:
+                url = url.lower()
+
+            self._url_parts_ = urllib.parse.urlparse(url)
+
+        return self._url_parts_
+
+    @property
+    def scheme(self):
+        return self._url_parts.scheme
+
+    @property
+    def netloc(self):
+        return self._url_parts.netloc
+
+    @property
+    def hostname(self):
+        try:
+            return self.netloc.split(':')[0]
+        except IndexError:
+            return ''
+
+    @property
+    def port(self):
+        components = self.netloc.split(':')
+
+        try:
+            return int(components[1])
+        except (IndexError, ValueError):
+            pass
+
+        if self.scheme == 'https':
+            return 443
+        if self.scheme == 'http':
+            return 80
+
+        # The default return shouldn't matter too much because if you are
+        # wanting to test this value you really should be explicitly setting it
+        # somewhere. 0 at least is a boolean False and an int.
+        return 0
+
+    @property
+    def path(self):
+        return self._url_parts.path
+
+    @property
+    def query(self):
+        return self._url_parts.query
+
+    @property
+    def qs(self):
+        if self._qs is None:
+            self._qs = urllib.parse.parse_qs(self.query,
+                                             keep_blank_values=True)
+
+        return self._qs
+
+    @property
+    def timeout(self):
+        return self._timeout
+
+    @property
+    def allow_redirects(self):
+        return self._allow_redirects
+
+    @property
+    def verify(self):
+        return self._verify
+
+    @property
+    def stream(self):
+        return self._stream
+
+    @property
+    def cert(self):
+        return self._cert
+
+    @property
+    def proxies(self):
+        return self._proxies
+
+    @classmethod
+    def _create(cls, *args, **kwargs):
+        return cls(requests.Request(*args, **kwargs).prepare())
+
+    @property
+    def text(self):
+        body = self.body
+
+        if isinstance(body, bytes):
+            body = body.decode('utf-8')
+
+        return body
+
+    def json(self, **kwargs):
+        return json.loads(self.text, **kwargs)
+
+    def __getstate__(self):
+        # Can't pickle a weakref, but it's a weakref so ok to drop it.
+        d = self.__dict__.copy()
+        d['_matcher'] = None
+        return d
+
+    @property
+    def matcher(self):
+        """The matcher that this request was handled by.
+
+        The matcher object is handled by a weakref. It will return the matcher
+        object if it is still available - so if the mock is still in place. If
+        the matcher is not available it will return None.
+        """
+        # if unpickled or not from a response this will be None
+        if self._matcher is None:
+            return None
+
+        return self._matcher()
+
+    def __str__(self):
+        return "{0.method} {0.url}".format(self._request)
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/request.pyi</source>
+<document_content>
+# Stubs for requests_mock.request
+
+from typing import Any, Dict, List
+
+class _RequestObjectProxy:
+    def __init__(self, request: Any, **kwargs: Any) -> None: ...
+    def __getattr__(self, name: str) -> Any: ...
+    @property
+    def scheme(self) -> str: ...
+    @property
+    def netloc(self) -> str: ...
+    @property
+    def hostname(self) -> str: ...
+    @property
+    def port(self) -> int: ...
+    @property
+    def path(self) -> str: ...
+    @property
+    def query(self) -> str: ...
+    @property
+    def qs(self) -> Dict[str, List[str]]: ...
+    @property
+    def timeout(self) -> int: ...
+    @property
+    def allow_redirects(self) -> bool: ...
+    @property
+    def verify(self) -> Any: ...
+    @property
+    def stream(self) -> Any: ...
+    @property
+    def cert(self) -> Any: ...
+    @property
+    def proxies(self) -> Any: ...
+    @property
+    def text(self) -> str: ...
+    def json(self, **kwargs: Any) -> Any: ...
+    @property
+    def matcher(self) -> Any: ...
+
+
+Request = _RequestObjectProxy
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/response.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import io
+import http.client
+import json as jsonutils
+
+from requests.adapters import HTTPAdapter
+from requests.cookies import MockRequest, MockResponse
+from requests.cookies import RequestsCookieJar
+from requests.cookies import merge_cookies, cookiejar_from_dict
+from requests.utils import get_encoding_from_headers
+from urllib3.response import HTTPResponse
+
+from requests_mock import exceptions
+
+_BODY_ARGS = frozenset(['raw', 'body', 'content', 'text', 'json'])
+_HTTP_ARGS = frozenset([
+    'status_code',
+    'reason',
+    'headers',
+    'cookies',
+    'json_encoder',
+])
+
+_DEFAULT_STATUS = 200
+_http_adapter = HTTPAdapter()
+
+
+class CookieJar(RequestsCookieJar):
+
+    def set(self, name, value, **kwargs):
+        """Add a cookie to the Jar.
+
+        :param str name: cookie name/key.
+        :param str value: cookie value.
+        :param int version: Integer or None. Netscape cookies have version 0.
+            RFC 2965 and RFC 2109 cookies have a version cookie-attribute of 1.
+            However, note that cookielib may 'downgrade' RFC 2109 cookies to
+            Netscape cookies, in which case version is 0.
+        :param str port: String representing a port or a set of ports
+            (eg. '80', or '80,8080'),
+        :param str domain: The domain the cookie should apply to.
+        :param str path: Cookie path (a string, eg. '/acme/rocket_launchers').
+        :param bool secure: True if cookie should only be returned over a
+            secure connection.
+        :param int expires: Integer expiry date in seconds since epoch or None.
+        :param bool discard: True if this is a session cookie.
+        :param str comment: String comment from the server explaining the
+            function of this cookie.
+        :param str comment_url: URL linking to a comment from the server
+            explaining the function of this cookie.
+        """
+        # just here to provide the function documentation
+        return super(CookieJar, self).set(name, value, **kwargs)
+
+
+def _check_body_arguments(**kwargs):
+    # mutual exclusion, only 1 body method may be provided
+    provided = [x for x in _BODY_ARGS if kwargs.pop(x, None) is not None]
+
+    if len(provided) > 1:
+        raise RuntimeError('You may only supply one body element. You '
+                           'supplied %s' % ', '.join(provided))
+
+    extra = [x for x in kwargs if x not in _HTTP_ARGS]
+
+    if extra:
+        raise TypeError('Too many arguments provided. Unexpected '
+                        'arguments %s.' % ', '.join(extra))
+
+
+class _FakeConnection(object):
+    """An object that can mock the necessary parts of a socket interface."""
+
+    def send(self, request, **kwargs):
+        msg = 'This response was created without a connection. You are ' \
+              'therefore unable to make a request directly on that connection.'
+        raise exceptions.InvalidRequest(msg)
+
+    def close(self):
+        pass
+
+
+def _extract_cookies(request, response, cookies):
+    """Add cookies to the response.
+
+    Cookies in requests are extracted from the headers in the original_response
+    httplib.HTTPMessage which we don't create so we have to do this step
+    manually.
+    """
+    # This will add cookies set manually via the Set-Cookie or Set-Cookie2
+    # header but this only allows 1 cookie to be set.
+    response.cookies.extract_cookies(MockResponse(response.raw.headers),
+                                     MockRequest(request))
+
+    # This allows you to pass either a CookieJar or a dictionary to request_uri
+    # or directly to create_response. To allow more than one cookie to be set.
+    if cookies:
+        merge_cookies(response.cookies, cookies)
+
+
+class _IOReader(io.BytesIO):
+    """A reader that makes a BytesIO look like a HTTPResponse.
+
+    A HTTPResponse will return an empty string when you read from it after
+    the socket has been closed. A BytesIO will raise a ValueError. For
+    compatibility we want to do the same thing a HTTPResponse does.
+    """
+
+    def read(self, *args, **kwargs):
+        if self.closed:
+            return b''
+
+        # if the file is open, but you asked for zero bytes read you should get
+        # back zero without closing the stream.
+        if len(args) > 0 and args[0] == 0:
+            return b''
+
+        result = io.BytesIO.read(self, *args, **kwargs)
+
+        # when using resp.iter_content(None) it'll go through a different
+        # request path in urllib3. This path checks whether the object is
+        # marked closed instead of the return value. see gh124.
+        if result == b'':
+            self.close()
+
+        return result
+
+
+def create_response(request, **kwargs):
+    """
+    :param int status_code: The status code to return upon a successful
+        match. Defaults to 200.
+    :param HTTPResponse raw: A HTTPResponse object to return upon a
+        successful match.
+    :param io.IOBase body: An IO object with a read() method that can
+        return a body on successful match.
+    :param bytes content: A byte string to return upon a successful match.
+    :param unicode text: A text string to return upon a successful match.
+    :param object json: A python object to be converted to a JSON string
+        and returned upon a successful match.
+    :param class json_encoder: Encoder object to use for JOSON.
+    :param dict headers: A dictionary object containing headers that are
+        returned upon a successful match.
+    :param CookieJar cookies: A cookie jar with cookies to set on the
+        response.
+
+    :returns requests.Response: A response object that can
+        be returned to requests.
+    """
+    connection = kwargs.pop('connection', _FakeConnection())
+
+    _check_body_arguments(**kwargs)
+
+    raw = kwargs.pop('raw', None)
+    body = kwargs.pop('body', None)
+    content = kwargs.pop('content', None)
+    text = kwargs.pop('text', None)
+    json = kwargs.pop('json', None)
+    headers = kwargs.pop('headers', {})
+    encoding = None
+
+    if content is not None and not isinstance(content, bytes):
+        raise TypeError('Content should be binary data')
+    if text is not None and not isinstance(text, str):
+        raise TypeError('Text should be string data')
+
+    if json is not None:
+        encoder = kwargs.pop('json_encoder', None) or jsonutils.JSONEncoder
+        text = jsonutils.dumps(json, cls=encoder)
+    if text is not None:
+        encoding = get_encoding_from_headers(headers) or 'utf-8'
+        content = text.encode(encoding)
+    if content is not None:
+        body = _IOReader(content)
+    if not raw:
+        status = kwargs.get('status_code', _DEFAULT_STATUS)
+        reason = kwargs.get('reason', http.client.responses.get(status))
+
+        raw = HTTPResponse(status=status,
+                           reason=reason,
+                           headers=headers,
+                           body=body or _IOReader(b''),
+                           decode_content=False,
+                           enforce_content_length=False,
+                           preload_content=False,
+                           original_response=None)
+
+    response = _http_adapter.build_response(request, raw)
+    response.connection = connection
+
+    if encoding and not response.encoding:
+        response.encoding = encoding
+
+    _extract_cookies(request, response, kwargs.get('cookies'))
+
+    return response
+
+
+class _Context(object):
+    """Stores the data being used to process a current URL match."""
+
+    def __init__(self, headers, status_code, reason, cookies):
+        self.headers = headers
+        self.status_code = status_code
+        self.reason = reason
+        self.cookies = cookies
+
+
+class _MatcherResponse(object):
+
+    def __init__(self, **kwargs):
+        self._exc = kwargs.pop('exc', None)
+
+        # If the user is asking for an exception to be thrown then prevent them
+        # specifying any sort of body or status response as it won't be used.
+        # This may be protecting the user too much but can be removed later.
+        if self._exc and kwargs:
+            raise TypeError('Cannot provide other arguments with exc.')
+
+        _check_body_arguments(**kwargs)
+        self._params = kwargs
+
+        # whilst in general you shouldn't do type checking in python this
+        # makes sure we don't end up with differences between the way types
+        # are handled between python 2 and 3.
+        content = self._params.get('content')
+        text = self._params.get('text')
+
+        if content is not None and not (callable(content) or
+                                        isinstance(content, bytes)):
+            raise TypeError('Content should be a callback or binary data')
+
+        if text is not None and not (callable(text) or
+                                     isinstance(text, str)):
+            raise TypeError('Text should be a callback or string data')
+
+    def get_response(self, request):
+        # if an error was requested then raise that instead of doing response
+        if self._exc:
+            raise self._exc
+
+        # If a cookie dict is passed convert it into a CookieJar so that the
+        # cookies object available in a callback context is always a jar.
+        cookies = self._params.get('cookies', CookieJar())
+        if isinstance(cookies, dict):
+            cookies = cookiejar_from_dict(cookies, CookieJar())
+
+        context = _Context(self._params.get('headers', {}).copy(),
+                           self._params.get('status_code', _DEFAULT_STATUS),
+                           self._params.get('reason'),
+                           cookies)
+
+        # if a body element is a callback then execute it
+        def _call(f, *args, **kwargs):
+            return f(request, context, *args, **kwargs) if callable(f) else f
+
+        return create_response(request,
+                               json=_call(self._params.get('json')),
+                               text=_call(self._params.get('text')),
+                               content=_call(self._params.get('content')),
+                               body=_call(self._params.get('body')),
+                               raw=_call(self._params.get('raw')),
+                               json_encoder=self._params.get('json_encoder'),
+                               status_code=context.status_code,
+                               reason=context.reason,
+                               headers=context.headers,
+                               cookies=context.cookies)
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/response.pyi</source>
+<document_content>
+# Stubs for requests_mock.response
+
+import io
+from typing import Any, Dict
+
+from requests import Request, Response
+from requests.cookies import RequestsCookieJar
+
+class CookieJar(RequestsCookieJar):
+    def set(self, name: Any, value: Any, **kwargs: Any) -> Any: ...
+
+class _FakeConnection:
+    def send(self, request: Any, **kwargs: Any) -> None: ...
+    def close(self) -> None: ...
+
+class _IOReader(io.BytesIO):
+
+    def read(self, *args: Any, **kwargs: Any) -> Any: ...
+
+def create_response(request: Any, **kwargs: Any) -> Response: ...
+
+class _Context:
+    headers: Dict[str,str] = ...
+    status_code: int = ...
+    reason: str = ...
+    cookies: Any = ...
+
+    def __init__(self,
+                 headers: Dict[str, str],
+                 status_code: int,
+                 reason: str,
+                 cookies: Any) -> None: ...
+
+class _MatcherResponse:
+    def __init__(self, **kwargs: Any) -> None: ...
+    def get_response(self, request: Request) -> Response: ...
+
+Context = _Context
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/contrib/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/contrib/_pytest_plugin.py</source>
+<document_content>
+import pytest
+
+
+# RHEL 7 ships pytest 2.7 which doesn't have the 'bool' type to addini. This
+# broke pytest for EPEL: https://bugzilla.redhat.com/show_bug.cgi?id=1605138
+# If it's older than 2.9 we handle bool conversion ourselves. Remove this when
+# we can rely on a newer pytest.
+#
+# Version 3 is also where the @yield_fixture decorator was deprecated and you
+# can now just use @fixture, so we handle both of those cases as well.
+
+try:
+    _pytest_version = tuple([
+        int(x) for x in pytest.__version__.split('.')[:2]
+    ])
+    _pytest29 = _pytest_version >= (2, 9)
+    _pytest30 = _pytest_version >= (3, 0)
+except Exception:
+    _pytest29 = False
+    _pytest30 = False
+
+
+if not _pytest29:
+    _case_type = None
+    _case_default = 'false'
+
+    # Copied from pytest 2.9.0 where bool was introduced. It's what happens
+    # internally if we specify a bool type argument.
+    def _strtobool(val):
+        """Convert a string representation of truth to true (1) or false (0).
+
+        True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+        are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+        'val' is anything else.
+
+        .. note:: copied from distutils.util
+        """
+        val = val.lower()
+        if val in ('y', 'yes', 't', 'true', 'on', '1'):
+            return 1
+        elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+            return 0
+        else:
+            raise ValueError("invalid truth value %r" % (val,))
+
+    def _bool_value(value):
+        return bool(_strtobool(value.strip()))
+
+else:
+    _case_type = 'bool'
+    _case_default = False
+
+    def _bool_value(value):
+        return value
+
+
+if _pytest30:
+    _fixture_type = pytest.fixture
+else:
+    _fixture_type = pytest.yield_fixture
+
+
+def pytest_addoption(parser):
+    parser.addini('requests_mock_case_sensitive',
+                  'Use case sensitive matching in requests_mock',
+                  type=_case_type,
+                  default=_case_default)
+
+
+@_fixture_type(scope='function')  # executed on every test
+def requests_mock(request):
+    """Mock out the requests component of your code with defined responses.
+
+    Mocks out any requests made through the python requests library with useful
+    responses for unit testing. See:
+    https://requests-mock.readthedocs.io/en/latest/
+    """
+    # pytest plugins get loaded immediately. If we import requests_mock it
+    # imports requests and then SSL which prevents gevent patching. Late load.
+    import requests_mock as rm_module
+
+    case_sensitive = request.config.getini('requests_mock_case_sensitive')
+    kw = {'case_sensitive': _bool_value(case_sensitive)}
+
+    with rm_module.Mocker(**kw) as m:
+        yield m
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/contrib/_pytest_plugin.pyi</source>
+<document_content>
+
+from typing import Literal, Optional, Union
+
+
+_case_type = Optional[str]
+_case_default = Union[Literal['false'], Literal[False]]
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/requests-mock/requests_mock/contrib/fixture.py</source>
+<document_content>
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import fixtures
+
+from requests_mock import mocker
+
+
+class Fixture(fixtures.Fixture, mocker.MockerCore):
+
+    def __init__(self, **kwargs):
+        fixtures.Fixture.__init__(self)
+        mocker.MockerCore.__init__(self, **kwargs)
+
+    def setUp(self):
+        super(Fixture, self).setUp()
+        self.start()
+        self.addCleanup(self.stop)
+
+</document_content>
+</document>
+</documents>

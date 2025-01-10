@@ -21,8 +21,10 @@ from urllib.parse import quote as _uriquote
 
 import aiofiles
 import aiohttp
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 
 import democracy_exe
 

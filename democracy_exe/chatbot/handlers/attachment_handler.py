@@ -19,9 +19,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import aiohttp
 import discord
 import rich
+import structlog
 
 from discord import Attachment, File, HTTPException, Message
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 
 
@@ -222,7 +225,7 @@ class AttachmentHandler:
             except HTTPException:
                 await attm.save(path)
 
-            await logger.complete()
+            # await logger.complete()
         except Exception as e:
             logger.error(f"Error saving attachment: {e}")
             raise

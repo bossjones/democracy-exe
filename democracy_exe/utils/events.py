@@ -7,8 +7,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import discord
+import structlog
 
-from loguru import logger as LOGGER
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.utils.file_functions import glob_file_by_extension
 
@@ -49,7 +51,7 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
     jpg_file_list = glob_file_by_extension(f"{tmpdirname}", extension="*.jpg", recursive=recursive)
 
     jpg_file = f"{jpg_file_list[0]}"
-    LOGGER.debug(f"jpg_file = {jpg_file}")
+    logger.debug(f"jpg_file = {jpg_file}")
     print(f"jpg_file = {jpg_file}")
 
     jpg_attachment = discord.File(jpg_file)
@@ -70,7 +72,7 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #     json_file_list = glob_file_by_extension(f"{tmpdirname}", extension="*.json", recursive=recursive)
 
 #     json_file = f"{json_file_list[0]}"
-#     LOGGER.debug(f"json_file = {json_file}")
+#     logger.debug(f"json_file = {json_file}")
 #     print(f"json_file = {json_file}")
 
 #     try:
@@ -79,12 +81,12 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #         await ctx.send(embed=discord.Embed(description="Could not open json metadata file"))
 #         print(ex)
 #         exc_type, exc_value, exc_traceback = sys.exc_info()
-#         LOGGER.error(f"Error Class: {str(ex.__class__)}")
+#         logger.error(f"Error Class: {str(ex.__class__)}")
 #         output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
 #         await ctx.send(embed=discord.Embed(description=f"{output}"))
-#         LOGGER.warning(output)
-#         LOGGER.error(f"exc_type: {exc_type}")
-#         LOGGER.error(f"exc_value: {exc_value}")
+#         logger.warning(output)
+#         logger.error(f"exc_type: {exc_type}")
+#         logger.error(f"exc_value: {exc_value}")
 #         traceback.print_tb(exc_traceback)
 
 #     # current_message: Message
@@ -141,12 +143,12 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #             await ctx.send(embed=discord.Embed(description="Could not send download event to general"))
 #             print(ex)
 #             exc_type, exc_value, exc_traceback = sys.exc_info()
-#             LOGGER.error(f"Error Class: {str(ex.__class__)}")
+#             logger.error(f"Error Class: {str(ex.__class__)}")
 #             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
 #             await ctx.send(embed=discord.Embed(description=f"{output}"))
-#             LOGGER.warning(output)
-#             LOGGER.error(f"exc_type: {exc_type}")
-#             LOGGER.error(f"exc_value: {exc_value}")
+#             logger.warning(output)
+#             logger.error(f"exc_type: {exc_type}")
+#             logger.error(f"exc_value: {exc_value}")
 #             traceback.print_tb(exc_traceback)
 
 #     elif "instagram" in f"{cmd_metadata.uri}":
@@ -161,7 +163,7 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #         json_file_list = glob_file_by_extension(f"{tmpdirname}", extension=json_metadata_fname, recursive=recursive)
 
 #         json_file = f"{json_file_list[0]}"
-#         LOGGER.debug(f"json_file = {json_file}")
+#         logger.debug(f"json_file = {json_file}")
 #         print(f"json_file = {json_file}")
 
 #         json_data = await run_aio_json_loads(json_file)
@@ -229,12 +231,12 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #             await ctx.send(embed=discord.Embed(description="Could not send download event to general"))
 #             print(ex)
 #             exc_type, exc_value, exc_traceback = sys.exc_info()
-#             LOGGER.error(f"Error Class: {str(ex.__class__)}")
+#             logger.error(f"Error Class: {str(ex.__class__)}")
 #             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
 #             await ctx.send(embed=discord.Embed(description=f"{output}"))
-#             LOGGER.warning(output)
-#             LOGGER.error(f"exc_type: {exc_type}")
-#             LOGGER.error(f"exc_value: {exc_value}")
+#             logger.warning(output)
+#             logger.error(f"exc_type: {exc_type}")
+#             logger.error(f"exc_value: {exc_value}")
 #             traceback.print_tb(exc_traceback)
 
 #     elif "twitter" in f"{cmd_metadata.uri}":
@@ -318,12 +320,12 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #             await ctx.send(embed=discord.Embed(description="Could not send download event to general"))
 #             print(ex)
 #             exc_type, exc_value, exc_traceback = sys.exc_info()
-#             LOGGER.error(f"Error Class: {str(ex.__class__)}")
+#             logger.error(f"Error Class: {str(ex.__class__)}")
 #             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
 #             await ctx.send(embed=discord.Embed(description=f"{output}"))
-#             LOGGER.warning(output)
-#             LOGGER.error(f"exc_type: {exc_type}")
-#             LOGGER.error(f"exc_value: {exc_value}")
+#             logger.warning(output)
+#             logger.error(f"exc_type: {exc_type}")
+#             logger.error(f"exc_value: {exc_value}")
 #             traceback.print_tb(exc_traceback)
 #     elif "reddit" in f"{cmd_metadata.uri}" or "redd.it" in f"{cmd_metadata.uri}":
 #         # rich.print(json_data)
@@ -383,12 +385,12 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #             await ctx.send(embed=discord.Embed(description="Could not send download event to general"))
 #             print(ex)
 #             exc_type, exc_value, exc_traceback = sys.exc_info()
-#             LOGGER.error(f"Error Class: {str(ex.__class__)}")
+#             logger.error(f"Error Class: {str(ex.__class__)}")
 #             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
 #             await ctx.send(embed=discord.Embed(description=f"{output}"))
-#             LOGGER.warning(output)
-#             LOGGER.error(f"exc_type: {exc_type}")
-#             LOGGER.error(f"exc_value: {exc_value}")
+#             logger.warning(output)
+#             logger.error(f"exc_type: {exc_type}")
+#             logger.error(f"exc_value: {exc_value}")
 #             traceback.print_tb(exc_traceback)
 
 #     elif "tiktok" in f"{cmd_metadata.uri}":
@@ -441,12 +443,12 @@ def aio_create_thumbnail_attachment(tmpdirname: str, recursive: bool = False):
 #             await ctx.send(embed=discord.Embed(description="Could not send download event to general"))
 #             print(ex)
 #             exc_type, exc_value, exc_traceback = sys.exc_info()
-#             LOGGER.error(f"Error Class: {str(ex.__class__)}")
+#             logger.error(f"Error Class: {str(ex.__class__)}")
 #             output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
 #             await ctx.send(embed=discord.Embed(description=f"{output}"))
-#             LOGGER.warning(output)
-#             LOGGER.error(f"exc_type: {exc_type}")
-#             LOGGER.error(f"exc_value: {exc_value}")
+#             logger.warning(output)
+#             logger.error(f"exc_type: {exc_type}")
+#             logger.error(f"exc_value: {exc_value}")
 #             traceback.print_tb(exc_traceback)
 
 #     else:

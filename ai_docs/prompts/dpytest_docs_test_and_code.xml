@@ -1,0 +1,4754 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/__init__.py</source>
+<document_content>
+
+__title__ = "dpytest"
+__author__ = "Rune Tynan"
+__license__ = "MIT"
+__copyright__ = "Copyright 2018-2019 CraftSpider"
+__version__ = "0.7.0"
+
+from . import backend as backend
+
+from .runner import *
+
+from .utils import embed_eq as embed_eq
+from .utils import activity_eq as activity_eq
+from .utils import embed_proxy_eq as embed_proxy_eq
+from .utils import PeekableQueue as PeekableQueue
+
+from .verify import verify as verify
+from .verify import Verify as Verify
+from .verify import VerifyMessage as VerifyMessage
+from .verify import VerifyActivity as VerifyActivity
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/_types.py</source>
+<document_content>
+"""
+    Internal module for type-hinting aliases. Ensures single common definitions.
+"""
+
+import discord
+import typing
+
+T = typing.TypeVar('T')
+
+JsonVal = typing.Union[str, int, bool, typing.Dict[str, 'JsonVal'], typing.List['JsonVal']]
+JsonDict = typing.Dict[str, JsonVal]
+JsonList = typing.List[JsonVal]
+Callback = typing.Callable[..., typing.Coroutine[None, None, None]]
+AnyChannel = typing.Union[discord.TextChannel, discord.CategoryChannel,
+                          discord.abc.GuildChannel, discord.abc.PrivateChannel]
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/backend.py</source>
+<document_content>
+"""
+    Module for 'server-side' state during testing. This module should contain
+    methods for altering said server-side state, which then are responsible for triggering
+    a ``parse_*`` call in the configured client state to inform the bot of the change.
+
+    This setup matches discord's actual setup, where an HTTP call triggers a change on the server,
+    which is then sent back to the bot as an event which is parsed and dispatched.
+"""
+
+import asyncio
+import sys
+import logging
+import re
+import typing
+import datetime
+
+import discord
+import discord.http as dhttp
+import pathlib
+import urllib.parse
+import urllib.request
+
+from . import factories as facts, state as dstate, callbacks, websocket, _types
+
+
+class BackendState(typing.NamedTuple):
+    """
+        The dpytest backend, with all the state it needs to hold to be able to pretend to be
+        discord. Generally only used internally, but exposed through :py:func:`get_state`
+    """
+    messages: typing.Dict[int, typing.List[_types.JsonDict]]
+    state: dstate.FakeState
+
+
+log = logging.getLogger("discord.ext.tests")
+_cur_config: typing.Optional[BackendState] = None
+_undefined = object()  # default value for when NoneType has special meaning
+
+
+def _get_higher_locs(num: int) -> typing.Dict[str, typing.Any]:
+    """
+        Get the local variables from higher in the call-stack. Should only be used in FakeHttp for
+        retrieving information not passed to it by its caller.
+
+    :param num: How many calls up to retrieve from
+    :return: The local variables of that call, as a dictionary
+    """
+    frame = sys._getframe(num + 1)
+    locs = frame.f_locals
+    del frame
+    return locs
+
+
+class FakeRequest(typing.NamedTuple):
+    """
+        A fake web response, for use with discord ``HTTPException``\ s
+    """  # noqa: W605
+    status: int
+    reason: str
+
+
+class FakeHttp(dhttp.HTTPClient):
+    """
+        A mock implementation of an ``HTTPClient``. Instead of actually sending requests to discord, it triggers
+        a runner callback and calls the ``dpytest`` backend to update any necessary state and trigger any necessary
+        fake messages to the client.
+    """
+    fileno: typing.ClassVar[int] = 0
+    state: dstate.FakeState
+
+    def __init__(self, loop: asyncio.AbstractEventLoop = None) -> None:
+        if loop is None:
+            loop = asyncio.get_event_loop()
+
+        self.state = None
+
+        super().__init__(connector=None, loop=loop)
+
+    async def request(self, *args: typing.Any, **kwargs: typing.Any) -> typing.NoReturn:
+        """
+            Overloaded to raise a NotImplemented error informing the user that the requested operation
+            isn't yet supported by ``dpytest``. To fix this, the method call that triggered this error should be
+            overloaded below to instead trigger a callback and call the appropriate backend function.
+
+        :param args: Arguments provided to the request
+        :param kwargs: Keyword arguments provided to the request
+        """
+        route: discord.http.Route = args[0]
+        raise NotImplementedError(
+            f"Operation occured that isn't captured by the tests framework. This is dpytest's fault, please report"
+            f"an issue on github. Debug Info: {route.method} {route.url} with {kwargs}"
+        )
+
+    async def create_channel(
+            self,
+            guild_id: int,
+            channel_type: discord.ChannelType,
+            *,
+            reason: typing.Optional[str] = None,
+            **options: typing.Any
+    ) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        guild = locs.get("self", None)
+        name = locs.get("name", None)
+        perms = options.get("permission_overwrites", None)
+        parent_id = options.get("parent_id", None)
+
+        if channel_type == discord.ChannelType.text.value:
+            channel = make_text_channel(name, guild, permission_overwrites=perms, parent_id=parent_id)
+        elif channel_type == discord.ChannelType.category.value:
+            channel = make_category_channel(name, guild, permission_overwrites=perms)
+        elif channel_type == discord.ChannelType.voice.value:
+            channel = make_voice_channel(name, guild, permission_overwrites=perms)
+
+        else:
+            raise NotImplementedError(
+                "Operation occurred that isn't captured by the tests framework. This is dpytest's fault, please report"
+                "an issue on github. Debug Info: only TextChannels and CategoryChannels are currently supported."
+            )
+        return facts.dict_from_channel(channel)
+
+    async def delete_channel(self, channel_id: int, *, reason: str = None) -> None:
+        locs = _get_higher_locs(1)
+        channel = locs.get("self", None)
+        if channel.type.value == discord.ChannelType.text.value:
+            delete_channel(channel)
+        if channel.type.value == discord.ChannelType.category.value:
+            for sub_channel in channel.text_channels:
+                delete_channel(sub_channel)
+            delete_channel(channel)
+        if channel.type.value == discord.ChannelType.voice.value:
+            delete_channel(channel)
+
+    async def get_channel(self, channel_id: int) -> _types.JsonDict:
+        await callbacks.dispatch_event("get_channel", channel_id)
+
+        find = None
+        for guild in _cur_config.state.guilds:
+            for channel in guild.channels:
+                if channel.id == channel_id:
+                    find = facts.dict_from_channel(channel)
+        if find is None:
+            raise discord.errors.NotFound(FakeRequest(404, "Not Found"), "Unknown Channel")
+        return find
+
+    async def start_private_message(self, user_id: int) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        user = locs.get("self", None)
+
+        await callbacks.dispatch_event("start_private_message", user)
+
+        return facts.make_dm_channel_dict(user)
+
+    async def send_message(
+            self,
+            channel_id: int,
+            *,
+            params: dhttp.MultipartParameters
+    ) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        channel = locs.get("channel", None)
+
+        payload = params.payload
+
+        embeds = []
+        attachments = []
+        content = None
+        tts = False
+        nonce = None
+
+        # EMBEDS
+        if payload:
+            content = params.payload.get("content")
+            tts = params.payload.get("tts")
+            nonce = params.payload.get("nonce")
+            if payload.get("embeds"):
+                embeds = [discord.Embed.from_dict(e) for e in params.payload.get("embeds")]
+
+        # ATTACHMENTS
+        if params.files:
+            for file in params.files:
+                path = pathlib.Path(f"./dpytest_{self.fileno}.dat")
+                self.fileno += 1
+                if file.fp.seekable():
+                    file.fp.seek(0)
+                with open(path, "wb") as nfile:
+                    nfile.write(file.fp.read())
+                attachments.append((path, file.filename))
+            attachments = list(map(lambda x: make_attachment(*x), attachments))
+
+        user = self.state.user
+        if channel.guild:
+            perm = channel.permissions_for(channel.guild.get_member(user.id))
+        else:
+            perm = channel.permissions_for(user)
+        if not (perm.send_messages or perm.administrator):
+            raise discord.errors.Forbidden(FakeRequest(403, "missing send_messages"), "send_messages")
+
+        message = make_message(channel=channel, author=self.state.user,
+                               content=content,
+                               tts=tts,
+                               embeds=embeds,
+                               attachments=attachments,
+                               nonce=nonce
+                               )
+        await callbacks.dispatch_event("send_message", message)
+
+        return facts.dict_from_message(message)
+
+    async def send_typing(self, channel_id: int) -> None:
+        locs = _get_higher_locs(1)
+        channel = locs.get("channel", None)
+
+        await callbacks.dispatch_event("send_typing", channel)
+
+    async def delete_message(self, channel_id: int, message_id: int, *, reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        message = locs.get("self", None)
+
+        await callbacks.dispatch_event("delete_message", message.channel, message, reason=reason)
+
+        delete_message(message)
+
+    async def edit_message(self, channel_id: int, message_id: int, **fields: dhttp.MultipartParameters) -> _types.JsonDict:  # noqa: E501
+        locs = _get_higher_locs(1)
+        message = locs.get("self", None)
+
+        await callbacks.dispatch_event("edit_message", message.channel, message, fields)
+
+        return edit_message(message, **fields)
+
+    async def add_reaction(self, channel_id: int, message_id: int, emoji: str) -> None:
+        locs = _get_higher_locs(1)
+        message = locs.get("self")
+        # normally only the connected user can add a reaction, but for testing purposes we want to be able to force
+        # the call from a specific user.
+        user = locs.get("member", self.state.user)
+
+        emoji = emoji  # TODO: Turn this back into class?
+
+        await callbacks.dispatch_event("add_reaction", message, emoji)
+
+        add_reaction(message, user, emoji)
+
+    async def remove_reaction(self, channel_id: int, message_id: int, emoji: str, member_id: int) -> None:
+        locs = _get_higher_locs(1)
+        message = locs.get("self")
+        member = locs.get("member")
+
+        await callbacks.dispatch_event("remove_reaction", message, emoji, member)
+
+        remove_reaction(message, member, emoji)
+
+    async def remove_own_reaction(self, channel_id: int, message_id: int, emoji: str) -> None:
+        locs = _get_higher_locs(1)
+        message = locs.get("self")
+        member = locs.get("member")
+
+        await callbacks.dispatch_event("remove_own_reaction", message, emoji, member)
+
+        remove_reaction(message, self.state.user, emoji)
+
+    async def clear_reactions(self, channel_id: int, message_id: int) -> None:
+        locs = _get_higher_locs(1)
+        message = locs.get("self")
+        clear_reactions(message)
+
+    async def get_message(self, channel_id: int, message_id: int) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        channel = locs.get("self")
+
+        await callbacks.dispatch_event("get_message", channel, message_id)
+
+        messages = _cur_config.messages[channel_id]
+        find = next(filter(lambda m: m["id"] == message_id, messages), None)
+        if find is None:
+            raise discord.errors.NotFound(FakeRequest(404, "Not Found"), "Unknown Message")
+        return find
+
+    async def logs_from(
+            self,
+            channel_id: int,
+            limit: int,
+            before: typing.Optional[int] = None,
+            after: typing.Optional[int] = None,
+            around: typing.Optional[int] = None
+    ) -> typing.List[_types.JsonDict]:
+        locs = _get_higher_locs(1)
+        channel = locs.get("self", None)
+
+        await callbacks.dispatch_event("logs_from", channel, limit, before=None, after=None, around=None)
+
+        messages = _cur_config.messages[channel_id]
+        if after is not None:
+            start = next(i for i, v in enumerate(messages) if v["id"] == after)
+            return messages[start:start + limit]
+        elif around is not None:
+            start = next(i for i, v in enumerate(messages) if v["id"] == around)
+            return messages[start - limit // 2:start + limit // 2]
+        else:
+            if before is None:
+                start = len(messages)
+            else:
+                start = next(i for i, v in enumerate(messages) if v["id"] == before)
+            return messages[start - limit:start]
+
+    async def kick(self, user_id: int, guild_id: int, reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        guild = locs.get("self", None)
+        member = locs.get("user", None)
+
+        await callbacks.dispatch_event("kick", guild, member, reason=reason)
+
+        delete_member(member)
+
+    async def ban(self, user_id: int, guild_id: int, delete_message_days: int = 1,
+                  reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        guild = locs.get("self", None)
+        member = locs.get("user", None)
+
+        await callbacks.dispatch_event("ban", guild, member, delete_message_days, reason=reason)
+
+        delete_member(member)
+
+    async def change_my_nickname(self, guild_id: int, nickname: str, *,
+                                 reason: typing.Optional[str] = None) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        me = locs.get("self", None)
+
+        me.nick = nickname
+
+        await callbacks.dispatch_event("change_nickname", nickname, me, reason=reason)
+
+        return {"nick": nickname}
+
+    async def edit_member(self, guild_id: int, user_id: int, *, reason: typing.Optional[str] = None,
+                          **fields: typing.Any) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        member = locs.get("self", None)
+
+        await callbacks.dispatch_event("edit_member", fields, member, reason=reason)
+        member = update_member(member, nick=fields.get('nick'), roles=fields.get('roles'))
+        return facts.dict_from_member(member)
+
+    async def get_member(self, guild_id: int, member_id: int) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        guild = locs.get("self", None)
+        member = discord.utils.get(guild.members, id=member_id)
+
+        return facts.dict_from_member(member)
+
+    async def edit_role(self, guild_id: int, role_id: int, *, reason: typing.Optional[str] = None,
+                        **fields: typing.Any) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        role = locs.get("self")
+        guild = role.guild
+
+        await callbacks.dispatch_event("edit_role", guild, role, fields, reason=reason)
+
+        update_role(role, **fields)
+        return facts.dict_from_role(role)
+
+    async def delete_role(self, guild_id: int, role_id: int, *, reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        role = locs.get("self")
+        guild = role.guild
+
+        await callbacks.dispatch_event("delete_role", guild, role, reason=reason)
+
+        delete_role(role)
+
+    async def create_role(self, guild_id: int, *, reason: typing.Optional[str] = None,
+                          **fields: typing.Any) -> _types.JsonDict:
+        locs = _get_higher_locs(1)
+        guild = locs.get("self", None)
+        role = make_role(guild=guild, **fields, )
+
+        await callbacks.dispatch_event("create_role", guild, role, reason=reason)
+
+        return facts.dict_from_role(role)
+
+    async def move_role_position(self, guild_id: int, positions: typing.List[_types.JsonDict], *,
+                                 reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        role = locs.get("self", None)
+        guild = role.guild
+
+        await callbacks.dispatch_event("move_role", guild, role, positions, reason=reason)
+
+        for pair in positions:
+            guild._roles[pair["id"]].position = pair["position"]
+
+    async def add_role(self, guild_id: int, user_id: int, role_id: int, *, reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        member = locs.get("self", None)
+        role = locs.get("role", None)
+
+        await callbacks.dispatch_event("add_role", member, role, reason=reason)
+
+        roles = [role] + [x for x in member.roles if x.id != member.guild.id]
+        update_member(member, roles=roles)
+
+    async def remove_role(self, guild_id: int, user_id: int, role_id: int, *,
+                          reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        member = locs.get("self", None)
+        role = locs.get("role", None)
+
+        await callbacks.dispatch_event("remove_role", member, role, reason=reason)
+
+        roles = [x for x in member.roles if x != role and x.id != member.guild.id]
+        update_member(member, roles=roles)
+
+    async def application_info(self) -> _types.JsonDict:
+        # TODO: make these values configurable
+        user = self.state.user
+        data = {
+            "id": user.id,
+            "name": user.name,
+            "icon": user.avatar,
+            "description": "A test discord application",
+            "rpc_origins": None,
+            "bot_public": True,
+            "bot_require_code_grant": False,
+            "owner": facts.make_user_dict("TestOwner", "0001", None),
+            "summary": None,
+            "verify_key": None
+        }
+
+        appinfo = discord.AppInfo(self.state, data)
+        await callbacks.dispatch_event("app_info", appinfo)
+
+        return data
+
+    async def delete_channel_permissions(self, channel_id: int, target_id: int, *,
+                                         reason: typing.Optional[str] = None) -> None:
+        locs = _get_higher_locs(1)
+        channel: discord.TextChannel = locs.get("self", None)
+        target = locs.get("target", None)
+
+        user = self.state.user
+        perm: discord.Permissions = channel.permissions_for(channel.guild.get_member(user.id))
+        if not (perm.administrator or perm.manage_permissions):
+            raise discord.errors.Forbidden(FakeRequest(403, "missing manage_roles"), "manage_roles")
+
+        update_text_channel(channel, target, None)
+
+    async def edit_channel_permissions(
+            self,
+            channel_id: int,
+            target_id: int,
+            allow_value: int,
+            deny_value: int,
+            perm_type: str,
+            *,
+            reason: typing.Optional[str] = None
+    ) -> None:
+        locs = _get_higher_locs(1)
+        channel: discord.TextChannel = locs.get("self", None)
+        target = locs.get("target", None)
+
+        user = self.state.user
+        perm: discord.Permissions = channel.permissions_for(channel.guild.get_member(user.id))
+        if not (perm.administrator or perm.manage_permissions):
+            raise discord.errors.Forbidden(FakeRequest(403, "missing manage_roles"), "manage_roles")
+
+        ovr = discord.PermissionOverwrite.from_pair(discord.Permissions(allow_value), discord.Permissions(deny_value))
+        update_text_channel(channel, target, ovr)
+
+    async def get_from_cdn(self, url: str) -> bytes:
+        parsed_url = urllib.parse.urlparse(url)
+        path = urllib.request.url2pathname(parsed_url.path)
+        with open(path, 'rb') as fd:
+            return fd.read()
+
+    async def get_user(self, user_id: int) -> _types.JsonDict:
+        # return self.request(Route('GET', '/users/{user_id}', user_id=user_id))
+        locs = _get_higher_locs(1)
+        client = locs.get("self", None)
+        guild = client.guilds[0]
+        member = discord.utils.get(guild.members, id=user_id)
+        return facts.dict_from_user(member._user)
+
+    async def pin_message(self, channel_id: int, message_id: int, reason: typing.Optional[str] = None) -> None:
+        # return self.request(Route('PUT', '/channels/{channel_id}/pins/{message_id}',
+        #                          channel_id=channel_id, message_id=message_id), reason=reason)
+        pin_message(channel_id, message_id)
+
+    async def unpin_message(self, channel_id: int, message_id: int, reason: typing.Optional[str] = None) -> None:
+        # return self.request(Route('DELETE', '/channels/{channel_id}/pins/{message_id}',
+        #                          channel_id=channel_id, message_id=message_id), reason=reason)
+        unpin_message(channel_id, message_id)
+
+    async def get_guilds(self, limit: int, before: typing.Optional[int] = None, after: typing.Optional[int] = None):
+        # self.request(Route('GET', '/users/@me/guilds')
+        await callbacks.dispatch_event("get_guilds", limit, before=None, after=None)
+        guilds = get_state().guilds  # List[]
+
+        guilds_new = [{
+            'id': guild.id,
+            'name': guild.name,
+            'icon': guild.icon,
+            'splash': guild.splash,
+            'owner_id': guild.owner_id,
+            'region': guild.region,
+            'afk_channel_id': guild.afk_channel.id if guild.afk_channel else None,
+            'afk_timeout': guild.afk_timeout,
+            'verification_level': guild.verification_level,
+            'default_message_notifications': guild.default_notifications.value,
+            'explicit_content_filter': guild.explicit_content_filter,
+            'roles': list(map(facts.dict_from_role, guild.roles)),
+            'emojis': list(map(facts.dict_from_emoji, guild.emojis)),
+            'features': guild.features,
+            'mfa_level': guild.mfa_level,
+            'application_id': None,
+            'system_channel_id': guild.system_channel.id if guild.system_channel else None,
+            'owner': guild.owner_id == get_state().user.id
+        } for guild in guilds]
+
+        if not limit:
+            limit = 100
+        if after is not None:
+            start = next(i for i, v in enumerate(guilds) if v.id == after)
+            return guilds_new[start:start + limit]
+        else:
+            if before is None:
+                start = int(len(guilds) / 2)
+            else:
+                start = next(i for i, v in enumerate(guilds) if v.id == before)
+            return guilds_new[start - limit: start]
+
+    async def get_guild(self, guild_id: int) -> _types.JsonDict:
+        # return self.request(Route('GET', '/guilds/{guild_id}', guild_id=guild_id))
+        locs = _get_higher_locs(1)
+        client = locs.get("self", None)
+        guild = discord.utils.get(client.guilds, id=guild_id)
+        return facts.dict_from_guild(guild)
+
+
+def get_state() -> dstate.FakeState:
+    """
+        Get the current backend state, or raise an error if it hasn't been configured
+
+    :return: Current backend state
+    """
+    if _cur_config is None:
+        raise ValueError("Dpytest backend not configured")
+    return _cur_config.state
+
+
+def make_guild(
+        name: str,
+        members: typing.List[discord.Member] = None,
+        channels: typing.List[_types.AnyChannel] = None,
+        roles: typing.List[discord.Role] = None,
+        owner: bool = False,
+        id_num: int = -1,
+) -> discord.Guild:
+    """
+        Add a new guild to the backend, triggering any relevant callbacks on the configured client
+
+    :param name: Name of the guild
+    :param members: Existing members of the guild or None
+    :param channels: Existing channels in the guild or None
+    :param roles: Existing roles in the guild or None
+    :param owner: Whether the configured client owns the guild, default is false
+    :param id_num: ID of the guild, or nothing to auto-generate
+    :return: Newly created guild
+    """
+    if id_num == -1:
+        id_num = facts.make_id()
+    if roles is None:
+        roles = [facts.make_role_dict("@everyone", id_num, position=0)]
+    if channels is None:
+        channels = []
+    if members is None:
+        members = []
+    member_count = len(members) if len(members) != 0 else 1
+
+    state = get_state()
+
+    owner_id = state.user.id if owner else 0
+
+    data = facts.make_guild_dict(
+        name, owner_id, roles, id_num=id_num, member_count=member_count, members=members, channels=channels
+    )
+
+    state.parse_guild_create(data)
+
+    return state._get_guild(id_num)
+
+
+def update_guild(guild: discord.Guild, roles: typing.List[discord.Role] = None) -> discord.Guild:
+    """
+        Update an existing guild with new information, triggers a guild update but not any individual item
+        create/edit calls
+
+    :param guild: Guild to be updated
+    :param roles: New role list for the guild
+    :return: Updated guild object
+    """
+    data = facts.dict_from_guild(guild)
+
+    if roles is not None:
+        data["roles"] = list(map(facts.dict_from_role, roles))
+
+    state = get_state()
+    state.parse_guild_update(data)
+
+    return guild
+
+
+def make_role(
+        name: str,
+        guild: discord.Guild,
+        id_num: int = -1,
+        colour: int = 0,
+        color: typing.Optional[int] = None,
+        permissions: int = 104324161,
+        hoist: bool = False,
+        mentionable: bool = False,
+) -> discord.Role:
+    """
+        Add a new role to the backend, triggering any relevant callbacks on the configured client
+
+    :param name: Name of the new role
+    :param guild: Guild role is being added to
+    :param id_num: ID of the new role, or nothing to auto-generate
+    :param colour: Color of the new role
+    :param color: Alias for above
+    :param permissions: Permissions for the new role
+    :param hoist: Whether the new role is hoisted
+    :param mentionable: Whether the new role is mentionable
+    :return: Newly created role
+    """
+    r_dict = facts.make_role_dict(
+        name, id_num=id_num, colour=colour, color=color, permissions=permissions, hoist=hoist, mentionable=mentionable
+    )
+    # r_dict["position"] = max(map(lambda x: x.position, guild._roles.values())) + 1
+    r_dict["position"] = 1
+
+    data = {
+        "guild_id": guild.id,
+        "role": r_dict
+    }
+
+    state = get_state()
+    state.parse_guild_role_create(data)
+
+    return guild.get_role(r_dict["id"])
+
+
+def update_role(
+        role: discord.Role,
+        colour: typing.Optional[int] = None,
+        color: typing.Optional[int] = None,
+        permissions: typing.Optional[int] = None,
+        hoist: typing.Optional[bool] = None,
+        mentionable: typing.Optional[bool] = None,
+        name: typing.Optional[str] = None,
+) -> discord.Role:
+    """
+        Update an existing role with new data, triggering a role update event.
+        Any value not passed/passed None will not update the existing value.
+
+    :param role: Role to update
+    :param colour: New color for the role
+    :param color: Alias for above
+    :param permissions: New permissions
+    :param hoist: New hoist value
+    :param mentionable: New mention value
+    :param name: New name for the role
+    :return: Role that was updated
+    """
+    data = {"guild_id": role.guild.id, "role": facts.dict_from_role(role)}
+    if color is not None:
+        colour = color
+    if colour is not None:
+        data["role"]["color"] = colour
+    if permissions is not None:
+        data["role"]["permissions"] = int(permissions)
+        data["role"]["permissions_new"] = int(permissions)
+
+    if hoist is not None:
+        data["role"]["hoist"] = hoist
+    if mentionable is not None:
+        data["role"]["mentionable"] = mentionable
+    if name is not None:
+        data["role"]["name"] = name
+
+    state = get_state()
+    state.parse_guild_role_update(data)
+
+    return role
+
+
+def delete_role(role: discord.Role) -> None:
+    """
+        Remove a role from the backend, deleting it from the guild
+
+    :param role: Role to delete
+    """
+    state = get_state()
+    state.parse_guild_role_delete({"guild_id": role.guild.id, "role_id": role.id})
+
+
+def make_text_channel(
+        name: str,
+        guild: discord.Guild,
+        position: int = -1,
+        id_num: int = -1,
+        permission_overwrites: typing.Optional[_types.JsonDict] = None,
+        parent_id: typing.Optional[int] = None,
+) -> discord.TextChannel:
+    if position == -1:
+        position = len(guild.channels) + 1
+
+    c_dict = facts.make_text_channel_dict(name, id_num, position=position, guild_id=guild.id,
+                                          permission_overwrites=permission_overwrites, parent_id=parent_id)
+
+    state = get_state()
+    state.parse_channel_create(c_dict)
+
+    return guild.get_channel(c_dict["id"])
+
+
+def make_category_channel(
+        name: str,
+        guild: discord.Guild,
+        position: int = -1,
+        id_num: int = -1,
+        permission_overwrites: typing.Optional[_types.JsonDict] = None,
+) -> discord.CategoryChannel:
+    if position == -1:
+        position = len(guild.categories) + 1
+    c_dict = facts.make_category_channel_dict(name, id_num, position=position, guild_id=guild.id,
+                                              permission_overwrites=permission_overwrites)
+    state = get_state()
+    state.parse_channel_create(c_dict)
+
+    return guild.get_channel(c_dict["id"])
+
+
+def make_voice_channel(
+        name: str,
+        guild: discord.Guild,
+        position: int = -1,
+        id_num: int = -1,
+        permission_overwrites: typing.Optional[_types.JsonDict] = None,
+        parent_id: typing.Optional[int] = None,
+        bitrate: int = 192,
+        user_limit: int = 0
+
+) -> discord.VoiceChannel:
+    if position == -1:
+        position = len(guild.voice_channels) + 1
+    c_dict = facts.make_voice_channel_dict(name, id_num, position=position, guild_id=guild.id,
+                                           permission_overwrites=permission_overwrites, parent_id=parent_id,
+                                           bitrate=bitrate, user_limit=user_limit)
+    state = get_state()
+    state.parse_channel_create(c_dict)
+
+    return guild.get_channel(c_dict["id"])
+
+
+def delete_channel(channel: _types.AnyChannel) -> None:
+    c_dict = facts.make_text_channel_dict(channel.name, id_num=channel.id, guild_id=channel.guild.id)
+
+    state = get_state()
+    state.parse_channel_delete(c_dict)
+
+
+def update_text_channel(
+        channel: discord.TextChannel,
+        target: typing.Union[discord.User, discord.Role],
+        override: typing.Optional[discord.PermissionOverwrite] = _undefined
+) -> None:
+    c_dict = facts.dict_from_channel(channel)
+    if override is not _undefined:
+        ovr = c_dict.get("permission_overwrites", [])
+        existing = [o for o in ovr if o.get("id") == target.id]
+        if existing:
+            ovr.remove(existing[0])
+        if override:
+            ovr = ovr + [facts.dict_from_overwrite(target, override)]
+        c_dict["permission_overwrites"] = ovr
+
+    state = get_state()
+    state.parse_channel_update(c_dict)
+
+
+def make_user(username: str, discrim: typing.Union[str, int], avatar: typing.Optional[str] = None,
+              id_num: int = -1) -> discord.User:
+    if id_num == -1:
+        id_num = facts.make_id()
+
+    data = facts.make_user_dict(username, discrim, avatar, id_num)
+
+    state = get_state()
+    user = state.store_user(data)
+
+    return user
+
+
+def make_member(user: typing.Union[discord.user.BaseUser, discord.abc.User], guild: discord.Guild,
+                nick: typing.Optional[str] = None,
+                roles: typing.Optional[typing.List[discord.Role]] = None) -> discord.Member:
+    if roles is None:
+        roles = []
+    roles = list(map(lambda x: x.id, roles))
+
+    data = facts.make_member_dict(guild, user, roles, nick=nick)
+
+    state = get_state()
+    state.parse_guild_member_add(data)
+
+    return guild.get_member(user.id)
+
+
+def update_member(member: discord.Member, nick: typing.Optional[str] = None,
+                  roles: typing.Optional[typing.List[discord.Role]] = None) -> discord.Member:
+    data = facts.dict_from_member(member)
+    if nick is not None:
+        data["nick"] = nick
+    if roles is not None:
+        data["roles"] = list(map(lambda x: x.id, roles))
+
+    state = get_state()
+    state.parse_guild_member_update(data)
+
+    return member
+
+
+def delete_member(member: discord.Member) -> None:
+    out = facts.dict_from_member(member)
+    state = get_state()
+    state.parse_guild_member_remove(out)
+
+
+def make_message(
+        content: str,
+        author: typing.Union[discord.user.BaseUser, discord.abc.User],
+        channel: _types.AnyChannel,
+        tts: bool = False,
+        embeds: typing.Optional[typing.List[discord.Embed]] = None,
+        attachments: typing.Optional[typing.List[discord.Attachment]] = None,
+        nonce: typing.Optional[int] = None,
+        id_num: int = -1,
+) -> discord.Message:
+    guild = channel.guild if hasattr(channel, "guild") else None
+    guild_id = guild.id if guild else None
+
+    mentions = find_user_mentions(content, guild)
+    role_mentions = find_role_mentions(content, guild)
+    channel_mentions = find_channel_mentions(content, guild)
+
+    kwargs = {}
+    if nonce is not None:
+        kwargs["nonce"] = nonce
+
+    data = facts.make_message_dict(
+        channel, author, id_num, content=content, mentions=mentions, tts=tts, embeds=embeds, attachments=attachments,
+        mention_roles=role_mentions, mention_channels=channel_mentions, guild_id=guild_id, **kwargs
+    )
+
+    state = get_state()
+    state.parse_message_create(data)
+
+    if channel.id not in _cur_config.messages:
+        _cur_config.messages[channel.id] = []
+    _cur_config.messages[channel.id].append(data)
+
+    return state._get_message(data["id"])
+
+
+def edit_message(
+        message: discord.Message, **fields: dhttp.MultipartParameters
+) -> _types.JsonDict:
+    data = facts.dict_from_message(message)
+    payload = fields.get("params").payload
+    # TODO : do something for files and stuff.
+    # if params.files:
+    #     return self.request(r, files=params.files, form=params.multipart)
+    # else:
+    #     return self.request(r, json=params.payload)
+    data.update(payload)
+
+    i = 0
+    while i < len(_cur_config.messages[message.channel.id]):
+        if _cur_config.messages[message.channel.id][i].get("id") == data.get("id"):
+            _cur_config.messages[message.channel.id][i] = data
+        i += 1
+
+    return data
+
+
+MEMBER_MENTION: typing.Pattern = re.compile(r"<@!?[0-9]{17,21}>", re.MULTILINE)
+ROLE_MENTION: typing.Pattern = re.compile(r"<@&([0-9]{17,21})>", re.MULTILINE)
+CHANNEL_MENTION: typing.Pattern = re.compile(r"<#[0-9]{17,21}>", re.MULTILINE)
+
+
+def find_user_mentions(content: typing.Optional[str],
+                       guild: typing.Optional[discord.Guild]) -> typing.List[discord.Member]:
+    if guild is None or content is None:
+        return []  # TODO: Check for dm user mentions
+    matches = re.findall(MEMBER_MENTION, content)
+    return [discord.utils.get(guild.members, id=int(re.search(r'\d+', match)[0])) for match in matches]  # noqa: E501
+
+
+def find_role_mentions(content: typing.Optional[str], guild: typing.Optional[discord.Guild]) -> typing.List[int]:
+    if guild is None or content is None:
+        return []
+    matches = re.findall(ROLE_MENTION, content)
+    return matches
+
+
+def find_channel_mentions(content: typing.Optional[str],
+                          guild: typing.Optional[discord.Guild]) -> typing.List[_types.AnyChannel]:
+    if guild is None or content is None:
+        return []
+    matches = re.findall(CHANNEL_MENTION, content)
+    return [discord.utils.get(guild.channels, mention=match) for match in matches]
+
+
+def delete_message(message: discord.Message) -> None:
+    data = {
+        "id": message.id,
+        "channel_id": message.channel.id
+    }
+    if message.guild is not None:
+        data["guild_id"] = message.guild.id
+
+    state = get_state()
+    state.parse_message_delete(data)
+
+    messages = _cur_config.messages[message.channel.id]
+    index = next(i for i, v in enumerate(messages) if v["id"] == message.id)
+    del _cur_config.messages[message.channel.id][index]
+
+
+def make_attachment(filename: pathlib.Path, name: typing.Optional[str] = None, id_num: int = -1) -> discord.Attachment:
+    if name is None:
+        name = str(filename.name)
+    if not filename.is_file():
+        raise ValueError("Attachment must be a real file")
+    size = filename.stat().st_size
+    file_uri = filename.absolute().as_uri()
+    return discord.Attachment(
+        state=get_state(),
+        data=facts.make_attachment_dict(name, size, file_uri, file_uri, id_num)
+    )
+
+
+def add_reaction(message: discord.Message, user: typing.Union[discord.user.BaseUser, discord.abc.User],
+                 emoji: str) -> None:
+    if ":" in emoji:
+        temp = emoji.split(":")
+        emoji = {
+            "id": temp[0],
+            "name": temp[1]
+        }
+    else:
+        emoji = {
+            "id": None,
+            "name": emoji
+        }
+
+    data = {
+        "message_id": message.id,
+        "channel_id": message.channel.id,
+        "user_id": user.id,
+        "emoji": emoji
+    }
+    if message.guild:
+        data["guild_id"] = message.guild.id
+    # when reactions are added by something other than the bot client, we want the user to end up in the payload.
+    if isinstance(user, discord.Member):
+        data["member"] = facts.dict_from_member(user)
+
+    state = get_state()
+    state.parse_message_reaction_add(data)
+
+    messages = _cur_config.messages[message.channel.id]
+    message_data = next(filter(lambda x: x["id"] == message.id, messages), None)
+    if message_data is not None:
+        if "reactions" not in message_data:
+            message_data["reactions"] = []
+
+        react: typing.Optional[_types.JsonDict] = None
+        for react in message_data["reactions"]:
+            if react["emoji"]["id"] == emoji["id"] and react["emoji"]["name"] == emoji["name"]:
+                break
+
+        if react is None:
+            react = {"count": 0, "me": False, "emoji": emoji}
+            message_data["reactions"].append(react)
+
+        react["count"] += 1
+        if user.id == state.user.id:
+            react["me"] = True
+
+
+def remove_reaction(message: discord.Message, user: discord.user.BaseUser, emoji: str) -> None:
+    if ":" in emoji:
+        temp = emoji.split(":")
+        emoji = {
+            "id": temp[0],
+            "name": temp[1]
+        }
+    else:
+        emoji = {
+            "id": None,
+            "name": emoji
+        }
+
+    data = {
+        "message_id": message.id,
+        "channel_id": message.channel.id,
+        "user_id": user.id,
+        "emoji": emoji
+    }
+    if message.guild:
+        data["guild_id"] = message.guild.id
+
+    state = get_state()
+    state.parse_message_reaction_remove(data)
+
+    messages = _cur_config.messages[message.channel.id]
+    message_data = next(filter(lambda x: x["id"] == message.id, messages), None)
+    if message_data is not None:
+        if "reactions" not in message_data:
+            message_data["reactions"] = []
+
+        react: typing.Optional[_types.JsonDict] = None
+        for react in message_data["reactions"]:
+            if react["emoji"]["id"] == emoji["id"] and react["emoji"]["name"] == emoji["name"]:
+                break
+        if react is None:
+            return
+
+        react["count"] -= 1
+        if user.id == state.user.id:
+            react["me"] = False
+
+        if react["count"] == 0:
+            message_data["reactions"].remove(react)
+
+
+def clear_reactions(message: discord.Message):
+    data = {
+        "message_id": message.id,
+        "channel_id": message.channel.id
+    }
+    if message.guild:
+        data["guild_id"] = message.guild.id
+
+    state = get_state()
+    state.parse_message_reaction_remove_all(data)
+
+    messages = _cur_config.messages[message.channel.id]
+    message_data = next(filter(lambda x: x["id"] == message.id, messages), None)
+    if message_data is not None:
+        message_data["reactions"] = []
+
+
+def pin_message(channel_id: int, message_id: int):
+    data = {
+        "channel_id": channel_id,
+        "last_pin_timestamp": datetime.datetime.now().isoformat(),
+    }
+    state = get_state()
+    state.parse_channel_pins_update(data)
+
+
+def unpin_message(channel_id: int, message_id: int):
+    data = {
+        "channel_id": channel_id,
+        "last_pin_timestamp": None,
+    }
+    state = get_state()
+    state.parse_channel_pins_update(data)
+
+
+@typing.overload
+def configure(client: discord.Client) -> None: ...
+
+
+@typing.overload
+def configure(client: typing.Optional[discord.Client], *, use_dummy: bool = ...) -> None: ...
+
+
+def configure(client: typing.Optional[discord.Client], *, use_dummy: bool = False) -> None:
+    """
+        Configure the backend, optionally with the provided client
+
+    :param client: Client to use, or None
+    :param use_dummy: Whether to use a dummy if client param is None, or error
+    """
+    global _cur_config, _messages
+
+    if client is None and use_dummy:
+        log.info("None passed to backend configuration, dummy client will be used")
+        client = discord.Client()
+
+    if not isinstance(client, discord.Client):
+        raise TypeError("Runner client must be an instance of discord.Client")
+
+    loop = asyncio.get_event_loop()
+
+    if client.http is not None:
+        loop.create_task(client.http.close())
+
+    http = FakeHttp(loop=loop)
+    client.http = http
+
+    ws = websocket.FakeWebSocket(None, loop=loop)
+    client.ws = ws
+
+    test_state = dstate.FakeState(client, http=http, loop=loop)
+    http.state = test_state
+
+    client._connection = test_state
+
+    _cur_config = BackendState({}, test_state)
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/callbacks.py</source>
+<document_content>
+"""
+    Module containing registered callbacks for various events. These events are how various parts of discord.py
+    can communicate with the frontend runner or a user's custom runner setup. These callbacks should not
+    be used to trigger backend changes, that is the responsibility of the library internals.
+"""
+
+import logging
+import typing
+from . import _types
+
+
+log = logging.getLogger("discord.ext.tests")
+
+
+_callbacks = {}
+
+
+async def dispatch_event(event: str, *args: typing.Any, **kwargs: typing.Any) -> None:
+    """
+        Dispatch an event to a set handler, if one exists. Will ignore handler errors,
+        just print a log
+
+    :param event: Name of the event to dispatch
+    :param args: Arguments to the callback
+    :param kwargs: Keyword arguments to the callback
+    """
+    cb = _callbacks.get(event)
+    if cb is not None:
+        try:
+            await cb(*args, **kwargs)
+        except Exception as e:
+            log.error(f"Error in handler for event {event}: {e}")
+
+
+def set_callback(cb: _types.Callback, event: str) -> None:
+    """
+        Set the callback to use for a specific event
+
+    :param cb: Callback to use
+    :param event: Name of the event to register for
+    """
+    _callbacks[event] = cb
+
+
+def get_callback(event: str) -> _types.Callback:
+    """
+        Get the current callback for an event, or raise an exception if one isn't set
+
+    :param event: Event to get callback for
+    :return: Callback for event, if one is set
+    """
+    if _callbacks.get(event) is None:
+        raise ValueError(f"Callback for event {event} not set")
+    return _callbacks[event]
+
+
+def remove_callback(event: str) -> typing.Optional[_types.Callback]:
+    """
+        Remove the callback set for an event, returning it, or None if one isn't set
+
+    :param event: Event to remove callback for
+    :return: Callback that was previously set or None
+    """
+    return _callbacks.pop(event, None)
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/factories.py</source>
+<document_content>
+"""
+    Module for (mostly) stateless creation/destructuring of discord.py objects. Primarily a utility
+    for the rest of the library, which often needs to convert between objects and JSON at various stages.
+"""
+
+import typing
+import datetime as dt
+import discord
+from . import _types
+
+
+generated_ids: int = 0
+
+
+def make_id() -> int:
+    global generated_ids
+    # timestamp
+    discord_epoch = str(bin(int(dt.datetime.now().timestamp() * 1000) - 1420070400000))[2:]
+    discord_epoch = "0" * (42 - len(discord_epoch)) + discord_epoch
+    # internal worker id
+    worker = "00001"
+    # internal process id
+    process = "00000"
+    # determine how many ids have been generated so far
+    generated = str(bin(generated_ids)[2:])
+    generated_ids += 1
+    generated = "0" * (12 - len(generated)) + generated
+    # and now finally return the ID
+    return int(discord_epoch + worker + process + generated, 2)
+
+
+def _fill_optional(data: _types.JsonDict, obj: typing.Any, items: typing.Iterable[str]) -> None:
+    if isinstance(obj, dict):
+        for item in items:
+            result = obj.pop(item, None)
+            if result is None:
+                continue
+            data[item] = result
+        if len(obj) > 0:
+            print("Warning: Invalid attributes passed")
+    else:
+        for item in items:
+            if hasattr(obj, item):
+                data[item] = getattr(obj, item)
+
+
+@typing.overload
+def make_user_dict(
+        username: str,
+        discrim: typing.Union[str, int],
+        avatar: typing.Optional[str],
+        id_num: int = ...,
+        flags: int = ...,
+        *,
+        bot: bool = ...,
+        mfa_enabled: bool = ...,
+        locale: str = ...,
+        verified: bool = ...,
+        email: str = ...,
+        premium_type: int = ...,
+) -> _types.JsonDict: ...
+
+
+def make_user_dict(username: str, discrim: typing.Union[str, int], avatar: str, id_num: int = -1, flags: int = 0,
+                   **kwargs: typing.Any) -> _types.JsonDict:
+    if isinstance(discrim, int):
+        assert 0 < discrim < 10000
+        discrim = f"{discrim:04}"
+    elif isinstance(discrim, str):
+        assert len(discrim) == 4 and discrim.isdigit() and 0 < int(discrim) < 10000
+    if id_num < 0:
+        id_num = make_id()
+    out = {
+        'id': id_num,
+        'username': username,
+        'discriminator': discrim,
+        'avatar': avatar,
+        'flags': flags
+    }
+    items = ("bot", "mfa_enabled", "locale", "verified", "email", "premium_type")
+    _fill_optional(out, kwargs, items)
+    return out
+
+
+def dict_from_user(user: discord.User) -> _types.JsonDict:
+    out = {
+        'id': user.id,
+        'username': user.name,
+        'discriminator': user.discriminator,
+        'avatar': user.avatar
+    }
+    items = ("bot", "mfa_enabled", "locale", "verified", "email", "premium_type")
+    _fill_optional(out, user, items)
+    return out
+
+
+@typing.overload
+def make_member_dict(
+        guild: discord.Guild,
+        user: discord.User,
+        roles: typing.List[int],
+        joined: int = ...,
+        deaf: bool = ...,
+        mute: bool = ...,
+        voice: bool = ...,
+        flags: int = ...,
+        *,
+        nick: str = ...,
+) -> _types.JsonDict: ...
+
+
+def make_member_dict(
+        guild: discord.Guild,
+        user: discord.User,
+        roles: typing.List[int],
+        joined: int = 0,
+        deaf: bool = False,
+        mute: bool = False,
+        voice: bool = False,
+        flags: int = 0,
+        **kwargs: typing.Any,
+) -> _types.JsonDict:
+    out = {
+        'guild_id': guild.id,
+        'user': dict_from_user(user),
+        'roles': roles,
+        'joined_at': joined,
+        'deaf': deaf,
+        'mute': mute,
+        'voice': voice,
+        'flags': flags,
+    }
+    items = ("nick",)
+    _fill_optional(out, kwargs, items)
+    return out
+
+
+def dict_from_member(member: discord.Member) -> _types.JsonDict:
+    voice_state = member.voice
+    # discord code adds default role to every member later on in Member constructor
+    roles_no_default = list(filter(lambda r: not r == member.guild.default_role, member.roles))
+    out = {
+        'guild_id': member.guild.id,
+        'user': dict_from_user(member._user),
+        'roles': list(map(lambda role: int(role.id), roles_no_default)),
+        'joined_at': member.joined_at,
+        'flags': member.flags,
+    }
+    if voice_state is not None:
+        out['deaf'] = voice_state.deaf
+        out['mute'] = voice_state.mute
+    items = ("nick",)
+    _fill_optional(out, member, items)
+    return out
+
+
+# discord.py 1.7 bump requires the 'permissions_new', but if we keep 'permissions' then we seem to work on pre 1.7
+def make_role_dict(
+        name: str,
+        id_num: int = -1,
+        colour: int = 0,
+        color: typing.Optional[int] = None,
+        hoist: bool = False,
+        position: int = -1,
+        permissions: int = 104324161,
+        managed: bool = False,
+        mentionable: bool = False,
+) -> _types.JsonDict:
+    if id_num < 0:
+        id_num = make_id()
+    if color is not None:
+        if colour != 0:
+            raise ValueError("Both 'colour' and 'color' can be supplied at the same time")
+        colour = color
+    return {
+        'id': id_num,
+        'name': name,
+        'color': colour,
+        'hoist': hoist,
+        'position': position,
+        'permissions_new': permissions,
+        'permissions': permissions,
+        'managed': managed,
+        'mentionable': mentionable
+    }
+
+
+# discord.py 1.7 bump requires the 'permissions_new', but if we keep 'permissions' then we seem to work on pre 1.7
+def dict_from_role(role: discord.Role) -> _types.JsonDict:
+    return {
+        'id': role.id,
+        'name': role.name,
+        'color': role.colour.value,
+        'hoist': role.hoist,
+        'position': role.position,
+        'permissions_new': role.permissions.value,
+        'permissions': role.permissions.value,
+        'managed': role.managed,
+        'mentionable': role.mentionable
+    }
+
+
+@typing.overload
+def make_channel_dict(
+        ctype: int,
+        id_num: int = ...,
+        *,
+        guild_id: int = ...,
+        position: int = ...,
+        permission_overwrites: _types.JsonDict = ...,
+        name: str = ...,
+        topic: typing.Optional[str] = ...,
+        nsfw: bool = ...,
+        last_message_id: typing.Optional[str] = ...,
+        bitrate: int = ...,
+        user_limit: int = ...,
+        rate_limit_per_user: int = ...,
+        recipients: typing.List[_types.JsonDict] = ...,
+        icon: typing.Optional[str] = ...,
+        owner_id: int = ...,
+        application_id: int = ...,
+        parent_id: typing.Optional[int] = ...,
+        last_pin_timestamp: int = ...,
+) -> _types.JsonDict: ...
+
+
+def make_channel_dict(ctype: int, id_num: int = -1, **kwargs: typing.Any) -> _types.JsonDict:
+    if id_num < 0:
+        id_num = make_id()
+    out = {
+        'id': id_num,
+        'type': ctype
+    }
+    items = ("guild_id", "position", "permission_overwrites", "name", "topic", "nsfw", "last_message_id", "bitrate",
+             "user_limit", "rate_limit_per_user", "recipients", "icon", "owner_id", "application_id", "parent_id",
+             "last_pin_timestamp")
+    _fill_optional(out, kwargs, items)
+    return out
+
+
+@typing.overload
+def make_text_channel_dict(
+        name: str,
+        id_num: int = ...,
+        guild_id: int = ...,
+        position: int = ...,
+        permission_overwrites: _types.JsonDict = ...,
+        topic: typing.Optional[str] = ...,
+        nsfw: bool = ...,
+        last_message_id: typing.Optional[int] = ...,
+        rate_limit_per_user: int = ...,
+        parent_id: typing.Optional[int] = ...,
+        last_pin_timestamp: int = ...,
+) -> _types.JsonDict: ...
+
+
+def make_text_channel_dict(name: str, id_num: int = -1, **kwargs: typing.Any) -> _types.JsonDict:
+    return make_channel_dict(discord.ChannelType.text.value, id_num, name=name, **kwargs)
+
+
+def make_category_channel_dict(name: str, id_num: int = -1, **kwargs: typing.Any) -> _types.JsonDict:
+    return make_channel_dict(discord.ChannelType.category.value, id_num, name=name, **kwargs)
+
+
+def make_dm_channel_dict(user: discord.User, id_num: int = -1, **kwargs: typing.Any) -> _types.JsonDict:
+    return make_channel_dict(discord.ChannelType.private, id_num, recipients=[dict_from_user(user)], **kwargs)
+
+
+def make_voice_channel_dict(name: str, id_num: int = -1, **kwargs: typing.Any) -> _types.JsonDict:
+    return make_channel_dict(discord.ChannelType.voice.value, id_num, name=name, **kwargs)
+
+
+def dict_from_overwrite(target: typing.Union[discord.Member, discord.Role],
+                        overwrite: discord.PermissionOverwrite) -> _types.JsonDict:
+    allow, deny = overwrite.pair()
+    ovr = {
+        'id': target.id,
+        'allow': allow.value,
+        'deny': deny.value,
+        'allow_new': allow.value,
+        'deny_new': deny.value
+    }
+    if isinstance(target, discord.Role):
+        ovr['type'] = 'role'
+    else:
+        ovr['type'] = 'member'
+    return ovr
+
+
+# TODO: support all channel attributes
+def dict_from_channel(channel: _types.AnyChannel) -> _types.JsonDict:
+    if isinstance(channel, discord.TextChannel):
+        return {
+            'name': channel.name,
+            'position': channel.position,
+            'id': channel.id,
+            'guild_id': channel.guild.id,
+            'permission_overwrites': [dict_from_overwrite(k, v) for k, v in channel.overwrites.items()],
+            'type': channel.type,
+            'parent_id': channel.category_id
+        }
+    if isinstance(channel, discord.CategoryChannel):
+        return {
+            'name': channel.name,
+            'position': channel.position,
+            'id': channel.id,
+            'guild_id': channel.guild.id,
+            'permission_overwrites': [dict_from_overwrite(k, v) for k, v in channel.overwrites.items()],
+            'type': channel.type
+        }
+    if isinstance(channel, discord.VoiceChannel):
+        return {
+            'name': channel.name,
+            'position': channel.position,
+            'id': channel.id,
+            'guild_id': channel.guild.id,
+            'permission_overwrites': [dict_from_overwrite(k, v) for k, v in channel.overwrites.items()],
+            'type': channel.type
+        }
+
+
+@typing.overload
+def make_message_dict(
+        channel: _types.AnyChannel,
+        author: discord.user.BaseUser,
+        id_num: int = ...,
+        content: str = ...,
+        timestamp: int = ...,
+        edited_timestamp: typing.Optional[int] = ...,
+        tts: bool = ...,
+        mention_everyone: bool = ...,
+        mentions: typing.List[typing.Union[discord.User, discord.Member]] = ...,
+        mention_roles: typing.List[int] = ...,
+        mention_channels: typing.List[_types.AnyChannel] = ...,
+        attachments: typing.List[discord.Attachment] = ...,
+        embeds: typing.List[discord.Embed] = ...,
+        pinned: bool = ...,
+        type: int = ...,
+        *,
+        guild_id: int = ...,
+        member: discord.Member = ...,
+        reactions: typing.List[discord.Reaction] = ...,
+        nonce: typing.Optional[int] = ...,
+        webhook_id: int = ...,
+        activity: discord.Activity = ...,
+        application: _types.JsonDict = ...
+) -> _types.JsonDict: ...
+
+
+# TODO: Convert attachments, reactions, activity, and application to a dict.
+def make_message_dict(
+        channel: _types.AnyChannel,
+        author: discord.user.BaseUser,
+        id_num: int = -1,
+        content: str = None,
+        timestamp: int = None,
+        edited_timestamp: typing.Optional[int] = None,
+        tts: bool = False,
+        mention_everyone: bool = False,
+        mentions: typing.List[discord.User] = None,
+        mention_roles: typing.List[int] = None,
+        mention_channels: typing.List[_types.AnyChannel] = None,
+        attachments: typing.List[discord.Attachment] = None,
+        embeds: typing.List[discord.Embed] = None,
+        pinned: bool = False,
+        type: int = 0,
+        **kwargs,
+) -> _types.JsonDict:
+    if mentions is None:
+        mentions = []
+    if mention_roles is None:
+        mention_roles = []
+    if mention_channels is None:
+        mention_channels = []
+    if attachments is None:
+        attachments = []
+    if embeds is None:
+        embeds = []
+
+    if not content:
+        content = ""
+    if id_num < 0:
+        id_num = make_id()
+    if isinstance(channel, discord.abc.GuildChannel):
+        kwargs["guild_id"] = channel.guild.id
+    if isinstance(author, discord.Member):
+        author = author._user
+        kwargs["member"] = dict_from_user(author)
+    if timestamp is None:
+        timestamp = discord.utils.snowflake_time(id_num)
+    mentions = list(map(dict_from_user, mentions)) if mentions else []
+    mention_channels = list(map(_mention_from_channel, mention_channels)) if mention_channels else []
+    attachments = list(map(dict_from_attachment, attachments)) if attachments else []
+    embeds = list(map(discord.Embed.to_dict, embeds)) if embeds else []
+
+    out = {
+        'id': id_num,
+        'channel_id': channel.id,
+        'author': dict_from_user(author),
+        'content': content,
+        'timestamp': timestamp,
+        'edited_timestamp': edited_timestamp,
+        'tts': tts,
+        'mention_everyone': mention_everyone,
+        'mentions': mentions,
+        'mention_roles': mention_roles,
+        'attachments': attachments,
+        'embeds': embeds,
+        'pinned': pinned,
+        'type': type
+    }
+    items = ('guild_id', 'member', 'reactions', 'nonce', 'webhook_id', 'activity', 'application')
+    _fill_optional(out, kwargs, items)
+    return out
+
+
+def _mention_from_channel(channel: _types.AnyChannel) -> _types.JsonDict:
+    out = {
+        "id": channel.id,
+        "type": str(channel.type),
+        "guild_id": None,
+        "name": None
+    }
+    if hasattr(channel, "guild"):
+        out["guild_id"] = channel.guild.id
+    if hasattr(channel, "name"):
+        out["name"] = channel.name
+
+    return out
+
+
+def _mention_from_role(role: discord.Role) -> int:
+    return role.id
+
+
+def dict_from_message(message: discord.Message) -> _types.JsonDict:
+    out = {
+        'id': message.id,
+        'author': dict_from_user(message.author),
+        'mentions': list(map(dict_from_user, message.mentions)),
+        'mention_roles': list(map(_mention_from_role, message.role_mentions)),
+        'mention_channels': list(map(_mention_from_channel, message.channel_mentions)),
+        'edited_timestamp': message._edited_timestamp,
+        'embeds': list(map(discord.Embed.to_dict, message.embeds)),
+        'attachments': list(map(dict_from_attachment, message.attachments)),
+    }
+
+    items = ('content', 'pinned', 'activity',
+             'mention_everyone', 'tts', 'type', 'nonce')
+    _fill_optional(out, message, items)
+    return out
+
+
+def make_attachment_dict(
+        filename: str,
+        size: int,
+        url: str,
+        proxy_url: str,
+        id_num: int = -1,
+        height: typing.Optional[int] = None,
+        width: typing.Optional[int] = None,
+        content_type: typing.Optional[str] = None
+) -> _types.JsonDict:
+    if id_num < 0:
+        id_num = make_id()
+    return {
+        'id': id_num,
+        'filename': filename,
+        'size': size,
+        'url': url,
+        'proxy_url': proxy_url,
+        'height': height,
+        'width': width,
+        'content_type': content_type
+    }
+
+
+def dict_from_attachment(attachment: discord.Attachment) -> _types.JsonDict:
+    return {
+        'id': attachment.id,
+        'filename': attachment.filename,
+        'size': attachment.size,
+        'url': attachment.url,
+        'proxy_url': attachment.proxy_url,
+        'height': attachment.height,
+        'width': attachment.width,
+        'content_type': attachment.content_type,
+    }
+
+
+# TODO: dict_from_emoji and make_emoji_dict
+
+def make_emoji_dict():
+    pass
+
+
+def dict_from_emoji(emoji):
+    return {
+
+    }
+
+
+@typing.overload
+def make_guild_dict(
+        name: str,
+        owner_id: int,
+        roles: typing.List[_types.JsonDict],
+        id_num: int = ...,
+        emojis: typing.List[_types.JsonDict] = ...,
+        icon: typing.Optional[str] = ...,
+        splash: typing.Optional[str] = ...,
+        region: str = ...,
+        afk_channel_id: int = ...,
+        afk_timeout: int = ...,
+        verification_level: int = ...,
+        default_message_notifications: int = ...,
+        explicit_content_filter: int = ...,
+        features: typing.List[str] = ...,
+        mfa_level: int = ...,
+        application_id: int = ...,
+        system_channel_id: int = ...,
+        *,
+        owner: bool = ...,
+        permissions: int = ...,
+        embed_enabled: bool = ...,
+        embed_channel_id: int = ...,
+        widget_enabled: bool = ...,
+        widget_channel_id: int = ...,
+        joined_at: int = ...,
+        large: bool = ...,
+        unavailable: bool = ...,
+        member_count: int = ...,
+        voice_states: typing.List[discord.VoiceState] = ...,
+        members: typing.List[discord.Member] = ...,
+        channels: typing.List[discord.abc.GuildChannel] = ...,
+        presences: typing.List[discord.Activity] = ...,
+) -> _types.JsonDict: ...
+
+
+def make_guild_dict(
+        name: str,
+        owner_id: int,
+        roles: typing.List[_types.JsonDict],
+        id_num: int = -1,
+        emojis: typing.Optional[typing.List[_types.JsonDict]] = None,
+        icon: typing.Optional[str] = None,
+        splash: typing.Optional[str] = None,
+        region: str = "en_north",
+        afk_channel_id: typing.Optional[int] = None,
+        afk_timeout: int = 600,
+        verification_level: int = 0,
+        default_message_notifications: int = 0,
+        explicit_content_filter: int = 0,
+        features: typing.Optional[typing.List[str]] = None,
+        mfa_level: int = 0,
+        application_id: typing.Optional[int] = None,
+        system_channel_id: typing.Optional[int] = None,
+        **kwargs: typing.Any,
+) -> _types.JsonDict:
+    if id_num < 0:
+        id_num = make_id()
+    if emojis is None:
+        emojis = []
+    if features is None:
+        features = []
+    out = {
+        'id': id_num,
+        'name': name,
+        'icon': icon,
+        'splash': splash,
+        'owner_id': owner_id,
+        'region': region,
+        'afk_channel_id': afk_channel_id,
+        'afk_timeout': afk_timeout,
+        'verification_level': verification_level,
+        'default_message_notifications': default_message_notifications,
+        'explicit_content_filter': explicit_content_filter,
+        'roles': roles,
+        'emojis': emojis,
+        'members': [],
+        'features': features,
+        'mfa_level': mfa_level,
+        'application_id': application_id,
+        'system_channel_id': system_channel_id,
+    }
+    items = ("owner", "permissions", "embed_enabled", "embed_channel_id", "widget_enabled", "widget_channel_id",
+             "joined_at", "large", "unavailable", "member_count", "voice_states", "members", "channels", "presences")
+    _fill_optional(out, kwargs, items)
+    return out
+
+
+def dict_from_guild(guild: discord.Guild) -> _types.JsonDict:
+    return {
+        'id': guild.id,
+        'name': guild.name,
+        'icon': guild.icon,
+        'splash': guild.splash,
+        'owner_id': guild.owner_id,
+        'region': guild.region,
+        'afk_channel_id': guild.afk_channel.id if guild.afk_channel else None,
+        'afk_timeout': guild.afk_timeout,
+        'verification_level': guild.verification_level,
+        'default_message_notifications': guild.default_notifications.value,
+        'explicit_content_filter': guild.explicit_content_filter,
+        'roles': list(map(dict_from_role, guild.roles)),
+        'emojis': list(map(dict_from_emoji, guild.emojis)),
+        'features': guild.features,
+        'mfa_level': guild.mfa_level,
+        'application_id': None,
+        'system_channel_id': guild.system_channel.id if guild.system_channel else None,
+        'owner': guild.owner_id == guild.me.id
+    }
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/runner.py</source>
+<document_content>
+"""
+    Main module for setting up and running tests using dpytest.
+    Handles configuration of a bot, and setup of the discord environment.
+
+    All public functions in this module are re-exported at ``discord.ext.test``, this is the primary
+    entry point for users of the library and most of what they should interact with
+
+    See also:
+        :mod:`discord.ext.test.verify`
+"""
+
+import sys
+import asyncio
+import logging
+import discord
+import typing
+import pathlib
+
+from itertools import count
+
+from . import backend as back, callbacks, _types
+from .utils import PeekableQueue
+
+
+class RunnerConfig(typing.NamedTuple):
+    """
+        Exposed discord test configuration
+        Contains the current client, and lists of faked objects
+    """
+
+    client: discord.Client
+    guilds: typing.List[discord.Guild]
+    channels: typing.List[discord.abc.GuildChannel]
+    members: typing.List[discord.Member]
+
+
+log = logging.getLogger("discord.ext.tests")
+_cur_config: typing.Optional[RunnerConfig] = None
+sent_queue: PeekableQueue = PeekableQueue()
+error_queue: PeekableQueue = PeekableQueue()
+
+
+def require_config(func: typing.Callable[..., _types.T]) -> typing.Callable[..., _types.T]:
+    """
+        Decorator to enforce that configuration is completed before the decorated function is
+        called.
+
+    :param func: Function to decorate
+    :return: Function with added check for configuration being setup
+    """
+
+    def wrapper(*args, **kwargs):
+        if _cur_config is None:
+            log.error("Attempted to make call before runner configured")
+            raise RuntimeError(f"Configure runner before calling {func.__name__}")
+        return func(*args, **kwargs)
+
+    wrapper.__wrapped__ = func
+    wrapper.__annotations__ = func.__annotations__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
+
+
+def _task_coro_name(task: asyncio.Task) -> typing.Optional[str]:
+    """
+        Uses getattr() to avoid AttributeErrors when the _coro doesn't have a __name__
+    """
+    return getattr(task._coro, "__name__", None)
+
+
+async def run_all_events() -> None:
+    """
+        Ensure that all dpy related coroutines have completed or been cancelled. If any dpy coroutines
+        are currently running, this will also wait for those.
+    """
+    while True:
+        if sys.version_info[1] >= 7:
+            pending = asyncio.all_tasks()
+        else:
+            pending = asyncio.Task.all_tasks()
+        if not any(map(lambda x: _task_coro_name(x) == "_run_event" and not (x.done() or x.cancelled()), pending)):
+            break
+        for task in pending:
+            if _task_coro_name(task) == "_run_event" and not (task.done() or task.cancelled()):
+                await task
+
+
+async def finish_on_command_error() -> None:
+    """
+        Ensure that all dpy related coroutines have completed or been cancelled. This will only
+        wait for dpy related coroutines, not any other coroutines currently running.
+    """
+    if sys.version_info[1] >= 7:
+        pending = filter(lambda x: _task_coro_name(x) == "_run_event", asyncio.all_tasks())
+    else:
+        pending = filter(lambda x: _task_coro_name(x) == "_run_event", asyncio.Task.all_tasks())
+    for task in pending:
+        if not (task.done() or task.cancelled()):
+            await task
+
+
+def get_message(peek: bool = False) -> discord.Message:
+    """
+        Allow the user to retrieve the most recent message sent by the bot
+
+    :param peek: If true, message will not be removed from the queue
+    :return: Most recent message from the queue
+    """
+    if peek:
+        message = sent_queue.peek()
+    else:
+        message = sent_queue.get_nowait()
+    return message
+
+
+def get_embed(peek: bool = False) -> discord.Embed:
+    """
+        Allow the user to retrieve an embed in a message sent by the bot
+
+    :param peek: do not remove the message from the queue of messages
+    :return: Embed of the most recent message in the queue
+    """
+
+    if peek:
+        message = sent_queue.peek()
+    else:
+        message = sent_queue.get_nowait()
+    return message.embeds[0]
+
+
+async def empty_queue() -> None:
+    """
+        Empty the current message queue. Waits for all events to complete to ensure queue
+        is not immediately added to after running.
+    """
+    await run_all_events()
+    while not sent_queue.empty():
+        await sent_queue.get()
+    while not error_queue.empty():
+        await error_queue.get()
+
+
+async def _message_callback(message: discord.Message) -> None:
+    """
+        Internal callback, on a message being sent (in any channel) adds it to the queue
+
+    :param message: Message sent on discord
+    """
+    await sent_queue.put(message)
+
+
+async def _edit_member_callback(fields: typing.Any, member: discord.Member, reason: typing.Optional[str]):
+    """
+        Internal callback. Updates a guild's voice states to reflect the given Member connecting to the given channel.
+        Other updates to members are handled in http.edit_member().
+
+    :param fields: Fields passed in from Member.edit().
+    :param member: The Member to edit.
+    :param reason: The reason for editing. Not used.
+    """
+    data = {'user_id': member.id}
+    guild = member.guild
+    channel = fields.get('channel_id')
+    if not fields.get('nick') and not fields.get('roles'):
+        guild._update_voice_state(data, channel)
+
+
+counter = count(0)
+
+
+@require_config
+async def message(
+        content: str,
+        channel: typing.Union[_types.AnyChannel, int] = 0,
+        member: typing.Union[discord.Member, int] = 0,
+        attachments: typing.List[typing.Union[pathlib.Path, str]] = None
+) -> discord.Message:
+    """
+        Fake a message being sent by some user to a channel.
+
+    :param content: Content of the message
+    :param channel: Channel to send to, or index into the config list
+    :param member: Member sending the message, or index into the config list
+    :param attachments: Message attachments to include, as file paths.
+    :return: New message that was sent
+    """
+    if isinstance(channel, int):
+        channel = _cur_config.channels[channel]
+    if isinstance(member, int):
+        member = _cur_config.members[member]
+    import os
+    if attachments is None:
+        attachments = []
+    attachments = [
+        discord.Attachment(
+            data={
+                'id': counter.__next__(),
+                'filename': os.path.basename(attachment),
+                'size': 0,
+                'url': attachment,
+                'proxy_url': "",
+                'height': 0,
+                'width': 0
+            },
+            state=back.get_state()
+        ) for attachment in attachments
+    ]
+
+    mes = back.make_message(content, member, channel, attachments=attachments)
+
+    await run_all_events()
+
+    if not error_queue.empty():
+        err = await error_queue.get()
+        raise err[1]
+
+    return mes
+
+
+@require_config
+async def set_permission_overrides(
+        target: typing.Union[discord.User, discord.Role],
+        channel: discord.abc.GuildChannel,
+        overrides: typing.Optional[discord.PermissionOverwrite] = None,
+        **kwargs: typing.Any,
+) -> None:
+    """
+        Set the permission override for a channel, as if set by another user.
+
+    :param target: User or Role the permissions override is being set for
+    :param channel: Channel the permissions are being set on
+    :param overrides: The permissions to use, as an object. Conflicts with using ``kwargs``
+    :param kwargs: The permissions to use, as a set of keys and values. Conflicts with using ``overrides``
+    """
+    if kwargs:
+        if overrides:
+            raise ValueError("Must supply either overrides parameter or kwargs, not both")
+        else:
+            overrides = discord.PermissionOverwrite(**kwargs)
+
+    if isinstance(target, int):
+        target = _cur_config.members[target]
+    if isinstance(channel, int):
+        channel = _cur_config.channels[channel]
+
+    if not isinstance(channel, discord.abc.GuildChannel):
+        raise TypeError(f"channel '{channel}' must be a abc.GuildChannel, not '{type(channel)}''")
+    if not isinstance(target, (discord.abc.User, discord.Role)):
+        raise TypeError(f"target '{target}' must be a abc.User or Role, not '{type(target)}''")
+
+    # TODO: This will probably break for video channels/non-standard text channels
+    back.update_text_channel(channel, target, overrides)
+
+
+@require_config
+async def add_role(member: discord.Member, role: discord.Role) -> None:
+    """
+        Add a role to a member, as if added by another user.
+
+    :param member: Member to add the role to
+    :param role: Role to be added
+    """
+    if isinstance(member, int):
+        member = _cur_config.members[member]
+    if not isinstance(role, discord.Role):
+        raise TypeError("Role argument must be of type discord.Role")
+
+    roles = [role] + [x for x in member.roles if x.id != member.guild.id]
+    back.update_member(member, roles=roles)
+
+
+@require_config
+async def remove_role(member: discord.Member, role: discord.Role) -> None:
+    """
+        Remove a role from a member, as if removed by another user.
+
+    :param member: Member to remove the role from
+    :param role: Role to remove
+    """
+    if isinstance(member, int):
+        member = _cur_config.members[member]
+    if not isinstance(role, discord.Role):
+        raise TypeError("Role argument must be of type discord.Role")
+
+    roles = [x for x in member.roles if x.id != role.id and x.id != member.guild.id]
+    back.update_member(member, roles=roles)
+
+
+@require_config
+async def add_reaction(user: typing.Union[discord.user.BaseUser, discord.abc.User],
+                       message: discord.Message, emoji: str) -> None:
+    """
+        Add a reaction to a message, as if added by another user
+
+    :param user: User who reacted
+    :param message: Message they reacted to
+    :param emoji: Emoji that was used
+    """
+    back.add_reaction(message, user, emoji)
+    await run_all_events()
+
+
+@require_config
+async def remove_reaction(user: typing.Union[discord.user.BaseUser, discord.abc.User],
+                          message: discord.Message, emoji: str) -> None:
+    """
+        Remove a reaction from a message, as if done by another user
+
+    :param user: User who removed their react
+    :param message: Message they removed react from
+    :param emoji: Emoji that was removed
+    """
+    back.remove_reaction(message, user, emoji)
+    await run_all_events()
+
+
+@require_config
+async def member_join(
+        guild: typing.Union[discord.Guild, int] = 0,
+        user: typing.Optional[discord.User] = None,
+        *,
+        name: str = None,
+        discrim: typing.Union[str, int] = None
+) -> discord.Member:
+    """
+        Have a new member join a guild, either an existing or new user for the framework
+
+    :param guild: Guild member is joining
+    :param user: User to join, or None to create a new user
+    :param name: If creating a new user, the name of the user. None to auto-generate
+    :param discrim: If creating a new user, the discrim of the user. None to auto-generate
+    """
+    import random
+    if isinstance(guild, int):
+        guild = _cur_config.guilds[guild]
+
+    if user is None:
+        if name is None:
+            name = "TestUser"
+        if discrim is None:
+            discrim = random.randint(1, 9999)
+        user = back.make_user(name, discrim)
+    elif name is not None or discrim is not None:
+        raise ValueError("Cannot supply user at the same time as name/discrim")
+    member = back.make_member(user, guild)
+    return member
+
+
+def get_config() -> RunnerConfig:
+    """
+        Get the current runner configuration
+
+    :return: Current runner config
+    """
+    return _cur_config
+
+
+def configure(client: discord.Client,
+              guilds: typing.Union[int, typing.List[str]] = 1,
+              text_channels: typing.Union[int, typing.List[str]] = 1,
+              voice_channels: typing.Union[int, typing.List[str]] = 1,
+              members: typing.Union[int, typing.List[str]] = 1) -> None:
+    """
+        Set up the runner configuration. This should be done before any tests are run.
+
+    :param client: Client to configure with. Should be the bot/client that is going to be tested.
+    :param guilds: Number or list of names of guilds to start the configuration with. Default is 1
+    :param text_channels: Number or list of names of text channels in each guild to start with. Default is 1
+    :param voice_channels: Number or list of names of voice channels in each guild to start with. Default is 1.
+    :param members: Number or list of names of members in each guild (other than the client) to start with. Default is 1.
+    """   # noqa: E501
+
+    global _cur_config
+
+    if not isinstance(client, discord.Client):
+        raise TypeError("Runner client must be an instance of discord.Client")
+    if isinstance(client, discord.AutoShardedClient):
+        raise TypeError("Sharded clients not yet supported")
+
+    back.configure(client)
+
+    # Wrap on_error so errors will be reported
+    old_error = None
+    if hasattr(client, "on_command_error"):
+        old_error = client.on_command_error
+
+    async def on_command_error(ctx, error):
+        try:
+            if old_error:
+                await old_error(ctx, error)
+        finally:
+            await error_queue.put((ctx, error))
+
+    on_command_error.__old__ = old_error
+    client.on_command_error = on_command_error
+
+    # Configure global callbacks
+    callbacks.set_callback(_message_callback, "send_message")
+    callbacks.set_callback(_edit_member_callback, "edit_member")
+
+    back.get_state().stop_dispatch()
+
+    _guilds = []
+    if isinstance(guilds, int):
+        for num in range(guilds):
+            guild = back.make_guild(f"Test Guild {num}")
+            _guilds.append(guild)
+    if isinstance(guilds, list):
+        for guild_name in guilds:
+            guild = back.make_guild(guild_name)
+            _guilds.append(guild)
+
+    _channels = []
+    _members = []
+    for guild in _guilds:
+        # Text channels
+        if isinstance(text_channels, int):
+            for num in range(text_channels):
+                channel = back.make_text_channel(f"TextChannel_{num}", guild)
+                _channels.append(channel)
+        if isinstance(text_channels, list):
+            for chan in text_channels:
+                channel = back.make_text_channel(chan, guild)
+                _channels.append(channel)
+
+        # Voice channels
+        if isinstance(voice_channels, int):
+            for num in range(voice_channels):
+                channel = back.make_voice_channel(f"VoiceChannel_{num}", guild)
+                _channels.append(channel)
+        if isinstance(voice_channels, list):
+            for chan in voice_channels:
+                channel = back.make_voice_channel(chan, guild)
+                _channels.append(channel)
+
+        # Members
+        if isinstance(members, int):
+            for num in range(members):
+                user = back.make_user(f"TestUser{str(num)}", f"{num + 1:04}")
+                member = back.make_member(user, guild, nick=f"{user.name}_{str(num)}_nick")
+                _members.append(member)
+        if isinstance(members, list):
+            for num, name in enumerate(members):
+                user = back.make_user(name, f"{num + 1:04}")
+                member = back.make_member(user, guild, nick=f"{user.name}_{str(num)}_nick")
+                _members.append(member)
+
+        back.make_member(back.get_state().user, guild, nick=f"{client.user.name}_nick")
+
+    back.get_state().start_dispatch()
+
+    _cur_config = RunnerConfig(client, _guilds, _channels, _members)
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/state.py</source>
+<document_content>
+"""
+    Mock implementation of a ``discord.state.ConnectionState``. Overwrites a Client's default state, allowing hooking of
+    its methods and support for test-related features.
+"""
+
+import asyncio
+import typing
+import discord
+import discord.http as dhttp
+import discord.state as dstate
+
+from . import factories as facts
+from . import backend as back
+from .voice import FakeVoiceChannel
+
+
+class FakeState(dstate.ConnectionState):
+    """
+        A mock implementation of a ``ConnectionState``. Overrides methods that would otherwise cause issues, and
+        implements functionality such as disabling dispatch temporarily.
+    """
+
+    http: 'back.FakeHttp'  # String because of circular import
+
+    def __init__(self, client: discord.Client, http: dhttp.HTTPClient, user: discord.ClientUser = None,
+                 loop: asyncio.AbstractEventLoop = None) -> None:
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        super().__init__(dispatch=client.dispatch,
+                         handlers=None, hooks=None,
+                         syncer=None, http=http,
+                         loop=loop, intents=client.intents,
+                         member_cache_flags=client._connection.member_cache_flags)
+        if user is None:
+            user = discord.ClientUser(state=self, data=facts.make_user_dict("FakeApp", "0001", None))
+            user.bot = True
+        self.user = user
+        self.shard_count = client.shard_count
+        self._get_websocket = lambda x: client.ws
+        self._do_dispatch = True
+        self._get_client = lambda: client
+
+        real_disp = self.dispatch
+
+        def dispatch(*args, **kwargs):
+            if not self._do_dispatch:
+                return
+            return real_disp(*args, **kwargs)
+
+        self.dispatch = dispatch
+
+    def stop_dispatch(self) -> None:
+        """
+            Stop dispatching events to the client, if we are
+        """
+        self._do_dispatch = False
+
+    def start_dispatch(self) -> None:
+        """
+            Start dispatching events to the client, if we aren't already
+        """
+        self._do_dispatch = True
+
+    # TODO: Respect limit parameters
+    async def query_members(self, guild: discord.Guild, query: str, limit: int, user_ids: int,
+                            cache: bool, presences: bool) -> None:
+        guild: discord.Guild = discord.utils.get(self.guilds, id=guild.id)
+        return guild.members
+
+    async def chunk_guild(self, guild: discord.Guild, *, wait: bool = True, cache: typing.Optional[bool] = None):
+        pass
+
+    def _guild_needs_chunking(self, guild: discord.Guild):
+        """
+        Prevents chunking which can throw asyncio wait_for errors with tests under 60 seconds
+        """
+        return False
+
+    def parse_channel_create(self, data) -> None:
+        """
+        Need to make sure that FakeVoiceChannels are created when this is called to create VoiceChannels. Otherwise,
+        guilds would not be set up correctly.
+
+        :param data: info to use in channel creation.
+        """
+        if data['type'] == discord.ChannelType.voice.value:
+            factory, ch_type = FakeVoiceChannel, discord.ChannelType.voice.value
+        else:
+            factory, ch_type = discord.channel._channel_factory(data['type'])
+
+        if factory is None:
+            return
+
+        guild_id = discord.utils._get_as_snowflake(data, 'guild_id')
+        guild = self._get_guild(guild_id)
+        if guild is not None:
+            # the factory can't be a DMChannel or GroupChannel here
+            channel = factory(guild=guild, state=self, data=data)  # type: ignore
+            guild._add_channel(channel)  # type: ignore
+            self.dispatch('guild_channel_create', channel)
+        else:
+            return
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/utils.py</source>
+<document_content>
+"""
+    Utility functions that don't have a place anywhere else. If it doesn't sound like it fits anywhere else,
+    and it's small, it probably goes here.
+"""
+
+import asyncio
+import discord
+import typing
+
+
+def embed_eq(embed1: typing.Optional[discord.Embed], embed2: typing.Optional[discord.Embed]) -> bool:
+    if embed1 == embed2:
+        return True
+    elif embed1 is None and embed2 is not None:
+        return False
+    elif embed2 is None and embed1 is not None:
+        return False
+
+    return all([embed1.title == embed2.title,
+                embed1.description == embed2.description,
+                embed1.url == embed2.url,
+                embed1.footer.text == embed2.footer.text,
+                embed1.image.url == embed2.image.url,
+                embed1.fields == embed2.fields])
+
+
+def activity_eq(act1: typing.Optional[discord.Activity], act2: typing.Optional[discord.Activity]) -> bool:
+    if act1 == act2:
+        return True
+    elif act1 is None and act2 is not None:
+        return False
+    elif act2 is None and act1 is not None:
+        return False
+
+    return all([
+        act1.name == act2.name,
+        act1.url == act2.url,
+        act1.type == act2.type,
+        act1.details == act2.details,
+        act1.emoji == act2.emoji,
+    ])
+
+
+def embed_proxy_eq(embed_proxy1, embed_proxy2):
+    return embed_proxy1.__repr__ == embed_proxy2.__repr__
+
+
+class PeekableQueue(asyncio.Queue):
+    """
+        An extension of an asyncio queue with a peek message, so other code doesn't need to rely on unstable
+        internal artifacts
+    """
+
+    def peek(self):
+        """
+            Peek the current last value in the queue, or raise an exception if there are no values
+
+        :return: Last value in the queue, assuming there are any
+        """
+        return self._queue[-1]
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/verify.py</source>
+<document_content>
+"""
+    Main module for supporting predicate-style assertions.
+    Handles checking various state matches the desired outcome.
+
+    All verify types should be re-exported at ``discord.ext.test``, this is the primary
+    entry point for assertions in the library
+
+    See also:
+        :mod:`discord.ext.test.runner`
+"""
+
+import typing
+import asyncio
+import pathlib
+import discord
+
+from .runner import sent_queue, get_config
+from .utils import embed_eq, activity_eq
+
+
+class _Undef:
+
+    _singleton = None
+
+    def __new__(cls):
+        if cls._singleton is None:
+            cls._singleton = super().__new__(cls)
+        return cls._singleton
+
+    def __eq__(self, other):
+        return self is other
+
+
+_undefined = _Undef()
+
+
+class VerifyMessage:
+    """
+        Builder for message verifications. When done building, should be asserted.
+
+        **Example**:
+        ``assert dpytest.verify().message().content("Hello World!")``
+    """
+
+    _invert: bool
+    _contains: bool
+    _peek: bool
+    _nothing: bool
+    _content: typing.Union[None, _Undef, str]
+    _embed: typing.Union[None, _Undef, discord.Embed]
+    _attachment: typing.Union[None, _Undef, str, pathlib.Path]
+
+    def __init__(self) -> None:
+        self._used = False
+
+        self._contains = False
+        self._peek = False
+        self._nothing = False
+        self._content = _undefined
+        self._embed = _undefined
+        self._attachment = _undefined
+
+    def __del__(self) -> None:
+        if not self._used:
+            import warnings
+            warnings.warn("VerifyMessage dropped without being used, did you forget an `assert`?", RuntimeWarning)
+
+    def __bool__(self) -> bool:
+        self._used = True
+
+        if self._nothing:
+            return sent_queue.qsize() == 0
+
+        if self._peek:
+            message: discord.Message = sent_queue.peek()
+        else:
+            try:
+                message = sent_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                # By now we're expecting a message, not getting one is a failure
+                return False
+
+        return self._check_msg(message)
+
+    def _check_msg(self, msg: discord.Message) -> bool:
+        # If any attributes are 'None', check that they don't exist
+        if self._content is None and msg.content != "":
+            return False
+        if self._embed is None and msg.embeds:
+            return False
+        if self._attachment is None and msg.attachments:
+            return False
+
+        # For any attributes that aren't None or _undefined, check that they match
+        if self._content is not None and self._content is not _undefined:
+            if self._contains and self._content not in msg.content:
+                return False
+            if not self._contains and self._content != msg.content:
+                return False
+        if self._embed is not None and self._embed is not _undefined:
+            if self._contains and not any(map(lambda e: embed_eq(self._embed, e), msg.embeds)):
+                return False
+            if not self._contains and (len(msg.embeds) != 1 or not embed_eq(self._embed, msg.embeds[0])):
+                return False
+        # TODO: Support contains for attachments, 'contains' should mean 'any number of which one matches',
+        #       while 'exact' should be 'only one which must match'
+        if self._attachment is not None and self._attachment is not _undefined:
+            import urllib.request as request
+            with open(self._attachment, "rb") as file:
+                expected = file.read()
+            # Generally, the URLs should be `file://` URLs, but this will work fine if they actually point elsewhere
+            real = request.urlopen(msg.attachments[0].url).read()
+            if expected != real:
+                return False
+
+        # Nothing failed, so we must match the message
+        return True
+
+    def contains(self) -> 'VerifyMessage':
+        """
+            Only check whether content/embed list/etc contain the desired input, not that they necessarily match
+            exactly
+
+        :return: Self for chaining
+        """
+        self._contains = True
+        return self
+
+    def peek(self) -> 'VerifyMessage':
+        """
+            Don't remove the verified message from the queue
+
+        :return: Self for chaining
+        """
+        self._peek = True
+        return self
+
+    def nothing(self) -> 'VerifyMessage':
+        """
+            Check that no message was sent
+
+        :return: Self for chaining
+        """
+        if self._content is not _undefined or self._embed is not _undefined or self._attachment is not _undefined:
+            raise ValueError("Verify nothing conflicts with verifying some content, embed, or attachment")
+        self._nothing = True
+        return self
+
+    def content(self, content: typing.Optional[str]) -> 'VerifyMessage':
+        """
+            Check that the message content matches the input
+
+        :param content: Content to match against, or None to ensure no content
+        :return: Self for chaining
+        """
+        if self._nothing:
+            raise ValueError("Verify content conflicts with verifying nothing")
+        self._content = content
+        return self
+
+    def embed(self, embed: typing.Optional[discord.Embed]) -> 'VerifyMessage':
+        """
+            Check that the message embed matches the input
+
+        :param embed: Embed to match against, or None to ensure no embed
+        :return: Self for chaining
+        """
+        if self._nothing:
+            raise ValueError("Verify embed conflicts with verifying nothing")
+        self._embed = embed
+        return self
+
+    def attachment(self, attach: typing.Optional[typing.Union[str, pathlib.Path]]) -> 'VerifyMessage':
+        """
+            Check that the message attachment matches the input
+
+        :param attach: Attachment path to match against, or None to ensure no attachment
+        :return: Self for chaining
+        """
+        if self._nothing:
+            raise ValueError("Verify attachment conflicts with verifying nothing")
+        self._attachment = attach
+        return self
+
+
+class VerifyActivity:
+    """
+        Builder for activity verifications. When done building, should be asserted
+
+        **Example**:
+        ``assert not dpytest.verify().activity().name("Foobar")``
+    """
+
+    def __init__(self) -> None:
+        self._used = False
+
+        self._activity = _undefined
+        self._name = _undefined
+        self._url = _undefined
+        self._type = _undefined
+
+    def __del__(self) -> None:
+        if not self._used:
+            import warnings
+            warnings.warn("VerifyActivity dropped without being used, did you forget an `assert`?", RuntimeWarning)
+
+    def __bool__(self) -> bool:
+        self._used = True
+
+        bot_act = get_config().guilds[0].me.activity
+
+        if self._activity is not _undefined:
+            return activity_eq(self._activity, bot_act)
+
+        if self._name is not _undefined and self._name != bot_act.name:
+            return False
+        if self._url is not _undefined and self._url != bot_act.url:
+            return False
+        if self._type is not _undefined and self._type != bot_act.type:
+            return False
+
+        return True
+
+    def matches(self, activity) -> 'VerifyActivity':
+        """
+            Ensure that the bot activity exactly matches the passed activity. Most restrictive possible check.
+
+        :param activity: Activity to compare against
+        :return: Self for chaining
+        """
+        if self._name is not _undefined or self._url is not _undefined or self._type is not _undefined:
+            raise ValueError("Verify exact match conflicts with verifying attributes")
+        self._activity = activity
+        return self
+
+    def name(self, name: str) -> 'VerifyActivity':
+        """
+            Check that the activity name matches the input
+
+        :param name: Name to match against
+        :return: Self for chaining
+        """
+        if self._activity is not _undefined:
+            raise ValueError("Verify name conflicts with verifying exact match")
+        self._name = name
+        return self
+
+    def url(self, url: str) -> 'VerifyActivity':
+        """
+            Check the the activity url matches the input
+
+        :param url: Url to match against
+        :return: Self for chaining
+        """
+        if self._activity is not _undefined:
+            raise ValueError("Verify url conflicts with verifying exact match")
+        self._url = url
+        return self
+
+    def type(self, type: discord.ActivityType) -> 'VerifyActivity':
+        """
+            Check the activity type matches the input
+
+        :param type: Type to match against
+        :return: Self for chaining
+        """
+        if self._activity is not _undefined:
+            raise ValueError("Verify type conflicts with verifying exact match")
+        self._type = type
+        return self
+
+
+class Verify:
+    """
+        Base for all kinds of verification builders. Used as an
+        intermediate step for the return of verify().
+    """
+
+    def __init__(self):
+        pass
+
+    def message(self) -> VerifyMessage:
+        """
+            Verify a message
+
+        :return: Message verification builder
+        """
+        return VerifyMessage()
+
+    def activity(self) -> VerifyActivity:
+        """
+            Verify the bot's activity
+
+        :return: Activity verification builder
+        """
+        return VerifyActivity()
+
+
+def verify() -> Verify:
+    """
+        Verification entry point. Call to begin building a verification.
+
+        **Warning**: All verification builders do nothing until asserted, used in an if statement,
+        or otherwise converted into a bool. They will raise RuntimeWarning if this isn't done to help
+        catch possible errors.
+
+    :return: Verification builder
+    """
+    return Verify()
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/voice.py</source>
+<document_content>
+from typing import Callable
+
+from discord import Client, VoiceClient
+from discord.abc import Connectable, T
+from discord.channel import VoiceChannel
+
+
+class FakeVoiceClient(VoiceClient):
+    """
+    Mock implementation of a Discord VoiceClient. VoiceClient.connect tries to contact the Discord API and is called
+    whenever connect() is called on a VoiceChannel, so we need to override that method and pass in the fake version
+    to prevent the program from actually making calls to the Discord API.
+    """
+    async def connect(self, *, reconnect: bool, timeout: float, self_deaf: bool = False,
+                      self_mute: bool = False) -> None:
+        self._connected.set()
+
+
+class FakeVoiceChannel(VoiceChannel):
+    """
+    Mock implementation of a Discord VoiceChannel. Exists just to pass a FakeVoiceClient into the superclass connect()
+    method.
+    """
+
+    async def connect(
+            self,
+            *,
+            timeout: float = 60.0,
+            reconnect: bool = True,
+            cls: Callable[[Client, Connectable], T] = FakeVoiceClient,
+            self_deaf: bool = False,
+            self_mute: bool = False,
+    ) -> T:
+        return await super().connect(timeout=timeout, reconnect=reconnect, cls=cls, self_deaf=self_deaf,
+                                     self_mute=self_mute)
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/dpytest/discord/ext/test/websocket.py</source>
+<document_content>
+"""
+    Mock implementation of a ``discord.gateway.DiscordWebSocket``. Overwrites a Client's default websocket, allowing
+    hooking of its methods to update the backend and provide callbacks.
+"""
+
+import typing
+import discord
+import discord.gateway as gateway
+
+from . import callbacks, _types
+
+
+class FakeWebSocket(gateway.DiscordWebSocket):
+    """
+        A mock implementation of a ``DiscordWebSocket``. Instead of actually sending information to discord,
+        it simply triggers calls to the ``dpytest`` backend, as well as triggering runner callbacks.
+    """
+
+    def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.cur_event = ""
+        self.event_args = ()
+        self.event_kwargs = {}
+
+    async def send(self, data: _types.JsonDict) -> None:
+        self._dispatch('socket_raw_send', data)
+        if self.cur_event is None:
+            raise ValueError("Unhandled Websocket send event")
+        await callbacks.dispatch_event(self.cur_event, *self.event_args, **self.event_kwargs)
+        self.cur_event = None
+        self.event_args = ()
+        self.event_kwargs = {}
+
+    async def change_presence(
+            self,
+            *,
+            activity: typing.Optional[discord.BaseActivity] = None,
+            status: typing.Optional[str] = None,
+            since: float = 0.0
+    ) -> None:
+        self.cur_event = "presence"
+        self.event_args = (activity, status, since)
+        await super().change_presence(activity=activity, status=status, since=since)
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/dpytest/tests/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/dpytest/tests/conftest.py</source>
+<document_content>
+from pathlib import Path
+import pytest_asyncio
+import discord
+import discord.ext.commands as commands
+import discord.ext.test as dpytest
+from discord.client import _LoopSentinel
+
+
+@pytest_asyncio.fixture
+async def bot(request):
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.message_content = True
+    b = commands.Bot(command_prefix="!",
+                     intents=intents)
+    # set up the loop
+    if isinstance(b.loop, _LoopSentinel):
+        await b._async_setup_hook()
+
+    marks = request.function.pytestmark
+    mark = None
+    for mark in marks:
+        if mark.name == "cogs":
+            break
+
+    if mark is not None:
+        for extension in mark.args:
+            await b.load_extension("tests.internal." + extension)
+
+    dpytest.configure(b)
+    return b
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup():
+    yield
+    await dpytest.empty_queue()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """ Code to execute after all tests. """
+
+    # dat files are created when using attachements
+    print("\n-------------------------\nClean dpytest_*.dat files")
+    file_list = Path('.').glob('dpytest_*.dat')
+    for file_path in file_list:
+        try:
+            file_path.unlink()
+        except Exception:
+            print("Error while deleting file : ", file_path)
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/dpytest/tests/test_activity.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_verify_activity_matches(bot):
+    fake_act = discord.Activity(name="Streaming",
+                                url="http://mystreamingfeed.xyz",
+                                type=discord.ActivityType.streaming)
+    await bot.change_presence(activity=fake_act)
+    assert dpytest.verify().activity().matches(fake_act)
+
+    other_act = discord.Activity(name="Playing Around", type=discord.ActivityType.playing)
+    await bot.change_presence(activity=other_act)
+    assert not dpytest.verify().activity().matches(fake_act)
+
+
+@pytest.mark.asyncio
+async def test_verify_no_activity(bot):
+    await bot.change_presence(activity=None)
+    assert dpytest.verify().activity().matches(None)
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/dpytest/tests/test_all.py</source>
+<document_content>
+from pathlib import Path
+import discord
+import pytest
+import discord.ext.test as dpytest
+from typing import List, Optional
+from discord import Attachment, Embed, File, Member, Message
+
+
+@pytest.mark.asyncio
+async def test_basic_attachment(bot: discord.Client) -> None:
+    """Test sending and verifying a basic file attachment."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path = Path(__file__).resolve().parent / 'data/test_file.txt'
+    file = discord.File(path)
+    await channel.send(file=file)
+
+    assert dpytest.verify().message().attachment(path)
+
+
+@pytest.mark.asyncio
+async def test_attachment_with_content(bot: discord.Client) -> None:
+    """Test sending a message with both text content and an attachment."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path = Path(__file__).resolve().parent / 'data/image.jpg'
+    file = discord.File(path)
+
+    await channel.send("Here's your requested image!", file=file)
+
+    assert dpytest.verify().message().contains().content("requested image")
+    assert dpytest.verify().message().peek().attachment(path)
+
+
+@pytest.mark.asyncio
+async def test_multiple_attachments(bot: discord.Client) -> None:
+    """Test sending multiple attachments in a single message."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    files: List[File] = [
+        discord.File(Path(__file__).resolve().parent / 'data/doc1.pdf'),
+        discord.File(Path(__file__).resolve().parent / 'data/doc2.pdf'),
+        discord.File(Path(__file__).resolve().parent / 'data/image.jpg')
+    ]
+
+    message = await channel.send("Multiple files attached:", files=files)
+    assert len(message.attachments) == 3
+
+
+@pytest.mark.asyncio
+async def test_attachment_with_embed(bot: discord.Client) -> None:
+    """Test sending a message with both an embed and an attachment."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Monthly Report", description="See attached file")
+    embed.add_field(name="Status", value="Complete")
+
+    path = Path(__file__).resolve().parent / 'data/report.pdf'
+    file = discord.File(path)
+
+    await channel.send(embed=embed, file=file)
+
+    assert dpytest.verify().message().embed(embed)
+    assert dpytest.verify().message().attachment(path)
+
+
+@pytest.mark.asyncio
+async def test_attachment_properties(bot: discord.Client) -> None:
+    """Test various properties of an attachment object."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path = Path(__file__).resolve().parent / 'data/test_image.jpg'
+    file = discord.File(path)
+
+    message = await channel.send(file=file)
+    attachment = message.attachments[0]
+
+    assert attachment.filename == "test_image.jpg"
+    assert attachment.content_type == "image/jpeg"
+    assert attachment.size > 0
+    assert attachment.height is not None  # Image should have height
+    assert attachment.width is not None   # Image should have width
+
+
+@pytest.mark.asyncio
+async def test_attachment_peek_verify(bot: discord.Client) -> None:
+    """Test peeking at attachments in the message queue."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path1 = Path(__file__).resolve().parent / 'data/file1.txt'
+    path2 = Path(__file__).resolve().parent / 'data/file2.txt'
+
+    await channel.send(file=discord.File(path1))
+    await channel.send(file=discord.File(path2))
+
+    # Peek at first message without removing it
+    assert dpytest.verify().message().peek().attachment(path1)
+    # Verify both messages
+    assert dpytest.verify().message().attachment(path1)
+    assert dpytest.verify().message().attachment(path2)
+
+
+@pytest.mark.asyncio
+async def test_invalid_attachment_verify(bot: discord.Client) -> None:
+    """Test verification behavior with non-matching attachments."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    actual_path = Path(__file__).resolve().parent / 'data/actual.txt'
+    wrong_path = Path(__file__).resolve().parent / 'data/wrong.txt'
+
+    await channel.send(file=discord.File(actual_path))
+
+    assert not dpytest.verify().message().attachment(wrong_path)
+
+
+@pytest.mark.asyncio
+async def test_attachment_with_reaction(bot: discord.Client) -> None:
+    """Test adding reactions to messages with attachments."""
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+    member = guild.members[0]
+
+    path = Path(__file__).resolve().parent / 'data/image.png'
+    message = await channel.send(file=discord.File(path))
+
+    await dpytest.add_reaction(member, message, "👍")
+
+    message = await channel.fetch_message(message.id)
+    assert len(message.reactions) == 1
+    assert message.reactions[0].emoji == "👍"
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/dpytest/tests/test_configure.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_configure_guilds(bot):
+    dpytest.configure(bot, guilds=2)
+    assert len(bot.guilds) == 2
+    assert bot.guilds[0].name == "Test Guild 0"
+    assert bot.guilds[1].name == "Test Guild 1"
+
+    dpytest.configure(bot, guilds=["Apples", "Bananas", "Oranges"])
+    assert len(bot.guilds) == 3
+    assert bot.guilds[0].name == "Apples"
+    assert bot.guilds[1].name == "Bananas"
+    assert bot.guilds[2].name == "Oranges"
+
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+    await channel.send("Test Message")
+    assert dpytest.verify().message().content("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_configure_text_channels(bot):
+    dpytest.configure(bot, text_channels=3)
+    guild = bot.guilds[0]
+    assert len(guild.text_channels) == 3
+    for num, channel in enumerate(guild.text_channels):
+        assert channel.name == f"TextChannel_{num}"
+
+    dpytest.configure(bot, text_channels=["Fruits", "Videogames", "Coding", "Fun"])
+    guild = bot.guilds[0]
+    assert len(guild.text_channels) == 4
+    assert guild.text_channels[0].name == "Fruits"
+    assert guild.text_channels[1].name == "Videogames"
+    assert guild.text_channels[2].name == "Coding"
+    assert guild.text_channels[3].name == "Fun"
+
+    # we can even use discord.utils.get
+    channel = discord.utils.get(guild.text_channels, name='Videogames')
+    assert channel.name == "Videogames"
+    await channel.send("Test Message")
+    assert dpytest.verify().message().content("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_configure_voice_channels(bot):
+    dpytest.configure(bot, voice_channels=3)
+    guild = bot.guilds[0]
+    assert len(guild.voice_channels) == 3
+    for num, channel in enumerate(guild.voice_channels):
+        assert channel.name == f"VoiceChannel_{num}"
+
+    dpytest.configure(bot, voice_channels=["Fruits", "Videogames", "Coding", "Fun"])
+    guild = bot.guilds[0]
+    assert len(guild.voice_channels) == 4
+    assert guild.voice_channels[0].name == "Fruits"
+    assert guild.voice_channels[1].name == "Videogames"
+    assert guild.voice_channels[2].name == "Coding"
+    assert guild.voice_channels[3].name == "Fun"
+
+    # we can even use discord.utils.get
+    channel = discord.utils.get(guild.voice_channels, name='Videogames')
+    assert channel.name == "Videogames"
+
+
+@pytest.mark.asyncio
+async def test_configure_members(bot):
+    dpytest.configure(bot, members=3)
+    guild = bot.guilds[0]
+    assert len(guild.members) == 3 + 1  # because the bot is a member too
+    for num, member in enumerate(guild.members[:3]):
+        assert member.name == f"TestUser{str(num)}"
+
+    dpytest.configure(bot, members=["Joe", "Jack", "William", "Averell"])
+    guild = bot.guilds[0]
+    assert len(guild.members) == 4 + 1  # because the bot is a member too
+    assert guild.members[0].name == "Joe"
+    assert guild.members[1].name == "Jack"
+    assert guild.members[2].name == "William"
+    assert guild.members[3].name == "Averell"
+
+    # we can even use discord.utils.get
+    william_member = discord.utils.get(guild.members, name='William')
+    assert william_member.name == "William"
+
+
+@pytest.mark.asyncio
+@pytest.mark.cogs("cogs.echo")
+async def test_configure_all(bot):
+    dpytest.configure(bot,
+                      guilds=["CoolGuild", "LameGuild"],
+                      text_channels=["Fruits", "Videogames"], voice_channels=["Apples", "Bananas"],
+                      members=["Joe", "Jack", "William", "Averell"])
+    guild = bot.guilds[1]
+    channel: discord.TextChannel = discord.utils.get(guild.text_channels, name='Videogames')
+    jack: discord.Member = discord.utils.get(guild.members, name="Jack")
+    mess = await dpytest.message("!echo Hello, my name is Jack", channel=channel, member=jack)
+    assert mess.author.name == "Jack"
+    assert mess.channel.name == "Videogames"
+    assert dpytest.verify().message().content("Hello, my name is Jack")
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/dpytest/tests/test_create_channel.py</source>
+<document_content>
+import pytest
+import discord
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_create_voice_channel(bot):
+    guild = bot.guilds[0]
+    http = bot.http
+
+    # create_channel checks the value of variables in the parent call context, so we need to set these for it to work
+    self = guild  # noqa: F841
+    name = "voice_channel_1"
+    channel = await http.create_channel(guild, channel_type=discord.ChannelType.voice.value)
+    assert channel['type'] == discord.ChannelType.voice
+    assert channel['name'] == name
+
+
+@pytest.mark.asyncio
+async def test_make_voice_channel(bot):
+    guild = bot.guilds[0]
+    bitrate = 100
+    user_limit = 5
+    channel = dpytest.backend.make_voice_channel("voice", guild, bitrate=bitrate, user_limit=user_limit)
+    assert channel.name == "voice"
+    assert channel.guild == guild
+    assert channel.bitrate == bitrate
+    assert channel.user_limit == user_limit
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/dpytest/tests/test_dmchannel.py</source>
+<document_content>
+
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_dm_send(bot):
+    guild = bot.guilds[0]
+    await guild.members[0].send("hi")
+
+    assert dpytest.verify().message().content("hi")
+
+
+@pytest.mark.asyncio
+@pytest.mark.cogs("cogs.echo")
+async def test_dm_message(bot):
+    guild = bot.guilds[0]
+    member = guild.members[0]
+    dm = await member.create_dm()
+    await dpytest.message("!echo Ah-Ha!", dm)
+
+    assert dpytest.verify().message().content("Ah-Ha!")
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/dpytest/tests/test_edit.py</source>
+<document_content>
+
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_edit(bot):
+    guild = bot.guilds[0]
+    channel = guild.channels[0]
+
+    mes = await channel.send("Test Message")
+    persisted_mes1 = await channel.fetch_message(mes.id)
+    edited_mes = await mes.edit(content="New Message")
+    persisted_mes2 = await channel.fetch_message(mes.id)
+
+    assert edited_mes.content == "New Message"
+    assert persisted_mes1.content == "Test Message"
+    assert persisted_mes2.content == "New Message"
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/dpytest/tests/test_fetch_message.py</source>
+<document_content>
+import pytest
+import discord
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_get_message(bot):
+    guild = bot.guilds[0]
+    channel = guild.channels[0]
+
+    message = await channel.send("Test Message")
+    message2 = await channel.fetch_message(message.id)
+
+    assert message.id == message2.id
+
+    with pytest.raises(discord.NotFound):
+        await channel.fetch_message(0xBADBEEF)
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/dpytest/tests/test_get.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_get_message(bot):
+    """Dont use this in your code, it's just dummy test.
+    Use verify_message() instead of 'get_message' and 'message.content'
+    """
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Test Message")
+    mess = dpytest.get_message()
+    assert mess.content == "Test Message"
+
+
+@pytest.mark.asyncio
+async def test_get_message_peek(bot):
+    """Dont use this in your code, it's just dummy test.
+    Use verify_message() instead of 'get_message' and 'message.content'
+    """
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Test Message Peek")
+    mess = dpytest.get_message(peek=True)  # peek doesnt remove the message from the queue
+    assert mess.content == "Test Message Peek"
+
+
+@pytest.mark.asyncio
+async def test_get_embed(bot):
+    """Dont use this in your code, it's just dummy test.
+    Use verify_embed() instead of 'get_embed'
+    """
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+    emb = dpytest.get_embed()
+    assert emb == embed
+
+
+@pytest.mark.asyncio
+async def test_get_embed_peek(bot):
+    """Dont use this in your code, it's just dummy test.
+    Use verify_embed() instead of 'get_embed'
+    """
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+    emb = dpytest.get_embed(peek=True)
+    assert emb == embed
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/dpytest/tests/test_get_channel_history.py</source>
+<document_content>
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+from discord.utils import get
+
+
+@pytest.mark.asyncio
+async def test_get_channel(bot):
+    guild = bot.guilds[0]
+    channel_0 = guild.channels[0]
+
+    channel_get = get(guild.channels, name=channel_0.name)
+
+    assert channel_0 == channel_get
+
+
+@pytest.mark.asyncio
+async def test_get_channel_history(bot):
+    guild = bot.guilds[0]
+    channel_0 = guild.channels[0]
+
+    channel_get = get(guild.channels, name=channel_0.name)
+
+    assert channel_0 == channel_get
+
+    test_message = await channel_get.send("Test Message")
+
+    channel_history = [msg async for msg in channel_get.history(limit=10)]
+
+    assert test_message in channel_history
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/dpytest/tests/test_member_join.py</source>
+<document_content>
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+@pytest.mark.cogs("cogs.greeting")
+async def test_member_join(bot):
+    """Dont use this in your code, it's just dummy test.
+    Use verify_message() instead of 'get_message' and 'message.content'
+    """
+    guild = bot.guilds[0]
+    member_count = len(guild.members)
+
+    await dpytest.member_join(name="Foo", discrim=5)
+    new_member = guild.members[member_count]
+
+    assert len(guild.members) == member_count + 1
+    assert new_member.name == "Foo"
+    assert new_member.discriminator == "0005"
+
+    await dpytest.run_all_events()  # requires for the cov Greeting listner to be executed  # noqa: E501
+
+    assert dpytest.verify().message().content(f"Welcome {new_member.mention}.")
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/dpytest/tests/test_mentions.py</source>
+<document_content>
+
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_user_mention(bot):
+    guild = bot.guilds[0]
+    mes = await dpytest.message(f"<@{guild.me.id}>")
+
+    assert len(mes.mentions) == 1
+    assert mes.mentions[0] == guild.me
+
+    mes = await dpytest.message("Not a mention in sight")
+
+    assert len(mes.mentions) == 0
+
+
+@pytest.mark.asyncio
+async def test_role_mention(bot):
+    guild = bot.guilds[0]
+    role = await guild.create_role(name="Test Role")
+    mes = await dpytest.message(f"<@&{role.id}>")
+
+    assert len(mes.role_mentions) == 1
+    assert mes.role_mentions[0] == role
+
+    mes = await dpytest.message("Not a mention in sight")
+
+    assert len(mes.role_mentions) == 0
+
+
+@pytest.mark.asyncio
+async def test_channel_mention(bot):
+    guild = bot.guilds[0]
+    channel = guild.channels[0]
+    mes = await dpytest.message(f"<#{channel.id}>")
+
+    assert len(mes.channel_mentions) == 1
+    assert mes.channel_mentions[0] == channel
+
+    mes = await dpytest.message("Not a mention in sight")
+
+    assert len(mes.channel_mentions) == 0
+
+
+@pytest.mark.asyncio
+async def test_bot_mention(bot):
+    mes = await dpytest.message(f"<@{bot.user.id}>")
+
+    assert len(mes.mentions) == 1
+    assert mes.mentions[0] == bot.user
+
+    mes = await dpytest.message("Not a mention in sight")
+
+    assert len(mes.mentions) == 0
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/dpytest/tests/test_message.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_messasge(bot):
+    """Test make_message_dict from factory.
+    """
+    # Get the first guild (server) from the bot's guild list
+    guild = bot.guilds[0]
+    # Get the first member from the guild and type-annotate it as a discord.Member
+    author: discord.Member = guild.members[0]
+    # Get the first channel from the guild
+    channel = guild.channels[0]
+
+    # Create a mock Discord Attachment object with test image data
+    attach: discord.Attachment = discord.Attachment(
+        # Pass the current state manager from dpytest backend
+        state=dpytest.back.get_state(),
+        # Create a mock attachment dictionary with test image properties
+        data=dpytest.back.facts.make_attachment_dict(
+            # Set the filename for the test attachment
+            "test.jpg",
+            # Set the file size in bytes
+            15112122,
+            # Set the CDN URL for the attachment
+            "https://media.discordapp.net/attachments/some_number/random_number/test.jpg",
+            # Set the proxy URL (usually same as CDN URL)
+            "https://media.discordapp.net/attachments/some_number/random_number/test.jpg",
+            # Set the image height in pixels
+            height=1000,
+            # Set the image width in pixels
+            width=1000,
+            # Set the MIME type of the attachment
+            content_type="image/jpeg"
+        )
+    )
+
+    # Create a message dictionary using dpytest's factory with the channel, author and attachment
+    message_dict = dpytest.back.facts.make_message_dict(channel, author, attachments=[attach])
+
+    try:
+        # Attempt to create a Discord Message object from the dictionary and type-annotate it
+        message: discord.Message = discord.Message(state=dpytest.back.get_state(), channel=channel, data=message_dict)  # noqa: E501,F841 (variable never used)
+    # If any error occurs during message creation, fail the test with the error message
+    except Exception as err:
+        pytest.fail(str(err))
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/dpytest/tests/test_permissions.py</source>
+<document_content>
+import pytest
+import discord
+import discord.ext.test as dpytest
+from discord import PermissionOverwrite
+
+
+# TODO : fix this
+@pytest.mark.skip(reason="test is currently broken, probably set_permission_overrides doing something wrong.")
+@pytest.mark.asyncio
+async def test_permission_setting(bot):
+    """tests, that the framework sets overrides correctly"""
+    g = bot.guilds[0]
+    c = g.text_channels[0]
+    m = g.members[0]
+
+    await dpytest.set_permission_overrides(g.me, c, manage_roles=False)
+    with pytest.raises(discord.errors.DiscordException):
+        await c.set_permissions(m, send_messages=False, read_messages=True)
+
+    await dpytest.set_permission_overrides(g.me, c, manage_roles=True)
+    perm = c.permissions_for(g.me)
+    assert perm.manage_roles is True
+
+    await c.set_permissions(m, send_messages=False, read_messages=True, ban_members=False)
+    perm = c.permissions_for(m)
+    assert perm.read_messages is True
+    assert perm.send_messages is False
+    assert perm.ban_members is False
+
+    await c.set_permissions(m, send_messages=False, read_messages=True, ban_members=True)
+    perm = c.permissions_for(m)
+    assert perm.ban_members is True
+
+    await dpytest.set_permission_overrides(g.me, c, manage_roles=False, administrator=True)
+    await c.set_permissions(m, ban_members=False, kick_members=True)
+    perm = c.permissions_for(m)
+    assert perm.kick_members is True
+    assert perm.ban_members is False
+
+
+# TODO : fix this
+@pytest.mark.skip(reason="test is currently broken, probably set_permission_overrides doing something wrong.")
+@pytest.mark.asyncio
+@pytest.mark.cogs("cogs.echo")
+async def test_bot_send_not_allowed(bot):
+    """tests, that a bot gets an Exception, if not allowed to send a message"""
+    g = bot.guilds[0]
+    c = g.text_channels[0]
+
+    await dpytest.set_permission_overrides(g.me, c, send_messages=False)
+    with pytest.raises(discord.ext.commands.errors.CommandInvokeError):
+        await dpytest.message("!echo hello", channel=c)
+
+    assert dpytest.sent_queue.empty()
+
+    perm = PermissionOverwrite(send_messages=True, read_messages=True)
+    await dpytest.set_permission_overrides(g.me, c, perm)
+    await dpytest.message("!echo hello", channel=c)
+    assert dpytest.verify().message().content("hello")
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/dpytest/tests/test_reactions.py</source>
+<document_content>
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_add_reaction(bot):
+    g = bot.guilds[0]
+    c = g.text_channels[0]
+
+    message = await c.send("Test Message")
+    await message.add_reaction("😂")
+
+    # This is d.py/discord's fault, the message object from send isn't the same as the one in the state
+    message = await c.fetch_message(message.id)
+    assert len(message.reactions) == 1
+
+
+@pytest.mark.asyncio
+async def test_remove_reaction(bot):
+    g = bot.guilds[0]
+    c = g.text_channels[0]
+
+    message = await c.send("Test Message")
+    await message.add_reaction("😂")  # Assumes the test above passed
+    await message.remove_reaction("😂", g.me)
+
+    message = await c.fetch_message(message.id)
+    assert len(message.reactions) == 0
+
+
+@pytest.mark.asyncio
+async def test_user_add_reaction(bot):
+    g = bot.guilds[0]
+    c = g.text_channels[0]
+    m = g.members[0]
+
+    message = await c.send("Test Message")
+    await dpytest.add_reaction(m, message, "😂")
+
+    # Assumes the above tests pass
+    message = await c.fetch_message(message.id)
+    react = message.reactions[0]
+    assert react.emoji == "😂"
+    assert react.me is False
+
+
+@pytest.mark.asyncio
+async def test_user_remove_reaction(bot):
+    g = bot.guilds[0]
+    c = g.text_channels[0]
+    m = g.members[0]
+
+    message = await c.send("Test Message")
+    await message.add_reaction("😂")
+    await dpytest.add_reaction(m, message, "😂")
+    await dpytest.remove_reaction(m, message, "😂")
+
+    # Assumes the above tests pass
+    message = await c.fetch_message(message.id)
+    react = message.reactions[0]
+    assert react.emoji == "😂"
+    assert react.count == 1
+    assert react.me is True
+
+</document_content>
+</document>
+<document index="28">
+<source>/Users/malcolm/dev/dpytest/tests/test_role.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_add_role(bot):
+    guild = bot.guilds[0]
+    staff_role = await guild.create_role(name="Staff")  # Role object
+    member1 = guild.members[0]  # Member
+
+    await dpytest.add_role(member1, staff_role)
+    assert staff_role in member1.roles
+
+
+@pytest.mark.asyncio
+async def test_edit_role(bot):
+    await test_add_role(bot=bot)
+    await bot.guilds[0].create_role(name="TestRole")  # Role object
+    assert len(bot.guilds[0].roles) == 3
+    staff_role = bot.guilds[0].roles[1]
+    await staff_role.edit(permissions=discord.Permissions(8), colour=discord.Color.red(), hoist=True, mentionable=True, position=2)  # noqa: E501
+    assert bot.guilds[0].roles[2] == staff_role
+    assert bot.guilds[0].roles[2].colour == discord.Color.red()
+    assert bot.guilds[0].roles[2].hoist is True
+    assert bot.guilds[0].roles[2].mentionable is True
+    assert bot.guilds[0].roles[2].permissions.administrator is True
+    # assert staff_role in member1.roles
+
+
+@pytest.mark.asyncio
+async def test_remove_role(bot):
+    guild = bot.guilds[0]
+    staff_role = await guild.create_role(name="Staff")  # Role object
+    member1 = guild.members[0]  # Member
+
+    # First, we use add_role
+    await dpytest.add_role(member1, staff_role)
+    assert staff_role in member1.roles
+
+    # then remove_role
+    await dpytest.remove_role(member1, staff_role)
+    assert staff_role not in member1.roles
+
+
+@pytest.mark.asyncio
+async def test_remove_role2(bot):
+    guild = bot.guilds[0]
+    staff_role = await guild.create_role(name="Staff")  # Role object
+
+    # First, we use add_role
+    await dpytest.add_role(0, staff_role)
+    assert staff_role in guild.members[0].roles
+
+    # then remove_role
+    await dpytest.remove_role(0, staff_role)
+    assert staff_role not in guild.members[0].roles
+
+</document_content>
+</document>
+<document index="29">
+<source>/Users/malcolm/dev/dpytest/tests/test_send.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest  # noqa: F401
+
+
+@pytest.mark.asyncio
+async def test_message(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_embed(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+
+</document_content>
+</document>
+<document index="30">
+<source>/Users/malcolm/dev/dpytest/tests/test_utils.py</source>
+<document_content>
+from copy import deepcopy
+import pytest
+from discord import Embed
+from discord.ext.test.utils import embed_eq
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_direct(bot) -> None:
+    embed_1: Embed = Embed()
+    embed_2: Embed = Embed()
+    assert embed_eq(embed_1, embed_2) is True
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_embed1_is_none(bot) -> None:
+    embed_2: Embed = Embed()
+    assert embed_eq(None, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_embed2_is_none(bot) -> None:
+    embed_1: Embed = Embed()
+    assert embed_eq(embed_1, None) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_title(bot) -> None:
+    embed_1: Embed = Embed(title="Foo")
+    embed_2: Embed = Embed(title="Bar")
+    assert embed_eq(embed_1, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_description(bot) -> None:
+    embed_1: Embed = Embed(title="Foo", description="This is a Foo.")
+    embed_2: Embed = Embed(title="Foo", description="This is a slightly different Foo.")
+    assert embed_eq(embed_1, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_url(bot) -> None:
+    embed_1: Embed = Embed(title="Foo", description="This is a Foo.", url="http://www.foo.foo")
+    embed_2: Embed = Embed(title="Foo", description="This is a Foo.", url="http://www.foo.bar")
+    assert embed_eq(embed_1, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_footer(bot) -> None:
+    embed_1: Embed = Embed(title="Foo", description="This is a Foo.", url="http://www.foo.foo")
+    embed_1.set_footer(text="This is the footer for Foo.")
+    embed_2: Embed = deepcopy(embed_1)
+    embed_2.set_footer(text="This is a slightly different footer for Foo.")
+    assert embed_eq(embed_1, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_image(bot) -> None:
+    embed_1: Embed = Embed(title="Foo", description="This is a Foo.", url="http://www.foo.foo")
+    embed_1.set_footer(text="This is the footer for Foo.")
+    embed_1.set_image(url="http://image.foo")
+    embed_2: Embed = deepcopy(embed_1)
+    embed_2.set_image(url="http://image.bar")
+    assert embed_eq(embed_1, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_fields(bot) -> None:
+    embed_1: Embed = Embed(title="Foo", description="This is a Foo.", url="http://www.foo.foo")
+    embed_1.set_footer(text="This is the footer for Foo.")
+    embed_1.set_image(url="http://image.foo")
+    embed_1.add_field(name="Foo", value="Foo")
+    embed_2: Embed = deepcopy(embed_1)
+    embed_2.add_field(name="Foo", value="Bar")
+    assert embed_eq(embed_1, embed_2) is False
+
+
+@pytest.mark.asyncio
+async def test_embed_eq_attr_equal(bot):
+    embed_1: Embed = Embed(title="Foo", description="This is a Foo.", url="http://www.foo.foo")
+    embed_1.set_footer(text="This is the footer for Foo.")
+    embed_1.set_image(url="http://image.foo")
+    embed_1.add_field(name="Foo", value="Foo")
+    embed_2: Embed = deepcopy(embed_1)
+    assert embed_eq(embed_1, embed_2) is True
+
+</document_content>
+</document>
+<document index="31">
+<source>/Users/malcolm/dev/dpytest/tests/test_verify_embed.py</source>
+<document_content>
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_embed(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    embed2 = embed = discord.Embed(title="Test Embed")
+    embed2.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+    assert dpytest.verify().message().embed(embed2)
+
+
+@pytest.mark.asyncio
+async def test_embed_KO(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    embed2 = discord.Embed(title="Test Embed KO")
+    embed2.add_field(name="Field 35", value="Foo Bar")
+
+    await channel.send(embed=embed)
+    assert not dpytest.verify().message().embed(embed2)
+
+
+@pytest.mark.asyncio
+async def test_embed_assert_nothing(bot):
+    assert dpytest.verify().message().nothing()
+
+
+@pytest.mark.asyncio
+async def test_embed_peek(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    embed = discord.Embed(title="Test Embed")
+    embed.add_field(name="Field 1", value="Lorem ipsum")
+
+    embed2 = embed = discord.Embed(title="Test Embed")
+    embed2.add_field(name="Field 1", value="Lorem ipsum")
+
+    await channel.send(embed=embed)
+
+    # peek option doesn't remove the message fro the queue
+    assert dpytest.verify().message().peek().embed(embed2)
+    # verify_embed (without peek) WILL remove emebd from the queue
+    assert dpytest.verify().message().embed(embed2)
+
+</document_content>
+</document>
+<document index="32">
+<source>/Users/malcolm/dev/dpytest/tests/test_verify_file.py</source>
+<document_content>
+from pathlib import Path
+import discord
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_verify_file_text(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path_ = Path(__file__).resolve().parent / 'data/loremimpsum.txt'
+    file_ = discord.File(path_)
+    await channel.send(file=file_)
+    assert dpytest.verify().message().attachment(path_)
+
+
+@pytest.mark.asyncio
+async def test_verify_file_jpg(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path_ = Path(__file__).resolve().parent / 'data/unit-tests.jpg'
+    file_ = discord.File(path_)
+    await channel.send(file=file_)
+    assert dpytest.verify().message().attachment(path_)
+
+
+@pytest.mark.asyncio
+async def test_verify_file_KO(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    path_ = Path(__file__).resolve().parent / 'data/unit-tests.jpg'
+    file_ = discord.File(path_)
+    await channel.send(file=file_)
+    path2 = Path(__file__).resolve().parent / 'data/loremimpsum.txt'
+    assert not dpytest.verify().message().attachment(path2)
+
+</document_content>
+</document>
+<document index="33">
+<source>/Users/malcolm/dev/dpytest/tests/test_verify_message.py</source>
+<document_content>
+import discord  # noqa: F401
+import pytest
+import discord.ext.test as dpytest
+
+
+@pytest.mark.asyncio
+async def test_message_equals(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Test Message")
+    assert dpytest.verify().message().content("Test Message")
+
+
+@pytest.mark.asyncio
+async def test_message_not_equals(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("You shall pass !!")
+    assert not dpytest.verify().message().content("You shall not pass !!")
+
+
+@pytest.mark.asyncio
+async def test_message_contains_true(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Very long message talking about Foobar")
+    assert dpytest.verify().message().contains().content("Foobar")
+
+
+@pytest.mark.asyncio
+async def test_message_contains_false(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Very long message talking about Foobar")
+    assert not dpytest.verify().message().contains().content("Barfoo")
+
+
+@pytest.mark.asyncio
+async def test_message_assert_nothing(bot):
+    assert dpytest.verify().message().nothing()
+
+
+@pytest.mark.asyncio
+async def test_message_peek(bot):
+    guild = bot.guilds[0]
+    channel = guild.text_channels[0]
+
+    await channel.send("Hello, world !")
+    # peek option doesn't remove the message fro the queue
+    assert dpytest.verify().message().peek().content("Hello, world !")
+    # verify_message (without peek) WILL remove message from the queue
+    assert dpytest.verify().message().content("Hello, world !")
+
+</document_content>
+</document>
+<document index="34">
+<source>/Users/malcolm/dev/dpytest/tests/test_voice.py</source>
+<document_content>
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_bot_join_voice(bot):
+    assert not bot.voice_clients
+    await bot.guilds[0].voice_channels[0].connect()
+    assert bot.voice_clients
+
+
+@pytest.mark.asyncio
+async def test_bot_leave_voice(bot):
+    voice_client = await bot.guilds[0].voice_channels[0].connect()
+    await voice_client.disconnect()
+    assert not bot.voice_clients
+
+
+@pytest.mark.asyncio
+async def test_move_member(bot):
+    guild = bot.guilds[0]
+    voice_channel = guild.voice_channels[0]
+    member = guild.members[0]
+
+    assert member.voice is None
+    await member.move_to(voice_channel)
+    assert member.voice.channel == voice_channel
+
+    await member.move_to(None)
+    assert member.voice is None
+
+</document_content>
+</document>
+<document index="35">
+<source>/Users/malcolm/dev/dpytest/tests/internal/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="36">
+<source>/Users/malcolm/dev/dpytest/tests/internal/cogs/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="37">
+<source>/Users/malcolm/dev/dpytest/tests/internal/cogs/echo.py</source>
+<document_content>
+from discord.ext.commands import Cog, command
+
+
+class Echo(Cog):
+
+    # Silence the default on_error handler
+    async def cog_command_error(self, ctx, error):
+        pass
+
+    @command()
+    async def echo(self, ctx, *, text: str):
+        await ctx.send(text)
+
+
+async def setup(bot):
+    await bot.add_cog(Echo())
+
+</document_content>
+</document>
+<document index="38">
+<source>/Users/malcolm/dev/dpytest/tests/internal/cogs/greeting.py</source>
+<document_content>
+from discord.ext import commands
+
+
+class Greeting(commands.Cog):
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        channel = member.guild.text_channels[0]
+        if channel is not None:
+            await channel.send(f"Welcome {member.mention}.")
+
+
+async def setup(bot):
+    await bot.add_cog(Greeting())
+
+</document_content>
+</document>
+<document index="39">
+<source>/Users/malcolm/dev/dpytest/tests/data/loremimpsum.txt</source>
+<document_content>
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed imperdiet feugiat euismod. Interdum et malesuada fames ac ante ipsum primis in faucibus. Etiam dapibus, libero lacinia accumsan pulvinar, lectus libero ullamcorper dui, non facilisis risus ante eu felis. Aenean lacus enim, varius a ullamcorper et, fringilla at nibh. Duis pharetra lorem nunc, eget bibendum augue pellentesque vel. Nullam in fermentum velit, vitae vulputate ante. Fusce fringilla dolor urna, aliquam faucibus urna faucibus non. Nunc vitae tempor diam. Maecenas condimentum feugiat lacinia. Nam elementum, ipsum nec interdum ultrices, lacus sem finibus orci, vel consectetur nunc sem ac justo. Aenean porta facilisis mauris sed vestibulum. Quisque volutpat rhoncus risus, ac condimentum eros hendrerit vel. Suspendisse tincidunt rutrum eros, cursus interdum erat scelerisque ut. Quisque ligula lacus, pharetra vel metus eget, gravida pretium lacus. Fusce pulvinar, orci ac egestas lacinia, sem tortor blandit turpis, et condimentum justo sem ac tortor.
+
+Nunc est est, ornare at condimentum et, dapibus sed tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean fringilla dapibus eros, vitae placerat lacus pulvinar at. Curabitur bibendum felis vel odio efficitur, volutpat sodales magna aliquet. Ut convallis eleifend quam non pulvinar. In vitae lacinia erat. Nam et eros vitae dui blandit aliquam. Sed ex arcu, aliquet non justo non, ornare vehicula nisl. Etiam mollis ex non ex rutrum tincidunt. Sed viverra turpis ac lobortis commodo. Vestibulum at tempor neque. In in lacinia sapien, non sollicitudin odio. Nulla sit amet lobortis libero. Mauris eget viverra tellus. Donec augue sapien, rutrum elementum scelerisque eu, tincidunt non diam. Phasellus sagittis nulla eget est mattis, eget convallis neque luctus.
+
+Aliquam vel dapibus neque. Integer aliquet posuere arcu. Fusce maximus odio id ultricies dictum. Aenean rutrum, ante eu porta mattis, turpis quam blandit felis, ac facilisis eros risus vel est. Pellentesque cursus ante eu posuere lacinia. Aliquam mi leo, venenatis eu ornare non, ultrices at est. Vivamus faucibus consequat libero, ac sollicitudin orci. Suspendisse semper enim purus, eget luctus metus blandit non. Donec nunc ipsum, facilisis eget urna vel, lobortis pulvinar tortor. Praesent in enim cursus, fermentum magna sit amet, posuere justo. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Suspendisse pulvinar elementum libero, et ullamcorper lacus hendrerit sit amet. Mauris posuere orci ac quam iaculis, ac maximus arcu lacinia.
+
+Fusce cursus neque ligula, sit amet tincidunt odio posuere sed. In porta vulputate lacus, ut malesuada mauris egestas at. Nullam ut nulla laoreet, fringilla magna lacinia, cursus nunc. Nulla eu dictum turpis. Vestibulum quis scelerisque massa. Nullam vehicula eros non facilisis tincidunt. Etiam hendrerit tincidunt justo, ut eleifend dolor suscipit sit amet. Mauris nibh turpis, vulputate eget venenatis vitae, facilisis sit amet ipsum. Nullam molestie tellus id urna convallis gravida. Quisque sed sapien sed libero volutpat iaculis. Nulla quis tortor sed mauris dapibus elementum ut quis neque.
+
+Vestibulum erat ex, cursus vitae ornare non, porttitor non mauris. Mauris vulputate libero ac tellus venenatis dictum. Nam ultricies ultrices mattis. Pellentesque semper hendrerit nunc vitae dignissim. Vestibulum at efficitur sapien, ut porttitor metus. Phasellus sagittis commodo vulputate. Maecenas at luctus leo. Maecenas porta ex eu erat tempus sodales.
+
+</document_content>
+</document>
+<document index="40">
+<source>/Users/malcolm/dev/dpytest/docs/Makefile</source>
+<document_content>
+# Minimal makefile for Sphinx documentation
+#
+
+# You can set these variables from the command line, and also
+# from the environment for the first two.
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
+SOURCEDIR     = .
+BUILDDIR      = _build
+
+# Put it first so that "make" without argument is like "make help".
+help:
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: help Makefile
+
+# Catch-all target: route all unknown targets to Sphinx using the new
+# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+%: Makefile
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+</document_content>
+</document>
+<document index="41">
+<source>/Users/malcolm/dev/dpytest/docs/conf.py</source>
+<document_content>
+# Configuration file for the Sphinx documentation builder.
+#
+# This file only contains a selection of the most common options. For a full
+# list see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+# -- Path setup --------------------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
+# import os
+# import sys
+# sys.path.insert(0, os.path.abspath('.'))
+
+
+# -- Project information -----------------------------------------------------
+
+project = 'dpytest'
+copyright = '2020, CraftSpider'
+author = 'CraftSpider'
+
+# The full version, including alpha/beta/rc tags
+release = '0.7.0'
+
+
+# -- General configuration ---------------------------------------------------
+
+# Add any Sphinx extension module names here, as strings. They can be
+# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
+# ones.
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx_automodapi.smart_resolver',
+]
+
+# Add any paths that contain templates here, relative to this directory.
+templates_path = ['_templates']
+
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+# This pattern also affects html_static_path and html_extra_path.
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+
+# -- Options for HTML output -------------------------------------------------
+
+# The theme to use for HTML and HTML Help pages.  See the documentation for
+# a list of builtin themes.
+#
+html_theme = 'alabaster'
+
+html_theme_options = {
+    'github_button': True,
+    'github_user': 'craftspider',
+    'github_repo': 'dpytest'
+}
+
+html_sidebars = {
+    '**': [
+        'about.html',
+        'navigation.html',
+        'relations.html',
+        'searchbox.html',
+        'donate.html',
+    ]
+}
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ['_static']
+
+html_css_files = [
+    'css/spacing.css',
+]
+
+# -- Setup for autodoc -------------------------------------------------------
+
+add_module_names = False
+
+# Set the autodoc options
+autodoc_default_options = {
+    'members': None,
+    'special-members': '__init__,__slots__',
+    'undoc-members': None,
+    'member-order': 'bysource'
+}
+
+
+# -- Setup for intersphinx ---------------------------------------------------
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'discord': ('https://discordpy.readthedocs.io/en/stable/', None),
+}
+
+</document_content>
+</document>
+<document index="42">
+<source>/Users/malcolm/dev/dpytest/docs/index.rst</source>
+<document_content>
+.. dpytest documentation master file, created by
+   sphinx-quickstart on Thu Apr  9 15:30:30 2020.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to the dpytest documentation!
+=====================================
+
+The ``dpytest`` library is designed to make testing of discord bots easy and painless.
+
+The library is currently in its infancy, and only supports a subset of the discord API.
+Also, the API is not yet finalized, and may change somewhat rapidly. Breaking changes can be
+expected until the library hits version 1.0.
+
+.. toctree::
+   :maxdepth: 2
+
+   tutorials/index
+   modules/index
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+</document_content>
+</document>
+<document index="43">
+<source>/Users/malcolm/dev/dpytest/docs/make.bat</source>
+<document_content>
+@ECHO OFF
+
+pushd %~dp0
+
+REM Command file for Sphinx documentation
+
+if "%SPHINXBUILD%" == "" (
+	set SPHINXBUILD=sphinx-build
+)
+set SOURCEDIR=.
+set BUILDDIR=_build
+
+%SPHINXBUILD% >NUL 2>NUL
+if errorlevel 9009 (
+	echo.
+	echo.The 'sphinx-build' command was not found. Make sure you have Sphinx
+	echo.installed, then set the SPHINXBUILD environment variable to point
+	echo.to the full path of the 'sphinx-build' executable. Alternatively you
+	echo.may add the Sphinx directory to PATH.
+	echo.
+	echo.If you don't have Sphinx installed, grab it from
+	echo.https://www.sphinx-doc.org/
+	exit /b 1
+)
+
+if "%1" == "" goto help
+
+%SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+goto end
+
+:help
+%SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+
+:end
+popd
+
+</document_content>
+</document>
+<document index="44">
+<source>/Users/malcolm/dev/dpytest/docs/_static/css/spacing.css</source>
+<document_content>
+.function, .method {
+    margin-bottom: 40px;
+}
+</document_content>
+</document>
+<document index="45">
+<source>/Users/malcolm/dev/dpytest/docs/tutorials/getting_started.rst</source>
+<document_content>
+
+Getting Started
+===============
+
+Welcome to ``dpytest``, a python library for testing discord bots written using ``discord.py``. This tutorial
+will explain how to install ``dpytest`` and set it up in your project, and write a simple test. If you already
+know how to install libraries with pip, you probably want to skip to `Using Pytest`_.
+
+Installing Dpytest
+------------------
+
+To start with, you should install dpytest with ``pip``. This will look a bit different, depending if you're
+on Windows or Mac/Linux:
+
+- Windows: ``py -m pip install dpytest``
+- Linux: ``python3 -m pip install dpytest``
+
+Using Dpytest
+-------------
+
+Once installed, you will need to import ``dpytest`` before you can use it. As it is an extension to ``discord.py``,
+it goes into the ``discord.py`` extensions module. So, the most basic usage of dpytest would look like this:
+
+.. code:: python
+
+    import asyncio
+    import discord.ext.test as dpytest
+
+
+    async def test_ping():
+        bot = ...  # However you create your bot.
+        dpytest.configure(bot)
+        await dpytest.message("!ping")
+        assert dpytest.verify().message().contains().content("Ping:")
+
+
+    async def test_foo():
+        bot = ... # Same setup as above
+        dpytest.configure(bot)
+        await dpytest.message("!hello")
+        assert dpytest.verify().message().content("Hello World!")
+
+
+    asyncio.run(test_ping())
+    asyncio.run(test_foo())
+
+One problem that could happen is that the ``sent_queue`` is shared between the tests. So in order not to mess between
+your tests (``verify()`` pops **one** message from the queue, so in general, you won't need to do anything) you can
+explicitly call ``empty_queue()``, as shown in the next example (and later, in the ``conftests.py``).
+
+If that looks like a lot of code just to run tests, don't worry, there's a better way! We can use pytest,
+a popular Python testing library.
+
+--------------------
+
+**Next Tutorial**: `Using Pytest`_
+
+.. _Using Pytest: ./using_pytest.html
+
+</document_content>
+</document>
+<document index="46">
+<source>/Users/malcolm/dev/dpytest/docs/tutorials/index.rst</source>
+<document_content>
+
+Dpytest Tutorials
+=================
+
+Here will be found tutorials for using dpytest practically, starting with the fundamentals
+and building up to more advanced usage. For now, there isn't much yet, but expect this to change
+as the library grows.
+
+.. toctree::
+    :maxdepth: 2
+    :glob:
+
+    *
+
+</document_content>
+</document>
+<document index="47">
+<source>/Users/malcolm/dev/dpytest/docs/tutorials/using_pytest.rst</source>
+<document_content>
+
+Using Pytest
+============
+
+So, you already have ``dpytest`` installed, and can import it. However, setting up a client for every test is
+a pain. The library is designed to work well with ``pytest`` (Thus the name), and it can make writing tests much
+easier. In the following tutorial we'll show how to set it up.
+
+Starting with Pytest
+--------------------
+
+``pytest`` can be installed through pip the same way ``dpytest`` is. Once that's done, using it is as easy
+as:
+
+- Windows: ``py -m pytest``
+- Linux: ``python3 -m pytest``
+
+``pytest`` will detect any functions starting with 'test' in directories it searches, and run them. It also supports
+a feature we will use heavily, called 'fixtures'. Fixtures are functions that do some common test setup, and
+then can be used in tests to always perform that setup, they can also return an object that will be passed to
+the test. Finally, they allow you to perform test teardown, cleaning message queue for example.
+See https://docs.pytest.org/en/latest/how-to/fixtures.html#teardown-cleanup-aka-fixture-finalization
+
+The final piece of this is ``pytest-asyncio``, a library for allowing ``pytest`` to run async tests. It is
+automatically installed when you get ``dpytest`` from pip, so you don't need to worry about installing it.
+
+Putting all this together, we can rewrite our previous tests to look like this:
+
+.. code:: python
+
+    import discord
+    import discord.ext.commands as commands
+    from discord.ext.commands import Cog, command
+    import pytest
+    import pytest_asyncio
+    import discord.ext.test as dpytest
+
+
+    class Misc(Cog):
+        @command()
+        async def ping(self, ctx):
+            await ctx.send("Pong !")
+
+        @command()
+        async def echo(self, ctx, text: str):
+            await ctx.send(text)
+
+
+    @pytest_asyncio.fixture
+    async def bot():
+        # Setup
+        intents = discord.Intents.default()
+        intents.members = True
+        intents.message_content = True
+        b = commands.Bot(command_prefix="!",
+                         intents=intents)
+        await b._async_setup_hook()  # setup the loop
+        await b.add_cog(Misc())
+
+        dpytest.configure(b)
+
+        yield b
+
+        # Teardown
+        await dpytest.empty_queue() # empty the global message queue as test teardown
+
+
+    @pytest.mark.asyncio
+    async def test_ping(bot):
+        await dpytest.message("!ping")
+        assert dpytest.verify().message().content("Pong !")
+
+
+    @pytest.mark.asyncio
+    async def test_echo(bot):
+        await dpytest.message("!echo Hello world")
+        assert dpytest.verify().message().contains().content("Hello")
+
+
+
+Much less writing the same code over and over again, and tests will be automatically run by pytest, then the results
+output in a nice pretty format once it's done.
+
+What is conftest.py?
+--------------------
+
+As you write tests, you may want to split them into multiple files. One file for testing this cog, another for
+ensuring reactions work right. As it stands, you'll still need to copy your bot fixture into every file. To fix this,
+you need to create a file named ``conftest.py`` at the root of where you're putting your tests. If you haven't already,
+you should probably put them all in their own directory. Then you can put any fixtures you want in ``conftest.py``,
+and pytest will let you use them in any other test file. ``pytest`` also recognizes certain function names with
+special meanings, for example ``pytest_sessionfinish`` will be run after all tests are done if defined in your conftest.
+
+An example ``conftest.py`` might look like this:
+
+.. code:: python
+
+    import glob
+    import os
+    import pytest_asyncio
+    import discord
+    import discord.ext.commands as commands
+    import discord.ext.test as dpytest
+
+
+    @pytest_asyncio.fixture
+    async def bot():
+        # Setup
+        intents = discord.Intents.default()
+        intents.members = True
+        intents.message_content = True
+        b = commands.Bot(command_prefix="!",
+                        intents=intents)
+        await b._async_setup_hook()
+        dpytest.configure(b)
+
+        yield b
+
+        # Teardown
+        await dpytest.empty_queue() # empty the global message queue as test teardown
+
+
+    def pytest_sessionfinish(session, exitstatus):
+        """ Code to execute after all tests. """
+
+        # dat files are created when using attachements
+        print("\n-------------------------\nClean dpytest_*.dat files")
+        fileList = glob.glob('./dpytest_*.dat')
+        for filePath in fileList:
+            try:
+                os.remove(filePath)
+            except Exception:
+                print("Error while deleting file : ", filePath)
+
+
+With that, you should be ready to use ``dpytest`` with your bot.
+
+Troubleshooting
+---------------
+
+- I wrote a fixture, but I can't use the bot
+
+Make sure your tests take a parameter with the exact same name as the fixture,
+pytest runs them based on name, including capitalization.
+
+- I use dpytest.verify().message() and it fails but it shouldn't
+- dpytest.get_message() returns a message from another test
+
+Make sure you properly emptied the queue in the previous test, otherwise you
+could have remaining messages from previous tests messing up.
+
+--------------------
+
+This is currently the end of the tutorials. Take a look at the `Runner Documentation`_ to see all the things you can
+do with ``dpytest``.
+
+.. _Runner Documentation: ../modules/runner.html
+
+</document_content>
+</document>
+<document index="48">
+<source>/Users/malcolm/dev/dpytest/docs/modules/backend.rst</source>
+<document_content>
+
+Backend
+=======
+
+.. automodule:: discord.ext.test.backend
+
+</document_content>
+</document>
+<document index="49">
+<source>/Users/malcolm/dev/dpytest/docs/modules/callbacks.rst</source>
+<document_content>
+
+Callbacks
+=========
+
+.. automodule:: discord.ext.test.callbacks
+
+</document_content>
+</document>
+<document index="50">
+<source>/Users/malcolm/dev/dpytest/docs/modules/factories.rst</source>
+<document_content>
+
+Factories
+=========
+
+.. automodule:: discord.ext.test.factories
+
+</document_content>
+</document>
+<document index="51">
+<source>/Users/malcolm/dev/dpytest/docs/modules/index.rst</source>
+<document_content>
+
+API Reference
+=============
+
+The dpytest API is split among several modules, each of which is documented here
+
+.. toctree::
+    :maxdepth: 2
+    :glob:
+
+    *
+
+</document_content>
+</document>
+<document index="52">
+<source>/Users/malcolm/dev/dpytest/docs/modules/runner.rst</source>
+<document_content>
+
+Runner
+======
+
+.. automodule:: discord.ext.test.runner
+
+</document_content>
+</document>
+<document index="53">
+<source>/Users/malcolm/dev/dpytest/docs/modules/state.rst</source>
+<document_content>
+
+State
+=====
+
+.. automodule:: discord.ext.test.state
+
+</document_content>
+</document>
+<document index="54">
+<source>/Users/malcolm/dev/dpytest/docs/modules/utils.rst</source>
+<document_content>
+
+Utils
+=====
+
+.. automodule:: discord.ext.test.utils
+
+</document_content>
+</document>
+<document index="55">
+<source>/Users/malcolm/dev/dpytest/docs/modules/verify.rst</source>
+<document_content>
+
+Verify
+======
+
+.. automodule:: discord.ext.test.verify
+
+</document_content>
+</document>
+<document index="56">
+<source>/Users/malcolm/dev/dpytest/docs/modules/websocket.rst</source>
+<document_content>
+
+Factories
+=========
+
+.. automodule:: discord.ext.test.websocket
+
+</document_content>
+</document>
+</documents>

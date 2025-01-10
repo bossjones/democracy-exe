@@ -16,11 +16,14 @@ from urllib.parse import urlparse
 
 import discord
 import requests
+import structlog
 import torch
 
 from discord.ext import commands
 from discord.ext.commands import BucketType, cooldown
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 from transformers import BlipForConditionalGeneration, BlipProcessor  # type: ignore
 
@@ -74,7 +77,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
     async def on_ready(self) -> None:
         """Handle cog ready event."""
         logger.info(f"{type(self).__name__} Cog ready.")
-        await logger.complete()
+        # await logger.complete()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
@@ -85,7 +88,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
         """
         logger.info(f"Joined new guild: {guild.id}")
         guild_obj = guild_factory.Guild(id=guild.id)
-        await logger.complete()
+        # await logger.complete()
 
     def _validate_image_url(self, url: str) -> bool:
         """Validate if a URL points to an image.
@@ -131,7 +134,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
             return f"{message.content} [{message.author.display_name} posts an animated {description}]".replace(tenor_url, "") # type: ignore
         except Exception as e:
             logger.error(f"Error processing Tenor GIF: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             return message.content # type: ignore
 
     async def _download_image(self, url: str) -> PILImage | None:
@@ -159,7 +162,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
                 return Image.open(BytesIO(data)).convert("RGB")
         except Exception as e:
             logger.error(f"Error downloading image from {url}: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             return None
 
     def caption_image(self, image: PILImage) -> str:
@@ -253,7 +256,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
             await ctx.send(f"This command is on cooldown. Try again in {e.retry_after:.1f} seconds.") # type: ignore
         except Exception as e:
             logger.exception("Error in image_caption command")
-            await logger.complete()
+            # await logger.complete()
             await ctx.send(f"An error occurred while processing the image: {e!s}")
 
 

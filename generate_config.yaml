@@ -1,0 +1,7 @@
+old_logger: loguru
+new_logger: structlog
+codebase_summary: "A Python codebase using loguru for logging, with multiple modules and async functions"
+requirement_1: "Maintain existing log levels and context"
+requirement_2: "Update all logging calls to use structlog's method chaining"
+consideration_1: "Handle async context properly"
+consideration_2: "Preserve existing log formatting"

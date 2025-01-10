@@ -14,7 +14,10 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, cast
 
-from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import (
     AliasChoices,
     AmqpDsn,

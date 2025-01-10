@@ -9,11 +9,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import discord
+import structlog
 
 from discord import DMChannel, Message, TextChannel, Thread
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph  # type: ignore[import]
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 
 import pytest

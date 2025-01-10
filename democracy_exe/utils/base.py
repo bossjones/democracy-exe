@@ -8,7 +8,10 @@ import math
 
 from typing import TYPE_CHECKING, Any, Union
 
-from loguru import logger as LOGGER
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 
 if TYPE_CHECKING:
@@ -60,7 +63,7 @@ def check_whoami() -> tuple[str, int, str]:
         sys._getframe(1).f_lineno,
         sys._getframe(1).f_code.co_filename,
     )
-    LOGGER.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
+    # logger.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
     return this_function_name, this_line_number, this_filename
 
 
@@ -79,7 +82,7 @@ def check_callersname() -> tuple[str, int, str]:
         sys._getframe(2).f_lineno,
         sys._getframe(2).f_code.co_filename,
     )
-    LOGGER.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
+    # logger.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
     return this_function_name, this_line_number, this_filename
     # return sys._getframe(2).f_code.co_name
 
@@ -241,7 +244,6 @@ def dict_merge(dct: dict[Any, Any], merge_dct: dict[Any, Any], add_keys: bool = 
 # import math
 # from typing import Any, Dict, List, Tuple, Union
 
-# from loguru import logger as LOGGER
 
 
 # SEPARATOR_CHARACTER_DEFAULT = "-"
@@ -269,7 +271,7 @@ def dict_merge(dct: dict[Any, Any], merge_dct: dict[Any, Any], add_keys: bool = 
 #         sys._getframe(1).f_lineno,
 #         sys._getframe(1).f_code.co_filename,
 #     )
-#     LOGGER.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
+#     logger.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
 #     return this_function_name, this_line_number, this_filename
 
 
@@ -281,7 +283,7 @@ def dict_merge(dct: dict[Any, Any], merge_dct: dict[Any, Any], add_keys: bool = 
 #         sys._getframe(2).f_lineno,
 #         sys._getframe(2).f_code.co_filename,
 #     )
-#     LOGGER.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
+#     logger.debug(f"{this_function_name}() @ {this_filename}:{this_line_number}")
 #     return this_function_name, this_line_number, this_filename
 #     # return sys._getframe(2).f_code.co_name
 

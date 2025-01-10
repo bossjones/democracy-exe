@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import enum
+import logging
 import os
 import pathlib
 
@@ -15,7 +16,10 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, cast
 
-from loguru import logger
+# import structlog
+# so we have logger names
+# structlog.stdlib.recreate_defaults()
+# logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 from pydantic import (
     AliasChoices,
     AmqpDsn,
@@ -572,6 +576,12 @@ class AioSettings(BaseSettings):
     experimental_redis_memory: bool = Field(
         env="EXPERIMENTAL_REDIS_MEMORY", description="enable experimental redis memory", default=False
     )
+    # https://pgrzesik.com/posts/til-python-faulthandler/
+    # Introduction
+    # Recently, I encountered regular segfaults in one of the Python applications I was working on. During my investigation, I discovered a simple yet remarkable utility called faulthandler, which is included in Python's standard library. I'd like to demonstrate how this utility can assist in diagnosing segfault issues within your Python applications.
+    python_fault_handler: bool = Field(env="PYTHONFAULTHANDLER", description="enable fault handler", default=False)
+
+    debug_langgraph_studio: bool = Field(env="DEBUG_LANGGRAPH_STUDIO", description="enable langgraph studio debug", default=False)
 
     oco_openai_api_key: SecretStr = Field(env="OCO_OPENAI_API_KEY", description="opencommit api key", default="")
     oco_tokens_max_input: int = Field(env="OCO_TOKENS_MAX_INPUT", description="OCO_TOKENS_MAX_INPUT", default=4096)
@@ -870,13 +880,16 @@ class AioSettings(BaseSettings):
     # change the verified icon color
     tweetpik_verified_icon: str = "#1b95e0"
 
+    thirdparty_lib_loglevel: str = "INFO"
+    log_level: int = logging.DEBUG
+
     @model_validator(mode="before")
     @classmethod
     def pre_update(cls, values: dict[str, Any]) -> dict[str, Any]:
         llm_model_name = values.get("llm_model_name")
         llm_embedding_model_name = values.get("llm_embedding_model_name")
-        logger.info(f"llm_model_name: {llm_model_name}")
-        logger.info(f"llm_embedding_model_name: {llm_embedding_model_name}")
+        print(f"llm_model_name: {llm_model_name}")
+        print(f"llm_embedding_model_name: {llm_embedding_model_name}")
         if llm_model_name:
             values["max_tokens"] = MODEL_CONFIG[llm_model_name]["max_tokens"]
             values["max_output_tokens"] = MODEL_CONFIG[llm_model_name]["max_output_tokens"]
@@ -888,8 +901,8 @@ class AioSettings(BaseSettings):
         else:
             llm_model_name = "gpt-4o-mini"
             llm_embedding_model_name = "text-embedding-3-large"
-            logger.info(f"setting default llm_model_name: {llm_model_name}")
-            logger.info(f"setting default llm_embedding_model_name: {llm_embedding_model_name}")
+            print(f"setting default llm_model_name: {llm_model_name}")
+            print(f"setting default llm_embedding_model_name: {llm_embedding_model_name}")
             values["max_tokens"] = MODEL_CONFIG[llm_model_name]["max_tokens"]
             values["max_output_tokens"] = MODEL_CONFIG[llm_model_name]["max_output_tokens"]
             values["prompt_cost_per_token"] = MODEL_CONFIG[llm_model_name]["prompt_cost_per_token"]
@@ -904,9 +917,9 @@ class AioSettings(BaseSettings):
         redis_path = f"/{self.redis_base}" if self.redis_base is not None else ""
         redis_pass = self.redis_pass if self.redis_pass is not None else None
         redis_user = self.redis_user if self.redis_user is not None else None
-        logger.info(f"before redis_path: {redis_path}")
-        logger.info(f"before redis_pass: {redis_pass}")
-        logger.info(f"before redis_user: {redis_user}")
+        print(f"before redis_path: {redis_path}")
+        print(f"before redis_pass: {redis_pass}")
+        print(f"before redis_user: {redis_user}")
         if redis_pass is None and redis_user is None:
             self.redis_url = URL.build(
                 scheme="redis",

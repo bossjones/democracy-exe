@@ -17,6 +17,10 @@ UV_RUN := "uv run"
 # GREP_LANGGRAPH_SDK := `{{grep_cmd}} -h 'langgraph-sdk>=.*",' pyproject.toml | {{sed_cmd}} 's/^[[:space:]]*"//; s/",$//'`
 LANGGRAPH_REPLACEMENT := if "{{os()}}" =~ "macos" { `ggrep -h 'langgraph-sdk>=.*",' pyproject.toml | gsed 's/^[[:space:]]*"//; s/",$//'` } else { `grep -h 'langgraph-sdk>=.*",' pyproject.toml | sed 's/^[[:space:]]*"//; s/",$//'` }
 
+# Default values for external docs generation
+EXTERNAL_DOCS_PATH := "limbo/bindings/python"
+EXTERNAL_DOCS_MODEL := "claude-3.5-sonnet"
+
 # Recipes
 # Install the virtual environment and install the pre-commit hooks
 install:
@@ -131,7 +135,7 @@ check-taplo-installed:
 
 # Format Python files using pre-commit
 fmt-python:
-	git ls-files '*.py' '*.ipynb' "Dockerfile" | xargs uv run pre-commit run --files
+	git ls-files '*.py' '*.ipynb' "Dockerfile" "Dockerfile.*" | xargs uv run pre-commit run --files
 
 # Format Markdown files using pre-commit
 fmt-markdown-pre-commit:
@@ -200,16 +204,32 @@ download-models:
 
 # Perform a dry run of dependency upgrades
 upgrade-dry-run:
-	uv lock --update-all --all-features
+	uv lock --upgrade --dry-run
+
+
+# sync all uv deps to editable mode
+sync:
+	uv sync --all-extras --dev
 
 # Upgrade all dependencies and sync the environment
 sync-upgrade-all:
-	uv sync --upgrade
+	uv lock --upgrade
+	uv sync --all-extras --dev
 
+
+# Upgrade all dependencies and sync the environment
 uv-upgrade-all:
-	uv sync --upgrade
+	uv lock --upgrade
 
+# Upgrade all dependencies and sync the environment
 uv-upgrade: uv-upgrade-all
+
+# check if uv lock is up to date
+uv-lock-check:
+	uv lock --check
+
+uv-lock-check-dry-run:
+	uv lock --check --dry-run
 
 # Start a background HTTP server for test fixtures
 http-server-background:
@@ -324,6 +344,10 @@ aider-o1-preview:
 # Run aider with Sonnet
 aider-sonnet:
 	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff
+
+# Run aider with Sonnet in browser
+aider-sonnet-browser:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff --browser
 
 # Run aider with Gemini
 aider-gemini:
@@ -721,11 +745,12 @@ add-cursor-context:
 outdated:
 	{{UV_RUN}} pip list --outdated
 
+# Install llm cli plugins
 install-llm-cli-plugins:
 	uv add llm
 	uv add llm-cmd llm-clip llm-sentence-transformers llm-replicate llm-perplexity llm-claude-3 llm-python llm-gemini llm-jq
 
-
+# Smoke test the react agent
 smoke-test:
 	cd democracy_exe/agentic/studio/react && {{UV_RUN}} python -m memory_agent
 
@@ -835,12 +860,7 @@ pyright-createstubs-missing:
 		uv run pyright --createstub "$package"
 	done
 
-# generate-ai-docs-koalabot-simple:
-# 	@echo "🚀 Generating AI docs"
-# 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml"
-# 	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/koalabot.py /Users/malcolm/dev/KoalaBot/tests/conftest.py /Users/malcolm/dev/KoalaBot/tests/test_koalabot.py /Users/malcolm/dev/KoalaBot/tests/test_utils.py /Users/malcolm/dev/KoalaBot/koala/utils.py /Users/malcolm/dev/KoalaBot/koala/cogs/base/cog.py /Users/malcolm/dev/KoalaBot/tests/cogs/base/test_cog.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml
-# just generate-ai-docs-koalabot-simple
-
+# Generate AI docs
 generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml"
 	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/tests/cogs \
@@ -937,12 +957,15 @@ test-twitter-cog-debug:
 # {{UV_RUN}} pytest -s --verbose  --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
 # {{UV_RUN}} pytest -k  test_download_tweet_success_twitter_cog
 
+# Run unit tests specifically for twitter cog
 test-twitter-cog:
 	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
 
 
 
 # In order to properly create new cassette files, you must first delete the existing cassette files and directories. This will regenerate all cassette files and rerun tests.
+
+# Delete existing cassettes
 delete-existing-cassettes:
 	./scripts/delete-existing-cassettes.sh
 
@@ -959,51 +982,73 @@ local-regenerate-cassettes:
 # (alias) delete all cassette files and directories, regenerate all cassette files and rerun tests
 local-regenerate-vcr: local-regenerate-cassettes
 
+# Regenerate all cassette files and rerun tests
 regenerate-cassettes: local-regenerate-cassettes
 
+# Run unit tests in debug mode with extended output
 test-gallery-dl-debug:
 	uv run pytest --capture=tee-sys --pdb --pdbcls bpdb:BPdb --showlocals --tb=short -k test_run_single_tweet
 
+# Run unit tests specifically for gallery-dl
 test-gallery-dl:
 	uv run pytest --capture=tee-sys -k test_run_single_tweet
 
+# Run unit tests specifically for dropbox
 generate-cassettes-dropboxonly:
 	{{UV_RUN}} pytest --record-mode=once --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=. -m dropboxonly
 
+# Run unit tests specifically for dropbox
 test-dropbox:
 	uv run pytest --showlocals --tb=short --capture=tee-sys -m dropboxonly
 
+# Run unit tests specifically for dropbox in debug mode
 test-dropbox-debug:
 	uv run pytest --showlocals --tb=short --capture=tee-sys --pdb --pdbcls bpdb:BPdb -m dropboxonly
 
 # Run unit tests in debug mode with extended output
 test-autocrop-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace tests/unittests/chatbot/cogs/test_autocrop.py
+
 # Run unit tests in debug mode with extended output
 test-toolsonly-cog-debug:
 	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
+# Run unit tests specifically for tools
 test-toolsonly-cog:
 	uv run pytest --showlocals --tb=short --capture=tee-sys tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
 
+# Run unit tests in debug mode with extended output
+test-logsetup-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/test_logsetup.py
+
+# Run unit tests specifically for tools
+test-logsetup:
+	{{UV_RUN}} pytest --showlocals --tb=short --capture=tee-sys tests/test_logsetup.py
+
 # DISABLED: uv run pytest --capture=tee-sys tests/unittests/utils/test_utils_dropbox_.py
 # use this with aider to fix tests incrementally
+
+# Run unit tests specifically for utils
 test-fix:
 	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
 
+# Generate langgraph dockerfile for studio
 generate-langgraph-dockerfile-studio:
 	#!/bin/bash
 	cd cookbook/studio && langgraph dockerfile -c langgraph.json Dockerfile
 
+# Generate langgraph dockerfile
 generate-langgraph-dockerfile:
 	uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
 	gsed -i "s/langgraph-sdk==0.1.46/{{LANGGRAPH_REPLACEMENT}}/g" democracy_exe/requirements.txt
 	langgraph dockerfile -c langgraph.json Dockerfile
 	cat Dockerfile
 
+# Build docker image for debugging
 docker-build-debug:
 	docker build -f Dockerfile.debugging -t democracy-exe-debugging .
 
+# Run docker image for debugging
 docker-run-debug:
 	docker run -it democracy-exe-debugging
 
@@ -1013,3 +1058,86 @@ update-requirements:
 	./update_requirements.sh
 	langgraph dockerfile -c langgraph.json Dockerfile
 	cat Dockerfile
+
+
+# Tail the LangGraph Studio logs
+tail-langgraph-studio:
+	log stream --predicate 'process == "LangGraph Studio"' --level info
+
+logs-langgraph-studio:
+	#!/bin/bash
+	log show --predicate 'process == "LangGraph Studio"' --last 5m --debug --info --backtrace
+
+# Access the Docker VM debug shell
+docker-debug-shell:
+    socat -d -d ~/Library/Containers/com.docker.docker/Data/debug-shell.sock pty,rawer
+    @echo "Now run 'screen /dev/ttys0xx' in a new terminal (replace ttys0xx with the PTY output)"
+
+# Access Docker VM using a privileged container
+docker-vm-shell:
+    docker run -it --rm --privileged --pid=host --name nsenter1 justincormack/nsenter1
+
+# View overall Docker disk usage
+docker-disk-usage:
+    docker system df
+
+# View detailed Docker disk usage
+docker-disk-usage-verbose:
+    docker system df -v
+
+# List Docker images and their sizes
+docker-list-images:
+    docker image ls
+
+# List all containers and their sizes
+docker-list-containers:
+    docker container ls -a
+
+# Check the size of the Docker disk image file
+docker-check-image-size:
+    ls -klsh ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
+
+# Remove unused Docker objects
+docker-prune:
+	#!/bin/bash
+	docker system prune --filter "until=$((60*24))h"
+
+# Aggressively reclaim space (use with caution)
+docker-reclaim-space:
+    docker run --privileged --pid=host docker/desktop-reclaim-space
+
+# Run all disk usage checks
+docker-check-all:
+    @just docker-disk-usage
+    @just docker-disk-usage-verbose
+    @just docker-list-images
+    @just docker-list-containers
+    @just docker-check-image-size
+
+# Generate external documentation with configurable path and model
+generate-external-docs path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:
+	#!/usr/bin/env bash
+	uv run files-to-prompt {{path}} -c | uv run llm -m {{model}} -s 'write extensive usage documentation in markdown, including realistic usage examples' > {{path}}/docs.md
+# Generate external documentation with configurable path and model
+generate-advice path=EXTERNAL_DOCS_PATH model=EXTERNAL_DOCS_MODEL:
+	#!/usr/bin/env bash
+	uv run files-to-prompt {{path}} -c | uv run llm -m {{model}} -s 'step by step advice on how to implement automated tests for this, which is hard because the tests need to work a number of different ways within this project. Provide all code at the end.'
+
+
+generate-langgraph-dockerfile-langraph-simple:
+	@echo "🚀 Updating requirements.txt from pyproject.toml for use with Langgraph studio"
+	./update_requirements.sh
+	langgraph dockerfile -c langgraph.json Dockerfile
+	echo "" >> Dockerfile
+	echo "CMD bash -l" >> Dockerfile
+	echo "" >> Dockerfile
+	cat Dockerfile
+
+# Build docker image for debugging and testing containers (NOTE: this is a langgraph specific dockerfile, use this to verify that the langgraph studio version of the dockerfile is working)
+docker-build-langraph:
+	@just generate-langgraph-dockerfile-langraph-simple
+	docker build -f Dockerfile -t democracy-langraph .
+
+# Run docker image for debugging
+docker-run-langraph:
+	docker run -it --entrypoint=/bin/bash democracy-langraph -l

@@ -1,0 +1,5716 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/respx/respx/__init__.py</source>
+<document_content>
+from .__version__ import __version__
+from .handlers import ASGIHandler, WSGIHandler
+from .models import MockResponse, Route
+from .router import MockRouter, Router
+from .utils import SetCookie
+
+from .api import (  # isort:skip
+    mock,
+    routes,
+    calls,
+    start,
+    stop,
+    clear,
+    reset,
+    pop,
+    route,
+    add,
+    request,
+    get,
+    post,
+    put,
+    patch,
+    delete,
+    head,
+    options,
+)
+
+
+__all__ = [
+    "__version__",
+    "MockResponse",
+    "MockRouter",
+    "ASGIHandler",
+    "WSGIHandler",
+    "Router",
+    "Route",
+    "SetCookie",
+    "mock",
+    "routes",
+    "calls",
+    "start",
+    "stop",
+    "clear",
+    "reset",
+    "pop",
+    "route",
+    "add",
+    "request",
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "head",
+    "options",
+]
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/respx/respx/__version__.py</source>
+<document_content>
+__version__ = "0.22.0"
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/respx/respx/api.py</source>
+<document_content>
+from typing import Any, Optional, Union, overload
+
+from .models import CallList, Route
+from .patterns import Pattern
+from .router import MockRouter
+from .types import DefaultType, URLPatternTypes
+
+mock = MockRouter(assert_all_called=False)
+
+routes = mock.routes
+calls: CallList = mock.calls
+
+
+def start() -> None:
+    global mock
+    mock.start()
+
+
+def stop(clear: bool = True, reset: bool = True) -> None:
+    global mock
+    mock.stop(clear=clear, reset=reset)
+
+
+def clear() -> None:
+    global mock
+    mock.clear()
+
+
+def reset() -> None:
+    global mock
+    mock.reset()
+
+
+@overload
+def pop(name: str) -> Route:
+    ...  # pragma: nocover
+
+
+@overload
+def pop(name: str, default: DefaultType) -> Union[Route, DefaultType]:
+    ...  # pragma: nocover
+
+
+def pop(name, default=...):
+    global mock
+    return mock.pop(name, default=default)
+
+
+def route(*patterns: Pattern, name: Optional[str] = None, **lookups: Any) -> Route:
+    global mock
+    return mock.route(*patterns, name=name, **lookups)
+
+
+def add(route: Route, *, name: Optional[str] = None) -> Route:
+    global mock
+    return mock.add(route, name=name)
+
+
+def request(
+    method: str,
+    url: Optional[URLPatternTypes] = None,
+    *,
+    name: Optional[str] = None,
+    **lookups: Any,
+) -> Route:
+    global mock
+    return mock.request(method, url, name=name, **lookups)
+
+
+def get(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.get(url, name=name, **lookups)
+
+
+def post(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.post(url, name=name, **lookups)
+
+
+def put(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.put(url, name=name, **lookups)
+
+
+def patch(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.patch(url, name=name, **lookups)
+
+
+def delete(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.delete(url, name=name, **lookups)
+
+
+def head(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.head(url, name=name, **lookups)
+
+
+def options(
+    url: Optional[URLPatternTypes] = None, *, name: Optional[str] = None, **lookups: Any
+) -> Route:
+    global mock
+    return mock.options(url, name=name, **lookups)
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/respx/respx/fixtures.py</source>
+<document_content>
+try:
+    import pytest
+except ImportError:  # pragma: nocover
+    pass
+else:
+    import asyncio
+
+    @pytest.fixture(scope="session")
+    def session_event_loop():
+        loop = asyncio.get_event_loop_policy().new_event_loop()
+        yield loop
+        loop.close()
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/respx/respx/handlers.py</source>
+<document_content>
+from typing import Any, Callable
+
+import httpx
+
+
+class TransportHandler:
+    def __init__(self, transport: httpx.BaseTransport) -> None:
+        self.transport = transport
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        if not isinstance(
+            request.stream,
+            httpx.SyncByteStream,
+        ):  # pragma: nocover
+            raise RuntimeError("Attempted to route an async request to a sync app.")
+
+        return self.transport.handle_request(request)
+
+
+class AsyncTransportHandler:
+    def __init__(self, transport: httpx.AsyncBaseTransport) -> None:
+        self.transport = transport
+
+    async def __call__(self, request: httpx.Request) -> httpx.Response:
+        if not isinstance(
+            request.stream,
+            httpx.AsyncByteStream,
+        ):  # pragma: nocover
+            raise RuntimeError("Attempted to route a sync request to an async app.")
+
+        return await self.transport.handle_async_request(request)
+
+
+class WSGIHandler(TransportHandler):
+    def __init__(self, app: Callable, **kwargs: Any) -> None:
+        super().__init__(httpx.WSGITransport(app=app, **kwargs))
+
+
+class ASGIHandler(AsyncTransportHandler):
+    def __init__(self, app: Callable, **kwargs: Any) -> None:
+        super().__init__(httpx.ASGITransport(app=app, **kwargs))
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/respx/respx/mocks.py</source>
+<document_content>
+import inspect
+from abc import ABC
+from types import MappingProxyType
+from typing import TYPE_CHECKING, ClassVar, Dict, List, Type
+from unittest import mock
+
+import httpcore
+import httpx
+
+from respx.patterns import parse_url
+
+from .models import AllMockedAssertionError, PassThrough
+from .transports import TryTransport
+
+if TYPE_CHECKING:
+    from .router import Router  # pragma: nocover
+
+__all__ = ["Mocker", "HTTPCoreMocker"]
+
+
+class Mocker(ABC):
+    _patches: ClassVar[List[mock._patch]]
+    name: ClassVar[str]
+    routers: ClassVar[List["Router"]]
+    targets: ClassVar[List[str]]
+    target_methods: ClassVar[List[str]]
+
+    # Automatically register all the subclasses in this dict
+    __registry: ClassVar[Dict[str, Type["Mocker"]]] = {}
+    registry = MappingProxyType(__registry)
+
+    def __init_subclass__(cls) -> None:
+        if not getattr(cls, "name", None) or ABC in cls.__bases__:
+            return
+
+        if cls.name in cls.__registry:
+            raise TypeError(
+                "Subclasses of Mocker must define a unique name. "
+                f"{cls.name!r} is already defined as {cls.__registry[cls.name]!r}"
+            )
+
+        cls.routers = []
+        cls._patches = []
+        cls.__registry[cls.name] = cls
+
+    @classmethod
+    def register(cls, router: "Router") -> None:
+        cls.routers.append(router)
+
+    @classmethod
+    def unregister(cls, router: "Router") -> bool:
+        if router in cls.routers:
+            cls.routers.remove(router)
+            return True
+        return False
+
+    @classmethod
+    def add_targets(cls, *targets: str) -> None:
+        targets = tuple(filter(lambda t: t not in cls.targets, targets))
+        if targets:
+            cls.targets.extend(targets)
+            cls.restart()
+
+    @classmethod
+    def remove_targets(cls, *targets: str) -> None:
+        targets = tuple(filter(lambda t: t in cls.targets, targets))
+        if targets:
+            for target in targets:
+                cls.targets.remove(target)
+            cls.restart()
+
+    @classmethod
+    def start(cls) -> None:
+        # Ensure we only patch once!
+        if cls._patches:
+            return
+
+        # Start patching target transports
+        for target in cls.targets:
+            for method in cls.target_methods:
+                try:
+                    spec = f"{target}.{method}"
+                    patch = mock.patch(spec, spec=True, new_callable=cls.mock)
+                    patch.start()
+                    cls._patches.append(patch)
+                except AttributeError:
+                    pass
+
+    @classmethod
+    def stop(cls, force: bool = False) -> None:
+        # Ensure we don't stop patching when registered transports exists
+        if cls.routers and not force:
+            return
+
+        # Stop patching HTTPX
+        while cls._patches:
+            patch = cls._patches.pop()
+            patch.stop()
+
+    @classmethod
+    def restart(cls) -> None:
+        # Only stop and start if started
+        if cls._patches:  # pragma: nocover
+            cls.stop(force=True)
+            cls.start()
+
+    @classmethod
+    def handler(cls, httpx_request):
+        httpx_response = None
+        assertion_error = None
+        for router in cls.routers:
+            try:
+                httpx_response = router.handler(httpx_request)
+            except AllMockedAssertionError as error:
+                assertion_error = error
+                continue
+            else:
+                break
+        if assertion_error and not httpx_response:
+            raise assertion_error
+        return httpx_response
+
+    @classmethod
+    async def async_handler(cls, httpx_request):
+        httpx_response = None
+        assertion_error = None
+        for router in cls.routers:
+            try:
+                httpx_response = await router.async_handler(httpx_request)
+            except AllMockedAssertionError as error:
+                assertion_error = error
+                continue
+            else:
+                break
+        if assertion_error and not httpx_response:
+            raise assertion_error
+        return httpx_response
+
+    @classmethod
+    def mock(cls, spec):
+        raise NotImplementedError()  # pragma: nocover
+
+
+class HTTPXMocker(Mocker):
+    name = "httpx"
+    targets = [
+        "httpx._client.Client",
+        "httpx._client.AsyncClient",
+    ]
+    target_methods = ["_transport_for_url"]
+
+    @classmethod
+    def mock(cls, spec):
+        def _transport_for_url(self, *args, **kwargs):
+            handler = (
+                cls.async_handler
+                if inspect.iscoroutinefunction(self.request)
+                else cls.handler
+            )
+            mock_transport = httpx.MockTransport(handler)
+            pass_through_transport = spec(self, *args, **kwargs)
+            transport = TryTransport([mock_transport, pass_through_transport])
+            return transport
+
+        return _transport_for_url
+
+
+class AbstractRequestMocker(Mocker):
+    @classmethod
+    def mock(cls, spec):
+        if spec.__name__ not in cls.target_methods:
+            # Prevent mocking mock
+            return spec
+
+        argspec = inspect.getfullargspec(spec)
+
+        def mock(self, *args, **kwargs):
+            kwargs = cls._merge_args_and_kwargs(argspec, args, kwargs)
+            request = cls.to_httpx_request(**kwargs)
+            request, kwargs = cls.prepare_sync_request(request, **kwargs)
+            response = cls._send_sync_request(
+                request, target_spec=spec, instance=self, **kwargs
+            )
+            return response
+
+        async def amock(self, *args, **kwargs):
+            kwargs = cls._merge_args_and_kwargs(argspec, args, kwargs)
+            request = cls.to_httpx_request(**kwargs)
+            request, kwargs = await cls.prepare_async_request(request, **kwargs)
+            response = await cls._send_async_request(
+                request, target_spec=spec, instance=self, **kwargs
+            )
+            return response
+
+        return amock if inspect.iscoroutinefunction(spec) else mock
+
+    @classmethod
+    def _merge_args_and_kwargs(cls, argspec, args, kwargs):
+        arg_names = argspec.args[1:]  # Omit self
+        new_kwargs = (
+            dict(zip(arg_names[-len(argspec.defaults) :], argspec.defaults))
+            if argspec.defaults
+            else dict()
+        )
+        new_kwargs.update(zip(arg_names, args))
+        new_kwargs.update(kwargs)
+        return new_kwargs
+
+    @classmethod
+    def _send_sync_request(cls, httpx_request, *, target_spec, instance, **kwargs):
+        try:
+            httpx_response = cls.handler(httpx_request)
+        except PassThrough:
+            response = target_spec(instance, **kwargs)
+        else:
+            response = cls.from_sync_httpx_response(httpx_response, instance, **kwargs)
+        return response
+
+    @classmethod
+    async def _send_async_request(
+        cls, httpx_request, *, target_spec, instance, **kwargs
+    ):
+        try:
+            httpx_response = await cls.async_handler(httpx_request)
+        except PassThrough:
+            response = await target_spec(instance, **kwargs)
+        else:
+            response = await cls.from_async_httpx_response(
+                httpx_response, instance, **kwargs
+            )
+        return response
+
+    @classmethod
+    def prepare_sync_request(cls, httpx_request, **kwargs):
+        """
+        Sync pre-read request body
+        """
+        httpx_request.read()
+        return httpx_request, kwargs
+
+    @classmethod
+    async def prepare_async_request(cls, httpx_request, **kwargs):
+        """
+        Async pre-read request body
+        """
+        await httpx_request.aread()
+        return httpx_request, kwargs
+
+    @classmethod
+    def to_httpx_request(cls, **kwargs):
+        raise NotImplementedError()  # pragma: nocover
+
+    @classmethod
+    def from_sync_httpx_response(cls, httpx_response, target, **kwargs):
+        raise NotImplementedError()  # pragma: nocover
+
+    @classmethod
+    async def from_async_httpx_response(cls, httpx_response, target, **kwargs):
+        raise NotImplementedError()  # pragma: nocover
+
+
+class HTTPCoreMocker(AbstractRequestMocker):
+    name = "httpcore"
+    targets = [
+        "httpcore._sync.connection.HTTPConnection",
+        "httpcore._sync.connection_pool.ConnectionPool",
+        "httpcore._sync.http_proxy.HTTPProxy",
+        "httpcore._async.connection.AsyncHTTPConnection",
+        "httpcore._async.connection_pool.AsyncConnectionPool",
+        "httpcore._async.http_proxy.AsyncHTTPProxy",
+    ]
+    target_methods = ["handle_request", "handle_async_request"]
+
+    @classmethod
+    def prepare_sync_request(cls, httpx_request, **kwargs):
+        """
+        Sync pre-read request body, and update transport request arg.
+        """
+        httpx_request, kwargs = super().prepare_sync_request(httpx_request, **kwargs)
+        kwargs["request"].stream = httpx_request.stream
+        return httpx_request, kwargs
+
+    @classmethod
+    async def prepare_async_request(cls, httpx_request, **kwargs):
+        """
+        Async pre-read request body, and update transport request arg.
+        """
+        httpx_request, kwargs = await super().prepare_async_request(
+            httpx_request, **kwargs
+        )
+        kwargs["request"].stream = httpx_request.stream
+        return httpx_request, kwargs
+
+    @classmethod
+    def to_httpx_request(cls, **kwargs):
+        """
+        Create a `HTTPX` request from transport request arg.
+        """
+        request = kwargs["request"]
+        method = (
+            request.method.decode("ascii")
+            if isinstance(request.method, bytes)
+            else request.method
+        )
+        raw_url = (
+            request.url.scheme,
+            request.url.host,
+            request.url.port,
+            request.url.target,
+        )
+        return httpx.Request(
+            method,
+            parse_url(raw_url),
+            headers=request.headers,
+            stream=request.stream,
+            extensions=request.extensions,
+        )
+
+    @classmethod
+    def from_sync_httpx_response(cls, httpx_response, target, **kwargs):
+        """
+        Create a `httpcore` response from a `HTTPX` response.
+        """
+        return httpcore.Response(
+            status=httpx_response.status_code,
+            headers=httpx_response.headers.raw,
+            content=httpx_response.stream,
+            extensions=httpx_response.extensions,
+        )
+
+    @classmethod
+    async def from_async_httpx_response(cls, httpx_response, target, **kwargs):
+        """
+        Create a `httpcore` response from a `HTTPX` response.
+        """
+        return cls.from_sync_httpx_response(httpx_response, target, **kwargs)
+
+
+DEFAULT_MOCKER: str = HTTPCoreMocker.name
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/respx/respx/models.py</source>
+<document_content>
+import inspect
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
+from unittest import mock
+from warnings import warn
+
+import httpx
+
+from respx.utils import SetCookie
+
+from .patterns import M, Pattern
+from .types import (
+    CallableSideEffect,
+    Content,
+    CookieTypes,
+    HeaderTypes,
+    ResolvedResponseTypes,
+    RouteResultTypes,
+    SideEffectListTypes,
+    SideEffectTypes,
+)
+
+
+def clone_response(response: httpx.Response, request: httpx.Request) -> httpx.Response:
+    """
+    Clones a httpx Response for given request.
+    """
+    response = httpx.Response(
+        response.status_code,
+        headers=response.headers,
+        stream=response.stream,
+        request=request,
+        extensions=dict(response.extensions),
+    )
+    return response
+
+
+class Call(NamedTuple):
+    request: httpx.Request
+    optional_response: Optional[httpx.Response]
+
+    @property
+    def response(self) -> httpx.Response:
+        if self.optional_response is None:
+            raise ValueError(f"{self!r} has no response")
+        return self.optional_response
+
+    @property
+    def has_response(self) -> bool:
+        return self.optional_response is not None
+
+
+class CallList(list, mock.NonCallableMock):
+    def __init__(self, *args: Sequence[Call], name: Any = "respx") -> None:
+        super().__init__(*args)
+        mock.NonCallableMock.__init__(self, name=name)
+
+    @property
+    def called(self) -> bool:  # type: ignore[override]
+        return bool(self)
+
+    @property
+    def call_count(self) -> int:  # type: ignore[override]
+        return len(self)
+
+    @property
+    def last(self) -> Call:
+        return self[-1]
+
+    def record(
+        self, request: httpx.Request, response: Optional[httpx.Response]
+    ) -> Call:
+        call = Call(request=request, optional_response=response)
+        self.append(call)
+        return call
+
+
+class MockResponse(httpx.Response):
+    def __init__(
+        self,
+        status_code: Optional[int] = None,
+        *,
+        content: Optional[Content] = None,
+        content_type: Optional[str] = None,
+        http_version: Optional[str] = None,
+        cookies: Optional[Union[CookieTypes, Sequence[SetCookie]]] = None,
+        **kwargs: Any,
+    ) -> None:
+        if not isinstance(content, (str, bytes)) and (
+            callable(content) or isinstance(content, (dict, Exception))
+        ):
+            raise TypeError(
+                f"MockResponse content can only be str, bytes or byte stream"
+                f"got {content!r}. Please use json=... or side effects."
+            )
+
+        if content is not None:
+            kwargs["content"] = content
+        if http_version:
+            kwargs["extensions"] = kwargs.get("extensions", {})
+            kwargs["extensions"]["http_version"] = http_version.encode("ascii")
+        super().__init__(status_code or 200, **kwargs)
+
+        if content_type:
+            self.headers["Content-Type"] = content_type
+
+        if cookies:
+            if isinstance(cookies, dict):
+                cookies = tuple(cookies.items())
+            self.headers = httpx.Headers(
+                (
+                    *self.headers.multi_items(),
+                    *(
+                        cookie if isinstance(cookie, SetCookie) else SetCookie(*cookie)
+                        for cookie in cookies
+                    ),
+                )
+            )
+
+
+class Route:
+    def __init__(
+        self,
+        *patterns: Pattern,
+        **lookups: Any,
+    ) -> None:
+        self._pattern = M(*patterns, **lookups)
+        self._return_value: Optional[httpx.Response] = None
+        self._side_effect: Optional[SideEffectTypes] = None
+        self._pass_through: bool = False
+        self._name: Optional[str] = None
+        self._snapshots: List[Tuple] = []
+        self.calls = CallList(name=self)
+        self.snapshot()
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Route):
+            return False  # pragma: nocover
+        return self.pattern == other.pattern
+
+    def __repr__(self):  # pragma: nocover
+        name = f"name={self._name!r} " if self._name else ""
+        return f"<Route {name}{self.pattern!r}>"
+
+    def __call__(self, side_effect: CallableSideEffect) -> CallableSideEffect:
+        self.side_effect = side_effect
+        return side_effect
+
+    def __mod__(self, response: Union[int, Dict[str, Any], httpx.Response]) -> "Route":
+        if isinstance(response, int):
+            self.return_value = httpx.Response(status_code=response)
+
+        elif isinstance(response, dict):
+            response.setdefault("status_code", 200)
+            self.return_value = httpx.Response(**response)
+
+        elif isinstance(response, httpx.Response):
+            self.return_value = response
+
+        else:
+            raise TypeError(
+                f"Route can only % with int, dict or Response, got {response!r}"
+            )
+
+        return self
+
+    @property
+    def name(self) -> Optional[str]:
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        raise NotImplementedError("Can't set name on route.")
+
+    @property
+    def pattern(self) -> Pattern:
+        return self._pattern
+
+    @pattern.setter
+    def pattern(self, pattern: Pattern) -> None:
+        raise NotImplementedError("Can't change route pattern.")
+
+    @property
+    def return_value(self) -> Optional[httpx.Response]:
+        return self._return_value
+
+    @return_value.setter
+    def return_value(self, return_value: Optional[httpx.Response]) -> None:
+        if return_value is not None and not isinstance(return_value, httpx.Response):
+            raise TypeError(f"{return_value!r} is not an instance of httpx.Response")
+        self.pass_through(False)
+        self._return_value = return_value
+
+    @property
+    def side_effect(
+        self,
+    ) -> Optional[Union[SideEffectTypes, Sequence[SideEffectListTypes]]]:
+        return self._side_effect
+
+    @side_effect.setter
+    def side_effect(
+        self,
+        side_effect: Optional[Union[SideEffectTypes, Sequence[SideEffectListTypes]]],
+    ) -> None:
+        self.pass_through(False)
+        if not side_effect:
+            self._side_effect = None
+        elif isinstance(side_effect, (Iterator, Sequence)):
+            self._side_effect = iter(side_effect)
+        else:
+            self._side_effect = side_effect
+
+    def snapshot(self) -> None:
+        # Clone iterator-type side effect to not get pre-exhausted when rolled back
+        side_effect = self._side_effect
+        if isinstance(side_effect, Iterator):
+            side_effects = tuple(side_effect)
+            self._side_effect = iter(side_effects)
+            side_effect = iter(side_effects)
+
+        self._snapshots.append(
+            (
+                self._pattern,
+                self._name,
+                self._return_value,
+                side_effect,
+                self._pass_through,
+                CallList(self.calls, name=self),
+            ),
+        )
+
+    def rollback(self) -> None:
+        if not self._snapshots:
+            return
+
+        snapshot = self._snapshots.pop()
+        pattern, name, return_value, side_effect, pass_through, calls = snapshot
+
+        self._pattern = pattern
+        self._name = name
+        self._return_value = return_value
+        self._side_effect = side_effect
+        self.pass_through(pass_through)
+        self.calls[:] = calls
+
+    def reset(self) -> None:
+        self.calls.clear()
+
+    def mock(
+        self,
+        return_value: Optional[httpx.Response] = None,
+        *,
+        side_effect: Optional[
+            Union[SideEffectTypes, Sequence[SideEffectListTypes]]
+        ] = None,
+    ) -> "Route":
+        self.return_value = return_value
+        self.side_effect = side_effect
+        return self
+
+    def respond(
+        self,
+        status_code: int = 200,
+        *,
+        headers: Optional[HeaderTypes] = None,
+        cookies: Optional[Union[CookieTypes, Sequence[SetCookie]]] = None,
+        content: Optional[Content] = None,
+        text: Optional[str] = None,
+        html: Optional[str] = None,
+        json: Optional[Union[str, List, Dict]] = None,
+        stream: Optional[Union[httpx.SyncByteStream, httpx.AsyncByteStream]] = None,
+        content_type: Optional[str] = None,
+        http_version: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "Route":
+        response = MockResponse(
+            status_code,
+            headers=headers,
+            cookies=cookies,
+            content=content,
+            text=text,
+            html=html,
+            json=json,
+            stream=stream,
+            content_type=content_type,
+            http_version=http_version,
+            **kwargs,
+        )
+        return self.mock(return_value=response)
+
+    def pass_through(self, value: bool = True) -> "Route":
+        self._pass_through = value
+        return self
+
+    @property
+    def is_pass_through(self) -> bool:
+        return self._pass_through
+
+    @property
+    def called(self) -> bool:
+        return self.calls.called
+
+    @property
+    def call_count(self) -> int:
+        return self.calls.call_count
+
+    def _next_side_effect(
+        self,
+    ) -> Union[CallableSideEffect, Exception, Type[Exception], httpx.Response]:
+        assert self._side_effect is not None
+        effect: Union[CallableSideEffect, Exception, Type[Exception], httpx.Response]
+        if isinstance(self._side_effect, Iterator):
+            effect = next(self._side_effect)
+        else:
+            effect = self._side_effect
+
+        return effect
+
+    def _call_side_effect(
+        self, effect: CallableSideEffect, request: httpx.Request, **kwargs: Any
+    ) -> RouteResultTypes:
+        # Add route kwarg if the side effect wants it
+        argspec = inspect.getfullargspec(effect)
+        if "route" in kwargs:
+            warn(f"Matched context contains reserved word `route`: {self.pattern!r}")
+        if "route" in argspec.args:
+            kwargs["route"] = self
+
+        try:
+            # Call side effect
+            result: RouteResultTypes = effect(request, **kwargs)
+        except Exception as error:
+            raise SideEffectError(self, origin=error) from error
+
+        # Validate result
+        if (
+            result
+            and not inspect.isawaitable(result)
+            and not isinstance(result, (httpx.Response, httpx.Request))
+        ):
+            raise TypeError(
+                f"Side effects must return; either a `httpx.Response`,"
+                f"a `httpx.Request` for pass-through, "
+                f"or `None` for a non-match. Got {result!r}"
+            )
+
+        return result
+
+    def _resolve_side_effect(
+        self, request: httpx.Request, **kwargs: Any
+    ) -> RouteResultTypes:
+        effect = self._next_side_effect()
+
+        # Handle Exception `instance` side effect
+        if isinstance(effect, Exception):
+            raise SideEffectError(self, origin=effect)
+
+        # Handle Exception `type` side effect
+        elif isinstance(effect, type):
+            assert issubclass(effect, Exception)
+            raise SideEffectError(
+                self,
+                origin=(
+                    effect("Mock Error", request=request)
+                    if issubclass(effect, httpx.RequestError)
+                    else effect()
+                ),
+            )
+
+        # Handle `Callable` side effect
+        elif callable(effect):
+            result = self._call_side_effect(effect, request, **kwargs)
+            return result
+
+        # Resolved effect is a mocked response
+        return effect
+
+    def resolve(self, request: httpx.Request, **kwargs: Any) -> RouteResultTypes:
+        result: RouteResultTypes = None
+
+        if self._side_effect:
+            result = self._resolve_side_effect(request, **kwargs)
+            if result is None:
+                return None  # Side effect resolved as a non-matching route
+
+        elif self._return_value:
+            result = self._return_value
+
+        else:
+            # Auto mock a new response
+            result = httpx.Response(200, request=request)
+
+        if isinstance(result, httpx.Response) and not result._request:
+            # Clone reused Response for immutability
+            result = clone_response(result, request)
+
+        return result
+
+    def match(self, request: httpx.Request) -> RouteResultTypes:
+        """
+        Matches and resolves request with given patterns and optional side effect.
+
+        Returns None for a non-matching route, mocked response for a match,
+        or input request for pass-through.
+        """
+        context: Dict[str, Any] = {}
+
+        if self._pattern:
+            match = self._pattern.match(request)
+            if not match:
+                return None
+            context = match.context
+
+        if self._pass_through:
+            return request
+
+        result = self.resolve(request, **context)
+        return result
+
+
+class RouteList:
+    _routes: List[Route]
+    _names: Dict[str, Route]
+
+    def __init__(self, routes: Optional["RouteList"] = None) -> None:
+        if routes is None:
+            self._routes = []
+            self._names = {}
+        else:
+            self._routes = list(routes._routes)
+            self._names = dict(routes._names)
+
+    def __repr__(self) -> str:
+        return repr(self._routes)  # pragma: nocover
+
+    def __iter__(self) -> Iterator[Route]:
+        return iter(self._routes)
+
+    def __bool__(self) -> bool:
+        return bool(self._routes)
+
+    def __len__(self) -> int:
+        return len(self._routes)
+
+    def __contains__(self, name: str) -> bool:
+        return name in self._names
+
+    def __getitem__(self, key: Union[int, str]) -> Route:
+        if isinstance(key, int):
+            return self._routes[key]
+        else:
+            return self._names[key]
+
+    def __setitem__(self, i: slice, routes: "RouteList") -> None:
+        """
+        Re-set all routes to given routes.
+        """
+        if (i.start, i.stop, i.step) != (None, None, None):
+            raise TypeError("Can't slice assign routes")
+        self._routes = list(routes._routes)
+        self._names = dict(routes._names)
+
+    def clear(self) -> None:
+        self._routes.clear()
+        self._names.clear()
+
+    def add(self, route: Route, name: Optional[str] = None) -> Route:
+        # Find route with same name
+        existing_route = self._names.pop(name or "", None)
+
+        if route in self._routes:
+            if existing_route and existing_route != route:
+                # Re-use existing route with same name, and drop any with same pattern
+                index = self._routes.index(route)
+                same_pattern_route = self._routes.pop(index)
+                if same_pattern_route.name:
+                    del self._names[same_pattern_route.name]
+                    same_pattern_route._name = None
+            elif not existing_route:
+                # Re-use existing route with same pattern
+                index = self._routes.index(route)
+                existing_route = self._routes[index]
+                if existing_route.name:
+                    del self._names[existing_route.name]
+                    existing_route._name = None
+
+        if existing_route:
+            # Update existing route's pattern and mock
+            existing_route._pattern = route._pattern
+            existing_route.return_value = route.return_value
+            existing_route.side_effect = route.side_effect
+            existing_route.pass_through(route.is_pass_through)
+            route = existing_route
+        else:
+            # Add new route
+            self._routes.append(route)
+
+        if name:
+            route._name = name
+            self._names[name] = route
+
+        return route
+
+    def pop(self, name, default=...):
+        """
+        Removes a route by name and returns it.
+
+        Raises KeyError when `default` not provided and name is not found.
+        """
+        try:
+            route = self._names.pop(name)
+            self._routes.remove(route)
+            return route
+        except KeyError as ex:
+            if default is ...:
+                raise ex
+            return default
+
+
+class AllMockedAssertionError(AssertionError):
+    pass
+
+
+class SideEffectError(Exception):
+    def __init__(self, route: Route, origin: Exception) -> None:
+        self.route = route
+        self.origin = origin
+
+
+class PassThrough(Exception):
+    def __init__(self, message: str, *, request: httpx.Request, origin: Route) -> None:
+        super().__init__(message)
+        self.request = request
+        self.origin = origin
+
+
+class ResolvedRoute:
+    def __init__(self):
+        self.route: Optional[Route] = None
+        self.response: Optional[ResolvedResponseTypes] = None
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/respx/respx/patterns.py</source>
+<document_content>
+import io
+import json as jsonlib
+import operator
+import pathlib
+import re
+from abc import ABC
+from enum import Enum
+from functools import reduce
+from http.cookies import SimpleCookie
+from types import MappingProxyType
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Pattern as RegexPattern,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
+from unittest.mock import ANY
+from urllib.parse import urljoin
+
+import httpx
+
+from respx.utils import MultiItems, decode_data
+
+from .types import (
+    URL as RawURL,
+    CookieTypes,
+    FileTypes,
+    HeaderTypes,
+    QueryParamTypes,
+    RequestFiles,
+    URLPatternTypes,
+)
+
+
+class Lookup(Enum):
+    EQUAL = "eq"
+    REGEX = "regex"
+    STARTS_WITH = "startswith"
+    CONTAINS = "contains"
+    IN = "in"
+
+
+class Match:
+    def __init__(self, matches: bool, **context: Any) -> None:
+        self.matches = matches
+        self.context = context
+
+    def __bool__(self):
+        return bool(self.matches)
+
+    def __invert__(self):
+        self.matches = not self.matches
+        return self
+
+    def __repr__(self):  # pragma: nocover
+        return f"<Match {self.matches}>"
+
+
+class Pattern(ABC):
+    key: ClassVar[str]
+    lookups: ClassVar[Tuple[Lookup, ...]] = (Lookup.EQUAL,)
+
+    lookup: Lookup
+    base: Optional["Pattern"]
+    value: Any
+
+    # Automatically register all the subclasses in this dict
+    __registry: ClassVar[Dict[str, Type["Pattern"]]] = {}
+    registry = MappingProxyType(__registry)
+
+    def __init_subclass__(cls) -> None:
+        if not getattr(cls, "key", None) or ABC in cls.__bases__:
+            return
+
+        if cls.key in cls.__registry:
+            raise TypeError(
+                "Subclasses of Pattern must define a unique key. "
+                f"{cls.key!r} is already defined in {cls.__registry[cls.key]!r}"
+            )
+
+        cls.__registry[cls.key] = cls
+
+    def __init__(self, value: Any, lookup: Optional[Lookup] = None) -> None:
+        if lookup and lookup not in self.lookups:
+            raise NotImplementedError(
+                f"{self.key!r} pattern does not support {lookup.value!r} lookup"
+            )
+        self.lookup = lookup or self.lookups[0]
+        self.base = None
+        self.value = self.clean(value)
+
+    def __iter__(self):
+        yield self
+
+    def __bool__(self):
+        return True
+
+    def __and__(self, other: "Pattern") -> "Pattern":
+        if not bool(other):
+            return self
+        elif not bool(self):
+            return other
+        return _And((self, other))
+
+    def __or__(self, other: "Pattern") -> "Pattern":
+        if not bool(other):
+            return self
+        elif not bool(self):
+            return other
+        return _Or((self, other))
+
+    def __invert__(self):
+        if not bool(self):
+            return self
+        return _Invert(self)
+
+    def __repr__(self):  # pragma: nocover
+        return f"<{self.__class__.__name__} {self.lookup.value} {repr(self.value)}>"
+
+    def __hash__(self):
+        return hash((self.__class__, self.lookup, self.value))
+
+    def __eq__(self, other: object) -> bool:
+        return hash(self) == hash(other)
+
+    def clean(self, value: Any) -> Any:
+        """
+        Clean and return pattern value.
+        """
+        return value
+
+    def parse(self, request: httpx.Request) -> Any:  # pragma: nocover
+        """
+        Parse and return request value to match with pattern value.
+        """
+        raise NotImplementedError()
+
+    def strip_base(self, value: Any) -> Any:  # pragma: nocover
+        return value
+
+    def match(self, request: httpx.Request) -> Match:
+        try:
+            value = self.parse(request)
+        except Exception:
+            return Match(False)
+
+        # Match and strip base
+        if self.base:
+            base_match = self.base._match(value)
+            if not base_match:
+                return base_match
+            value = self.strip_base(value)
+
+        return self._match(value)
+
+    def _match(self, value: Any) -> Match:
+        lookup_method = getattr(self, f"_{self.lookup.value}")
+        return lookup_method(value)
+
+    def _eq(self, value: Any) -> Match:
+        return Match(value == self.value)
+
+    def _regex(self, value: str) -> Match:
+        match = self.value.search(value)
+        if match is None:
+            return Match(False)
+        return Match(True, **match.groupdict())
+
+    def _startswith(self, value: str) -> Match:
+        return Match(value.startswith(self.value))
+
+    def _contains(self, value: Any) -> Match:  # pragma: nocover
+        raise NotImplementedError()
+
+    def _in(self, value: Any) -> Match:
+        return Match(value in self.value)
+
+
+class Noop(Pattern):
+    def __init__(self) -> None:
+        super().__init__(None)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}>"
+
+    def __bool__(self) -> bool:
+        # Treat this pattern as non-existent, e.g. when filtering or conditioning
+        return False
+
+    def match(self, request: httpx.Request) -> Match:
+        # If this pattern is part of a combined pattern, always be truthy, i.e. noop
+        return Match(True)
+
+
+class PathPattern(Pattern):
+    path: Optional[str]
+
+    def __init__(
+        self, value: Any, lookup: Optional[Lookup] = None, *, path: Optional[str] = None
+    ) -> None:
+        self.path = path
+        super().__init__(value, lookup)
+
+
+class _And(Pattern):
+    value: Tuple[Pattern, Pattern]
+
+    def __repr__(self):  # pragma: nocover
+        a, b = self.value
+        return f"{repr(a)} AND {repr(b)}"
+
+    def __iter__(self):
+        a, b = self.value
+        yield from a
+        yield from b
+
+    def match(self, request: httpx.Request) -> Match:
+        a, b = self.value
+        a_match = a.match(request)
+        if not a_match:
+            return a_match
+        b_match = b.match(request)
+        if not b_match:
+            return b_match
+        return Match(True, **{**a_match.context, **b_match.context})
+
+
+class _Or(Pattern):
+    value: Tuple[Pattern, Pattern]
+
+    def __repr__(self):  # pragma: nocover
+        a, b = self.value
+        return f"{repr(a)} OR {repr(b)}"
+
+    def __iter__(self):
+        a, b = self.value
+        yield from a
+        yield from b
+
+    def match(self, request: httpx.Request) -> Match:
+        a, b = self.value
+        match = a.match(request)
+        if not match:
+            match = b.match(request)
+        return match
+
+
+class _Invert(Pattern):
+    value: Pattern
+
+    def __repr__(self):  # pragma: nocover
+        return f"NOT {repr(self.value)}"
+
+    def __iter__(self):
+        yield from self.value
+
+    def match(self, request: httpx.Request) -> Match:
+        return ~self.value.match(request)
+
+
+class Method(Pattern):
+    key = "method"
+    lookups = (Lookup.EQUAL, Lookup.IN)
+    value: Union[str, Sequence[str]]
+
+    def clean(self, value: Union[str, Sequence[str]]) -> Union[str, Sequence[str]]:
+        if isinstance(value, str):
+            value = value.upper()
+        else:
+            assert isinstance(value, Sequence)
+            value = tuple(v.upper() for v in value)
+        return value
+
+    def parse(self, request: httpx.Request) -> str:
+        return request.method
+
+
+class MultiItemsMixin:
+    lookup: Lookup
+    value: Any
+
+    def _multi_items(
+        self, value: Any, *, parse_any: bool = False
+    ) -> Tuple[Tuple[str, Tuple[Any, ...]], ...]:
+        return tuple(
+            (
+                key,
+                tuple(
+                    ANY if parse_any and v == str(ANY) else v
+                    for v in value.get_list(key)
+                ),
+            )
+            for key in sorted(value.keys())
+        )
+
+    def __hash__(self):
+        return hash((self.__class__, self.lookup, self._multi_items(self.value)))
+
+    def _eq(self, value: Any) -> Match:
+        value_items = self._multi_items(self.value, parse_any=True)
+        request_items = self._multi_items(value)
+        return Match(value_items == request_items)
+
+    def _contains(self, value: Any) -> Match:
+        if len(self.value.multi_items()) > len(value.multi_items()):
+            return Match(False)
+
+        value_items = self._multi_items(self.value, parse_any=True)
+        request_items = self._multi_items(value)
+
+        for item in value_items:
+            if item not in request_items:
+                return Match(False)
+
+        return Match(True)
+
+
+class Headers(MultiItemsMixin, Pattern):
+    key = "headers"
+    lookups = (Lookup.CONTAINS, Lookup.EQUAL)
+    value: httpx.Headers
+
+    def clean(self, value: HeaderTypes) -> httpx.Headers:
+        return httpx.Headers(value)
+
+    def parse(self, request: httpx.Request) -> httpx.Headers:
+        return request.headers
+
+
+class Cookies(Pattern):
+    key = "cookies"
+    lookups = (Lookup.CONTAINS, Lookup.EQUAL)
+    value: Set[Tuple[str, str]]
+
+    def __hash__(self):
+        return hash((self.__class__, self.lookup, tuple(sorted(self.value))))
+
+    def clean(self, value: CookieTypes) -> Set[Tuple[str, str]]:
+        if isinstance(value, dict):
+            return set(value.items())
+
+        return set(value)
+
+    def parse(self, request: httpx.Request) -> Set[Tuple[str, str]]:
+        headers = request.headers
+
+        cookie_header = headers.get("cookie")
+        if not cookie_header:
+            return set()
+
+        cookies: SimpleCookie = SimpleCookie()
+        cookies.load(rawdata=cookie_header)
+
+        return {(cookie.key, cookie.value) for cookie in cookies.values()}
+
+    def _contains(self, value: Set[Tuple[str, str]]) -> Match:
+        return Match(bool(self.value & value))
+
+
+class Scheme(Pattern):
+    key = "scheme"
+    lookups = (Lookup.EQUAL, Lookup.IN)
+    value: Union[str, Sequence[str]]
+
+    def clean(self, value: Union[str, Sequence[str]]) -> Union[str, Sequence[str]]:
+        if isinstance(value, str):
+            value = value.lower()
+        else:
+            assert isinstance(value, Sequence)
+            value = tuple(v.lower() for v in value)
+        return value
+
+    def parse(self, request: httpx.Request) -> str:
+        return request.url.scheme
+
+
+class Host(Pattern):
+    key = "host"
+    lookups = (Lookup.EQUAL, Lookup.REGEX, Lookup.IN)
+    value: Union[str, RegexPattern[str], Sequence[str]]
+
+    def clean(
+        self, value: Union[str, RegexPattern[str]]
+    ) -> Union[str, RegexPattern[str]]:
+        if self.lookup is Lookup.REGEX and isinstance(value, str):
+            value = re.compile(value)
+        return value
+
+    def parse(self, request: httpx.Request) -> str:
+        return request.url.host
+
+
+class Port(Pattern):
+    key = "port"
+    lookups = (Lookup.EQUAL, Lookup.IN)
+    value: Optional[int]
+
+    def parse(self, request: httpx.Request) -> Optional[int]:
+        scheme = request.url.scheme
+        port = request.url.port
+        scheme_port = get_scheme_port(scheme)
+        return port or scheme_port
+
+
+class Path(Pattern):
+    key = "path"
+    lookups = (Lookup.EQUAL, Lookup.REGEX, Lookup.STARTS_WITH, Lookup.IN)
+    value: Union[str, Sequence[str], RegexPattern[str]]
+
+    def clean(
+        self, value: Union[str, RegexPattern[str]]
+    ) -> Union[str, RegexPattern[str]]:
+        if self.lookup in (Lookup.EQUAL, Lookup.STARTS_WITH) and isinstance(value, str):
+            # Percent encode path, i.e. revert parsed path by httpx.URL.
+            # Borrowed from HTTPX's "private" quote and percent_encode utilities.
+            path = "".join(
+                char
+                if char
+                in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~/"
+                else "".join(f"%{byte:02x}" for byte in char.encode("utf-8")).upper()
+                for char in value
+            )
+            path = urljoin("/", path)  # Ensure leading slash
+            value = httpx.URL(path).path
+        elif self.lookup is Lookup.REGEX and isinstance(value, str):
+            value = re.compile(value)
+        return value
+
+    def parse(self, request: httpx.Request) -> str:
+        return request.url.path
+
+    def strip_base(self, value: str) -> str:
+        if self.base:
+            value = value[len(self.base.value) :]
+            value = "/" + value if not value.startswith("/") else value
+        return value
+
+
+class Params(MultiItemsMixin, Pattern):
+    key = "params"
+    lookups = (Lookup.CONTAINS, Lookup.EQUAL)
+    value: httpx.QueryParams
+
+    def clean(self, value: QueryParamTypes) -> httpx.QueryParams:
+        return httpx.QueryParams(value)
+
+    def parse(self, request: httpx.Request) -> httpx.QueryParams:
+        query = request.url.query
+        return httpx.QueryParams(query)
+
+
+class URL(Pattern):
+    key = "url"
+    lookups = (
+        Lookup.EQUAL,
+        Lookup.REGEX,
+        Lookup.STARTS_WITH,
+    )
+    value: Union[str, RegexPattern[str]]
+
+    def clean(self, value: URLPatternTypes) -> Union[str, RegexPattern[str]]:
+        url: Union[str, RegexPattern[str]]
+        if self.lookup is Lookup.EQUAL and isinstance(value, (str, tuple, httpx.URL)):
+            _url = parse_url(value)
+            _url = self._ensure_path(_url)
+            url = str(_url)
+        elif self.lookup is Lookup.REGEX and isinstance(value, str):
+            url = re.compile(value)
+        elif isinstance(value, (str, RegexPattern)):
+            url = value
+        else:
+            raise ValueError(f"Invalid url: {value!r}")
+        return url
+
+    def parse(self, request: httpx.Request) -> str:
+        url = request.url
+        url = self._ensure_path(url)
+        return str(url)
+
+    def _ensure_path(self, url: httpx.URL) -> httpx.URL:
+        if not url._uri_reference.path:
+            url = url.copy_with(path="/")
+        return url
+
+
+class ContentMixin:
+    def parse(self, request: httpx.Request) -> Any:
+        content = request.read()
+        return content
+
+
+class Content(ContentMixin, Pattern):
+    lookups = (Lookup.EQUAL, Lookup.CONTAINS)
+    key = "content"
+    value: bytes
+
+    def clean(self, value: Union[bytes, str]) -> bytes:
+        if isinstance(value, str):
+            return value.encode()
+        return value
+
+    def _contains(self, value: Union[bytes, str]) -> Match:
+        return Match(self.value in value)
+
+
+class JSON(ContentMixin, PathPattern):
+    lookups = (Lookup.EQUAL,)
+    key = "json"
+    value: str
+
+    def clean(self, value: Union[str, List, Dict]) -> str:
+        return self.hash(value)
+
+    def parse(self, request: httpx.Request) -> str:
+        content = super().parse(request)
+        json = jsonlib.loads(content.decode("utf-8"))
+
+        if self.path:
+            value = json
+            for bit in self.path.split("__"):
+                key = int(bit) if bit.isdigit() else bit
+                try:
+                    value = value[key]
+                except KeyError as e:
+                    raise KeyError(f"{self.path!r} not in {json!r}") from e
+                except IndexError as e:
+                    raise IndexError(f"{self.path!r} not in {json!r}") from e
+        else:
+            value = json
+
+        return self.hash(value)
+
+    def hash(self, value: Union[str, List, Dict]) -> str:
+        return jsonlib.dumps(value, sort_keys=True)
+
+
+class Data(MultiItemsMixin, Pattern):
+    lookups = (Lookup.EQUAL, Lookup.CONTAINS)
+    key = "data"
+    value: MultiItems
+
+    def clean(self, value: Dict) -> MultiItems:
+        return MultiItems(
+            (key, "" if value is None else str(value)) for key, value in value.items()
+        )
+
+    def parse(self, request: httpx.Request) -> Any:
+        data, _ = decode_data(request)
+        return data
+
+
+class Files(MultiItemsMixin, Pattern):
+    lookups = (Lookup.CONTAINS, Lookup.EQUAL)
+    key = "files"
+    value: MultiItems
+
+    def _normalize_file_value(self, value: FileTypes) -> Tuple[Any, Any]:
+        # Mimic httpx `FileField` to normalize `files` kwarg to shortest tuple style
+        if isinstance(value, tuple):
+            filename, fileobj = value[:2]
+        else:
+            try:
+                filename = pathlib.Path(str(getattr(value, "name"))).name  # noqa: B009
+            except AttributeError:
+                filename = ANY
+            fileobj = value
+
+        # Normalize file-like objects and strings to bytes to allow equality check
+        if isinstance(fileobj, io.BytesIO):
+            fileobj = fileobj.read()
+        elif isinstance(fileobj, str):
+            fileobj = fileobj.encode()
+
+        return filename, fileobj
+
+    def clean(self, value: RequestFiles) -> MultiItems:
+        if isinstance(value, Mapping):
+            value = list(value.items())
+
+        files = MultiItems(
+            (name, self._normalize_file_value(file_value)) for name, file_value in value
+        )
+        return files
+
+    def parse(self, request: httpx.Request) -> Any:
+        _, files = decode_data(request)
+        return files
+
+
+def M(*patterns: Pattern, **lookups: Any) -> Pattern:
+    extras = None
+
+    for pattern__lookup, value in lookups.items():
+        # Handle url pattern
+        if pattern__lookup == "url":
+            extras = parse_url_patterns(value)
+            continue
+
+        # Parse pattern key and lookup
+        pattern_key, __, rest = pattern__lookup.partition("__")
+        path, __, lookup_name = rest.rpartition("__")
+        if pattern_key not in Pattern.registry:
+            raise KeyError(f"{pattern_key!r} is not a valid Pattern")
+
+        # Get pattern class
+        P = Pattern.registry[pattern_key]
+        pattern: Union[Pattern, PathPattern]
+
+        if issubclass(P, PathPattern):
+            # Make path supported pattern, i.e. JSON
+            try:
+                lookup = Lookup(lookup_name) if lookup_name else None
+            except ValueError:
+                lookup = None
+                path = rest
+            pattern = P(value, lookup=lookup, path=path)
+        else:
+            # Make regular pattern
+            lookup = Lookup(lookup_name) if lookup_name else None
+            pattern = P(value, lookup=lookup)
+
+        # Skip patterns with no value, exept when using equal lookup
+        if not pattern.value and pattern.lookup is not Lookup.EQUAL:
+            continue
+
+        patterns += (pattern,)
+
+    # Combine and merge patterns
+    combined_pattern = combine(patterns)
+    if extras:
+        combined_pattern = merge_patterns(combined_pattern, **extras)
+
+    return combined_pattern
+
+
+def get_scheme_port(scheme: Optional[str]) -> Optional[int]:
+    return {"http": 80, "https": 443}.get(scheme or "")
+
+
+def combine(patterns: Sequence[Pattern], op: Callable = operator.and_) -> Pattern:
+    patterns = tuple(filter(None, patterns))
+    if not patterns:
+        return Noop()
+    return reduce(op, patterns)
+
+
+def parse_url(value: Union[httpx.URL, str, RawURL]) -> httpx.URL:
+    url: Union[httpx.URL, str]
+
+    if isinstance(value, tuple):
+        # Handle "raw" httpcore urls. Borrowed from HTTPX prior to #2241
+        raw_scheme, raw_host, port, raw_path = value
+        scheme = raw_scheme.decode("ascii")
+        host = raw_host.decode("ascii")
+        if host and ":" in host and host[0] != "[":
+            # it's an IPv6 address, so it should be enclosed in "[" and "]"
+            # ref: https://tools.ietf.org/html/rfc2732#section-2
+            # ref: https://tools.ietf.org/html/rfc3986#section-3.2.2
+            host = f"[{host}]"
+        port_str = "" if port is None else f":{port}"
+        path = raw_path.decode("ascii")
+        url = f"{scheme}://{host}{port_str}{path}"
+    else:
+        url = value
+
+    return httpx.URL(url)
+
+
+def parse_url_patterns(
+    url: Optional[URLPatternTypes], exact: bool = True
+) -> Dict[str, Pattern]:
+    bases: Dict[str, Pattern] = {}
+    if not url or url == "all":
+        return bases
+
+    if isinstance(url, RegexPattern):
+        return {"url": URL(url, lookup=Lookup.REGEX)}
+
+    url = parse_url(url)
+    scheme_port = get_scheme_port(url.scheme)
+
+    if url.scheme and url.scheme != "all":
+        bases[Scheme.key] = Scheme(url.scheme)
+    if url.host:
+        # NOTE: Host regex patterns borrowed from HTTPX source to support proxy format
+        if url.host.startswith("*."):
+            domain = re.escape(url.host[2:])
+            regex = re.compile(f"^.+\\.{domain}$")
+            bases[Host.key] = Host(regex, lookup=Lookup.REGEX)
+        elif url.host.startswith("*"):
+            domain = re.escape(url.host[1:])
+            regex = re.compile(f"^(.+\\.)?{domain}$")
+            bases[Host.key] = Host(regex, lookup=Lookup.REGEX)
+        else:
+            bases[Host.key] = Host(url.host)
+    if url.port and url.port != scheme_port:
+        bases[Port.key] = Port(url.port)
+    if url._uri_reference.path:  # URL.path always returns "/"
+        lookup = Lookup.EQUAL if exact else Lookup.STARTS_WITH
+        bases[Path.key] = Path(url.path, lookup=lookup)
+    if url.query:
+        lookup = Lookup.EQUAL if exact else Lookup.CONTAINS
+        bases[Params.key] = Params(url.query, lookup=lookup)
+
+    return bases
+
+
+def merge_patterns(pattern: Pattern, **bases: Pattern) -> Pattern:
+    if not bases:
+        return pattern
+
+    # Flatten pattern
+    patterns: List[Pattern] = list(filter(None, iter(pattern)))
+
+    if patterns:
+        if "host" in (_pattern.key for _pattern in patterns):
+            # Pattern is "absolute", skip merging
+            bases = {}
+        else:
+            # Traverse pattern and set related base
+            for _pattern in patterns:
+                base = bases.pop(_pattern.key, None)
+                # Skip "exact" base + don't overwrite existing base
+                if _pattern.base or base and base.lookup is Lookup.EQUAL:
+                    continue
+                _pattern.base = base
+
+    if bases:
+        # Combine left over base patterns with pattern
+        base_pattern = combine(list(bases.values()))
+        if pattern and base_pattern:
+            pattern = base_pattern & pattern
+        else:
+            pattern = base_pattern
+
+    return pattern
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/respx/respx/plugin.py</source>
+<document_content>
+from typing import cast
+
+import pytest
+
+import respx
+
+from .router import MockRouter
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "respx(assert_all_called=False, assert_all_mocked=False, base_url=...): "
+        "configure the respx_mock fixture. "
+        "See https://lundberg.github.io/respx/api.html#configuration",
+    )
+
+
+@pytest.fixture
+def respx_mock(request):
+    respx_marker = request.node.get_closest_marker("respx")
+
+    mock_router: MockRouter = (
+        respx.mock
+        if respx_marker is None
+        else cast(MockRouter, respx.mock(**respx_marker.kwargs))
+    )
+
+    with mock_router:
+        yield mock_router
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/respx/respx/py.typed</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/respx/respx/router.py</source>
+<document_content>
+import inspect
+from contextlib import contextmanager
+from functools import partial, update_wrapper, wraps
+from types import TracebackType
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    NewType,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    overload,
+)
+
+import httpx
+
+from .mocks import Mocker
+from .models import (
+    AllMockedAssertionError,
+    CallList,
+    PassThrough,
+    ResolvedRoute,
+    Route,
+    RouteList,
+    SideEffectError,
+)
+from .patterns import Pattern, merge_patterns, parse_url_patterns
+from .types import DefaultType, ResolvedResponseTypes, RouteResultTypes, URLPatternTypes
+
+Default = NewType("Default", object)
+DEFAULT = Default(...)
+
+
+class Router:
+    def __init__(
+        self,
+        *,
+        assert_all_called: bool = True,
+        assert_all_mocked: bool = True,
+        base_url: Optional[str] = None,
+    ) -> None:
+        self._assert_all_called = assert_all_called
+        self._assert_all_mocked = assert_all_mocked
+        self._bases = parse_url_patterns(base_url, exact=False)
+
+        self.routes = RouteList()
+        self.calls = CallList()
+
+        self._snapshots: List[Tuple] = []
+        self.snapshot()
+
+    def clear(self) -> None:
+        """
+        Clears all routes. May be rolled back to snapshot state.
+        """
+        self.routes.clear()
+
+    def snapshot(self) -> None:
+        """
+        Snapshots current routes and calls state.
+        """
+        # Snapshot current routes and calls
+        routes = RouteList(self.routes)
+        calls = CallList(self.calls)
+        self._snapshots.append((routes, calls))
+
+        # Snapshot each route state
+        for route in routes:
+            route.snapshot()
+
+    def rollback(self) -> None:
+        """
+        Rollbacks routes, and optionally calls, to snapshot state.
+        """
+        if not self._snapshots:
+            return
+
+        # Revert added routes and calls to last snapshot
+        routes, calls = self._snapshots.pop()
+        self.routes[:] = routes
+        self.calls[:] = calls
+
+        # Revert each route state to last snapshot
+        for route in self.routes:
+            route.rollback()
+
+    def reset(self) -> None:
+        """
+        Resets call stats.
+        """
+        self.calls.clear()
+        for route in self.routes:
+            route.reset()
+
+    def assert_all_called(self) -> None:
+        not_called_routes = [route for route in self.routes if not route.called]
+        assert not_called_routes == [], "RESPX: some routes were not called!"
+
+    def __getitem__(self, name: str) -> Route:
+        return self.routes[name]
+
+    @overload
+    def pop(self, name: str) -> Route:
+        ...  # pragma: nocover
+
+    @overload
+    def pop(self, name: str, default: DefaultType) -> Union[Route, DefaultType]:
+        ...  # pragma: nocover
+
+    def pop(self, name, default=...):
+        """
+        Removes a route by name and returns it.
+
+        Raises KeyError when `default` not provided and name is not found.
+        """
+        try:
+            return self.routes.pop(name)
+        except KeyError as ex:
+            if default is ...:
+                raise ex
+            return default
+
+    def route(
+        self, *patterns: Pattern, name: Optional[str] = None, **lookups: Any
+    ) -> Route:
+        route = Route(*patterns, **lookups)
+        return self.add(route, name=name)
+
+    def add(self, route: Route, *, name: Optional[str] = None) -> Route:
+        """
+        Adds a route with optionally given name,
+        replacing any existing route with same name or pattern.
+        """
+        if not isinstance(route, Route):
+            raise ValueError(
+                f"Invalid route {route!r}, please use respx.route(...).mock(...)"
+            )
+
+        route._pattern = merge_patterns(route.pattern, **self._bases)
+        route = self.routes.add(route, name=name)
+        return route
+
+    def request(
+        self,
+        method: str,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        if lookups:
+            # Validate that lookups doesn't contain method or url
+            pattern_keys = {p.split("__", 1)[0] for p in lookups.keys()}
+            if "method" in pattern_keys:
+                raise TypeError("Got multiple values for pattern 'method'")
+            elif url and "url" in pattern_keys:
+                raise TypeError("Got multiple values for pattern 'url'")
+
+        return self.route(method=method, url=url, name=name, **lookups)
+
+    def get(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="GET", url=url, name=name, **lookups)
+
+    def post(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="POST", url=url, name=name, **lookups)
+
+    def put(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="PUT", url=url, name=name, **lookups)
+
+    def patch(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="PATCH", url=url, name=name, **lookups)
+
+    def delete(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="DELETE", url=url, name=name, **lookups)
+
+    def head(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="HEAD", url=url, name=name, **lookups)
+
+    def options(
+        self,
+        url: Optional[URLPatternTypes] = None,
+        *,
+        name: Optional[str] = None,
+        **lookups: Any,
+    ) -> Route:
+        return self.request(method="OPTIONS", url=url, name=name, **lookups)
+
+    def record(
+        self,
+        request: httpx.Request,
+        *,
+        response: Optional[httpx.Response] = None,
+        route: Optional[Route] = None,
+    ) -> None:
+        call = self.calls.record(request, response)
+        if route:
+            route.calls.append(call)
+
+    @contextmanager
+    def resolver(self, request: httpx.Request) -> Generator[ResolvedRoute, None, None]:
+        resolved = ResolvedRoute()
+
+        try:
+            yield resolved
+
+            if resolved.route is None:
+                # Assert we always get a route match, if check is enabled
+                if self._assert_all_mocked:
+                    raise AllMockedAssertionError(f"RESPX: {request!r} not mocked!")
+
+                # Auto mock a successful empty response
+                resolved.response = httpx.Response(200)
+
+            elif resolved.response == request:
+                # Pass-through request
+                raise PassThrough(
+                    f"Request marked to pass through: {request!r}",
+                    request=request,
+                    origin=resolved.route,
+                )
+
+            else:
+                # Mocked response
+                assert isinstance(resolved.response, httpx.Response)
+
+        except SideEffectError as error:
+            self.record(request, response=None, route=error.route)
+            raise error.origin from error
+        except PassThrough:
+            self.record(request, response=None, route=resolved.route)
+            raise
+        else:
+            self.record(request, response=resolved.response, route=resolved.route)
+
+    def resolve(self, request: httpx.Request) -> ResolvedRoute:
+        with self.resolver(request) as resolved:
+            for route in self.routes:
+                prospect = route.match(request)
+                if prospect is not None:
+                    resolved.route = route
+                    resolved.response = cast(ResolvedResponseTypes, prospect)
+                    break
+
+        if resolved.response and isinstance(resolved.response.stream, httpx.ByteStream):
+            resolved.response.read()  # Pre-read stream
+
+        return resolved
+
+    async def aresolve(self, request: httpx.Request) -> ResolvedRoute:
+        with self.resolver(request) as resolved:
+            for route in self.routes:
+                prospect: RouteResultTypes = route.match(request)
+
+                # Await async side effect and wrap any exception
+                if inspect.isawaitable(prospect):
+                    try:
+                        prospect = await prospect
+                    except Exception as error:
+                        raise SideEffectError(route, origin=error) from error
+
+                if prospect is not None:
+                    resolved.route = route
+                    resolved.response = cast(ResolvedResponseTypes, prospect)
+                    break
+
+        if resolved.response and isinstance(resolved.response.stream, httpx.ByteStream):
+            await resolved.response.aread()  # Pre-read stream
+
+        return resolved
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        resolved = self.resolve(request)
+        assert isinstance(resolved.response, httpx.Response)
+        return resolved.response
+
+    async def async_handler(self, request: httpx.Request) -> httpx.Response:
+        resolved = await self.aresolve(request)
+        assert isinstance(resolved.response, httpx.Response)
+        return resolved.response
+
+
+class MockRouter(Router):
+    def __init__(
+        self,
+        *,
+        assert_all_called: bool = True,
+        assert_all_mocked: bool = True,
+        base_url: Optional[str] = None,
+        using: Optional[Union[str, Default]] = DEFAULT,
+    ) -> None:
+        super().__init__(
+            assert_all_called=assert_all_called,
+            assert_all_mocked=assert_all_mocked,
+            base_url=base_url,
+        )
+        self.Mocker: Optional[Type[Mocker]] = None
+        self._using = using
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        assert_all_called: Optional[bool] = None,
+        assert_all_mocked: Optional[bool] = None,
+        base_url: Optional[str] = None,
+        using: Optional[Union[str, Default]] = DEFAULT,
+    ) -> "MockRouter":
+        ...  # pragma: nocover
+
+    @overload
+    def __call__(
+        self,
+        func: Callable = ...,
+        *,
+        assert_all_called: Optional[bool] = None,
+        assert_all_mocked: Optional[bool] = None,
+        base_url: Optional[str] = None,
+        using: Optional[Union[str, Default]] = DEFAULT,
+    ) -> Callable:
+        ...  # pragma: nocover
+
+    def __call__(
+        self,
+        func: Optional[Callable] = None,
+        *,
+        assert_all_called: Optional[bool] = None,
+        assert_all_mocked: Optional[bool] = None,
+        base_url: Optional[str] = None,
+        using: Optional[Union[str, Default]] = DEFAULT,
+    ) -> Union["MockRouter", Callable]:
+        """
+        Decorator or Context Manager.
+
+        Use decorator/manager with parentheses for local state, or without parentheses
+        for global state, i.e. shared patterns added outside of scope.
+        """
+        if func is None:
+            # Parentheses used, branch out to new nested instance.
+            # - Only stage when using local ctx `with respx.mock(...) as respx_mock:`
+            # - First stage when using local decorator `@respx.mock(...)`
+            #   FYI, global ctx `with respx.mock:` hits __enter__ directly
+            settings: Dict[str, Any] = {
+                "base_url": base_url,
+                "using": using,
+            }
+            if assert_all_called is not None:
+                settings["assert_all_called"] = assert_all_called
+            if assert_all_mocked is not None:
+                settings["assert_all_mocked"] = assert_all_mocked
+            respx_mock = self.__class__(**settings)
+            return respx_mock
+
+        # Determine if decorated function needs a `respx_mock` instance
+        is_async = inspect.iscoroutinefunction(func)
+        argspec = inspect.getfullargspec(func)
+        needs_mock_reference = "respx_mock" in argspec.args
+
+        if needs_mock_reference:
+            func = partial(func, respx_mock=self)
+
+        # Async Decorator
+        async def _async_decorator(*args, **kwargs):
+            assert func is not None
+            async with self:
+                return await func(*args, **kwargs)
+
+        # Sync Decorator
+        def _sync_decorator(*args, **kwargs):
+            assert func is not None
+            with self:
+                return func(*args, **kwargs)
+
+        if needs_mock_reference:
+            async_decorator = wraps(func)(_async_decorator)
+            sync_decorator = wraps(func)(_sync_decorator)
+        else:
+            async_decorator = update_wrapper(_async_decorator, func)
+            sync_decorator = update_wrapper(_sync_decorator, func)
+
+        # Dispatch async/sync decorator, depending on decorated function.
+        # - Only stage when using global decorator `@respx.mock`
+        # - Second stage when using local decorator `@respx.mock(...)`
+        return async_decorator if is_async else sync_decorator
+
+    def __enter__(self) -> "MockRouter":
+        self.start()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]] = None,
+        exc_value: Optional[BaseException] = None,
+        traceback: Optional[TracebackType] = None,
+    ) -> None:
+        self.stop(quiet=bool(exc_type is not None))
+
+    async def __aenter__(self) -> "MockRouter":
+        return self.__enter__()
+
+    async def __aexit__(self, *args: Any) -> None:
+        self.__exit__(*args)
+
+    @property
+    def using(self) -> Optional[str]:
+        from respx.mocks import DEFAULT_MOCKER
+
+        if self._using is None:
+            using = None
+        elif self._using is DEFAULT:
+            using = DEFAULT_MOCKER
+        elif isinstance(self._using, str):
+            using = self._using
+        else:
+            raise ValueError(f"Invalid Router `using` kwarg: {self._using!r}")
+
+        return using
+
+    def start(self) -> None:
+        """
+        Register transport, snapshot router and start patching.
+        """
+        self.snapshot()
+        self.Mocker = Mocker.registry.get(self.using or "")
+        if self.Mocker:
+            self.Mocker.register(self)
+            self.Mocker.start()
+
+    def stop(self, clear: bool = True, reset: bool = True, quiet: bool = False) -> None:
+        """
+        Unregister transport and rollback router.
+        Stop patching when no registered transports left.
+        """
+        unregistered = self.Mocker.unregister(self) if self.Mocker else True
+
+        try:
+            if unregistered and not quiet and self._assert_all_called:
+                self.assert_all_called()
+        finally:
+            if clear:
+                self.rollback()
+            if reset:
+                self.reset()
+            if self.Mocker:
+                self.Mocker.stop()
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/respx/respx/transports.py</source>
+<document_content>
+from types import TracebackType
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Coroutine,
+    List,
+    Optional,
+    Type,
+    Union,
+    cast,
+)
+from warnings import warn
+
+import httpx
+from httpx import AsyncBaseTransport, BaseTransport
+
+from .models import PassThrough
+
+if TYPE_CHECKING:
+    from .router import Router  # pragma: nocover
+
+RequestHandler = Callable[[httpx.Request], httpx.Response]
+AsyncRequestHandler = Callable[[httpx.Request], Coroutine[None, None, httpx.Response]]
+
+
+class MockTransport(httpx.MockTransport):
+    _router: Optional["Router"]
+
+    def __init__(
+        self,
+        *,
+        handler: Optional[RequestHandler] = None,
+        async_handler: Optional[AsyncRequestHandler] = None,
+        router: Optional["Router"] = None,
+    ):
+        if router:
+            super().__init__(router.handler)
+            self._router = router
+        elif handler:
+            super().__init__(handler)
+            self._router = None
+        elif async_handler:
+            super().__init__(async_handler)
+            self._router = None
+        else:
+            raise RuntimeError(
+                "Missing a MockTransport required handler or router argument"
+            )
+        warn(
+            "MockTransport is deprecated. "
+            "Please use `httpx.MockTransport(respx_router.handler)`.",
+            category=DeprecationWarning,
+        )
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]] = None,
+        exc_value: Optional[BaseException] = None,
+        traceback: Optional[TracebackType] = None,
+    ) -> None:
+        if not exc_type and self._router and self._router._assert_all_called:
+            self._router.assert_all_called()
+
+    async def __aexit__(self, *args: Any) -> None:
+        self.__exit__(*args)
+
+
+class TryTransport(BaseTransport, AsyncBaseTransport):
+    def __init__(
+        self, transports: List[Union[BaseTransport, AsyncBaseTransport]]
+    ) -> None:
+        self.transports = transports
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        for transport in self.transports:
+            try:
+                transport = cast(BaseTransport, transport)
+                return transport.handle_request(request)
+            except PassThrough:
+                continue
+
+        raise RuntimeError()  # pragma: nocover
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        for transport in self.transports:
+            try:
+                transport = cast(AsyncBaseTransport, transport)
+                return await transport.handle_async_request(request)
+            except PassThrough:
+                continue
+
+        raise RuntimeError()  # pragma: nocover
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/respx/respx/types.py</source>
+<document_content>
+from typing import (
+    IO,
+    Any,
+    AsyncIterable,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
+
+import httpx
+
+URL = Tuple[
+    bytes,  # scheme
+    bytes,  # host
+    Optional[int],  # port
+    bytes,  # path
+]
+Headers = List[Tuple[bytes, bytes]]
+Content = Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]
+
+HeaderTypes = Union[
+    httpx.Headers,
+    Dict[str, str],
+    Dict[bytes, bytes],
+    Sequence[Tuple[str, str]],
+    Sequence[Tuple[bytes, bytes]],
+]
+CookieTypes = Union[Dict[str, str], Sequence[Tuple[str, str]]]
+
+DefaultType = TypeVar("DefaultType", bound=Any)
+
+URLPatternTypes = Union[str, Pattern[str], URL, httpx.URL]
+QueryParamTypes = Union[
+    bytes, str, List[Tuple[str, Any]], Dict[str, Any], Tuple[Tuple[str, Any], ...]
+]
+
+ResolvedResponseTypes = Optional[Union[httpx.Request, httpx.Response]]
+RouteResultTypes = Union[ResolvedResponseTypes, Awaitable[ResolvedResponseTypes]]
+CallableSideEffect = Callable[..., RouteResultTypes]
+SideEffectListTypes = Union[httpx.Response, Exception, Type[Exception]]
+SideEffectTypes = Union[
+    CallableSideEffect,
+    Exception,
+    Type[Exception],
+    Iterator[SideEffectListTypes],
+]
+
+# Borrowed from HTTPX's "private" types.
+FileContent = Union[IO[bytes], bytes, str]
+FileTypes = Union[
+    # file (or bytes)
+    FileContent,
+    # (filename, file (or bytes))
+    Tuple[Optional[str], FileContent],
+    # (filename, file (or bytes), content_type)
+    Tuple[Optional[str], FileContent, Optional[str]],
+    # (filename, file (or bytes), content_type, headers)
+    Tuple[Optional[str], FileContent, Optional[str], Mapping[str, str]],
+]
+RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/respx/respx/utils.py</source>
+<document_content>
+import email
+from datetime import datetime
+from email.message import Message
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
+from urllib.parse import parse_qsl
+
+import httpx
+
+
+class MultiItems(dict):
+    def get_list(self, key: str) -> List[Any]:
+        try:
+            return [self[key]]
+        except KeyError:  # pragma: no cover
+            return []
+
+    def multi_items(self) -> List[Tuple[str, Any]]:
+        return list(self.items())
+
+
+def _parse_multipart_form_data(
+    content: bytes, *, content_type: str, encoding: str
+) -> Tuple[MultiItems, MultiItems]:
+    form_data = b"\r\n".join(
+        (
+            b"MIME-Version: 1.0",
+            b"Content-Type: " + content_type.encode(encoding),
+            b"\r\n" + content,
+        )
+    )
+    data = MultiItems()
+    files = MultiItems()
+    for payload in email.message_from_bytes(form_data).get_payload():
+        payload = cast(Message, payload)
+        name = payload.get_param("name", header="Content-Disposition")
+        filename = payload.get_filename()
+        content_type = payload.get_content_type()
+        value = payload.get_payload(decode=True)
+        assert isinstance(value, bytes)
+        if content_type.startswith("text/") and filename is None:
+            # Text field
+            data[name] = value.decode(payload.get_content_charset() or "utf-8")
+        else:
+            # File field
+            files[name] = filename, value
+
+    return data, files
+
+
+def _parse_urlencoded_data(content: bytes, *, encoding: str) -> MultiItems:
+    return MultiItems(
+        (key, value)
+        for key, value in parse_qsl(content.decode(encoding), keep_blank_values=True)
+    )
+
+
+def decode_data(request: httpx.Request) -> Tuple[MultiItems, MultiItems]:
+    content = request.read()
+    content_type = request.headers.get("Content-Type", "")
+
+    if content_type.startswith("multipart/form-data"):
+        data, files = _parse_multipart_form_data(
+            content,
+            content_type=content_type,
+            encoding=request.headers.encoding,
+        )
+    else:
+        data = _parse_urlencoded_data(
+            content,
+            encoding=request.headers.encoding,
+        )
+        files = MultiItems()
+
+    return data, files
+
+
+Self = TypeVar("Self", bound="SetCookie")
+
+
+class SetCookie(
+    NamedTuple(
+        "SetCookie",
+        [
+            ("header_name", Literal["Set-Cookie"]),
+            ("header_value", str),
+        ],
+    )
+):
+    def __new__(
+        cls: Type[Self],
+        name: str,
+        value: str,
+        *,
+        path: Optional[str] = None,
+        domain: Optional[str] = None,
+        expires: Optional[Union[str, datetime]] = None,
+        max_age: Optional[int] = None,
+        http_only: bool = False,
+        same_site: Optional[Literal["Strict", "Lax", "None"]] = None,
+        secure: bool = False,
+        partitioned: bool = False,
+    ) -> Self:
+        """
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#syntax
+        """
+        attrs: Dict[str, Union[str, bool]] = {name: value}
+        if path is not None:
+            attrs["Path"] = path
+        if domain is not None:
+            attrs["Domain"] = domain
+        if expires is not None:
+            if isinstance(expires, datetime):  # pragma: no branch
+                expires = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+            attrs["Expires"] = expires
+        if max_age is not None:
+            attrs["Max-Age"] = str(max_age)
+        if http_only:
+            attrs["HttpOnly"] = True
+        if same_site is not None:
+            attrs["SameSite"] = same_site
+            if same_site == "None":  # pragma: no branch
+                secure = True
+        if secure:
+            attrs["Secure"] = True
+        if partitioned:
+            attrs["Partitioned"] = True
+
+        string = "; ".join(
+            _name if _value is True else f"{_name}={_value}"
+            for _name, _value in attrs.items()
+        )
+        self = super().__new__(cls, "Set-Cookie", string)
+        return self
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/respx/tests/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/respx/tests/conftest.py</source>
+<document_content>
+import httpx
+import pytest
+
+import respx
+from respx.fixtures import session_event_loop as event_loop  # noqa: F401
+
+pytest_plugins = ["pytester"]
+
+
+@pytest.fixture
+async def client():
+    async with httpx.AsyncClient() as client:
+        yield client
+
+
+@pytest.fixture
+async def my_mock():
+    async with respx.mock(
+        base_url="https://httpx.mock", using="httpcore"
+    ) as respx_mock:
+        respx_mock.get("/", name="index").respond(404)
+        yield respx_mock
+
+
+@pytest.fixture(scope="session")
+async def mocked_foo(event_loop):  # noqa: F811
+    async with respx.mock(
+        base_url="https://foo.api/api/", using="httpcore"
+    ) as respx_mock:
+        respx_mock.get("/", name="index").respond(202)
+        respx_mock.get("/bar/", name="bar")
+        yield respx_mock
+
+
+@pytest.fixture(scope="session")
+async def mocked_ham(event_loop):  # noqa: F811
+    async with respx.mock(base_url="https://ham.api", using="httpcore") as respx_mock:
+        respx_mock.get("/", name="index").respond(200)
+        yield respx_mock
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/respx/tests/test_api.py</source>
+<document_content>
+import asyncio
+import json as jsonlib
+import re
+import socket
+from unittest import mock
+
+import httpcore
+import httpx
+import pytest
+
+import respx
+from respx.models import Route
+from respx.patterns import M
+from respx.router import MockRouter
+
+
+async def test_http_methods(client):
+    async with respx.mock:
+        url = "https://foo.bar"
+        route = respx.get(url, path="/") % 404
+        respx.post(url, path="/").respond(200)
+        respx.post(url, path="/").respond(201)
+        respx.put(url, path="/").respond(202)
+        respx.patch(url, path="/").respond(500)
+        respx.delete(url, path="/").respond(204)
+        respx.head(url, path="/").respond(405)
+        respx.options(url, path="/").respond(status_code=501)
+        respx.request("GET", url, path="/baz/").respond(status_code=204)
+        url += "/"
+
+        response = httpx.get(url)
+        assert response.status_code == 404
+        response = await client.get(url)
+        assert response.status_code == 404
+
+        response = httpx.get(url + "baz/")
+        assert response.status_code == 204
+        response = await client.get(url + "baz/")
+        assert response.status_code == 204
+
+        response = httpx.post(url)
+        assert response.status_code == 201
+        response = await client.post(url)
+        assert response.status_code == 201
+
+        response = httpx.put(url)
+        assert response.status_code == 202
+        response = await client.put(url)
+        assert response.status_code == 202
+
+        response = httpx.patch(url)
+        assert response.status_code == 500
+        response = await client.patch(url)
+        assert response.status_code == 500
+
+        response = httpx.delete(url)
+        assert response.status_code == 204
+        response = await client.delete(url)
+        assert response.status_code == 204
+
+        response = httpx.head(url)
+        assert response.status_code == 405
+        response = await client.head(url)
+        assert response.status_code == 405
+
+        response = httpx.options(url)
+        assert response.status_code == 501
+        response = await client.options(url)
+        assert response.status_code == 501
+
+        assert route.called is True
+        assert respx.calls.call_count == 8 * 2
+
+
+@pytest.mark.parametrize(
+    ("url", "pattern"),
+    [
+        ("https://foo.bar", "https://foo.bar"),
+        ("https://foo.bar/baz/", None),
+        ("https://foo.bar/baz/", ""),
+        ("https://foo.bar/baz/", "https://foo.bar/baz/"),
+        ("https://foo.bar/baz/", re.compile(r"^https://foo.bar/\w+/$")),
+        ("https://foo.bar/baz/", (b"https", b"foo.bar", None, b"/baz/")),
+        ("https://foo.bar:443/baz/", (b"https", b"foo.bar", 443, b"/baz/")),
+        ("https://foo.bar/%08", "https://foo.bar/%08"),
+    ],
+)
+async def test_url_match(client, url, pattern):
+    async with MockRouter(assert_all_mocked=False) as respx_mock:
+        request = respx_mock.get(pattern) % dict(content="baz")
+        response = await client.get(url)
+        assert request.called is True
+        assert response.status_code == 200
+        assert response.text == "baz"
+
+
+async def test_invalid_url_pattern():
+    async with MockRouter() as respx_mock:
+        with pytest.raises(TypeError):
+            respx_mock.get(["invalid"])  # type: ignore[arg-type]
+
+
+async def test_repeated_pattern(client):
+    async with MockRouter() as respx_mock:
+        url = "https://foo/bar/baz/"
+        route = respx_mock.post(url)
+        route.side_effect = [
+            httpx.Response(201),
+            httpx.Response(409),
+        ]
+
+        response1 = await client.post(url, json={})
+        response2 = await client.post(url, json={})
+        with pytest.raises(RuntimeError):
+            await client.post(url, json={})
+
+        assert response1.status_code == 201
+        assert response2.status_code == 409
+        assert respx_mock.calls.call_count == 2
+
+        assert route.called is True
+        assert route.call_count == 2
+        statuses = [call.response.status_code for call in route.calls]
+        assert statuses == [201, 409]
+
+
+async def test_status_code(client):
+    async with MockRouter() as respx_mock:
+        url = "https://foo.bar/"
+        request = respx_mock.get(url) % 404
+        response = await client.get(url)
+
+    assert request.called is True
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("headers", "content_type", "expected"),
+    [
+        ({"X-Foo": "bar"}, None, {"X-Foo": "bar"}),
+        (
+            {"Content-Type": "foo/bar", "X-Foo": "bar"},
+            None,
+            {"Content-Type": "foo/bar", "X-Foo": "bar"},
+        ),
+        (
+            {"Content-Type": "foo/bar", "X-Foo": "bar"},
+            "ham/spam",
+            {"Content-Type": "ham/spam", "X-Foo": "bar"},
+        ),
+    ],
+)
+async def test_headers(client, headers, content_type, expected):
+    async with MockRouter() as respx_mock:
+        url = "https://foo.bar/"
+        request = respx_mock.get(url).respond(
+            headers=headers, content_type=content_type
+        )
+        response = await client.get(url)
+        assert request.called is True
+        assert response.headers == httpx.Headers(expected)
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (b"eldr\xc3\xa4v", "eldräv"),
+        ("äpple", "äpple"),
+        ("Geh&#xE4;usegröße", "Geh&#xE4;usegröße"),
+    ],
+)
+async def test_text_encoding(client, content, expected):
+    async with MockRouter() as respx_mock:
+        url = "https://foo.bar/"
+        request = respx_mock.post(url) % dict(content=content)
+        response = await client.post(url)
+        assert request.called is True
+        assert response.text == expected
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "expected_content_type"),
+    [
+        ("content", b"foobar", None),
+        ("content", "foobar", None),
+        ("json", ["foo", "bar"], "application/json"),
+        ("json", {"foo": "bar"}, "application/json"),
+        ("text", "foobar", "text/plain; charset=utf-8"),
+        ("html", "<strong>foobar</strong>", "text/html; charset=utf-8"),
+    ],
+)
+async def test_content_variants(client, key, value, expected_content_type):
+    async with MockRouter() as respx_mock:
+        url = "https://foo.bar/"
+        request = respx_mock.get(url) % {key: value}
+
+        async_response = await client.get(url)
+        assert request.called is True
+        assert async_response.headers.get("Content-Type") == expected_content_type
+        assert async_response.content is not None
+
+        respx_mock.reset()
+        sync_response = httpx.get(url)
+        assert request.called is True
+        assert sync_response.headers.get("Content-Type") == expected_content_type
+        assert sync_response.content is not None
+
+
+@pytest.mark.parametrize(
+    ("content", "headers", "expected_headers"),
+    [
+        (
+            {"foo": "bar"},
+            {"X-Foo": "bar"},
+            {
+                "Content-Type": "application/json",
+                "Content-Length": "13",
+                "X-Foo": "bar",
+            },
+        ),
+        (
+            ["foo", "bar"],
+            {"Content-Type": "application/json; charset=utf-8", "X-Foo": "bar"},
+            {
+                "Content-Type": "application/json; charset=utf-8",
+                "Content-Length": "13",
+                "X-Foo": "bar",
+            },
+        ),
+    ],
+)
+async def test_json_content(client, content, headers, expected_headers):
+    async with MockRouter() as respx_mock:
+        url = "https://foo.bar/"
+        request = respx_mock.get(url) % dict(json=content, headers=headers)
+
+        async_response = await client.get(url)
+        assert request.called is True
+        assert async_response.headers == httpx.Headers(expected_headers)
+        assert async_response.json() == content
+
+        respx_mock.reset()
+        sync_response = httpx.get(url)
+        assert request.called is True
+        assert sync_response.headers == httpx.Headers(expected_headers)
+        assert sync_response.json() == content
+
+
+def test_json_post_body():
+    post_url = "https://example.org/"
+    get_url = "https://something.else/"
+
+    with respx.mock:
+        post_route = respx.post(post_url, json={"foo": "bar"}) % 201
+        get_route = respx.get(get_url) % 204
+
+        post_response = httpx.post(post_url, json={"foo": "bar"})
+        assert post_response.status_code == 201
+        assert post_route.called
+
+        get_response = httpx.get(get_url)
+        assert get_response.status_code == 204
+        assert get_route.called
+
+
+def test_data_post_body():
+    with respx.mock:
+        url = "https://foo.bar/"
+        route = respx.post(url, data={"foo": "bar"}) % 201
+        response = httpx.post(url, data={"foo": "bar"}, files={"file": b"..."})
+        assert response.status_code == 201
+        assert route.called
+
+
+def test_files_post_body():
+    with respx.mock:
+        url = "https://foo.bar/"
+        file = ("file", ("filename.txt", b"...", "text/plain", {"X-Foo": "bar"}))
+        route = respx.post(url, files={"file": mock.ANY}) % 201
+        response = httpx.post(url, files=[file])
+        assert response.status_code == 201
+        assert route.called
+
+
+async def test_raising_content(client):
+    async with MockRouter() as respx_mock:
+        url = "https://foo.bar/"
+        request = respx_mock.get(url)
+        request.side_effect = httpx.ConnectTimeout("X-P", request=None)
+        with pytest.raises(httpx.ConnectTimeout):
+            await client.get(url)
+
+        assert request.called is True
+        _request, _response = request.calls[-1]
+        assert _request is not None
+        assert _response is None
+
+        # Test httpx exception class get instantiated
+        route = respx_mock.get(url).mock(side_effect=httpx.ConnectError)
+        with pytest.raises(httpx.ConnectError):
+            await client.get(url)
+
+        assert route.call_count == 2
+        assert route.calls.last.request is not None
+        assert route.calls.last.has_response is False
+        with pytest.raises(ValueError, match="has no response"):
+            assert route.calls.last.response
+
+
+async def test_callable_content(client):
+    async with MockRouter() as respx_mock:
+        url_pattern = re.compile(r"https://foo.bar/(?P<slug>\w+)/")
+
+        def content_callback(request, slug):
+            content = jsonlib.loads(request.content)
+            return respx.MockResponse(content=f"hello {slug}{content['x']}")
+
+        request = respx_mock.post(url_pattern)
+        request.side_effect = content_callback
+
+        async_response = await client.post("https://foo.bar/world/", json={"x": "."})
+        assert request.called is True
+        assert async_response.status_code == 200
+        assert async_response.text == "hello world."
+        assert request.calls[-1][0].content == b'{"x":"."}'
+
+        respx_mock.reset()
+        sync_response = httpx.post("https://foo.bar/jonas/", json={"x": "!"})
+        assert request.called is True
+        assert sync_response.status_code == 200
+        assert sync_response.text == "hello jonas!"
+        assert request.calls[-1][0].content == b'{"x":"!"}'
+
+
+async def test_request_callback(client):
+    def callback(request, name):
+        if request.url.host == "foo.bar" and request.content == b'{"foo":"bar"}':
+            return respx.MockResponse(
+                202,
+                headers={"X-Foo": "bar"},
+                text=f"hello {name}",
+                http_version="HTTP/2",
+            )
+        return httpx.Response(404)
+
+    async with MockRouter(assert_all_called=False) as respx_mock:
+        request = respx_mock.post(host="foo.bar", path__regex=r"/(?P<name>\w+)/")
+        request.side_effect = callback
+
+        response = await client.post("https://foo.bar/lundberg/")
+        assert response.status_code == 404
+
+        response = await client.post("https://foo.bar/lundberg/", json={"foo": "bar"})
+        assert request.called is True
+        assert not request.is_pass_through
+        assert response.status_code == 202
+        assert response.http_version == "HTTP/2"
+        assert response.headers == httpx.Headers(
+            {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Content-Length": "14",
+                "X-Foo": "bar",
+            }
+        )
+        assert response.text == "hello lundberg"
+
+        respx_mock.get("https://ham.spam/").mock(
+            side_effect=lambda req: "invalid"  # type: ignore[arg-type]
+        )
+
+        def _callback(request):
+            raise httpcore.NetworkError()
+
+        respx_mock.get("https://egg.plant").mock(side_effect=_callback)
+
+        with pytest.raises(TypeError):
+            await client.get("https://ham.spam/")
+
+        with pytest.raises(httpx.NetworkError):
+            await client.get("https://egg.plant/")
+
+
+@pytest.mark.parametrize(
+    ("using", "route", "expected"),
+    [
+        ("httpcore", Route(url="https://example.org/").pass_through(), True),
+        ("httpx", Route(url="https://example.org/").pass_through(), True),
+        ("httpcore", Route().mock(side_effect=lambda request: request), False),
+        ("httpcore", Route().pass_through(), True),
+    ],
+)
+async def test_pass_through(client, using, route, expected):
+    async with MockRouter(using=using) as respx_mock:
+        request = respx_mock.add(route)
+
+        with mock.patch(
+            "anyio.connect_tcp",
+            side_effect=ConnectionRefusedError("test request blocked"),
+        ) as open_connection:
+            with pytest.raises(httpx.NetworkError):
+                await client.get("https://example.org/")
+
+        assert open_connection.called is True
+        assert request.called is True
+        assert request.is_pass_through is expected
+
+    with MockRouter(using=using) as respx_mock:
+        request = respx_mock.add(route)
+
+        with mock.patch(
+            "socket.create_connection", side_effect=socket.error("test request blocked")
+        ) as connect:
+            with pytest.raises(httpx.NetworkError):
+                httpx.get("https://example.org/")
+
+        assert connect.called is True
+        assert request.called is True
+        assert request.is_pass_through is expected
+
+
+@respx.mock
+async def test_parallel_requests(client):
+    def content(request, page):
+        return httpx.Response(200, text=page)
+
+    url_pattern = re.compile(r"https://foo/(?P<page>\w+)/$")
+    respx.get(url_pattern).mock(side_effect=content)
+
+    responses = await asyncio.gather(
+        client.get("https://foo/one/"), client.get("https://foo/two/")
+    )
+    response_one, response_two = responses
+
+    assert response_one.text == "one"
+    assert response_two.text == "two"
+    assert respx.calls.call_count == 2
+
+
+@pytest.mark.parametrize(
+    ("method_str", "client_method_attr"),
+    [
+        ("DELETE", "delete"),
+        ("delete", "delete"),
+        ("GET", "get"),
+        ("get", "get"),
+        ("HEAD", "head"),
+        ("head", "head"),
+        ("OPTIONS", "options"),
+        ("options", "options"),
+        ("PATCH", "patch"),
+        ("patch", "patch"),
+        ("POST", "post"),
+        ("post", "post"),
+        ("PUT", "put"),
+        ("put", "put"),
+    ],
+)
+async def test_method_case(client, method_str, client_method_attr):
+    url = "https://example.org/"
+    content = {"spam": "lots", "ham": "no, only spam"}
+    async with MockRouter() as respx_mock:
+        request = respx_mock.route(method=method_str, url=url) % dict(json=content)
+        response = await getattr(client, client_method_attr)(url)
+        assert request.called is True
+        assert response.json() == content
+
+
+def test_pop():
+    with respx.mock:
+        request = respx.get("https://foo.bar/", name="foobar")
+        popped = respx.pop("foobar")
+        assert popped is request
+
+        with pytest.raises(KeyError):
+            respx.pop("foobar")
+
+        assert respx.pop("foobar", "custom default") == "custom default"
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    ("url", "params", "call_url", "call_params"),
+    [
+        ("https://foo/", "foo=bar", "https://foo/", "foo=bar"),
+        ("https://foo/", b"foo=bar", "https://foo/", b"foo=bar"),
+        ("https://foo/", [("foo", "bar")], "https://foo/", [("foo", "bar")]),
+        ("https://foo/", {"foo": "bar"}, "https://foo/", {"foo": "bar"}),
+        ("https://foo/", (("foo", "bar"),), "https://foo/", (("foo", "bar"),)),
+        ("https://foo?foo=bar", "baz=qux", "https://foo?foo=bar", "baz=qux"),
+        ("https://foo?foo=bar", "baz=qux", "https://foo?foo=bar&baz=qux", None),
+        (re.compile(r"https://foo/(\w+)/"), "foo=bar", "https://foo/bar/", "foo=bar"),
+        (httpx.URL("https://foo/"), "foo=bar", "https://foo/", "foo=bar"),
+        (
+            httpx.URL("https://foo?foo=bar"),
+            "baz=qux",
+            "https://foo?foo=bar&baz=qux",
+            None,
+        ),
+    ],
+)
+async def test_params_match(client, url, params, call_url, call_params):
+    respx.get(url, params=params) % dict(content="spam spam")
+    response = await client.get(call_url, params=call_params)
+    assert response.text == "spam spam"
+
+
+@pytest.mark.parametrize(
+    ("base", "url"),
+    [
+        (None, "https://foo.bar/baz/"),
+        ("", "https://foo.bar/baz/"),
+        ("https://foo.bar", "baz/"),
+        ("https://foo.bar/", "baz/"),
+        ("https://foo.bar/", "/baz/"),
+        ("https://foo.bar/baz/", None),
+        ("https://foo.bar/", re.compile(r"/(\w+)/")),
+    ],
+)
+async def test_build_url_base(client, base, url):
+    with respx.mock(base_url=base) as respx_mock:
+        respx_mock.get(url) % dict(content="spam spam")
+        response = await client.get("https://foo.bar/baz/")
+        assert response.text == "spam spam"
+
+
+def test_add():
+    with respx.mock:
+        route = Route(method="GET", url="https://foo.bar/")
+        respx.add(route, name="foobar")
+
+        response = httpx.get("https://foo.bar/")
+        assert response.status_code == 200
+        assert respx.routes["foobar"].called
+
+        with pytest.raises(TypeError):
+            respx.add(route, status_code=418)  # type: ignore[call-arg]
+
+        with pytest.raises(ValueError, match="Invalid route"):
+            respx.add("GET")  # type: ignore[arg-type]
+
+        with pytest.raises(NotImplementedError):
+            route.name = "spam"
+
+        with pytest.raises(NotImplementedError):
+            route.pattern &= M(params={"foo": "bar"})
+
+
+def test_respond():
+    with respx.mock:
+        route = respx.get("https://foo.bar/").respond(
+            content="<apa>lundberg</apa>",
+            content_type="text/xml",
+            http_version="HTTP/2",
+        )
+        response = httpx.get("https://foo.bar/")
+        assert response.status_code == 200
+        assert response.headers.get("Content-Type") == "text/xml"
+        assert response.http_version == "HTTP/2"
+
+        with pytest.raises(TypeError, match="content can only be"):
+            route.respond(content={})
+
+        with pytest.raises(TypeError, match="content can only be"):
+            route.respond(content=Exception())  # type: ignore[arg-type]
+
+
+def test_can_respond_with_cookies():
+    with respx.mock:
+        route = respx.get("https://foo.bar/").respond(
+            json={}, headers={"X-Foo": "bar"}, cookies={"foo": "bar", "ham": "spam"}
+        )
+        response = httpx.get("https://foo.bar/")
+        assert len(response.headers) == 5
+        assert response.headers["X-Foo"] == "bar", "mocked header is missing"
+        assert len(response.cookies) == 2
+        assert response.cookies["foo"] == "bar"
+        assert response.cookies["ham"] == "spam"
+
+        route.respond(cookies=[("egg", "yolk")])
+        response = httpx.get("https://foo.bar/")
+        assert len(response.cookies) == 1
+        assert response.cookies["egg"] == "yolk"
+
+        route.respond(
+            cookies=[respx.SetCookie("foo", "bar", path="/", same_site="Lax")]
+        )
+        response = httpx.get("https://foo.bar/")
+        assert len(response.cookies) == 1
+        assert response.cookies["foo"] == "bar"
+
+
+def test_can_mock_response_with_set_cookie_headers():
+    request = httpx.Request("GET", "https://example.com/")
+    response = httpx.Response(
+        200,
+        headers=[
+            respx.SetCookie("foo", value="bar"),
+            respx.SetCookie("ham", value="spam"),
+        ],
+        request=request,
+    )
+    assert len(response.cookies) == 2
+    assert response.cookies["foo"] == "bar"
+    assert response.cookies["ham"] == "spam"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"content": b"foobar"},
+        {"content": "foobar"},
+        {"json": {"foo": "bar"}},
+        {"json": [{"foo": "bar", "ham": "spam"}, {"zoo": "apa", "egg": "yolk"}]},
+        {"data": {"animal": "Räv", "name": "Röda Räven"}},
+    ],
+)
+async def test_async_post_content(kwargs):
+    async with respx.mock:
+        respx.post("https://foo.bar/", **kwargs) % 201
+        async with httpx.AsyncClient() as client:
+            response = await client.post("https://foo.bar/", **kwargs)
+            assert response.status_code == 201
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/respx/tests/test_mock.py</source>
+<document_content>
+from contextlib import ExitStack as does_not_raise
+
+import httpcore
+import httpx
+import pytest
+
+import respx
+from respx import ASGIHandler, WSGIHandler
+from respx.mocks import Mocker
+from respx.models import AllMockedAssertionError
+from respx.router import MockRouter
+
+
+@respx.mock
+async def test_decorating_test(client):
+    assert respx.calls.call_count == 0
+    respx.calls.assert_not_called()
+    request = respx.route(url="https://foo.bar/", name="home").respond(202)
+    response = await client.get("https://foo.bar/")
+    assert request.called is True
+    assert response.status_code == 202
+    assert respx.calls.call_count == 1
+    assert respx.routes["home"].call_count == 1
+    respx.calls.assert_called_once()
+    respx.routes["home"].calls.assert_called_once()
+
+
+async def test_mock_request_fixture(client, my_mock):
+    assert respx.calls.call_count == 0
+    assert my_mock.calls.call_count == 0
+    response = await client.get("https://httpx.mock/")
+    request = my_mock.routes["index"]
+    assert request.called is True
+    assert response.is_error
+    assert response.status_code == 404
+    assert respx.calls.call_count == 0
+    assert my_mock.calls.call_count == 1
+
+
+async def test_mock_single_session_fixture(client, mocked_foo):
+    current_foo_call_count = mocked_foo.calls.call_count
+    response = await client.get("https://foo.api/api/bar/")
+    request = mocked_foo.routes["bar"]
+    assert request.called is True
+    assert response.status_code == 200
+    assert mocked_foo.calls.call_count == current_foo_call_count + 1
+
+
+async def test_mock_multiple_session_fixtures(client, mocked_foo, mocked_ham):
+    current_foo_call_count = mocked_foo.calls.call_count
+    current_ham_call_count = mocked_ham.calls.call_count
+
+    response = await client.get("https://foo.api/api/")
+    request = mocked_foo.routes["index"]
+    assert request.called is True
+    assert response.status_code == 202
+
+    response = await client.get("https://ham.api/")
+    request = mocked_foo.routes["index"]
+    assert request.called is True
+    assert response.status_code == 200
+
+    assert mocked_foo.calls.call_count == current_foo_call_count + 1
+    assert mocked_ham.calls.call_count == current_ham_call_count + 1
+
+
+def test_global_sync_decorator():
+    @respx.mock
+    def test():
+        assert respx.calls.call_count == 0
+        request = respx.get("https://foo.bar/") % httpx.Response(202)
+        response = httpx.get("https://foo.bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 1
+
+    assert respx.calls.call_count == 0
+    test()
+    assert respx.calls.call_count == 0
+
+
+async def test_global_async_decorator(client):
+    @respx.mock
+    async def test():
+        assert respx.calls.call_count == 0
+        request = respx.get("https://foo.bar/") % httpx.Response(202)
+        response = await client.get("https://foo.bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 1
+
+    assert respx.calls.call_count == 0
+    await test()
+    assert respx.calls.call_count == 0
+
+
+@pytest.mark.parametrize("using", ["httpcore", "httpx"])
+def test_local_sync_decorator(using):
+    @respx.mock(using=using)
+    def test(respx_mock):
+        assert respx.calls.call_count == 0
+        request = respx_mock.get("https://foo.bar/") % 202
+        response = httpx.get("https://foo.bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 0
+        assert respx_mock.calls.call_count == 1
+
+        with pytest.raises(AllMockedAssertionError):
+            httpx.post("https://foo.bar/")
+
+    assert respx.calls.call_count == 0
+    test()
+    assert respx.calls.call_count == 0
+
+
+@pytest.mark.parametrize("using", ["httpcore", "httpx"])
+async def test_local_async_decorator(client, using):
+    @respx.mock(using=using)
+    async def test(respx_mock):
+        assert respx.calls.call_count == 0
+
+        stream = httpx.ByteStream(b"foobar")
+        request = respx_mock.get("https://foo.bar/").mock(
+            return_value=httpx.Response(202, stream=stream)
+        )
+
+        response = await client.get("https://foo.bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert response.content == b"foobar"
+        assert respx.calls.call_count == 0
+        assert respx_mock.calls.call_count == 1
+
+        with pytest.raises(AllMockedAssertionError):
+            httpx.post("https://foo.bar/")
+
+    assert respx.calls.call_count == 0
+    await test()
+    assert respx.calls.call_count == 0
+
+
+def test_local_decorator_with_reference():
+    router = respx.mock()
+
+    @router
+    def test(respx_mock):
+        assert respx_mock is router
+
+    test()
+
+
+def test_local_decorator_without_reference():
+    router = respx.mock()
+    route = router.get("https://foo.bar/") % 202
+
+    @router
+    def test():
+        assert respx.calls.call_count == 0
+        response = httpx.get("https://foo.bar/")
+        assert route.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 0
+        assert router.calls.call_count == 1
+
+    assert router.calls.call_count == 0
+    assert respx.calls.call_count == 0
+    test()
+    assert respx.calls.call_count == 0
+
+
+async def test_global_contextmanager(client):
+    with respx.mock:
+        assert respx.calls.call_count == 0
+        request = respx.get("https://foo/bar/") % 202
+        response = await client.get("https://foo/bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 1
+
+    async with respx.mock:
+        assert respx.calls.call_count == 0
+        request = respx.get("https://foo/bar/") % 202
+        response = await client.get("https://foo/bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 1
+
+    assert respx.calls.call_count == 0
+
+
+async def test_local_contextmanager(client):
+    with respx.mock() as respx_mock:
+        assert respx_mock.calls.call_count == 0
+        request = respx_mock.get("https://foo/bar/") % 202
+        response = await client.get("https://foo/bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 0
+        assert respx_mock.calls.call_count == 1
+
+    async with respx.mock() as respx_mock:
+        assert respx_mock.calls.call_count == 0
+        request = respx_mock.get("https://foo/bar/") % 202
+        response = await client.get("https://foo/bar/")
+        assert request.called is True
+        assert response.status_code == 202
+        assert respx.calls.call_count == 0
+        assert respx_mock.calls.call_count == 1
+
+    assert respx.calls.call_count == 0
+
+
+async def test_nested_local_contextmanager(client):
+    with respx.mock() as respx_mock_1:
+        get_request = respx_mock_1.get("https://foo/bar/") % 202
+
+        with respx.mock() as respx_mock_2:
+            post_request = respx_mock_2.post("https://foo/bar/") % 201
+            assert len(respx_mock_1.routes) == 1
+            assert len(respx_mock_2.routes) == 1
+
+            response = await client.get("https://foo/bar/")
+            assert get_request.called is True
+            assert response.status_code == 202
+            assert respx.calls.call_count == 0
+            assert respx_mock_1.calls.call_count == 1
+            assert respx_mock_2.calls.call_count == 0
+
+            response = await client.post("https://foo/bar/")
+            assert post_request.called is True
+            assert response.status_code == 201
+            assert respx.calls.call_count == 0
+            assert respx_mock_1.calls.call_count == 1
+            assert respx_mock_2.calls.call_count == 1
+
+    assert len(respx.routes) == 0
+
+
+async def test_nested_global_contextmanager(client):
+    with respx.mock:
+        get_request = respx.get("https://foo/bar/") % 202
+        assert len(respx.routes) == 1
+
+        with respx.mock:
+            post_request = respx.post("https://foo/bar/") % 201
+            assert len(respx.routes) == 2
+
+            response = await client.get("https://foo/bar/")
+            assert get_request.called is True
+            assert response.status_code == 202
+            assert respx.calls.call_count == 1
+
+            response = await client.post("https://foo/bar/")
+            assert post_request.called is True
+            assert response.status_code == 201
+            assert respx.calls.call_count == 2
+
+        assert len(respx.routes) == 1
+
+    assert len(respx.routes) == 0
+
+
+async def test_configured_decorator(client):
+    @respx.mock(assert_all_called=False, assert_all_mocked=False)
+    async def test(respx_mock):
+        assert respx_mock.calls.call_count == 0
+        request = respx_mock.get("https://foo.bar/")
+        response = await client.get("https://some.thing/")
+
+        assert response.status_code == 200
+        assert response.headers == httpx.Headers()
+        assert response.text == ""
+
+        assert request.called is False
+        assert respx.calls.call_count == 0
+        assert respx_mock.calls.call_count == 1
+
+        _request, _response = respx_mock.calls.last
+        assert _request is not None
+        assert _response is not None
+        assert respx_mock.calls.last.request is _request
+        assert respx_mock.calls.last.response is _response
+        assert _request.url == "https://some.thing/"
+
+    await test()
+    assert respx.calls.call_count == 0
+
+
+@respx.mock(base_url="https://foo.bar")
+async def test_configured_decorator_with_fixture(respx_mock, client):
+    respx_mock.get("/")
+    response = await client.get("https://foo.bar/")
+    assert response.status_code == 200
+
+
+async def test_configured_router_reuse(client):
+    router = respx.mock()
+    route = router.get("https://foo/bar/") % 404
+
+    assert len(router.routes) == 1
+    assert router.calls.call_count == 0
+
+    with router:
+        route.return_value = httpx.Response(202)
+        response = await client.get("https://foo/bar/")
+        assert route.called == True  # noqa: E712
+        assert response.status_code == 202
+        assert router.calls.call_count == 1
+        assert respx.calls.call_count == 0
+
+    assert len(router.routes) == 1
+    assert route.called == False  # noqa: E712
+    assert router.calls.call_count == 0
+
+    async with router:
+        assert router.calls.call_count == 0
+        response = await client.get("https://foo/bar/")
+        assert route.called == True  # noqa: E712
+        assert response.status_code == 404
+        assert router.calls.call_count == 1
+        assert respx.calls.call_count == 0
+
+    assert len(router.routes) == 1
+    assert route.called == False  # noqa: E712
+    assert router.calls.call_count == 0
+    assert respx.calls.call_count == 0
+
+
+async def test_router_return_type_misuse():
+    router = respx.mock(assert_all_called=False)
+    route = router.get("https://hot.dog/")
+
+    with pytest.raises(TypeError):
+        route.return_value = "not-a-httpx-response"  # type: ignore[assignment]
+
+
+@respx.mock(base_url="https://ham.spam/")
+async def test_nested_base_url(respx_mock):
+    request = respx_mock.patch("/egg/") % dict(content="yolk")
+    async with respx.mock(base_url="https://foo.bar/api/") as foobar_mock:
+        request1 = foobar_mock.get("/baz/") % dict(content="baz")
+        request2 = foobar_mock.post(path__regex=r"(?P<slug>\w+)/?$") % dict(text="slug")
+        request3 = foobar_mock.route() % dict(content="ok")
+        request4 = foobar_mock.patch("http://localhost/egg/") % 204
+
+        async with httpx.AsyncClient(base_url="https://foo.bar/api") as client:
+            response = await client.get("/baz/")
+            assert request1.called is True
+            assert response.text == "baz"
+
+            response = await client.post("/apa/")
+            assert request2.called is True
+            assert response.text == "slug"
+
+            response = await client.put("/")
+            assert request3.called is True
+            assert response.text == "ok"
+
+            response = await client.patch("http://localhost/egg/")
+            assert request4.called is True
+            assert response.status_code == 204
+
+            response = await client.patch("https://ham.spam/egg/")
+            assert request.called is True
+            assert response.text == "yolk"
+
+
+def test_leakage(mocked_foo, mocked_ham):
+    # NOTE: Including session fixtures, since they are pre-registered routers
+    assert len(respx.routes) == 0
+    assert len(respx.calls) == 0
+    assert len(Mocker.registry["httpcore"].routers) == 2
+
+
+async def test_start_stop(client):
+    url = "https://start.stop/"
+    request = respx.get(url) % 202
+
+    try:
+        respx.start()
+        response = await client.get(url)
+        assert request.called == True  # noqa: E712
+        assert response.status_code == 202
+        assert response.text == ""
+        assert respx.calls.call_count == 1
+
+        respx.stop(clear=False, reset=False)
+        assert len(respx.routes) == 1
+        assert respx.calls.call_count == 1
+        assert request.called == True  # noqa: E712
+
+        respx.reset()
+        assert len(respx.routes) == 1
+        assert respx.calls.call_count == 0
+        assert request.called == False  # noqa: E712
+
+        respx.clear()
+        assert len(respx.routes) == 0
+
+    finally:  # pragma: nocover
+        respx.stop()  # Cleanup global state on error, to not affect other tests
+
+
+@pytest.mark.parametrize(
+    ("assert_all_called", "do_post", "raises"),
+    [
+        (
+            True,
+            False,
+            pytest.raises(AssertionError, match="some routes were not called"),
+        ),
+        (True, True, does_not_raise()),
+        (False, True, does_not_raise()),
+        (False, False, does_not_raise()),
+    ],
+)
+async def test_assert_all_called(client, assert_all_called, do_post, raises):
+    with raises:
+        async with MockRouter(assert_all_called=assert_all_called) as respx_mock:
+            request1 = respx_mock.get("https://foo.bar/1/") % 404
+            request2 = respx_mock.post("https://foo.bar/") % 201
+
+            await client.get("https://foo.bar/1/")
+            if do_post:
+                await client.post("https://foo.bar/")
+
+            assert request1.called is True
+            assert request2.called is do_post
+
+
+@pytest.mark.parametrize(
+    ("assert_all_mocked", "raises"),
+    [(True, pytest.raises(AllMockedAssertionError)), (False, does_not_raise())],
+)
+async def test_assert_all_mocked(client, assert_all_mocked, raises):
+    with raises:
+        with MockRouter(assert_all_mocked=assert_all_mocked) as respx_mock:
+            response = httpx.get("https://foo.bar/")
+            assert respx_mock.calls.call_count == 1
+            assert response.status_code == 200
+    with raises:
+        async with MockRouter(assert_all_mocked=assert_all_mocked) as respx_mock:
+            response = await client.get("https://foo.bar/")
+            assert respx_mock.calls.call_count == 1
+            assert response.status_code == 200
+    assert respx_mock.calls.call_count == 0
+
+
+def test_add_remove_targets():
+    from respx.mocks import HTTPCoreMocker
+
+    target = "httpcore._sync.connection.HTTPConnection"
+    assert HTTPCoreMocker.targets.count(target) == 1
+    HTTPCoreMocker.add_targets(target)
+    assert HTTPCoreMocker.targets.count(target) == 1
+
+    pre_add_count = len(HTTPCoreMocker.targets)
+    try:
+        HTTPCoreMocker.add_targets(
+            "httpx._transports.asgi.ASGITransport",
+            "httpx._transports.wsgi.WSGITransport",
+        )
+        assert len(HTTPCoreMocker.targets) == pre_add_count + 2
+
+        HTTPCoreMocker.remove_targets("foobar")
+        assert len(HTTPCoreMocker.targets) == pre_add_count + 2
+    finally:
+        HTTPCoreMocker.remove_targets(
+            "httpx._transports.asgi.ASGITransport",
+            "httpx._transports.wsgi.WSGITransport",
+        )
+        assert len(HTTPCoreMocker.targets) == pre_add_count
+
+
+async def test_proxies():
+    with respx.mock:
+        respx.get("https://foo.bar/") % dict(json={"foo": "bar"})
+        with httpx.Client(proxy="https://1.1.1.1:1") as client:
+            response = client.get("https://foo.bar/")
+        assert response.json() == {"foo": "bar"}
+
+    async with respx.mock:
+        respx.get("https://foo.bar/") % dict(json={"foo": "bar"})
+        async with httpx.AsyncClient(proxy="https://1.1.1.1:1") as client:
+            response = await client.get("https://foo.bar/")
+        assert response.json() == {"foo": "bar"}
+
+
+async def test_uds():
+    async with respx.mock:
+        uds = httpx.AsyncHTTPTransport(uds="/tmp/foobar.sock")
+        async with httpx.AsyncClient(transport=uds) as client:
+            request = respx.get("https://foo.bar/") % 202
+            response = await client.get("https://foo.bar/")
+            assert request.called is True
+            assert response.status_code == 202
+
+
+async def test_mock_using_none():
+    @respx.mock(using=None)
+    async def test(respx_mock):
+        respx_mock.get("https://example.org/") % 204
+        transport = httpx.MockTransport(respx_mock.handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            response = await client.get("https://example.org/")
+            assert response.status_code == 204
+
+    await test()
+
+
+async def test_router_using__none():
+    router = respx.MockRouter(using=None)
+    router.get("https://example.org/") % 204
+
+    @router
+    async def test():
+        transport = httpx.MockTransport(router.handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            response = await client.get("https://example.org/")
+            assert response.status_code == 204
+
+    await test()
+
+
+def test_router_using__invalid():
+    with pytest.raises(ValueError, match="using"):
+        respx.MockRouter(using=123).using  # type: ignore[arg-type]
+
+
+def test_mocker_subclass():
+    with pytest.raises(TypeError, match="unique name"):
+
+        class Foobar(Mocker):
+            name = "httpcore"
+
+    class Hamspam(Mocker):
+        pass
+
+    assert not hasattr(Hamspam, "routers")
+
+
+def test_sync_httpx_mocker():
+    class TestTransport(httpx.BaseTransport):
+        def handle_request(self, *args, **kwargs):
+            raise RuntimeError("would pass through")
+
+    client = httpx.Client(transport=TestTransport())
+
+    @respx.mock(using="httpx")
+    def test(respx_mock):
+        mock_route = respx_mock.get("https://example.org/") % 204
+        pass_route = respx_mock.get(host="pass-through").pass_through()
+
+        with client:
+            response = client.get("https://example.org/")
+            assert response.status_code == 204
+            assert mock_route.call_count == 1
+
+            with pytest.raises(RuntimeError, match="would pass through"):
+                client.get("https://pass-through/")
+            assert pass_route.call_count == 1
+
+            with pytest.raises(AllMockedAssertionError):
+                client.get("https://not-mocked/")
+
+    with respx.mock(using="httpx"):  # extra registered router
+        test()
+
+
+async def test_async_httpx_mocker():
+    class TestTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, *args, **kwargs):
+            raise RuntimeError("would pass through")
+
+    client = httpx.AsyncClient(transport=TestTransport())
+
+    @respx.mock
+    @respx.mock(using="httpx")
+    async def test(respx_mock):
+        respx.get(host="foo.bar")
+
+        async def streaming_side_effect(request):
+            async def content():
+                yield b'{"foo"'
+                yield b':"bar"}'
+
+            return httpx.Response(204, content=content())
+
+        mock_route = respx_mock.get("https://example.org/")
+        mock_route.side_effect = streaming_side_effect
+        pass_route = respx_mock.get(host="pass-through").pass_through()
+
+        async with client:
+            response = await client.get("https://example.org/")
+            assert response.status_code == 204
+            assert response.json() == {"foo": "bar"}
+            assert mock_route.call_count == 1
+
+            with pytest.raises(RuntimeError, match="would pass through"):
+                await client.get("https://pass-through/")
+            assert pass_route.call_count == 1
+
+            with pytest.raises(AllMockedAssertionError):
+                await client.get("https://not-mocked/")
+
+    async with respx.mock(using="httpx"):  # extra registered router
+        await test()
+
+
+@pytest.mark.parametrize("using", ["httpcore", "httpx"])
+async def test_async_side_effect(client, using):
+    async def effect(request, slug):
+        assert request.extensions.get("timeout", {}).get("read") == 44.0
+        return httpx.Response(204, text=slug)
+
+    async with respx.mock(using=using) as respx_mock:
+        mock_route = respx_mock.get(
+            "https://example.org/", path__regex=r"/(?P<slug>\w+)/"
+        ).mock(side_effect=effect)
+        response = await client.get("https://example.org/hello/", timeout=44.0)
+        assert response.status_code == 204
+        assert response.text == "hello"
+        assert mock_route.called
+
+
+@pytest.mark.parametrize("using", ["httpcore", "httpx"])
+async def test_async_side_effect__exception(client, using):
+    async def effect(request):
+        raise httpx.ConnectTimeout("X-P", request=request)
+
+    async with respx.mock(using=using) as respx_mock:
+        mock_route = respx_mock.get("https://example.org/").mock(side_effect=effect)
+        with pytest.raises(httpx.ConnectTimeout):
+            await client.get("https://example.org/")
+        assert mock_route.called
+
+
+@pytest.mark.parametrize("using", ["httpcore", "httpx"])
+async def test_async_app_route(client, using):
+    from starlette.applications import Starlette
+    from starlette.responses import JSONResponse
+    from starlette.routing import Route
+
+    async def baz(request):
+        return JSONResponse({"ham": "spam"})
+
+    app = Starlette(routes=[Route("/baz/", baz)])
+
+    async with respx.mock(using=using, base_url="https://foo.bar/") as respx_mock:
+        app_route = respx_mock.route().mock(side_effect=ASGIHandler(app))
+        response = await client.get("https://foo.bar/baz/")
+        assert response.json() == {"ham": "spam"}
+        assert app_route.called
+
+    async with respx.mock:
+        respx.route(host="foo.bar").mock(side_effect=ASGIHandler(app))
+        response = await client.get("https://foo.bar/baz/")
+        assert response.json() == {"ham": "spam"}
+
+
+@pytest.mark.parametrize("using", ["httpcore", "httpx"])
+def test_sync_app_route(using):
+    from flask import Flask
+
+    app = Flask("foobar")
+
+    @app.route("/baz/")
+    def baz():
+        return {"ham": "spam"}
+
+    with respx.mock(using=using, base_url="https://foo.bar/") as respx_mock:
+        app_route = respx_mock.route().mock(side_effect=WSGIHandler(app))
+        response = httpx.get("https://foo.bar/baz/")
+        assert response.json() == {"ham": "spam"}
+        assert app_route.called
+
+    with respx.mock:
+        respx.route(host="foo.bar").mock(side_effect=WSGIHandler(app))
+        response = httpx.get("https://foo.bar/baz/")
+        assert response.json() == {"ham": "spam"}
+
+
+@pytest.mark.parametrize(
+    ("url", "port"),
+    [
+        ("https://foo.bar/", None),
+        ("https://foo.bar:443/", 443),
+    ],
+)
+async def test_httpcore_request(url, port):
+    async with MockRouter(using="httpcore") as router:
+        router.get(url) % dict(text="foobar")
+
+        request = httpcore.Request(
+            b"GET",
+            httpcore.URL(scheme=b"https", host=b"foo.bar", port=port, target=b"/"),
+        )
+
+        with httpcore.ConnectionPool() as http:
+            response = http.handle_request(request)
+            body = response.read()
+            assert body == b"foobar"
+
+        async with httpcore.AsyncConnectionPool() as http:
+            response = await http.handle_async_request(request)
+            body = await response.aread()
+            assert body == b"foobar"
+
+
+async def test_route_rollback():
+    respx_mock = respx.mock()
+
+    def example(request, route):
+        route.mock(return_value=httpx.Response(404))
+        return httpx.Response(202)
+
+    route = respx_mock.delete("https://example.org/foobar/")
+    route.side_effect = example
+
+    with respx_mock:
+        async with httpx.AsyncClient(base_url="https://example.org/") as client:
+            response = await client.delete("/foobar/")
+            assert response.status_code == 202
+
+            response = await client.delete("/foobar/")
+            assert response.status_code == 404
+
+    with respx_mock:
+        async with httpx.AsyncClient(base_url="https://example.org/") as client:
+            response = await client.delete("/foobar/")
+            assert response.status_code == 202
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/respx/tests/test_patterns.py</source>
+<document_content>
+import io
+import re
+from unittest.mock import ANY
+
+import httpx
+import pytest
+
+from respx.patterns import (
+    JSON,
+    URL,
+    Content,
+    Cookies,
+    Data,
+    Files,
+    Headers,
+    Host,
+    Lookup,
+    M,
+    Method,
+    Noop,
+    Params,
+    Path,
+    Pattern,
+    Port,
+    Scheme,
+    merge_patterns,
+    parse_url_patterns,
+)
+
+
+def test_bitwise_and():
+    pattern = Method("GET") & Host("foo.bar")
+    request = httpx.Request("GET", "https://foo.bar/")
+    match = pattern.match(request)
+    assert match
+    assert bool(match) is True
+    assert not ~match
+
+
+@pytest.mark.parametrize(
+    ("method", "url", "expected"),
+    [
+        ("GET", "https://foo.bar/", True),
+        ("GET", "https://foo.bar/baz/", False),
+        ("POST", "https://foo.bar/", True),
+        ("POST", "https://ham.spam/", True),
+        ("PATCH", "https://foo.bar/", True),
+        ("PUT", "https://foo.bar/", False),
+    ],
+)
+def test_bitwise_operators(method, url, expected):
+    pattern = (
+        (Method("GET") | Method("post") | Method("Patch")) & URL("https://foo.bar/")
+    ) | (Method("POST") & ~URL("https://foo.bar/"))
+    request = httpx.Request(method, url)
+    assert bool(pattern.match(request)) is expected
+    assert bool(~pattern.match(request)) is not expected
+
+
+def test_match_context():
+    request = httpx.Request("GET", "https://foo.bar/baz/?ham=spam")
+    pattern = (
+        URL(r"https?://foo.bar/(?P<slug>\w+)/", Lookup.REGEX)
+        & URL(r"https://(?P<host>[^/]+)/baz/", Lookup.REGEX)
+        & Params({"ham": "spam"})
+    )
+    match = pattern.match(request)
+    assert bool(match)
+    assert match.context == {"host": "foo.bar", "slug": "baz"}
+
+
+def test_noop_pattern():
+    assert bool(Noop()) is False
+    assert bool(Noop().match(httpx.Request("GET", "https://example.org"))) is True
+    assert list(filter(None, [Noop()])) == []
+    assert repr(Noop()) == "<Noop>"
+    assert isinstance(~Noop(), Noop)
+    assert Method("GET") & Noop() == Method("GET")
+    assert Noop() & Method("GET") == Method("GET")
+    assert Method("GET") | Noop() == Method("GET")
+    assert Noop() | Method("GET") == Method("GET")
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "url", "expected"),
+    [
+        ({"params__eq": {}}, "https://foo.bar/", True),
+        ({"params__eq": {}}, "https://foo.bar/?x=y", False),
+        ({"params__contains": {}}, "https://foo.bar/?x=y", True),
+    ],
+)
+def test_m_pattern(kwargs, url, expected):
+    request = httpx.Request("GET", url)
+    assert bool(M(host="foo.bar", **kwargs).match(request)) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "value", "expected"),
+    [
+        (Lookup.EQUAL, "GET", True),
+        (Lookup.EQUAL, "get", True),
+        (Lookup.EQUAL, "POST", False),
+        (Lookup.IN, ["get", "POST"], True),
+        (Lookup.IN, ["POST", "PUT"], False),
+    ],
+)
+def test_method_pattern(lookup, value, expected):
+    request = httpx.Request("GET", "https://foo.bar/")
+    assert bool(Method(value, lookup=lookup).match(request)) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "headers", "request_headers", "expected"),
+    [
+        (Lookup.CONTAINS, {"X-Foo": "bar"}, {"x-foo": "bar"}, True),
+        (Lookup.CONTAINS, {"content-type": "text/plain"}, "", False),
+    ],
+)
+def test_headers_pattern(lookup, headers, request_headers, expected):
+    request = httpx.Request(
+        "GET", "http://foo.bar/", headers=request_headers, json={"foo": "bar"}
+    )
+    assert bool(Headers(headers, lookup=lookup).match(request)) is expected
+
+
+def test_headers_pattern_hash():
+    assert Headers({"X-Foo": "bar"}) == Headers({"x-foo": "bar"})
+
+
+@pytest.mark.parametrize(
+    ("lookup", "cookies", "request_cookies", "expected"),
+    [
+        (Lookup.CONTAINS, {"foo": "bar"}, {"ham": "spam", "foo": "bar"}, True),
+        (Lookup.CONTAINS, {"foo": "bar"}, {"ham": "spam"}, False),
+        (Lookup.EQUAL, {"foo": "bar"}, {"foo": "bar"}, True),
+        (Lookup.EQUAL, [("foo", "bar")], {"foo": "bar"}, True),
+        (Lookup.EQUAL, {}, {}, True),
+        (Lookup.EQUAL, {}, None, True),
+        (Lookup.EQUAL, {"foo": "bar"}, {"ham": "spam"}, False),
+    ],
+)
+def test_cookies_pattern(lookup, cookies, request_cookies, expected):
+    request = httpx.Request(
+        "GET", "http://foo.bar/", cookies=request_cookies, json={"foo": "bar"}
+    )
+    assert bool(Cookies(cookies, lookup=lookup).match(request)) is expected
+
+
+def test_cookies_pattern__hash():
+    assert Cookies({"x": "1", "y": "2"}) == Cookies({"y": "2", "x": "1"})
+
+
+@pytest.mark.parametrize(
+    ("lookup", "scheme", "expected"),
+    [
+        (Lookup.EQUAL, "https", True),
+        (Lookup.EQUAL, "HTTPS", True),
+        (Lookup.EQUAL, "http", False),
+        (Lookup.IN, ["http", "HTTPS"], True),
+    ],
+)
+def test_scheme_pattern(lookup, scheme, expected):
+    request = httpx.Request("GET", "https://foo.bar/")
+    assert bool(Scheme(scheme, lookup=lookup).match(request)) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "host", "expected"),
+    [
+        (Lookup.EQUAL, "foo.bar", True),
+        (Lookup.EQUAL, "ham.spam", False),
+        (Lookup.REGEX, r".+\.bar", True),
+    ],
+)
+def test_host_pattern(lookup, host, expected):
+    request = httpx.Request("GET", "https://foo.bar/")
+    assert bool(Host(host, lookup=lookup).match(request)) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "port", "url", "expected"),
+    [
+        (Lookup.EQUAL, 443, "https://foo.bar/", True),
+        (Lookup.EQUAL, 80, "https://foo.bar/", False),
+        (Lookup.EQUAL, 80, "http://foo.bar/", True),
+        (Lookup.EQUAL, 8080, "https://foo.bar:8080/baz/", True),
+        (Lookup.EQUAL, 8080, "https://foo.bar/baz/", False),
+        (Lookup.EQUAL, 22, "//foo.bar:22/baz/", True),
+        (Lookup.EQUAL, None, "//foo.bar/", True),
+        (Lookup.IN, [80, 443], "http://foo.bar/", True),
+        (Lookup.IN, [80, 443], "https://foo.bar/", True),
+        (Lookup.IN, [80, 443], "https://foo.bar:8080/", False),
+    ],
+)
+def test_port_pattern(lookup, port, url, expected):
+    request = httpx.Request("GET", url)
+    assert bool(Port(port, lookup=lookup).match(request)) is expected
+
+
+def test_path_pattern():
+    request = httpx.Request("GET", "https://foo.bar")
+    assert Path("/").match(request)
+
+    request = httpx.Request("GET", "https://foo.bar/baz/")
+    assert Path("/baz/").match(request)
+    assert not Path("/ham/").match(request)
+
+    request = httpx.Request("GET", "https://foo.bar/baz/?ham=spam")
+    assert Path("/baz/").match(request)
+    assert not Path("/ham/").match(request)
+
+    match = Path(r"/(?P<slug>\w+)/", Lookup.REGEX).match(request)
+    assert bool(match) is True
+    assert match.context == {"slug": "baz"}
+
+    match = Path(re.compile(r"^/ham/"), Lookup.REGEX).match(request)
+    assert bool(match) is False
+
+    request = httpx.Request("GET", "https://foo.bar/baz/")
+    assert Path(["/egg/", "/baz/"], lookup=Lookup.IN).match(request)
+
+    path = Path("/bar/")
+    assert path.strip_base("/foo/bar/") == "/foo/bar/"
+    path.base = Path("/foo/")
+    assert path.strip_base("/foo/bar/") == "/bar/"
+
+
+@pytest.mark.parametrize(
+    ("lookup", "params", "url", "expected"),
+    [
+        (Lookup.CONTAINS, "", "https://foo.bar/", True),
+        (Lookup.CONTAINS, "x=1", "https://foo.bar/?x=1", True),
+        (Lookup.CONTAINS, "x=", "https://foo.bar/?x=1", False),  # False by httpx #2354
+        (Lookup.CONTAINS, "x=", "https://foo.bar/?x=", True),
+        (Lookup.CONTAINS, "y=2", "https://foo.bar/?x=1", False),
+        (Lookup.CONTAINS, [("x", "1")], "https://foo.bar/?x=1", True),
+        (Lookup.CONTAINS, {"x": "1"}, "https://foo.bar/?x=1", True),
+        (Lookup.CONTAINS, {"x": "2"}, "https://foo.bar/?x=1", False),
+        (Lookup.CONTAINS, {"x": ANY}, "https://foo.bar/?x=1&y=2", True),
+        (Lookup.CONTAINS, {"y": ANY}, "https://foo.bar/?x=1", False),
+        (Lookup.CONTAINS, [("x", ANY), ("x", "2")], "https://foo.bar/?x=1&x=2", True),
+        (Lookup.CONTAINS, [("x", ANY), ("x", "2")], "https://foo.bar/?x=2&x=3", False),
+        (Lookup.CONTAINS, "x=1&y=2", "https://foo.bar/?x=1", False),
+        (Lookup.EQUAL, "", "https://foo.bar/", True),
+        (Lookup.EQUAL, "x", "https://foo.bar/?x", True),
+        (Lookup.EQUAL, "x=", "https://foo.bar/?x=", True),
+        (Lookup.EQUAL, "x=1", "https://foo.bar/?x=1", True),
+        (Lookup.EQUAL, "y=2", "https://foo.bar/?x=1", False),
+        (Lookup.EQUAL, {"x": ANY}, "https://foo.bar/?x=1", True),
+        (Lookup.EQUAL, {"y": ANY}, "https://foo.bar/?x=1", False),
+        (Lookup.EQUAL, {}, "https://foo.bar/?x=1", False),
+        (Lookup.EQUAL, {}, "https://foo.bar/", True),
+        (Lookup.EQUAL, "x=1&y=2", "https://foo.bar/?x=1", False),
+        (Lookup.EQUAL, "y=2&x=1", "https://foo.bar/?x=1&y=2", True),
+        (Lookup.EQUAL, "y=3&x=2&x=1", "https://foo.bar/?x=1&x=2&y=3", False),  # ordered
+        (Lookup.EQUAL, "y=3&x=1&x=2", "https://foo.bar/?x=1&x=2&y=3", True),  # ordered
+        (Lookup.CONTAINS, "x=2&x=1", "https://foo.bar/?x=1&x=2&y=3", False),  # ordered
+        (Lookup.CONTAINS, "x=1&x=2", "https://foo.bar/?x=1&x=2&x=3", False),  # ordered
+        (Lookup.CONTAINS, "x=1&x=2", "https://foo.bar/?x=1&x=2&y=3", True),  # ordered
+    ],
+)
+def test_params_pattern(lookup, params, url, expected):
+    request = httpx.Request("GET", url)
+    assert bool(Params(params, lookup=lookup).match(request)) is expected
+
+
+def test_params_pattern_hash():
+    assert Params("x=1&y=2") == Params("y=2&x=1")
+
+
+@pytest.mark.parametrize(
+    ("lookup", "value", "context", "url", "expected"),
+    [
+        (Lookup.REGEX, r"https?://a.b/(?P<c>\w+)/", {"c": "c"}, "http://a.b/c/", True),
+        (Lookup.REGEX, re.compile(r"^https://a.b/.+$"), {}, "https://a.b/c/", True),
+        (Lookup.REGEX, r"https://a.b/c/", {}, "https://x.y/c/", False),
+        (Lookup.EQUAL, "https://a.b/c/", {}, "https://a.b/c/", True),
+        (Lookup.EQUAL, "https://a.b/x/", {}, "https://a.b/c/", False),
+        (Lookup.EQUAL, "https://a.b?x=y", {}, "https://a.b/?x=y", True),
+        (Lookup.EQUAL, "https://a.b/?x=y", {}, "https://a.b?x=y", True),
+        (Lookup.STARTS_WITH, "https://a.b/b", {}, "https://a.b/baz/", True),
+        (Lookup.STARTS_WITH, "http://a.b/baz/", {}, "https://a.b/baz/", False),
+        (
+            Lookup.EQUAL,
+            (b"https", b"FE80::1", None, b""),
+            {},
+            "https://[FE80::1]",
+            True,
+        ),
+    ],
+)
+def test_url_pattern(lookup, value, context, url, expected):
+    request = httpx.Request("GET", url)
+    match = URL(value, lookup=lookup).match(request)
+    assert bool(match) is expected
+    assert match.context == context
+
+
+def test_url_pattern_invalid():
+    with pytest.raises(ValueError, match="Invalid"):
+        URL(["invalid"])
+
+
+def test_url_pattern_hash():
+    p = Host("foo.bar") & Path("/baz/")
+    assert M(url="//foo.bar/baz/") == p
+    p = Scheme("https") & Host("foo.bar") & Path("/baz/")
+    assert M(url="https://foo.bar/baz/") == p
+
+
+@pytest.mark.parametrize(
+    ("lookup", "content", "expected"),
+    [
+        (Lookup.EQUAL, b"foobar", True),
+        (Lookup.EQUAL, "foobar", True),
+        (Lookup.CONTAINS, b"bar", True),
+        (Lookup.CONTAINS, "bar", True),
+        (Lookup.CONTAINS, "baz", False),
+    ],
+)
+def test_content_pattern(lookup, content, expected):
+    request = httpx.Request("POST", "https://foo.bar/", content=b"foobar")
+    match = Content(content, lookup=lookup).match(request)
+    assert bool(match) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "data", "request_data", "expected"),
+    [
+        (
+            Lookup.EQUAL,
+            {"foo": "bar", "ham": "spam"},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"foo": "bar", "ham": "spam"},
+            {"ham": "spam", "foo": "bar"},
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"uni": "äpple", "mixed": "Geh&#xE4;usegröße"},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"blank_value": ""},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"none_value": None},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"non_str": 123},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"x": "a"},
+            {"x": "b"},
+            False,
+        ),
+        (
+            Lookup.EQUAL,
+            {"foo": "bar"},
+            {"foo": "bar", "ham": "spam"},
+            False,
+        ),
+        (
+            Lookup.CONTAINS,
+            {"foo": "bar"},
+            {"foo": "bar", "ham": "spam"},
+            True,
+        ),
+    ],
+)
+def test_data_pattern(lookup, data, request_data, expected):
+    request_with_data = httpx.Request(
+        "POST",
+        "https://foo.bar/",
+        data=request_data or data,
+    )
+    request_with_data_and_files = httpx.Request(
+        "POST",
+        "https://foo.bar/",
+        data=request_data or data,
+        files={"upload-file": ("report.xls", b"<...>", "application/vnd.ms-excel")},
+    )
+
+    match = Data(data, lookup=lookup).match(request_with_data)
+    assert bool(match) is expected
+
+    match = Data(data, lookup=lookup).match(request_with_data_and_files)
+    assert bool(match) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "files", "request_files", "expected"),
+    [
+        (
+            Lookup.EQUAL,
+            [("file_1", b"foo..."), ("file_2", b"bar...")],
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"file_1": b"foo...", "file_2": b"bar..."},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"file_1": ANY},
+            {"file_1": b"foobar..."},
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"bar..."),
+            },
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"file_1": ("filename_1.txt", ANY)},
+            {"file_1": ("filename_1.txt", b"...")},
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"upload": b"foo..."},
+            {"upload": b"bar..."},  # Wrong file data
+            False,
+        ),
+        (
+            Lookup.EQUAL,
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"bar..."),
+            },
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"ham..."),  # Wrong file data
+            },
+            False,
+        ),
+        (
+            Lookup.EQUAL,
+            {"file_1": ("filename.png", io.BytesIO(b"some..image..data"), "image/png")},
+            None,
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"file_1": ("filename.png", "some..image..data", "image/png")},  # str data
+            {"file_1": ("filename.png", io.BytesIO(b"some..image..data"), "image/png")},
+            True,
+        ),
+        (
+            Lookup.CONTAINS,
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+            },
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"bar..."),
+            },
+            True,
+        ),
+        (
+            Lookup.CONTAINS,
+            {
+                "file_1": ("filename_1.txt", ANY),
+            },
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"bar..."),
+            },
+            True,
+        ),
+        (
+            Lookup.CONTAINS,
+            [("file_1", ANY)],
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"bar..."),
+            },
+            True,
+        ),
+        (
+            Lookup.CONTAINS,
+            {"file_1": "foo..."},  # str data
+            {
+                "file_1": ("filename_1.txt", io.BytesIO(b"foo...")),
+                "file_2": ("filename_2.txt", io.BytesIO(b"bar...")),
+            },
+            True,
+        ),
+        (
+            Lookup.CONTAINS,
+            [("file_1", b"ham...")],
+            {
+                "file_1": ("filename_1.txt", b"foo..."),
+                "file_2": ("filename_2.txt", b"bar..."),
+            },
+            False,
+        ),
+    ],
+)
+def test_files_pattern(lookup, files, request_files, expected):
+    request = httpx.Request(
+        "POST",
+        "https://foo.bar/",
+        files=request_files or files,
+    )
+    match = Files(files, lookup=lookup).match(request)
+    assert bool(match) is expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "value", "json", "expected"),
+    [
+        (
+            Lookup.EQUAL,
+            {"foo": "bar", "ham": "spam"},
+            {"ham": "spam", "foo": "bar"},
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            {"foo": "bar", "ham": "spam"},
+            {"egg": "yolk", "foo": "bar"},
+            False,
+        ),
+        (
+            Lookup.EQUAL,
+            [{"ham": "spam", "egg": "yolk"}, {"zoo": "apa", "foo": "bar"}],
+            [{"egg": "yolk", "ham": "spam"}, {"foo": "bar", "zoo": "apa"}],
+            True,
+        ),
+        (
+            Lookup.EQUAL,
+            [{"ham": "spam"}, {"foo": "bar"}],
+            [{"foo": "bar"}, {"ham": "spam"}],
+            False,
+        ),
+        (Lookup.EQUAL, "json-string", "json-string", True),
+    ],
+)
+def test_json_pattern(lookup, value, json, expected):
+    request = httpx.Request("POST", "https://foo.bar/", json=json)
+    match = JSON(value, lookup=lookup).match(request)
+    assert bool(match) is expected
+
+
+@pytest.mark.parametrize(
+    ("json", "path", "value", "expected"),
+    [
+        ({"foo": {"bar": "baz"}}, "foo__bar", "baz", True),
+        ({"x": {"z": 2, "y": 1}}, "x", {"y": 1, "z": 2}, True),
+        ({"ham": [{"spam": "spam"}, {"egg": "yolk"}]}, "ham__1__egg", "yolk", True),
+        ([{"name": "jonas"}], "0__name", "jonas", True),
+        ({"pk": 123}, "pk", 123, True),
+        ({"foo": {"bar": "baz"}}, "foo__ham", "spam", False),
+        ([{"name": "lundberg"}], "1__name", "lundberg", False),
+    ],
+)
+def test_json_pattern_path(json, path, value, expected):
+    request = httpx.Request("POST", "https://foo.bar/", json=json)
+    pattern = M(**{f"json__{path}": value})
+    match = pattern.match(request)
+    assert bool(match) is expected
+
+
+def test_invalid_pattern():
+    with pytest.raises(KeyError, match="is not a valid Pattern"):
+        M(foo="baz")
+    with pytest.raises(NotImplementedError, match="pattern does not support"):
+        Scheme("http", Lookup.REGEX)
+    with pytest.raises(ValueError, match="is not a valid Lookup"):
+        M(scheme__baz="zoo")
+
+
+def test_iter_pattern():
+    pattern = M(
+        Method("GET") & Path("/baz/") | ~Params("x=y"), url="https://foo.bar:88/"
+    )
+    patterns = list(iter(pattern))
+    assert len(patterns) == 6
+    assert set(patterns) == {
+        Method("GET"),
+        Scheme("https"),
+        Host("foo.bar"),
+        Port(88),
+        Path("/baz/"),
+        Params("x=y"),
+    }
+
+
+def test_parse_url_patterns():
+    patterns = parse_url_patterns("https://foo.bar:443/ham/spam/?egg=yolk")
+    assert patterns == {
+        "scheme": Scheme("https"),
+        "host": Host("foo.bar"),
+        "path": Path("/ham/spam/"),
+        "params": Params({"egg": "yolk"}, Lookup.EQUAL),
+    }
+
+    patterns = parse_url_patterns("https://foo.bar:1337/ham/spam/?egg=yolk")
+    assert patterns == {
+        "scheme": Scheme("https"),
+        "host": Host("foo.bar"),
+        "port": Port(1337),
+        "path": Path("/ham/spam/"),
+        "params": Params({"egg": "yolk"}, Lookup.EQUAL),
+    }
+
+    patterns = parse_url_patterns("https://foo.bar/ham/spam/?egg=yolk", exact=False)
+    assert patterns == {
+        "scheme": Scheme("https"),
+        "host": Host("foo.bar"),
+        "path": Path("/ham/spam/", Lookup.STARTS_WITH),
+        "params": Params({"egg": "yolk"}, Lookup.CONTAINS),
+    }
+
+    patterns = parse_url_patterns("all://*.foo.bar")
+    assert len(patterns) == 1
+    assert "host" in patterns
+    assert patterns["host"].lookup is Lookup.REGEX
+
+    patterns = parse_url_patterns("all")
+    assert len(patterns) == 0
+
+
+def test_merge_patterns():
+    pattern = Method("GET") & Path("/spam/")
+    base = Path("/ham/", Lookup.STARTS_WITH)
+    merged_pattern = merge_patterns(pattern, path=base)
+    assert any(tuple(p.base == base for p in iter(merged_pattern)))
+
+
+def test_unique_pattern_key():
+    with pytest.raises(TypeError, match="unique key"):
+
+        class Foobar(Pattern):
+            key = "url"
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/respx/tests/test_plugin.py</source>
+<document_content>
+def test_respx_mock_fixture(testdir):
+    testdir.makepyfile(
+        """
+        import httpx
+        import pytest
+
+        @pytest.fixture
+        def some_fixture():
+            yield "foobar"
+
+        def test_plain_fixture(respx_mock):
+            route = respx_mock.get("https://foo.bar/") % 204
+            response = httpx.get("https://foo.bar/")
+            assert response.status_code == 204
+
+
+        @pytest.mark.respx(base_url="https://foo.bar", assert_all_mocked=False)
+        def test_marked_fixture(respx_mock):
+            route = respx_mock.get("/") % 204
+            response = httpx.get("https://foo.bar/")
+            assert response.status_code == 204
+            response = httpx.get("https://example.org/")
+            assert response.status_code == 200
+
+
+        def test_with_extra_fixture(respx_mock, some_fixture):
+            import respx
+            assert isinstance(respx_mock, respx.Router)
+            assert some_fixture == "foobar"
+
+
+        @pytest.mark.respx(assert_all_mocked=False)
+        def test_marked_with_extra_fixture(respx_mock, some_fixture):
+            import respx
+            assert isinstance(respx_mock, respx.Router)
+            assert some_fixture == "foobar"
+        """
+    )
+    result = testdir.runpytest("-p", "respx")
+    result.assert_outcomes(passed=4)
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/respx/tests/test_remote.py</source>
+<document_content>
+import os
+
+import pytest
+
+import respx
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("PASS_THROUGH") is None, reason="Remote pass-through disabled"
+)
+
+
+@pytest.mark.parametrize(
+    ("using", "client_lib", "call_count"),
+    [
+        ("httpcore", "httpx", 2),  # TODO: AsyncConnectionPool + AsyncHTTPConnection
+        ("httpx", "httpx", 1),
+    ],
+)
+def test_remote_pass_through(using, client_lib, call_count):  # pragma: nocover
+    with respx.mock(using=using) as respx_mock:
+        # Mock pass-through calls
+        url = "https://httpbin.org/post"
+        route = respx_mock.post(url, json__foo="bar").pass_through()
+
+        # Make external pass-through call
+        client = __import__(client_lib)
+        response = client.post(url, json={"foo": "bar"})
+
+        # Assert response is correct library model
+        assert isinstance(response, client.Response)
+
+        assert response.status_code == 200
+        assert response.content is not None
+        assert len(response.content) > 0
+        assert "Content-Length" in response.headers
+        assert int(response.headers["Content-Length"]) > 0
+        assert response.json()["json"] == {"foo": "bar"}
+
+        assert respx_mock.calls.last.request.url == url
+        assert respx_mock.calls.last.has_response is False
+
+        assert route.call_count == call_count
+        assert respx_mock.calls.call_count == call_count
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/respx/tests/test_router.py</source>
+<document_content>
+import warnings
+
+import httpcore
+import httpx
+import pytest
+
+from respx import Route, Router
+from respx.models import AllMockedAssertionError, PassThrough, RouteList
+from respx.patterns import Host, M, Method
+
+
+async def test_empty_router():
+    router = Router()
+
+    request = httpx.Request("GET", "https://example.org/")
+    with pytest.raises(AllMockedAssertionError):
+        router.resolve(request)
+
+    with pytest.raises(AllMockedAssertionError):
+        await router.aresolve(request)
+
+
+async def test_empty_router__auto_mocked():
+    router = Router(assert_all_mocked=False)
+
+    request = httpx.Request("GET", "https://example.org/")
+    resolved = router.resolve(request)
+
+    assert resolved.route is None
+    assert isinstance(resolved.response, httpx.Response)
+    assert resolved.response.status_code == 200
+
+    resolved = await router.aresolve(request)
+
+    assert resolved.route is None
+    assert isinstance(resolved.response, httpx.Response)
+    assert resolved.response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("args", "kwargs", "expected"),
+    [
+        ((Method("GET"), Host("foo.bar")), dict(), True),
+        (tuple(), dict(method="GET", host="foo.bar"), True),
+        ((Method("GET"),), dict(port=443, url__regex=r"/baz/$"), True),
+        ((Method("POST"),), dict(host="foo.bar"), False),
+        ((~Method("GET"),), dict(), False),
+        ((~M(url__regex=r"/baz/$"),), dict(), False),
+        (tuple(), dict(headers={"host": "foo.bar"}), True),
+        (tuple(), dict(headers={"Content-Type": "text/plain"}), False),
+        (tuple(), dict(headers={"cookie": "foo=bar"}), False),
+        (tuple(), dict(cookies={"ham": "spam"}), True),
+    ],
+)
+def test_resolve(args, kwargs, expected):
+    router = Router(assert_all_mocked=False)
+    route = router.route(*args, **kwargs).respond(status_code=201)
+
+    request = httpx.Request(
+        "GET", "https://foo.bar/baz/", cookies={"foo": "bar", "ham": "spam"}
+    )
+    resolved = router.resolve(request)
+
+    assert bool(resolved.route is route) is expected
+    assert isinstance(resolved.response, httpx.Response)
+    if expected:
+        assert bool(resolved.response.status_code == 201) is expected
+    else:
+        assert resolved.response.status_code == 200  # auto mocked
+
+
+def test_pass_through():
+    router = Router(assert_all_mocked=False)
+    route = router.get("https://foo.bar/", path="/baz/").pass_through()
+
+    request = httpx.Request("GET", "https://foo.bar/baz/")
+    with pytest.raises(PassThrough) as exc_info:
+        router.resolve(request)
+
+    assert exc_info.value.origin is route
+    assert exc_info.value.origin.is_pass_through
+
+    route.pass_through(False)
+    resolved = router.resolve(request)
+
+    assert resolved.route is not None
+    assert resolved.route is route
+    assert not resolved.route.is_pass_through
+    assert resolved.response is not None
+
+
+@pytest.mark.parametrize(
+    ("url", "lookups", "expected"),
+    [
+        ("https://foo.bar/api/baz/", {"url": "/baz/"}, True),
+        ("https://foo.bar/api/baz/", {"path__regex": r"^/(?P<slug>\w+)/$"}, True),
+        ("http://foo.bar/api/baz/", {"url": "/baz/"}, False),
+        ("https://ham.spam/api/baz/", {"url": "/baz/"}, False),
+        ("https://foo.bar/baz/", {"url": "/baz/"}, False),
+        ("https://foo.bar/api/hej:svejs", {"url": "/hej:svejs"}, True),
+    ],
+)
+def test_base_url(url, lookups, expected):
+    router = Router(base_url="https://foo.bar/api/", assert_all_mocked=False)
+    route = router.get(**lookups).respond(201)
+
+    request = httpx.Request("GET", url)
+    resolved = router.resolve(request)
+
+    assert bool(resolved.route is route) is expected
+    assert isinstance(resolved.response, httpx.Response)
+    if expected:
+        assert bool(resolved.response.status_code == 201) is expected
+    else:
+        assert resolved.response.status_code == 200  # auto mocked
+
+
+@pytest.mark.parametrize(
+    ("lookups", "url", "expected"),
+    [
+        ({"url": "//foo.bar/baz/"}, "https://foo.bar/baz/", True),
+        ({"url": "all"}, "https://foo.bar/baz/", True),
+        ({"url": "all://"}, "https://foo.bar/baz/", True),
+        ({"url": "https://*foo.bar"}, "https://foo.bar/baz/", True),
+        ({"url": "https://*foo.bar"}, "https://baz.foo.bar/", True),
+        ({"url": "https://*.foo.bar"}, "https://foo.bar/baz/", False),
+        ({"url": "https://*.foo.bar"}, "https://baz.foo.bar/", True),
+        ({"url__eq": "https://foo.bar/baz/"}, "https://foo.bar/baz/", True),
+        ({"url__eq": "https://foo.bar/baz/"}, "http://foo.bar/baz/", False),
+        ({"url__eq": "https://foo.bar"}, "https://foo.bar/", True),
+        ({"url__eq": "https://foo.bar/"}, "https://foo.bar", True),
+        (
+            {"url": "https://foo.bar/", "path__regex": r"/(?P<slug>\w+)/"},
+            "https://foo.bar/baz/",
+            True,
+        ),
+    ],
+)
+def test_url_pattern_lookup(lookups, url, expected):
+    router = Router(assert_all_mocked=False)
+    route = router.get(**lookups) % 418
+    request = httpx.Request("GET", url)
+    response = router.handler(request)
+    assert bool(response.status_code == 418) is expected
+    assert route.called is expected
+
+
+def test_mod_response():
+    router = Router()
+    route1a = router.get("https://foo.bar/baz/") % 409
+    route1b = router.get("https://foo.bar/baz/") % 404
+    route2 = router.get("https://foo.bar") % dict(status_code=201)
+    route3 = router.post("https://fox.zoo/") % httpx.Response(401, json={"error": "x"})
+
+    request = httpx.Request("GET", "https://foo.bar/baz/")
+    resolved = router.resolve(request)
+    assert isinstance(resolved.response, httpx.Response)
+    assert resolved.response.status_code == 404
+    assert resolved.route is route1b
+    assert route1a is route1b
+
+    request = httpx.Request("GET", "https://foo.bar/")
+    resolved = router.resolve(request)
+    assert isinstance(resolved.response, httpx.Response)
+    assert resolved.response.status_code == 201
+    assert resolved.route is route2
+
+    request = httpx.Request("POST", "https://fox.zoo/")
+    resolved = router.resolve(request)
+    assert isinstance(resolved.response, httpx.Response)
+    assert resolved.response.status_code == 401
+    assert resolved.response.json() == {"error": "x"}
+    assert resolved.route is route3
+
+    with pytest.raises(TypeError, match="Route can only"):
+        router.route() % []  # type: ignore[operator]
+
+
+async def test_async_side_effect():
+    router = Router()
+
+    async def effect(request):
+        return httpx.Response(204)
+
+    router.get("https://foo.bar/").mock(side_effect=effect)
+
+    request = httpx.Request("GET", "https://foo.bar/")
+    response = await router.async_handler(request)
+    assert response.status_code == 204
+
+
+def test_side_effect_no_match():
+    router = Router()
+
+    def no_match(request):
+        request.respx_was_here = True
+        return None
+
+    router.get(url__startswith="https://foo.bar/").mock(side_effect=no_match)
+    router.get(url__eq="https://foo.bar/baz/").mock(return_value=httpx.Response(204))
+
+    request = httpx.Request("GET", "https://foo.bar/baz/")
+    response = router.handler(request)
+    assert response.status_code == 204
+    assert response.request.respx_was_here is True  # type: ignore[attr-defined]
+
+
+def test_side_effect_with_route_kwarg():
+    router = Router()
+
+    def foobar(request, route, slug):
+        response = httpx.Response(201, json={"id": route.call_count + 1, "slug": slug})
+        if route.call_count > 0:
+            route.mock(return_value=httpx.Response(501))
+        return response
+
+    router.post(path__regex=r"/(?P<slug>\w+)/").mock(side_effect=foobar)
+
+    request = httpx.Request("POST", "https://foo.bar/baz/")
+    response = router.handler(request)
+    assert response.status_code == 201
+    assert response.json() == {"id": 1, "slug": "baz"}
+
+    response = router.handler(request)
+    assert response.status_code == 201
+    assert response.json() == {"id": 2, "slug": "baz"}
+
+    response = router.handler(request)
+    assert response.status_code == 501
+
+
+def test_side_effect_with_reserved_route_kwarg():
+    router = Router()
+
+    def foobar(request, route):
+        assert isinstance(route, Route)
+        return httpx.Response(202)
+
+    router.get(path__regex=r"/(?P<route>\w+)/").mock(side_effect=foobar)
+
+    with warnings.catch_warnings(record=True) as w:
+        request = httpx.Request("GET", "https://foo.bar/baz/")
+        response = router.handler(request)
+        assert response.status_code == 202
+        assert len(w) == 1
+
+
+def test_side_effect_list():
+    router = Router()
+    route = router.get("https://foo.bar/").mock(
+        return_value=httpx.Response(409),
+        side_effect=[httpx.Response(404), httpcore.NetworkError, httpx.Response(201)],
+    )
+
+    request = httpx.Request("GET", "https://foo.bar")
+    response = router.handler(request)
+    assert response.status_code == 404
+    assert response.request == request
+
+    request = httpx.Request("GET", "https://foo.bar")
+    with pytest.raises(httpcore.NetworkError):
+        router.handler(request)
+
+    request = httpx.Request("GET", "https://foo.bar")
+    response = router.handler(request)
+    assert response.status_code == 201
+    assert response.request == request
+
+    request = httpx.Request("GET", "https://foo.bar")
+    with pytest.raises(StopIteration):
+        router.handler(request)
+
+    route.side_effect = None
+    request = httpx.Request("GET", "https://foo.bar")
+    response = router.handler(request)
+    assert response.status_code == 409
+    assert response.request == request
+
+
+def test_side_effect_exception():
+    router = Router()
+    router.get("https://foo.bar/").mock(side_effect=httpx.ConnectError)
+    router.get("https://ham.spam/").mock(side_effect=httpcore.NetworkError)
+    router.get("https://egg.plant/").mock(side_effect=httpcore.NetworkError())
+
+    request = httpx.Request("GET", "https://foo.bar")
+    with pytest.raises(httpx.ConnectError) as e:
+        router.handler(request)
+    assert e.value.request == request
+
+    request = httpx.Request("GET", "https://ham.spam")
+    with pytest.raises(httpcore.NetworkError):
+        router.handler(request)
+
+    request = httpx.Request("GET", "https://egg.plant")
+    with pytest.raises(httpcore.NetworkError):
+        router.handler(request)
+
+
+def test_side_effect_decorator():
+    router = Router()
+
+    @router.route(host="ham.spam", path__regex=r"/(?P<slug>\w+)/")
+    def foobar(request, slug):
+        return httpx.Response(200, json={"slug": slug})
+
+    @router.post("https://example.org/")
+    def example(request):
+        return httpx.Response(201, json={"message": "OK"})
+
+    request = httpx.Request("GET", "https://ham.spam/egg/")
+    response = router.handler(request)
+    assert response.status_code == 200
+    assert response.json() == {"slug": "egg"}
+
+    request = httpx.Request("POST", "https://example.org/")
+    response = router.handler(request)
+    assert response.status_code == 201
+    assert response.json() == {"message": "OK"}
+
+
+def test_rollback():
+    router = Router()
+    route = router.get("https://foo.bar/") % 404
+    pattern = route.pattern
+    assert route.name is None
+
+    router.snapshot()  # 1. get 404
+
+    route.return_value = httpx.Response(200)
+    router.post("https://foo.bar/").mock(
+        side_effect=[httpx.Response(400), httpx.Response(201)]
+    )
+
+    router.snapshot()  # 2. get 200, post
+
+    _route = router.get("https://foo.bar/", name="foobar")
+    _route = router.get("https://foo.bar/baz/", name="foobar")
+    assert _route is route
+    assert route.name == "foobar"
+    assert route.pattern != pattern
+    route.return_value = httpx.Response(418)
+    request = httpx.Request("GET", "https://foo.bar/baz/")
+    response = router.handler(request)
+    assert response.status_code == 418
+
+    request = httpx.Request("POST", "https://foo.bar")
+    response = router.handler(request)
+    assert response.status_code == 400
+
+    assert len(router.routes) == 2
+    assert router.calls.call_count == 2
+    assert route.call_count == 1
+    assert route.return_value.status_code == 418
+
+    router.snapshot()  # 3. directly rollback, should be identical
+    router.rollback()
+    assert len(router.routes) == 2
+    assert router.calls.call_count == 2
+    assert route.call_count == 1
+    assert route.return_value.status_code == 418
+
+    router.patch("https://foo.bar/")
+    assert len(router.routes) == 3
+
+    route.rollback()  # get 200
+
+    assert router.calls.call_count == 2
+    assert route.call_count == 0
+    assert route.return_value.status_code == 200
+
+    request = httpx.Request("GET", "https://foo.bar")
+    response = router.handler(request)
+    assert response.status_code == 200
+
+    router.rollback()  # 2. get 404, post
+
+    request = httpx.Request("POST", "https://foo.bar")
+    response = router.handler(request)
+    assert response.status_code == 400
+    assert len(router.routes) == 2
+
+    router.rollback()  # 1. get 404
+
+    assert len(router.routes) == 1
+    assert router.calls.call_count == 0
+    assert route.return_value == None  # noqa: E711
+
+    router.rollback()  # Empty initial state
+
+    assert len(router.routes) == 0
+    assert route.return_value == None  # noqa: E711
+
+    # Idempotent
+    route.rollback()
+    router.rollback()
+    assert len(router.routes) == 0
+    assert route.name is None
+    assert route.pattern == pattern
+    assert route.return_value is None
+
+
+def test_multiple_pattern_values_type_error():
+    router = Router()
+    with pytest.raises(TypeError, match="Got multiple values for pattern 'method'"):
+        router.post(method__in=("PUT", "PATCH"))
+    with pytest.raises(TypeError, match="Got multiple values for pattern 'url'"):
+        router.get("https://foo.bar", url__regex=r"https://example.org$")
+
+
+def test_routelist__add():
+    routes = RouteList()
+
+    foobar = Route(method="PUT")
+    routes.add(foobar, name="foobar")
+    assert routes
+    assert list(routes) == [foobar]
+    assert routes["foobar"] == foobar
+    assert routes["foobar"] is routes[0]
+
+    hamspam = Route(method="POST")
+    routes.add(hamspam, name="hamspam")
+    assert list(routes) == [foobar, hamspam]
+    assert routes["hamspam"] == hamspam
+
+
+def test_routelist__pop():
+    routes = RouteList()
+
+    foobar = Route(method="GET")
+    hamspam = Route(method="POST")
+    routes.add(foobar, name="foobar")
+    routes.add(hamspam, name="hamspam")
+    assert list(routes) == [foobar, hamspam]
+
+    _foobar = routes.pop("foobar")
+    assert _foobar == foobar
+    assert list(routes) == [hamspam]
+
+    default = Route()
+    route = routes.pop("egg", default)
+    assert route is default
+    assert list(routes) == [hamspam]
+
+    with pytest.raises(KeyError):
+        routes.pop("egg")
+
+
+def test_routelist__replaces_same_name_and_pattern():
+    routes = RouteList()
+
+    foobar1 = Route(method="GET")
+    routes.add(foobar1, name="foobar")
+    assert list(routes) == [foobar1]
+
+    foobar2 = Route(method="GET")
+    routes.add(foobar2, name="foobar")
+    assert list(routes) == [foobar2]
+    assert routes[0] is foobar1
+
+
+def test_routelist__replaces_same_name_diff_pattern():
+    routes = RouteList()
+
+    foobar1 = Route(method="GET")
+    routes.add(foobar1, name="foobar")
+    assert list(routes) == [foobar1]
+
+    foobar2 = Route(method="POST")
+    routes.add(foobar2, name="foobar")
+    assert list(routes) == [foobar2]
+    assert routes[0] is foobar1
+
+
+def test_routelist__replaces_same_pattern_no_name():
+    routes = RouteList()
+
+    foobar1 = Route(method="GET")
+    routes.add(foobar1)
+    assert list(routes) == [foobar1]
+
+    foobar2 = Route(method="GET")
+    routes.add(foobar2, name="foobar")
+    assert list(routes) == [foobar2]
+    assert routes[0] is foobar1
+
+
+def test_routelist__replaces_same_pattern_diff_name():
+    routes = RouteList()
+
+    foobar1 = Route(method="GET")
+    routes.add(foobar1, name="name")
+    assert list(routes) == [foobar1]
+
+    foobar2 = Route(method="GET")
+    routes.add(foobar2, name="foobar")
+    assert list(routes) == [foobar2]
+    assert routes[0] is foobar1
+
+
+def test_routelist__replaces_same_name_other_pattern_no_name():
+    routes = RouteList()
+
+    foobar1 = Route(method="GET")
+    routes.add(foobar1, name="foobar")
+    assert list(routes) == [foobar1]
+
+    hamspam = Route(method="POST")
+    routes.add(hamspam)
+
+    foobar2 = Route(method="POST")
+    routes.add(foobar2, name="foobar")
+    assert list(routes) == [foobar2]
+    assert routes[0] is foobar1
+
+
+def test_routelist__replaces_same_name_other_pattern_other_name():
+    routes = RouteList()
+
+    foobar1 = Route(method="GET")
+    hamspam = Route(method="POST")
+
+    routes.add(foobar1, name="foobar")
+    routes.add(hamspam, name="hamspam")
+    assert list(routes) == [foobar1, hamspam]
+
+    foobar2 = Route(method="POST")
+    routes.add(foobar2, name="foobar")
+    assert list(routes) == [foobar2]
+    assert routes["foobar"] is foobar1
+
+
+def test_routelist__unable_to_slice_assign():
+    routes = RouteList()
+    with pytest.raises(TypeError, match="slice assign"):
+        routes[0:1] = routes
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/respx/tests/test_stats.py</source>
+<document_content>
+import re
+
+import httpx
+import pytest
+
+import respx
+from respx.router import MockRouter
+
+
+async def test_named_route():
+    async with MockRouter(assert_all_called=False) as respx_mock:
+        request = respx_mock.get("https://foo.bar/", name="foobar")
+        assert "foobar" not in respx.routes
+        assert "foobar" in respx_mock.routes
+        assert respx_mock.routes["foobar"] is request
+        assert respx_mock["foobar"] is request
+
+
+@respx.mock
+async def backend_test():
+    url = "https://foo.bar/1/"
+    respx.get(re.compile("https://some.thing"))
+    respx.delete("https://some.thing")
+
+    foobar1 = respx.get(url, name="get_foobar") % dict(status_code=202, text="get")
+    foobar2 = respx.delete(url, name="del_foobar") % dict(text="del")
+
+    assert foobar1.called == False  # noqa: E712
+    assert foobar1.call_count == len(foobar1.calls)
+    assert foobar1.call_count == 0
+    with pytest.raises(IndexError):
+        foobar1.calls.last
+    assert respx.calls.call_count == len(respx.calls)
+    assert respx.calls.call_count == 0
+
+    with pytest.raises(AssertionError, match="Expected 'respx' to have been called"):
+        respx.calls.assert_called_once()
+
+    with pytest.raises(AssertionError, match="Expected '<Route name='get_foobar'"):
+        foobar1.calls.assert_called_once()
+
+    async with httpx.AsyncClient() as client:
+        get_response = await client.get(url)
+        del_response = await client.delete(url)
+
+    assert foobar1.called == True  # noqa: E712
+    assert foobar2.called == True  # noqa: E712
+    assert foobar1.call_count == 1
+    assert foobar2.call_count == 1
+    assert foobar1.calls.call_count == 1
+
+    _request, _response = foobar1.calls[-1]
+    assert isinstance(_request, httpx.Request)
+    assert isinstance(_response, httpx.Response)
+    assert foobar1.calls.last.request is _request
+    assert foobar1.calls.last.response is _response
+    assert _request.method == "GET"
+    assert _request.url == url
+    assert _response.status_code == get_response.status_code == 202
+    assert _response.content == get_response.content == b"get"
+    assert tuple(_response.headers.raw) == tuple(get_response.headers.raw)
+    assert _response.extensions == get_response.extensions
+    assert id(_response) != id(get_response)
+
+    _request, _response = foobar2.calls[-1]
+    assert isinstance(_request, httpx.Request)
+    assert isinstance(_response, httpx.Response)
+    assert _request.method == "DELETE"
+    assert _request.url == url
+    assert _response.status_code == del_response.status_code == 200
+    assert _response.content == del_response.content == b"del"
+    assert tuple(_response.headers.raw) == tuple(del_response.headers.raw)
+    assert _response.extensions == del_response.extensions
+    assert id(_response) != id(del_response)
+
+    assert respx.calls.call_count == 2
+    assert respx.calls[0] == foobar1.calls[-1]
+    assert respx.calls[1] == foobar2.calls[-1]
+
+    assert respx.mock.calls.call_count == 2
+    assert respx.calls.call_count == 2
+
+    route = respx.routes["get_foobar"]
+    assert route == foobar1
+    assert route.name == foobar1.name
+
+    route = respx.routes["del_foobar"]
+    assert route == foobar2
+    assert route.name == foobar2.name
+
+
+def test_asyncio():
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(backend_test())
+    finally:
+        loop.close()
+
+
+def test_trio():  # pragma: nocover
+    import trio
+
+    trio.run(backend_test)
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/respx/tests/test_transports.py</source>
+<document_content>
+import warnings
+
+import httpx
+import pytest
+
+from respx.models import PassThrough
+from respx.router import Router
+from respx.transports import MockTransport
+
+
+def test_sync_transport_handler():
+    url = "https://foo.bar/"
+
+    router = Router(assert_all_called=False)
+    router.get(url) % 404
+    router.post(url).pass_through()
+    router.put(url)
+
+    with warnings.catch_warnings(record=True) as w:
+        transport = MockTransport(handler=router.handler)
+        assert len(w) == 1
+
+    with httpx.Client(transport=transport) as client:
+        response = client.get(url)
+        assert response.status_code == 404
+        with pytest.raises(PassThrough):
+            client.post(url)
+
+
+async def test_async_transport_handler():
+    url = "https://foo.bar/"
+
+    router = Router(assert_all_called=False)
+    router.get(url) % 404
+    router.post(url).pass_through()
+    router.put(url)
+
+    with warnings.catch_warnings(record=True) as w:
+        transport = MockTransport(async_handler=router.async_handler)
+        assert len(w) == 1
+
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.get(url)
+        assert response.status_code == 404
+        with pytest.raises(PassThrough):
+            await client.post(url)
+
+
+async def test_transport_assertions():
+    url = "https://foo.bar/"
+
+    router = Router(assert_all_called=True)
+    router.get(url) % 404
+    router.post(url) % dict(json={"foo": "bar"})
+
+    with warnings.catch_warnings(record=True) as w:
+        transport = MockTransport(router=router)
+        assert len(w) == 1
+
+    with pytest.raises(  # noqa [PT012]
+        AssertionError, match="some routes were not called"
+    ):
+        async with httpx.AsyncClient(transport=transport) as client:
+            response = await client.get(url)
+            assert response.status_code == 404
+
+
+def test_required_kwarg():
+    with pytest.raises(RuntimeError, match="argument"):
+        MockTransport()
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/respx/tests/test_utils.py</source>
+<document_content>
+from datetime import datetime, timezone
+
+from respx.utils import SetCookie
+
+
+class TestSetCookie:
+    def test_can_render_all_attributes(self) -> None:
+        expires = datetime.fromtimestamp(0, tz=timezone.utc)
+        cookie = SetCookie(
+            "foo",
+            value="bar",
+            path="/",
+            domain=".example.com",
+            expires=expires,
+            max_age=44,
+            http_only=True,
+            same_site="None",
+            partitioned=True,
+        )
+        assert cookie == (
+            "Set-Cookie",
+            (
+                "foo=bar; "
+                "Path=/; "
+                "Domain=.example.com; "
+                "Expires=Thu, 01 Jan 1970 00:00:00 GMT; "
+                "Max-Age=44; "
+                "HttpOnly; "
+                "SameSite=None; "
+                "Secure; "
+                "Partitioned"
+            ),
+        )
+
+</document_content>
+</document>
+</documents>

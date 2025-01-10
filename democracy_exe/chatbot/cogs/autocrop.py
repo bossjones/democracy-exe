@@ -28,10 +28,13 @@ import bpdb
 import cv2
 import discord
 import numpy as np
+import structlog
 
 from discord.ext import commands
 from discord.ext.commands import Context
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 from rich.pretty import pprint
 
@@ -95,7 +98,7 @@ class Autocrop(commands.Cog):
         """
         logger.debug(f"{type(self).__name__} Cog ready.")
         print(f"{type(self).__name__} Cog ready.")
-        await logger.complete()
+        # await logger.complete()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -131,45 +134,52 @@ class Autocrop(commands.Cog):
         try:
             # Run CPU-bound operations in thread pool
             loop = asyncio.get_running_loop()
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                def process_in_thread():
-                    # Load image
-                    logger.debug(f"Loading image from {image_path}")
-                    img = Image.open(image_path)
-                    logger.debug(f"Original image dimensions: {img.size}, mode: {img.mode}")
+            pool = concurrent.futures.ThreadPoolExecutor()
 
-                    # Convert to RGB if needed
-                    if img.mode != 'RGB':
-                        logger.debug(f"Converting image from {img.mode} to RGB")
-                        img = img.convert('RGB')
+            def process_in_thread():
+                # Load image
+                logger.debug(f"Loading image from {image_path}")
+                img = Image.open(image_path)
+                logger.debug(f"Original image dimensions: {img.size}, mode: {img.mode}")
 
-                    # Calculate target dimensions
-                    target_ratio = aspect_ratio[0] / aspect_ratio[1]
-                    current_ratio = img.width / img.height
-                    logger.debug(f"Target ratio: {target_ratio:.2f}, Current ratio: {current_ratio:.2f}")
+                # Convert to RGB if needed
+                if img.mode != 'RGB':
+                    logger.debug(f"Converting image from {img.mode} to RGB")
+                    img = img.convert('RGB')
 
-                    if current_ratio > target_ratio:
-                        # Image is too wide
-                        new_width = int(img.height * target_ratio)
-                        offset = (img.width - new_width) // 2
-                        crop_box = (offset, 0, offset + new_width, img.height)
-                        logger.debug(f"Image too wide - New width: {new_width}, Offset: {offset}")
-                    else:
-                        # Image is too tall
-                        new_height = int(img.width / target_ratio)
-                        offset = (img.height - new_height) // 2
-                        crop_box = (0, offset, img.width, offset + new_height)
-                        logger.debug(f"Image too tall - New height: {new_height}, Offset: {offset}")
+                # Calculate target dimensions
+                target_ratio = aspect_ratio[0] / aspect_ratio[1]
+                current_ratio = img.width / img.height
+                logger.debug(f"Target ratio: {target_ratio:.2f}, Current ratio: {current_ratio:.2f}")
 
-                    logger.debug(f"Applying crop with box: {crop_box}")
-                    # Crop and save
-                    cropped = img.crop(crop_box)
-                    logger.debug(f"Saving processed image to {output_path} with quality 95")
-                    cropped.save(output_path, quality=95)
-                    return True
+                if current_ratio > target_ratio:
+                    # Image is too wide
+                    new_width = int(img.height * target_ratio)
+                    offset = (img.width - new_width) // 2
+                    crop_box = (offset, 0, offset + new_width, img.height)
+                    logger.debug(f"Image too wide - New width: {new_width}, Offset: {offset}")
+                else:
+                    # Image is too tall
+                    new_height = int(img.width / target_ratio)
+                    offset = (img.height - new_height) // 2
+                    crop_box = (0, offset, img.width, offset + new_height)
+                    logger.debug(f"Image too tall - New height: {new_height}, Offset: {offset}")
 
-                logger.debug("Dispatching image processing to thread pool")
-                return await loop.run_in_executor(pool, process_in_thread)
+                logger.debug(f"Applying crop with box: {crop_box}")
+                # Crop and save
+                cropped = img.crop(crop_box)
+                logger.debug(f"Saving processed image to {output_path} with quality 95")
+                cropped.save(output_path, quality=95)
+                return True
+
+            logger.debug("Dispatching image processing to thread pool")
+            try:
+                result = await loop.run_in_executor(pool, process_in_thread)
+                if result:
+                    logger.debug("Image processed successfully")
+                return result
+            finally:
+                pool.shutdown(wait=False)
 
         except Exception as e:
             logger.exception(f"Failed to process image: {e}")
@@ -238,7 +248,7 @@ class Autocrop(commands.Cog):
                         await attachment.save(input_path)
                     logger.debug("Attachment downloaded successfully")
                 except TimeoutError:
-                    logger.error("Attachment download timed out")
+                    logger.error("Image download timed out")
                     await progress.edit(content="Image download timed out")
                     return False, "Image download timed out"
                 except discord.HTTPException as e:

@@ -4,8 +4,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 import httpx
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.aio_settings import aiosettings
 

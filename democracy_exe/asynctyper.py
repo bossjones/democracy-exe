@@ -25,7 +25,6 @@ from typer.models import CommandFunctionType
 import democracy_exe
 
 from democracy_exe.aio_settings import aiosettings, get_rich_console
-from democracy_exe.bot_logger import get_logger
 
 
 P = ParamSpec("P")

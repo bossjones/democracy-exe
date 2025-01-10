@@ -1,0 +1,1886 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_02_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+CommonsDep = Annotated[dict, Depends(common_parameters)]
+
+
+@app.get("/items/")
+async def read_items(commons: CommonsDep):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: CommonsDep):
+    return commons
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_02_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+CommonsDep = Annotated[dict, Depends(common_parameters)]
+
+
+@app.get("/items/")
+async def read_items(commons: CommonsDep):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: CommonsDep):
+    return commons
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_02_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+CommonsDep = Annotated[dict, Depends(common_parameters)]
+
+
+@app.get("/items/")
+async def read_items(commons: CommonsDep):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: CommonsDep):
+    return commons
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial001_py310.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial002.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial002_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial002_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial002_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial002_py310.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial003.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons=Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial003_an.py</source>
+<document_content>
+from typing import Any, Union
+
+from fastapi import Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[Any, Depends(CommonQueryParams)]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial003_an_py310.py</source>
+<document_content>
+from typing import Annotated, Any
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[Any, Depends(CommonQueryParams)]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial003_an_py39.py</source>
+<document_content>
+from typing import Annotated, Any, Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[Any, Depends(CommonQueryParams)]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial003_py310.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons=Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial004.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends()):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial004_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends()]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial004_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends()]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial004_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends()]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial004_py310.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends()):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial005.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Cookie, Depends, FastAPI
+
+app = FastAPI()
+
+
+def query_extractor(q: Union[str, None] = None):
+    return q
+
+
+def query_or_cookie_extractor(
+    q: str = Depends(query_extractor),
+    last_query: Union[str, None] = Cookie(default=None),
+):
+    if not q:
+        return last_query
+    return q
+
+
+@app.get("/items/")
+async def read_query(query_or_default: str = Depends(query_or_cookie_extractor)):
+    return {"q_or_cookie": query_or_default}
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial005_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Cookie, Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+def query_extractor(q: Union[str, None] = None):
+    return q
+
+
+def query_or_cookie_extractor(
+    q: Annotated[str, Depends(query_extractor)],
+    last_query: Annotated[Union[str, None], Cookie()] = None,
+):
+    if not q:
+        return last_query
+    return q
+
+
+@app.get("/items/")
+async def read_query(
+    query_or_default: Annotated[str, Depends(query_or_cookie_extractor)]
+):
+    return {"q_or_cookie": query_or_default}
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial005_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Cookie, Depends, FastAPI
+
+app = FastAPI()
+
+
+def query_extractor(q: str | None = None):
+    return q
+
+
+def query_or_cookie_extractor(
+    q: Annotated[str, Depends(query_extractor)],
+    last_query: Annotated[str | None, Cookie()] = None,
+):
+    if not q:
+        return last_query
+    return q
+
+
+@app.get("/items/")
+async def read_query(
+    query_or_default: Annotated[str, Depends(query_or_cookie_extractor)]
+):
+    return {"q_or_cookie": query_or_default}
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial005_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import Cookie, Depends, FastAPI
+
+app = FastAPI()
+
+
+def query_extractor(q: Union[str, None] = None):
+    return q
+
+
+def query_or_cookie_extractor(
+    q: Annotated[str, Depends(query_extractor)],
+    last_query: Annotated[Union[str, None], Cookie()] = None,
+):
+    if not q:
+        return last_query
+    return q
+
+
+@app.get("/items/")
+async def read_query(
+    query_or_default: Annotated[str, Depends(query_or_cookie_extractor)]
+):
+    return {"q_or_cookie": query_or_default}
+
+</document_content>
+</document>
+<document index="28">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial005_py310.py</source>
+<document_content>
+from fastapi import Cookie, Depends, FastAPI
+
+app = FastAPI()
+
+
+def query_extractor(q: str | None = None):
+    return q
+
+
+def query_or_cookie_extractor(
+    q: str = Depends(query_extractor), last_query: str | None = Cookie(default=None)
+):
+    if not q:
+        return last_query
+    return q
+
+
+@app.get("/items/")
+async def read_query(query_or_default: str = Depends(query_or_cookie_extractor)):
+    return {"q_or_cookie": query_or_default}
+
+</document_content>
+</document>
+<document index="29">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial006.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, Header, HTTPException
+
+app = FastAPI()
+
+
+async def verify_token(x_token: str = Header()):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: str = Header()):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app.get("/items/", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def read_items():
+    return [{"item": "Foo"}, {"item": "Bar"}]
+
+</document_content>
+</document>
+<document index="30">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial006_an.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, Header, HTTPException
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app.get("/items/", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def read_items():
+    return [{"item": "Foo"}, {"item": "Bar"}]
+
+</document_content>
+</document>
+<document index="31">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial006_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, Header, HTTPException
+
+app = FastAPI()
+
+
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app.get("/items/", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def read_items():
+    return [{"item": "Foo"}, {"item": "Bar"}]
+
+</document_content>
+</document>
+<document index="32">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial007.py</source>
+<document_content>
+async def get_db():
+    db = DBSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+</document_content>
+</document>
+<document index="33">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008.py</source>
+<document_content>
+from fastapi import Depends
+
+
+async def dependency_a():
+    dep_a = generate_dep_a()
+    try:
+        yield dep_a
+    finally:
+        dep_a.close()
+
+
+async def dependency_b(dep_a=Depends(dependency_a)):
+    dep_b = generate_dep_b()
+    try:
+        yield dep_b
+    finally:
+        dep_b.close(dep_a)
+
+
+async def dependency_c(dep_b=Depends(dependency_b)):
+    dep_c = generate_dep_c()
+    try:
+        yield dep_c
+    finally:
+        dep_c.close(dep_b)
+
+</document_content>
+</document>
+<document index="34">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008_an.py</source>
+<document_content>
+from fastapi import Depends
+from typing_extensions import Annotated
+
+
+async def dependency_a():
+    dep_a = generate_dep_a()
+    try:
+        yield dep_a
+    finally:
+        dep_a.close()
+
+
+async def dependency_b(dep_a: Annotated[DepA, Depends(dependency_a)]):
+    dep_b = generate_dep_b()
+    try:
+        yield dep_b
+    finally:
+        dep_b.close(dep_a)
+
+
+async def dependency_c(dep_b: Annotated[DepB, Depends(dependency_b)]):
+    dep_c = generate_dep_c()
+    try:
+        yield dep_c
+    finally:
+        dep_c.close(dep_b)
+
+</document_content>
+</document>
+<document index="35">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends
+
+
+async def dependency_a():
+    dep_a = generate_dep_a()
+    try:
+        yield dep_a
+    finally:
+        dep_a.close()
+
+
+async def dependency_b(dep_a: Annotated[DepA, Depends(dependency_a)]):
+    dep_b = generate_dep_b()
+    try:
+        yield dep_b
+    finally:
+        dep_b.close(dep_a)
+
+
+async def dependency_c(dep_b: Annotated[DepB, Depends(dependency_b)]):
+    dep_c = generate_dep_c()
+    try:
+        yield dep_c
+    finally:
+        dep_c.close(dep_b)
+
+</document_content>
+</document>
+<document index="36">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008b.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+
+data = {
+    "plumbus": {"description": "Freshly pickled plumbus", "owner": "Morty"},
+    "portal-gun": {"description": "Gun to create portals", "owner": "Rick"},
+}
+
+
+class OwnerError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except OwnerError as e:
+        raise HTTPException(status_code=400, detail=f"Owner error: {e}")
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: str = Depends(get_username)):
+    if item_id not in data:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item = data[item_id]
+    if item["owner"] != username:
+        raise OwnerError(username)
+    return item
+
+</document_content>
+</document>
+<document index="37">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008b_an.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, HTTPException
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+data = {
+    "plumbus": {"description": "Freshly pickled plumbus", "owner": "Morty"},
+    "portal-gun": {"description": "Gun to create portals", "owner": "Rick"},
+}
+
+
+class OwnerError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except OwnerError as e:
+        raise HTTPException(status_code=400, detail=f"Owner error: {e}")
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+    if item_id not in data:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item = data[item_id]
+    if item["owner"] != username:
+        raise OwnerError(username)
+    return item
+
+</document_content>
+</document>
+<document index="38">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008b_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+
+data = {
+    "plumbus": {"description": "Freshly pickled plumbus", "owner": "Morty"},
+    "portal-gun": {"description": "Gun to create portals", "owner": "Rick"},
+}
+
+
+class OwnerError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except OwnerError as e:
+        raise HTTPException(status_code=400, detail=f"Owner error: {e}")
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+    if item_id not in data:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item = data[item_id]
+    if item["owner"] != username:
+        raise OwnerError(username)
+    return item
+
+</document_content>
+</document>
+<document index="39">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008c.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+
+class InternalError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("Oops, we didn't raise again, Britney 😱")
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: str = Depends(get_username)):
+    if item_id == "portal-gun":
+        raise InternalError(
+            f"The portal gun is too dangerous to be owned by {username}"
+        )
+    if item_id != "plumbus":
+        raise HTTPException(
+            status_code=404, detail="Item not found, there's only a plumbus here"
+        )
+    return item_id
+
+</document_content>
+</document>
+<document index="40">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008c_an.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, HTTPException
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+class InternalError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("Oops, we didn't raise again, Britney 😱")
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+    if item_id == "portal-gun":
+        raise InternalError(
+            f"The portal gun is too dangerous to be owned by {username}"
+        )
+    if item_id != "plumbus":
+        raise HTTPException(
+            status_code=404, detail="Item not found, there's only a plumbus here"
+        )
+    return item_id
+
+</document_content>
+</document>
+<document index="41">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008c_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+
+class InternalError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("Oops, we didn't raise again, Britney 😱")
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+    if item_id == "portal-gun":
+        raise InternalError(
+            f"The portal gun is too dangerous to be owned by {username}"
+        )
+    if item_id != "plumbus":
+        raise HTTPException(
+            status_code=404, detail="Item not found, there's only a plumbus here"
+        )
+    return item_id
+
+</document_content>
+</document>
+<document index="42">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008d.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+
+class InternalError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("We don't swallow the internal error here, we raise again 😎")
+        raise
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: str = Depends(get_username)):
+    if item_id == "portal-gun":
+        raise InternalError(
+            f"The portal gun is too dangerous to be owned by {username}"
+        )
+    if item_id != "plumbus":
+        raise HTTPException(
+            status_code=404, detail="Item not found, there's only a plumbus here"
+        )
+    return item_id
+
+</document_content>
+</document>
+<document index="43">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008d_an.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, HTTPException
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+class InternalError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("We don't swallow the internal error here, we raise again 😎")
+        raise
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+    if item_id == "portal-gun":
+        raise InternalError(
+            f"The portal gun is too dangerous to be owned by {username}"
+        )
+    if item_id != "plumbus":
+        raise HTTPException(
+            status_code=404, detail="Item not found, there's only a plumbus here"
+        )
+    return item_id
+
+</document_content>
+</document>
+<document index="44">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial008d_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+
+class InternalError(Exception):
+    pass
+
+
+def get_username():
+    try:
+        yield "Rick"
+    except InternalError:
+        print("We don't swallow the internal error here, we raise again 😎")
+        raise
+
+
+@app.get("/items/{item_id}")
+def get_item(item_id: str, username: Annotated[str, Depends(get_username)]):
+    if item_id == "portal-gun":
+        raise InternalError(
+            f"The portal gun is too dangerous to be owned by {username}"
+        )
+    if item_id != "plumbus":
+        raise HTTPException(
+            status_code=404, detail="Item not found, there's only a plumbus here"
+        )
+    return item_id
+
+</document_content>
+</document>
+<document index="45">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial009.py</source>
+<document_content>
+from fastapi import Depends
+
+
+async def dependency_a():
+    dep_a = generate_dep_a()
+    try:
+        yield dep_a
+    finally:
+        dep_a.close()
+
+
+async def dependency_b(dep_a=Depends(dependency_a)):
+    dep_b = generate_dep_b()
+    try:
+        yield dep_b
+    finally:
+        dep_b.close(dep_a)
+
+
+async def dependency_c(dep_b=Depends(dependency_b)):
+    dep_c = generate_dep_c()
+    try:
+        yield dep_c
+    finally:
+        dep_c.close(dep_b)
+
+</document_content>
+</document>
+<document index="46">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial010.py</source>
+<document_content>
+class MySuperContextManager:
+    def __init__(self):
+        self.db = DBSession()
+
+    def __enter__(self):
+        return self.db
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.db.close()
+
+
+async def get_db():
+    with MySuperContextManager() as db:
+        yield db
+
+</document_content>
+</document>
+<document index="47">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial011.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+class FixedContentQueryChecker:
+    def __init__(self, fixed_content: str):
+        self.fixed_content = fixed_content
+
+    def __call__(self, q: str = ""):
+        if q:
+            return self.fixed_content in q
+        return False
+
+
+checker = FixedContentQueryChecker("bar")
+
+
+@app.get("/query-checker/")
+async def read_query_check(fixed_content_included: bool = Depends(checker)):
+    return {"fixed_content_in_query": fixed_content_included}
+
+</document_content>
+</document>
+<document index="48">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial011_an.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+class FixedContentQueryChecker:
+    def __init__(self, fixed_content: str):
+        self.fixed_content = fixed_content
+
+    def __call__(self, q: str = ""):
+        if q:
+            return self.fixed_content in q
+        return False
+
+
+checker = FixedContentQueryChecker("bar")
+
+
+@app.get("/query-checker/")
+async def read_query_check(fixed_content_included: Annotated[bool, Depends(checker)]):
+    return {"fixed_content_in_query": fixed_content_included}
+
+</document_content>
+</document>
+<document index="49">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial011_an_py39.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+class FixedContentQueryChecker:
+    def __init__(self, fixed_content: str):
+        self.fixed_content = fixed_content
+
+    def __call__(self, q: str = ""):
+        if q:
+            return self.fixed_content in q
+        return False
+
+
+checker = FixedContentQueryChecker("bar")
+
+
+@app.get("/query-checker/")
+async def read_query_check(fixed_content_included: Annotated[bool, Depends(checker)]):
+    return {"fixed_content_in_query": fixed_content_included}
+
+</document_content>
+</document>
+<document index="50">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial012.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, Header, HTTPException
+
+
+async def verify_token(x_token: str = Header()):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: str = Header()):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+
+@app.get("/users/")
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
+
+</document_content>
+</document>
+<document index="51">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial012_an.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, Header, HTTPException
+from typing_extensions import Annotated
+
+
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+
+@app.get("/users/")
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
+
+</document_content>
+</document>
+<document index="52">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependencies/tutorial012_an_py39.py</source>
+<document_content>
+from fastapi import Depends, FastAPI, Header, HTTPException
+from typing_extensions import Annotated
+
+
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+
+@app.get("/users/")
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
+
+</document_content>
+</document>
+<document index="53">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependency_testing/tutorial001.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return {"message": "Hello Items!", "params": commons}
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return {"message": "Hello Users!", "params": commons}
+
+
+client = TestClient(app)
+
+
+async def override_dependency(q: Union[str, None] = None):
+    return {"q": q, "skip": 5, "limit": 10}
+
+
+app.dependency_overrides[common_parameters] = override_dependency
+
+
+def test_override_in_items():
+    response = client.get("/items/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": None, "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_q():
+    response = client.get("/items/?q=foo")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_params():
+    response = client.get("/items/?q=foo&skip=100&limit=200")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+</document_content>
+</document>
+<document index="54">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependency_testing/tutorial001_an.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
+from typing_extensions import Annotated
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return {"message": "Hello Items!", "params": commons}
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return {"message": "Hello Users!", "params": commons}
+
+
+client = TestClient(app)
+
+
+async def override_dependency(q: Union[str, None] = None):
+    return {"q": q, "skip": 5, "limit": 10}
+
+
+app.dependency_overrides[common_parameters] = override_dependency
+
+
+def test_override_in_items():
+    response = client.get("/items/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": None, "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_q():
+    response = client.get("/items/?q=foo")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_params():
+    response = client.get("/items/?q=foo&skip=100&limit=200")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+</document_content>
+</document>
+<document index="55">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependency_testing/tutorial001_an_py310.py</source>
+<document_content>
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return {"message": "Hello Items!", "params": commons}
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return {"message": "Hello Users!", "params": commons}
+
+
+client = TestClient(app)
+
+
+async def override_dependency(q: str | None = None):
+    return {"q": q, "skip": 5, "limit": 10}
+
+
+app.dependency_overrides[common_parameters] = override_dependency
+
+
+def test_override_in_items():
+    response = client.get("/items/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": None, "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_q():
+    response = client.get("/items/?q=foo")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_params():
+    response = client.get("/items/?q=foo&skip=100&limit=200")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+</document_content>
+</document>
+<document index="56">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependency_testing/tutorial001_an_py39.py</source>
+<document_content>
+from typing import Annotated, Union
+
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return {"message": "Hello Items!", "params": commons}
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return {"message": "Hello Users!", "params": commons}
+
+
+client = TestClient(app)
+
+
+async def override_dependency(q: Union[str, None] = None):
+    return {"q": q, "skip": 5, "limit": 10}
+
+
+app.dependency_overrides[common_parameters] = override_dependency
+
+
+def test_override_in_items():
+    response = client.get("/items/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": None, "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_q():
+    response = client.get("/items/?q=foo")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_params():
+    response = client.get("/items/?q=foo&skip=100&limit=200")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+</document_content>
+</document>
+<document index="57">
+<source>/Users/malcolm/dev/fastapi/docs_src/dependency_testing/tutorial001_py310.py</source>
+<document_content>
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return {"message": "Hello Items!", "params": commons}
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return {"message": "Hello Users!", "params": commons}
+
+
+client = TestClient(app)
+
+
+async def override_dependency(q: str | None = None):
+    return {"q": q, "skip": 5, "limit": 10}
+
+
+app.dependency_overrides[common_parameters] = override_dependency
+
+
+def test_override_in_items():
+    response = client.get("/items/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": None, "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_q():
+    response = client.get("/items/?q=foo")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+
+def test_override_in_items_with_params():
+    response = client.get("/items/?q=foo&skip=100&limit=200")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Hello Items!",
+        "params": {"q": "foo", "skip": 5, "limit": 10},
+    }
+
+</document_content>
+</document>
+</documents>

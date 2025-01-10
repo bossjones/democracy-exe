@@ -1,0 +1,863 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_status_code/tutorial001.py</source>
+<document_content>
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.post("/items/", status_code=201)
+async def create_item(name: str):
+    return {"name": name}
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_status_code/tutorial002.py</source>
+<document_content>
+from fastapi import FastAPI, status
+
+app = FastAPI()
+
+
+@app.post("/items/", status_code=status.HTTP_201_CREATED)
+async def create_item(name: str):
+    return {"name": name}
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial001.py</source>
+<document_content>
+from typing import Any, List, Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: List[str] = []
+
+
+@app.post("/items/", response_model=Item)
+async def create_item(item: Item) -> Any:
+    return item
+
+
+@app.get("/items/", response_model=List[Item])
+async def read_items() -> Any:
+    return [
+        {"name": "Portal Gun", "price": 42.0},
+        {"name": "Plumbus", "price": 32.0},
+    ]
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial001_01.py</source>
+<document_content>
+from typing import List, Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: List[str] = []
+
+
+@app.post("/items/")
+async def create_item(item: Item) -> Item:
+    return item
+
+
+@app.get("/items/")
+async def read_items() -> List[Item]:
+    return [
+        Item(name="Portal Gun", price=42.0),
+        Item(name="Plumbus", price=32.0),
+    ]
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial001_01_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []
+
+
+@app.post("/items/")
+async def create_item(item: Item) -> Item:
+    return item
+
+
+@app.get("/items/")
+async def read_items() -> list[Item]:
+    return [
+        Item(name="Portal Gun", price=42.0),
+        Item(name="Plumbus", price=32.0),
+    ]
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial001_01_py39.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: list[str] = []
+
+
+@app.post("/items/")
+async def create_item(item: Item) -> Item:
+    return item
+
+
+@app.get("/items/")
+async def read_items() -> list[Item]:
+    return [
+        Item(name="Portal Gun", price=42.0),
+        Item(name="Plumbus", price=32.0),
+    ]
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial001_py310.py</source>
+<document_content>
+from typing import Any
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []
+
+
+@app.post("/items/", response_model=Item)
+async def create_item(item: Item) -> Any:
+    return item
+
+
+@app.get("/items/", response_model=list[Item])
+async def read_items() -> Any:
+    return [
+        {"name": "Portal Gun", "price": 42.0},
+        {"name": "Plumbus", "price": 32.0},
+    ]
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial001_py39.py</source>
+<document_content>
+from typing import Any, Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: list[str] = []
+
+
+@app.post("/items/", response_model=Item)
+async def create_item(item: Item) -> Any:
+    return item
+
+
+@app.get("/items/", response_model=list[Item])
+async def read_items() -> Any:
+    return [
+        {"name": "Portal Gun", "price": 42.0},
+        {"name": "Plumbus", "price": 32.0},
+    ]
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial002.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+# Don't do this in production!
+@app.post("/user/")
+async def create_user(user: UserIn) -> UserIn:
+    return user
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial002_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+# Don't do this in production!
+@app.post("/user/")
+async def create_user(user: UserIn) -> UserIn:
+    return user
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003.py</source>
+<document_content>
+from typing import Any, Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+class UserOut(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user: UserIn) -> Any:
+    return user
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_01.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class BaseUser(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+class UserIn(BaseUser):
+    password: str
+
+
+@app.post("/user/")
+async def create_user(user: UserIn) -> BaseUser:
+    return user
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_01_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class BaseUser(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserIn(BaseUser):
+    password: str
+
+
+@app.post("/user/")
+async def create_user(user: UserIn) -> BaseUser:
+    return user
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_02.py</source>
+<document_content>
+from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse, RedirectResponse
+
+app = FastAPI()
+
+
+@app.get("/portal")
+async def get_portal(teleport: bool = False) -> Response:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return JSONResponse(content={"message": "Here's your interdimensional portal."})
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_03.py</source>
+<document_content>
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+
+app = FastAPI()
+
+
+@app.get("/teleport")
+async def get_teleport() -> RedirectResponse:
+    return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_04.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Response
+from fastapi.responses import RedirectResponse
+
+app = FastAPI()
+
+
+@app.get("/portal")
+async def get_portal(teleport: bool = False) -> Union[Response, dict]:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return {"message": "Here's your interdimensional portal."}
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_04_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Response
+from fastapi.responses import RedirectResponse
+
+app = FastAPI()
+
+
+@app.get("/portal")
+async def get_portal(teleport: bool = False) -> Response | dict:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return {"message": "Here's your interdimensional portal."}
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_05.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI, Response
+from fastapi.responses import RedirectResponse
+
+app = FastAPI()
+
+
+@app.get("/portal", response_model=None)
+async def get_portal(teleport: bool = False) -> Union[Response, dict]:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return {"message": "Here's your interdimensional portal."}
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_05_py310.py</source>
+<document_content>
+from fastapi import FastAPI, Response
+from fastapi.responses import RedirectResponse
+
+app = FastAPI()
+
+
+@app.get("/portal", response_model=None)
+async def get_portal(teleport: bool = False) -> Response | dict:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return {"message": "Here's your interdimensional portal."}
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial003_py310.py</source>
+<document_content>
+from typing import Any
+
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserOut(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user: UserIn) -> Any:
+    return user
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial004.py</source>
+<document_content>
+from typing import List, Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+    tags: List[str] = []
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
+
+
+@app.get("/items/{item_id}", response_model=Item, response_model_exclude_unset=True)
+async def read_item(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial004_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float = 10.5
+    tags: list[str] = []
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
+
+
+@app.get("/items/{item_id}", response_model=Item, response_model_exclude_unset=True)
+async def read_item(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial004_py39.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+    tags: list[str] = []
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
+
+
+@app.get("/items/{item_id}", response_model=Item, response_model_exclude_unset=True)
+async def read_item(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial005.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include={"name", "description"},
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude={"tax"})
+async def read_item_public_data(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial005_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float = 10.5
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include={"name", "description"},
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude={"tax"})
+async def read_item_public_data(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial006.py</source>
+<document_content>
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include=["name", "description"],
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude=["tax"])
+async def read_item_public_data(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_model/tutorial006_py310.py</source>
+<document_content>
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float = 10.5
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include=["name", "description"],
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude=["tax"])
+async def read_item_public_data(item_id: str):
+    return items[item_id]
+
+</document_content>
+</document>
+<document index="28">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_headers/tutorial001.py</source>
+<document_content>
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+
+@app.get("/headers/")
+def get_headers():
+    content = {"message": "Hello World"}
+    headers = {"X-Cat-Dog": "alone in the world", "Content-Language": "en-US"}
+    return JSONResponse(content=content, headers=headers)
+
+</document_content>
+</document>
+<document index="29">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_headers/tutorial002.py</source>
+<document_content>
+from fastapi import FastAPI, Response
+
+app = FastAPI()
+
+
+@app.get("/headers-and-object/")
+def get_headers(response: Response):
+    response.headers["X-Cat-Dog"] = "alone in the world"
+    return {"message": "Hello World"}
+
+</document_content>
+</document>
+<document index="30">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_directly/tutorial001.py</source>
+<document_content>
+from datetime import datetime
+from typing import Union
+
+from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+
+class Item(BaseModel):
+    title: str
+    timestamp: datetime
+    description: Union[str, None] = None
+
+
+app = FastAPI()
+
+
+@app.put("/items/{id}")
+def update_item(id: str, item: Item):
+    json_compatible_item_data = jsonable_encoder(item)
+    return JSONResponse(content=json_compatible_item_data)
+
+</document_content>
+</document>
+<document index="31">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_directly/tutorial002.py</source>
+<document_content>
+from fastapi import FastAPI, Response
+
+app = FastAPI()
+
+
+@app.get("/legacy/")
+def get_legacy_data():
+    data = """<?xml version="1.0"?>
+    <shampoo>
+    <Header>
+        Apply shampoo here.
+    </Header>
+    <Body>
+        You'll have to use soap here.
+    </Body>
+    </shampoo>
+    """
+    return Response(content=data, media_type="application/xml")
+
+</document_content>
+</document>
+<document index="32">
+<source>/Users/malcolm/dev/fastapi/docs_src/response_change_status_code/tutorial001.py</source>
+<document_content>
+from fastapi import FastAPI, Response, status
+
+app = FastAPI()
+
+tasks = {"foo": "Listen to the Bar Fighters"}
+
+
+@app.put("/get-or-create-task/{task_id}", status_code=200)
+def get_or_create_task(task_id: str, response: Response):
+    if task_id not in tasks:
+        tasks[task_id] = "This didn't exist before"
+        response.status_code = status.HTTP_201_CREATED
+    return tasks[task_id]
+
+</document_content>
+</document>
+</documents>

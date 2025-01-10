@@ -7,7 +7,10 @@ import functools
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.shell import _aio_run_process_and_communicate, run_coroutine_subprocess
 

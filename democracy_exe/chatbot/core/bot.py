@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, Ty
 import aiohttp
 import discord
 import pysnooper
+import structlog
 
 from discord import (
     Activity,
@@ -36,7 +37,9 @@ from discord.abc import Messageable
 from discord.ext import commands
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph  # type: ignore[import]
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import SecretStr
 
 import democracy_exe
@@ -245,7 +248,7 @@ class DemocracyBot(commands.Bot):
         await self._load_extensions()
 
         logger.info("Completed setup_hook initialization")
-        await logger.complete()
+        # await logger.complete()
 
     async def on_command_error(self, ctx: commands.Context[commands.Bot], error: commands.CommandError) -> None:
         """Handle errors raised during command invocation.
@@ -268,7 +271,7 @@ class DemocracyBot(commands.Bot):
         else:
             raise error
 
-        await logger.complete()
+        # await logger.complete()
 
 
     def _clear_gateway_data(self) -> None:
@@ -520,7 +523,7 @@ class DemocracyBot(commands.Bot):
             self.uptime = discord.utils.utcnow()
 
         logger.info(f"Ready: {self.user} (ID: {self.user.id})")
-        await logger.complete()
+        # await logger.complete()
 
     async def on_shard_resumed(self, shard_id: int) -> None:
         """
@@ -541,7 +544,7 @@ class DemocracyBot(commands.Bot):
         """
         logger.info("Shard ID %s has resumed...", shard_id)
         self.resumes[shard_id].append(discord.utils.utcnow())
-        await logger.complete()
+        # await logger.complete()
 
     @property
     def owner(self) -> discord.User:

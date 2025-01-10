@@ -17,8 +17,12 @@ from concurrent.futures import ThreadPoolExecutor
 from traceback import extract_stack
 from typing import Any, TypeVar
 
+import structlog
+
 from codetiming import Timer
-from loguru import logger as LOGGER
+
+
+logger = structlog.get_logger(__name__)
 
 
 _SHUTDOWN_RUN_CALLBACK_THREADSAFE = "_shutdown_run_callback_threadsafe"
@@ -87,7 +91,7 @@ def run_callback_threadsafe(
             if future.set_running_or_notify_cancel():
                 future.set_exception(exc)
             else:
-                LOGGER.warning("Exception on lost future: ", exc_info=True)
+                logger.warning("Exception on lost future: ", exc_info=True)
 
     loop.call_soon_threadsafe(run_callback)
 
@@ -112,7 +116,7 @@ def run_callback_threadsafe(
         #
         raise RuntimeError("The event loop is in the process of shutting down.")
 
-    LOGGER.complete()
+    # logger.complete()()
     return future
 
 
@@ -155,7 +159,7 @@ def check_loop() -> None:
     else:
         extra = ""
 
-    LOGGER.warning(
+    logger.warning(
         "Detected I/O inside the event loop. This is causing stability issues. Please report issue%s for %s doing I/O at %s, line %s: %s",
         extra,
         integration,
@@ -163,7 +167,7 @@ def check_loop() -> None:
         found_frame.lineno,
         found_frame.line.strip(),
     )
-    LOGGER.complete()
+    # logger.complete()()
     raise RuntimeError(
         f"I/O must be done in the executor; Use `await hass.async_add_executor_job()` "
         f"at {found_frame.filename[index:]}, line {found_frame.lineno}: {found_frame.line.strip()}"

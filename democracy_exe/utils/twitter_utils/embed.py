@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import Any, Dict, Final, List, Optional, TypedDict, Union
 
 import discord
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.utils.twitter_utils.types import DownloadResult, TweetDownloadMode
 

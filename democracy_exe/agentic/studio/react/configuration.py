@@ -7,9 +7,12 @@ from typing import Annotated, Any, Optional, Type, TypeVar
 
 import prompts
 import rich
+import structlog
 
 from langchain_core.runnables import RunnableConfig, ensure_config
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from rich.pretty import pprint
 
 

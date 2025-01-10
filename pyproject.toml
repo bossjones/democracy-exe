@@ -17,7 +17,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "better-exceptions>=0.3.3",
     "discord-py>=2.4.0",
     "langchain>=0.3.7",
     "langchain-anthropic>=0.2.4",
@@ -48,7 +47,6 @@ dependencies = [
     "imutils>=0.5.4",
     "lazy-object-proxy>=1.10.0",
     "logging-tree>=1.10",
-    "loguru>=0.7.2",
     "lxml>=5.3.0",
     "markdown>=3.7",
     "matplotlib>=3.9.2",
@@ -73,7 +71,7 @@ dependencies = [
     "pytz>=2024.2",
     "rank-bm25>=0.2.2",
     "rapidfuzz>=3.10.1",
-    "rapidocr-onnxruntime>=1.3.25",
+    "rapidocr-onnxruntime>=1.3.18",
     "redis>=5.2.0",
     "requests-toolbelt>=1.0.0",
     "requests>=2.32.3",
@@ -116,6 +114,9 @@ dependencies = [
     "emoji==1.7.0",
     "emoji-country-flag==1.3.2",
     "dropbox>=12.0.2",
+    "rich>=13.9.4",
+    "structlog>=24.4.0",
+    "langsmith==0.1.147",
 ]
 
 [project.urls]
@@ -145,7 +146,6 @@ dev-dependencies = [
     "grpc-stubs>=1.53.0.5",
     "hunter>=3.7.0",
     "isort>=5.13.2",
-    "langsmith>=0.1.142",
     "manhole>=1.8.1",
     "mdformat-footnote>=0.1.1",
     "mdformat-frontmatter>=2.0.8",
@@ -185,7 +185,6 @@ dev-dependencies = [
     "pyupgrade>=3.19.0",
     "requests-mock>=1.12.1",
     "respx>=0.21.1",
-    "rich>=13.9.4",
     "towncrier>=24.8.0",
     "tox>=4.23.2",
     "types-aiofiles>=24.1.0.20240626",
@@ -225,9 +224,9 @@ dev-dependencies = [
     "nbqa[toolchain]>=1.9.1",
     "commitizen>=1.0.0",
     "pytest-aioresponses>=0.2.0",
-    "pytest-loguru>=0.4.0",
     "pytest-skipuntil>=0.2.0",
     "pytest-freezegun",
+    "better-exceptions>=0.3.3",
 ]
 
 [tool.uv.sources]
@@ -1031,6 +1030,10 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/chatbot/core/bot.py" = ["B026"]
 "democracy_exe/utils/twitter_utils/models.py" = ["SIM102"]
 "democracy_exe/utils/aiodbx.py" = ["SIM102", "S112", "S110", "SIM105"]
+"democracy_exe/bot_logger/__init__.py" = ["SIM105", "S110"]
+"democracy_exe/bot_logger/logsetup.py" = ["SIM105", "S110", "RUF005"]
+"generate_prompt.py" = ["SIM105", "S110", "RUF005", "S607"]
+
 
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
@@ -1459,6 +1462,13 @@ markers = [
     "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
     "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
     "gallerydlonly: marks tests that run code that utilizes the gallery-dl module (deselect with '-m \"not gallerydlonly\"')",
+    "logsonly: marks tests that run code that utilizes the logs module (deselect with '-m \"not logsonly\"')",
+    "chatbotonly: marks tests that run code that utilizes the chatbot module (deselect with '-m \"not chatbotonly\"')",
+    "agenticonly: marks tests that run code that utilizes the agentic module (deselect with '-m \"not agenticonly\"')",
+
+
+
+
 ]
 
 
@@ -1831,7 +1841,7 @@ max-line-length-suggestions = 72
 # Possible choices: ['old', 'new']
 logging-format-style = "new"
 
-logging-modules = ["logging", "loguru"]
+logging-modules = ["logging", "structlog"]
 
 # [tool.pylint.similarities]
 # ignore-comments = true

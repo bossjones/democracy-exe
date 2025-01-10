@@ -11,9 +11,12 @@ import logging
 from typing import List, Optional
 
 import discord
+import structlog
 
 from discord import Message as DiscordMessage
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.base import DemocracyMessage
 from democracy_exe.constants import INACTIVATE_THREAD_PREFIX, MAX_CHARS_PER_REPLY_MSG

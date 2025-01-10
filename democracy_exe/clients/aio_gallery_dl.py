@@ -16,24 +16,18 @@ from typing import Any, Dict, List, Optional, TypeVar, Union, cast, overload
 import aiofiles
 import bpdb
 import gallery_dl
+import structlog
 
-from loguru import logger
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
 from democracy_exe.aio_settings import aiosettings
 from democracy_exe.utils.file_functions import expand_path_str, tilda
 
 
+logger = structlog.get_logger(__name__)
+
 T = TypeVar("T")
 R = TypeVar("R")
-
-
-
-
-
-
-from pydantic import ConfigDict, SecretStr
-
 
 class HttpConfig(BaseModel):
     """Configuration for HTTP downloader settings."""
@@ -369,7 +363,7 @@ class AsyncGalleryDL:
             print(f"exc_type: {exc_type}")
             print(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            await logger.complete()
+            # await logger.complete()
             if aiosettings.dev_mode:
                 bpdb.pm()
 
@@ -452,7 +446,7 @@ if __name__ == "__main__":
     import rich
 
     from langsmith import tracing_context
-    from loguru import logger
+
 
     async def main() -> None:
         """Run the AsyncGalleryDL tool asynchronously."""
@@ -477,7 +471,7 @@ if __name__ == "__main__":
                 print(f"exc_type: {exc_type}")
                 print(f"exc_value: {exc_value}")
                 traceback.print_tb(exc_traceback)
-                await logger.complete()
+                # await logger.complete()
                 rich.print(f"aiosettings.dev_mode: {aiosettings.dev_mode}")
                 if aiosettings.dev_mode:
                     bpdb.pm()

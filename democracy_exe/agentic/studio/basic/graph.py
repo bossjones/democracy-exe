@@ -28,6 +28,7 @@ import _schemas as schemas
 import _utils as agentic_utils
 import langsmith
 import rich
+import structlog
 import tiktoken
 
 from langchain.chat_models import init_chat_model
@@ -39,7 +40,9 @@ from langchain_core.tools import tool
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from settings import aiosettings
 
 

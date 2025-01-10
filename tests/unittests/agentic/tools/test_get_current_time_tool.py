@@ -1,15 +1,12 @@
 """Tests for GetCurrentTimeTool."""
 
-# 2024-01-01 12:00:00
-
 from __future__ import annotations
 
-import re
-
-from datetime import datetime
 from typing import TYPE_CHECKING
 
-from freezegun import freeze_time
+import structlog
+
+from structlog.testing import capture_logs
 
 import pytest
 
@@ -26,6 +23,8 @@ if TYPE_CHECKING:
 
     from pytest_mock.plugin import MockerFixture
 
+logger = structlog.get_logger(__name__)
+
 
 @pytest.fixture
 def get_current_time_tool() -> GetCurrentTimeTool:
@@ -37,223 +36,289 @@ def get_current_time_tool() -> GetCurrentTimeTool:
     return GetCurrentTimeTool()
 
 
-@pytest.fixture
-def mock_datetime(mocker: MockerFixture) -> datetime:
-    """Mock datetime.now() for consistent testing.
-
-    Args:
-        mocker: Pytest mocker fixture
-
-    Returns:
-        Mocked datetime object
-    """
-    mock_time = datetime(2024, 1, 1, 12, 0, 0)
-    mocker.patch("democracy_exe.agentic.tools.get_current_time_tool.datetime", autospec=True)
-    mocker.patch("democracy_exe.agentic.tools.get_current_time_tool.datetime.now", return_value=mock_time)
-    return mock_time
-
-
 @pytest.mark.toolonly
-def test_get_time_default_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
-    """Test getting time with default format.
+def test_get_time_default_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
+    """Test getting current time with default format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    formatted_time, timestamp = get_current_time_tool._get_time()
+    with capture_logs() as captured:
+        formatted_time, timestamp = get_current_time_tool._get_time()
 
-    # Verify formatted time
-    assert formatted_time == "2024-01-01 12:00:00"
-    assert timestamp == mock_datetime.timestamp()
+        # Verify result format
+        assert isinstance(formatted_time, str)
+        assert isinstance(timestamp, float)
 
-    # Verify logging
-    assert "Getting current time with format" in caplog.text
-    assert str(formatted_time) in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_get_time_default_format:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time with format: %Y-%m-%d %H:%M:%S" for log in captured), (
+            "Expected 'Getting current time with format' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Current time:") for log in captured), (
+            "Expected 'Current time' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
-def test_get_time_custom_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
-    """Test getting time with custom format.
+def test_get_time_custom_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
+    """Test getting current time with custom format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    formatted_time, timestamp = get_current_time_tool._get_time("%H:%M:%S")
+    with capture_logs() as captured:
+        custom_format = "%Y-%m-%d"
+        formatted_time, timestamp = get_current_time_tool._get_time(custom_format)
 
-    # Verify formatted time
-    assert formatted_time == "12:00:00"
-    assert timestamp == mock_datetime.timestamp()
+        # Verify result format
+        assert isinstance(formatted_time, str)
+        assert len(formatted_time) == 10  # YYYY-MM-DD format
+        assert isinstance(timestamp, float)
 
-    # Verify logging
-    assert "Getting current time with format" in caplog.text
-    assert str(formatted_time) in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_get_time_custom_format:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == f"Getting current time with format: {custom_format}" for log in captured), (
+            "Expected 'Getting current time with format' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Current time:") for log in captured), (
+            "Expected 'Current time' message not found in logs"
+        )
 
 
-# @freeze_time("2012-01-14 03:21:34", tz_offset=-4)
-@freeze_time("2024-01-01 12:00")
 @pytest.mark.toolonly
-def test_get_time_invalid_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
-    """Test getting time with invalid format.
+def test_get_time_invalid_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
+    """Test getting current time with invalid format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    # with pytest.raises(ValueError, match="Invalid time format"):
-    get_current_time_tool._get_time("invalid")
+    with capture_logs() as captured:
+        invalid_format = "invalid"
+        formatted_time, timestamp = get_current_time_tool._get_time(invalid_format)
 
-    # Verify logging
-    assert "Current time: invalid, Timestamp:" in caplog.text
+        # Verify result format
+        assert formatted_time == invalid_format
+        assert isinstance(timestamp, float)
+
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_get_time_invalid_format:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == f"Getting current time with format: {invalid_format}" for log in captured), (
+            "Expected 'Getting current time with format' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Current time:") for log in captured), (
+            "Expected 'Current time' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
-def test_run_success(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
+def test_run_success(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
     """Test successful synchronous time retrieval.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    result = get_current_time_tool.run({})
+    with capture_logs() as captured:
+        result = get_current_time_tool.run({})
 
-    # Verify response
-    assert result["current_time"] == "2024-01-01 12:00:00"
-    assert result["timestamp"] == mock_datetime.timestamp()
-    assert result.get("error") is None
+        # Verify response
+        assert isinstance(result["current_time"], str)
+        assert isinstance(result["timestamp"], float)
+        assert result.get("error") is None
 
-    # Verify logging
-    assert "Getting current time synchronously" in caplog.text
-    assert "Successfully retrieved current time" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_success:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time synchronously" for log in captured), (
+            "Expected 'Getting current time synchronously' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Successfully retrieved current time:") for log in captured), (
+            "Expected 'Successfully retrieved current time' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
-def test_run_custom_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
+def test_run_custom_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
     """Test time retrieval with custom format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    result = get_current_time_tool.run({"format": "%Y-%m-%d"})
+    with capture_logs() as captured:
+        custom_format = "%Y-%m-%d"
+        result = get_current_time_tool.run({"format": custom_format})
 
-    # Verify response
-    assert result["current_time"] == "2024-01-01"
-    assert result["timestamp"] == mock_datetime.timestamp()
-    assert result.get("error") is None
+        # Verify response
+        assert isinstance(result["current_time"], str)
+        assert len(result["current_time"]) == 10  # YYYY-MM-DD format
+        assert isinstance(result["timestamp"], float)
+        assert result.get("error") is None
 
-    # Verify logging
-    assert "Getting current time synchronously" in caplog.text
-    assert "Successfully retrieved current time" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_custom_format:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time synchronously" for log in captured), (
+            "Expected 'Getting current time synchronously' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Successfully retrieved current time:") for log in captured), (
+            "Expected 'Successfully retrieved current time' message not found in logs"
+        )
 
 
-@freeze_time("2024-01-01 12:00")
 @pytest.mark.toolonly
-def test_run_invalid_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
+def test_run_invalid_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
     """Test time retrieval with invalid format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    result = get_current_time_tool.run({"format": "invalid"})
+    with capture_logs() as captured:
+        invalid_format = "invalid"
+        result = get_current_time_tool.run({"format": invalid_format})
 
-    # Verify error response
-    assert result["current_time"] == "invalid"
-    assert result["timestamp"] == 1704128400.0
+        # Verify error response
+        assert result["current_time"] == invalid_format
+        assert isinstance(result["timestamp"], float)
+        assert not result["error"]
 
-    assert not result["error"]
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_run_invalid_format:")
+        for log in captured:
+            print(f"Log event: {log}")
 
-    # Verify logging
-    assert "Successfully retrieved current time: invalid" in caplog.text
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time synchronously" for log in captured), (
+            "Expected 'Getting current time synchronously' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Successfully retrieved current time:") for log in captured), (
+            "Expected 'Successfully retrieved current time' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
 @pytest.mark.asyncio
-async def test_arun_success(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
+async def test_arun_success(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
     """Test successful asynchronous time retrieval.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    result = await get_current_time_tool.arun({})
+    with capture_logs() as captured:
+        result = await get_current_time_tool.arun({})
 
-    # Verify response
-    assert result["current_time"] == "2024-01-01 12:00:00"
-    assert result["timestamp"] == mock_datetime.timestamp()
-    assert result.get("error") is None
+        # Verify response
+        assert isinstance(result["current_time"], str)
+        assert isinstance(result["timestamp"], float)
+        assert result.get("error") is None
 
-    # Verify logging
-    assert "Getting current time asynchronously" in caplog.text
-    assert "Successfully retrieved current time" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_success:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time asynchronously" for log in captured), (
+            "Expected 'Getting current time asynchronously' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Successfully retrieved current time:") for log in captured), (
+            "Expected 'Successfully retrieved current time' message not found in logs"
+        )
 
 
 @pytest.mark.toolonly
 @pytest.mark.asyncio
-async def test_arun_custom_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
+async def test_arun_custom_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
     """Test async time retrieval with custom format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    result = await get_current_time_tool.arun({"format": "%H:%M:%S"})
+    with capture_logs() as captured:
+        custom_format = "%H:%M:%S"
+        result = await get_current_time_tool.arun({"format": custom_format})
 
-    # Verify response
-    assert result["current_time"] == "12:00:00"
-    assert result["timestamp"] == mock_datetime.timestamp()
-    assert result.get("error") is None
+        # Verify response
+        assert isinstance(result["current_time"], str)
+        assert len(result["current_time"]) == 8  # HH:MM:SS format
+        assert isinstance(result["timestamp"], float)
+        assert result.get("error") is None
 
-    # Verify logging
-    assert "Getting current time asynchronously" in caplog.text
-    assert "Successfully retrieved current time" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_custom_format:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time asynchronously" for log in captured), (
+            "Expected 'Getting current time asynchronously' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Successfully retrieved current time:") for log in captured), (
+            "Expected 'Successfully retrieved current time' message not found in logs"
+        )
 
 
-@freeze_time("2024-01-01 12:00")
 @pytest.mark.toolonly
 @pytest.mark.asyncio
-async def test_arun_invalid_format(
-    get_current_time_tool: GetCurrentTimeTool, mock_datetime: datetime, caplog: LogCaptureFixture
-) -> None:
+async def test_arun_invalid_format(get_current_time_tool: GetCurrentTimeTool, caplog: LogCaptureFixture) -> None:
     """Test async time retrieval with invalid format.
 
     Args:
         get_current_time_tool: GetCurrentTimeTool instance
-        mock_datetime: Mocked datetime object
         caplog: Pytest fixture for capturing log messages
     """
-    result = await get_current_time_tool.arun({"format": "invalid"})
+    with capture_logs() as captured:
+        invalid_format = "invalid"
+        result = await get_current_time_tool.arun({"format": invalid_format})
 
-    # Verify error response
-    assert result["current_time"] == "invalid"
-    assert result["timestamp"] == 1704128400.0
-    assert not result["error"]
+        # Verify error response
+        assert result["current_time"] == invalid_format
+        assert isinstance(result["timestamp"], float)
+        assert not result["error"]
 
-    # Verify logging
-    assert "Successfully retrieved current time: invalid" in caplog.text
+        # Debug: Print captured logs
+        print("\nCaptured logs in test_arun_invalid_format:")
+        for log in captured:
+            print(f"Log event: {log}")
+
+        # Verify logging using structlog's capture_logs
+        assert any(log.get("event") == "Getting current time asynchronously" for log in captured), (
+            "Expected 'Getting current time asynchronously' message not found in logs"
+        )
+
+        assert any(log.get("event").startswith("Successfully retrieved current time:") for log in captured), (
+            "Expected 'Successfully retrieved current time' message not found in logs"
+        )

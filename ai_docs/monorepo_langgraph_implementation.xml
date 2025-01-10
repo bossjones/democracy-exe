@@ -1,0 +1,3522 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/langgraph.json</source>
+<document_content>
+{
+    "dockerfile_lines": [
+        "# Install system dependencies",
+        "ENV DEBIAN_FRONTEND=noninteractive",
+        "RUN apt-get update && apt-get install -y --no-install-recommends python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake build-essential autoconf automake libtool libmagic-dev poppler-utils libreoffice libomp-dev tesseract-ocr tesseract-ocr-por libyaml-dev ffmpeg libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git libpq5 libpq-dev libxml2-dev libxslt1-dev libcairo2-dev libgirepository1.0-dev libgraphviz-dev libjpeg-dev libopencv-dev libpango1.0-dev libprotobuf-dev protobuf-compiler rustc cargo libwebp-dev libzbar0 libzbar-dev imagemagick ghostscript pandoc aria2 zsh bash-completion libpq-dev pkg-config libssl-dev  openssl unzip gzip vim tree less sqlite3 && rm -rf /var/lib/apt/lists/*",
+
+        "# debugging, show the current directory and the contents of the deps directory, look for .venv which should not exist.",
+        "RUN ls -lta && echo `pwd` && ls -lta && tree",
+
+
+        "# ENV PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'",
+
+        "# RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.2",
+        "# RUN echo \"source ~/.asdf/asdf.sh\" >> ~/.bashrc",
+
+        "# Hopefully this will fix the path issue with langgraph studio grabbing the env vars from my host machine.",
+        "RUN echo \"PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\" >> ~/.bashrc",
+        "RUN echo \"PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\" >> ~/.profile",
+
+        "ENV TAPLO_VERSION=0.9.3",
+        "COPY ./install_taplo.sh .",
+        "RUN chmod +x install_taplo.sh && bash -x ./install_taplo.sh && mv taplo /usr/local/bin/taplo && rm install_taplo.sh",
+
+
+        "# Install rust",
+
+        "ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash -x -s -- -y",
+        "ENV PATH='/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'",
+
+        "# Install justfile",
+
+        "RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -x -s -- --to /usr/bin",
+
+        "# Install UV 0.5.14",
+
+        "ADD https://astral.sh/uv/0.5.14/install.sh /uv-installer.sh",
+        "RUN env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash -x /uv-installer.sh && rm /uv-installer.sh",
+        "ENV PATH='/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'",
+
+        "# Configure UV",
+
+        "# UV_SYSTEM_PYTHON: Equivalent to the --system command-line argument. If set to true, uv will use the first Python interpreter found in the system PATH. WARNING: UV_SYSTEM_PYTHON=true is intended for use in continuous integration (CI) or containerized environments and should be used with caution, as modifying the system Python can lead to unexpected behavior.",
+        "ENV UV_SYSTEM_PYTHON=1",
+        "ENV UV_PIP_DEFAULT_PYTHON=/usr/bin/python3",
+        "ENV UV_LINK_MODE=copy",
+
+        "# Compiling Python source files to bytecode is typically desirable for production images as it tends to improve startup time (at the cost of increased installation time).",
+        "# ENV UV_COMPILE_BYTECODE=1",
+
+        "ENV UV_CACHE_DIR=/root/.cache/uv/",
+
+        "# Install dependencies first (for better caching)",
+
+
+        "WORKDIR /deps/democracy-exe",
+
+        "COPY pyproject.toml uv.lock ./",
+
+        "RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml --mount=type=bind,source=democracy_exe/requirements.txt,target=requirements.txt uv sync --frozen --no-install-project  --all-extras  --verbose --no-dev && uv pip install --system -r requirements.txt -e .[all] --no-deps --verbose",
+
+
+        "# Copy project and install",
+
+        "COPY . /deps/democracy-exe",
+        "RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --no-dev --frozen && uv tool dir --bin",
+
+
+        "# Pre-compile bytecode",
+        "# RUN python3 -m compileall .",
+        "RUN ls -lta && pwd && ls -lta /deps && tree /deps && cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile && echo \"alias pip='uv pip'\" >> ~/.bashrc && echo \"alias pip='uv pip'\" >> ~/.profile",
+
+        "# Use the virtual environment automatically",
+        "# ENV VIRTUAL_ENV=\"/deps/democracy-exe/.venv\"",
+
+
+        "# uv: Once the project is installed, you can either activate the project virtual environment by placing its binary directory at the front of the path:",
+        "# Place entry points in the environment at the front of the path",
+        "# Disabling the virtual environment for now.",
+        "# ENV PATH='/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'",
+
+
+        "# Add the project directory to the Python path. Source: https://github.com/bradcstevens/mtg-judgebot/blob/35ab51f7cd7341801f9364e93871a58464c93e7b/langgraph.json",
+        "# ENV PYTHONPATH='/deps/democracy-exe'",
+
+
+        "# ENV PYTHONPATH='/deps/democracy-exe:$PYTHONPATH'",
+        "# hardcoded path cause langgraph is rendering the env vars from my host machine.",
+        "# ENV PATH=\"/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin\"",
+        "#RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile",
+
+        "# EXPERIMENTAL: alias pip='uv pip' to use uv pip instead of pip",
+        "# RUN echo \"alias pip='uv pip'\" >> ~/.bashrc",
+        "# RUN echo \"alias pip='uv pip'\" >> ~/.profile",
+
+        "# Seems as though things only work when we don't use the virtual environment and add it to our path.",
+
+        "# Enable asyncio debugging",
+        "ENV PYTHONASYNCIODEBUG=1",
+
+        "# Enable fault handler",
+        "ENV PYTHONFAULTHANDLER=1"
+    ],
+    "graphs": {
+        "react": "./democracy_exe/agentic/workflows/react/graph.py:graph"
+
+    },
+    "env": ".env",
+    "python_version": "3.12",
+    "dependencies": [
+        "."
+    ],
+    "env_vars": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONUNBUFFERED": "1",
+        "UV_CACHE_DIR": "/root/.cache/uv/",
+        "UV_COMPILE_BYTECODE": "1",
+        "UV_LINK_MODE": "copy",
+        "UV_PIP_DEFAULT_PYTHON": "/usr/bin/python3",
+        "UV_SYSTEM_PYTHON": "1",
+        "TAPLO_VERSION": "0.9.3",
+        "PYTHONPATH": "${PYTHONPATH}:${PWD}"
+    }
+}
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/Justfile</source>
+<document_content>
+set shell := ["zsh", "-cu"]
+
+# just manual: https://github.com/casey/just/#readme
+
+# Ignore the .env file that is only used by the web service
+set dotenv-load := false
+
+CURRENT_DIR := "$(pwd)"
+
+base64_cmd := if "{{os()}}" == "macos" { "base64 -w 0 -i cert.pem -o ca.pem" } else { "base64 -w 0 -i cert.pem > ca.pem" }
+grep_cmd := if "{{os()}}" =~ "macos" { "ggrep" } else { "grep" }
+sed_cmd := if "{{os()}}" =~ "macos" { "gsed" } else { "sed" }
+
+# Variables
+PYTHON := "uv run python"
+UV_RUN := "uv run"
+# GREP_LANGGRAPH_SDK := `{{grep_cmd}} -h 'langgraph-sdk>=.*",' pyproject.toml | {{sed_cmd}} 's/^[[:space:]]*"//; s/",$//'`
+LANGGRAPH_REPLACEMENT := if "{{os()}}" =~ "macos" { `ggrep -h 'langgraph-sdk>=.*",' pyproject.toml | gsed 's/^[[:space:]]*"//; s/",$//'` } else { `grep -h 'langgraph-sdk>=.*",' pyproject.toml | sed 's/^[[:space:]]*"//; s/",$//'` }
+
+# Recipes
+# Install the virtual environment and install the pre-commit hooks
+install:
+	@echo "🚀 Creating virtual environment using uv"
+	uv sync
+	uv tool upgrade pyright
+	uv run pre-commit install
+
+# Run code quality tools.
+check:
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	uv lock --locked
+	@echo "🚀 Linting code: Running pre-commit"
+	uv run pre-commit run -a
+	@echo "🚀 Static type checking: Running mypy"
+	uv run mypy
+	@echo "🚀 Checking for obsolete dependencies: Running deptry"
+	uv run deptry .
+
+# # Test the code with pytest
+# test:
+# 	@echo "🚀 Testing code: Running pytest"
+# 	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Build wheel file
+build: clean-build
+	@echo "🚀 Creating wheel file"
+	uvx --from build pyproject-build --installer uv
+
+# Clean build artifacts
+clean-build:
+	@echo "🚀 Removing build artifacts"
+	{{PYTHON}} -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
+
+# Publish a release to PyPI.
+publish:
+	@echo "🚀 Publishing."
+	uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+
+# Build and publish.
+build-and-publish: build publish
+
+# Test if documentation can be built without warnings or errors
+docs-test:
+	uv run mkdocs build -s
+
+# Build and serve the documentation
+docs:
+	uv run mkdocs serve
+
+help:
+	@just --list
+
+default: help
+
+
+# Print the current operating system
+info:
+		print "OS: {{os()}}"
+
+# Display system information
+system-info:
+	@echo "CPU architecture: {{ arch() }}"
+	@echo "Operating system type: {{ os_family() }}"
+	@echo "Operating system: {{ os() }}"
+
+# verify python is running under pyenv
+which-python:
+		python -c "import sys;print(sys.executable)"
+
+# when developing, you can use this to watch for changes and restart the server
+autoreload-code:
+	uv run watchmedo auto-restart --pattern "*.py" --recursive --signal SIGTERM uv run goobctl go
+
+# Open the HTML coverage report in the default
+local-open-coverage:
+	./scripts/open-browser.py file://${PWD}/htmlcov/index.html
+
+# Open the HTML coverage report in the default
+open-coverage: local-open-coverage
+
+# Run unit tests and open the coverage report
+local-unittest:
+	bash scripts/unittest-local
+	./scripts/open-browser.py file://${PWD}/htmlcov/index.html
+
+# Run all pre-commit hooks on all files
+pre-commit-run-all:
+	uv run pre-commit run --all-files
+
+# Install pre-commit hooks
+pre-commit-install:
+	uv run pre-commit install
+
+# Display the dependency tree of the project
+pipdep-tree:
+	pipdeptree --python .venv/bin/python3
+
+# install uv tools globally
+uv-tool-install:
+	uv install invoke
+	uv install pipdeptree
+	uv install click
+
+# Lint GitHub Actions workflow files
+lint-github-actions:
+	actionlint
+
+# check that taplo is installed to lint/format TOML
+check-taplo-installed:
+	@command -v taplo >/dev/null 2>&1 || { echo >&2 "taplo is required but it's not installed. run 'brew install taplo'"; exit 1; }
+
+# Format Python files using pre-commit
+fmt-python:
+	git ls-files '*.py' '*.ipynb' "Dockerfile" | xargs uv run pre-commit run --files
+
+# Format Markdown files using pre-commit
+fmt-markdown-pre-commit:
+	git ls-files '*.md' | xargs uv run pre-commit run --files
+
+# format pyproject.toml using taplo
+fmt-toml:
+	uv run pre-commit run taplo-format --all-files
+
+# SOURCE: https://github.com/PovertyAction/ipa-data-tech-handbook/blob/ed81492f3917ee8c87f5d8a60a92599a324f2ded/Justfile
+
+# Format all markdown and config files
+fmt-markdown:
+	git ls-files '*.md' | xargs uv run mdformat
+
+# Format a single markdown file, "f"
+fmt-md f:
+	uv run mdformat {{ f }}
+
+# format all code using pre-commit config
+fmt: fmt-python fmt-toml fmt-markdown fmt-markdown fmt-markdown-pre-commit
+
+# lint python files using ruff
+lint-python:
+	pre-commit run ruff --all-files
+
+# lint TOML files using taplo
+lint-toml: check-taplo-installed
+	pre-commit run taplo-lint --all-files
+
+# lint yaml files using yamlfix
+lint-yaml:
+	pre-commit run yamlfix --all-files
+
+# lint pyproject.toml and detect log_cli = true
+lint-check-log-cli:
+	pre-commit run detect-pytest-live-log --all-files
+
+# Check format of all markdown files
+lint-check-markdown:
+	uv run mdformat --check .
+
+# Lint all files in the current directory (and any subdirectories).
+lint: lint-python lint-toml lint-check-log-cli lint-check-markdown
+
+# generate type stubs for the project
+createstubs:
+	./scripts/createstubs.sh
+
+# sweep init
+sweep-init:
+	uv run sweep init
+
+# TODO: We should try out trunk
+# By default, we use the following config that runs Trunk, an opinionated super-linter that installs all the common formatters and linters for your codebase. You can set up and configure Trunk for yourself by following https://docs.trunk.io/get-started.
+# sandbox:
+#   install:
+#     - trunk init
+#   check:
+#     - trunk fmt {file_path}
+#     - trunk check {file_path}
+
+# Download AI models from Dropbox
+download-models:
+	curl -L 'https://www.dropbox.com/s/im6ytahqgbpyjvw/ScreenNetV1.pth?dl=1' > data/ScreenNetV1.pth
+
+# Perform a dry run of dependency upgrades
+upgrade-dry-run:
+	uv lock --upgrade --dry-run
+
+# Upgrade all dependencies and sync the environment
+sync-upgrade-all:
+	uv lock --upgrade
+	uv sync --all-extras --dev
+
+
+# Upgrade all dependencies and sync the environment
+uv-upgrade-all:
+	uv lock --upgrade
+
+# Upgrade all dependencies and sync the environment
+uv-upgrade: uv-upgrade-all
+
+# check if uv lock is up to date
+uv-lock-check:
+	uv lock --check
+
+uv-lock-check-dry-run:
+	uv lock --check --dry-run
+
+# Start a background HTTP server for test fixtures
+http-server-background:
+	#!/bin/bash
+	# _PID=$(pgrep -f " -m http.server --bind localhost 19000 -d ./tests/fixtures")
+	pkill -f " -m http.server --bind localhost 19000 -d ./tests/fixtures"
+	python3 -m http.server --bind localhost 19000 -d ./tests/fixtures &
+	echo $! > PATH.PID
+
+# Start an HTTP server for test fixtures
+http-server:
+	#!/bin/bash
+	# _PID=$(pgrep -f " -m http.server --bind localhost 19000 -d ./tests/fixtures")
+	pkill -f " -m http.server --bind localhost 19000 -d ./tests/fixtures"
+	python3 -m http.server --bind localhost 19000 -d ./tests/fixtures
+	echo $! > PATH.PID
+
+# Bump the version by major
+major-version-bump:
+	uv version
+	uv version --bump major
+
+# Bump the version by minor
+minor-version-bump:
+	uv version
+	uv version --bump minor
+
+# Bump the version by patch
+patch-version-bump:
+	uv version
+	uv version --bump patch
+
+# Bump the version by major
+version-bump-major: major-version-bump
+
+# Bump the version by minor
+version-bump-minor: minor-version-bump
+
+# Bump the version by patch
+version-bump-patch: patch-version-bump
+
+# Serve the documentation locally for preview
+docs_preview:
+	uv run mkdocs serve
+
+# Build the documentation
+docs_build:
+	uv run mkdocs build
+
+# Deploy the documentation to GitHub Pages
+docs_deploy:
+	uv run mkdocs gh-deploy --clean
+
+# Generate a draft changelog
+changelog:
+	uv run towncrier build --version main --draft
+
+# Checkout main branch and pull latest changes
+gco:
+	gco main
+	git pull --rebase
+
+# Show diff for LangChain migration
+langchain-migrate-diff:
+	langchain-cli migrate --include-ipynb --diff democracy_exe
+
+# Perform LangChain migration
+langchain-migrate:
+	langchain-cli migrate --include-ipynb democracy_exe
+
+# Get the ruff config
+get-ruff-config:
+	uv run ruff check --show-settings --config pyproject.toml -v -o ruff_config.toml >> ruff.log 2>&1
+
+# Run lint and test
+ci:
+	uv run lint
+	uv run test
+
+# Open a manhole shell
+manhole-shell:
+	./scripts/manhole-shell
+
+# Find the cassettes directories
+find-cassettes-dirs:
+	fd -td cassettes
+
+# Delete the cassettes directories
+delete-cassettes:
+	fd -td cassettes -X rm -ri
+
+# Install brew dependencies
+brew-deps:
+	brew install libmagic poppler tesseract pandoc qpdf tesseract-lang
+	brew install --cask libreoffice
+
+# install aicommits and configure it
+init-aicommits:
+	npm install -g aicommits
+	aicommits config set OPENAI_KEY=$OCO_OPENAI_API_KEY type=conventional model=gpt-4o max-length=100
+	aicommits hook install
+
+# Run aider
+aider:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore
+
+
+# Run aider with O1 preview
+aider-o1-preview:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --o1-preview --architect --edit-format whole --model o1-mini --no-stream
+
+# Run aider with Sonnet
+aider-sonnet:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --sonnet --architect --map-tokens 2048 --cache-prompts --edit-format diff
+
+# Run aider with Gemini
+aider-gemini:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --model gemini/gemini-exp-1206 --cache-prompts --edit-format whole
+
+# Run aider with Claude
+aider-claude:
+	uv run aider -c .aider.conf.yml --aiderignore .aiderignore --model 'anthropic/claude-3-5-sonnet-20241022'
+
+
+# SOURCE: https://github.com/RobertCraigie/prisma-client-py/blob/da53c4280756f1a9bddc3407aa3b5f296aa8cc10/Makefile#L77
+# Remove all generated files and caches
+clean:
+	#!/bin/bash
+	rm -rf .cache
+	rm -rf `find . -name __pycache__`
+	rm -rf .tests_cache
+	rm -rf .mypy_cache
+	rm -rf htmlcov
+	rm -rf *.egg-info
+	rm -f .coverage
+	rm -f .coverage.*
+	rm -rf build
+	rm -rf dist
+	rm -f coverage.xml
+
+# Create a token for authentication
+uv_create_token:
+	{{PYTHON}} -c "from democracy_exe.cli import create_token; create_token()"
+
+# Show current database state
+uv_db_current:
+	{{PYTHON}} -c "from democracy_exe.cli import db_current; db_current()"
+
+# Upgrade database to latest version
+uv_db_upgrade:
+	{{PYTHON}} -c "from democracy_exe.cli import db_upgrade; db_upgrade()"
+
+# Downgrade database to previous version
+uv_db_downgrade:
+	{{PYTHON}} -c "from democracy_exe.cli import db_downgrade; db_downgrade()"
+
+# Export a collection of data
+uv_export_collection:
+	{{PYTHON}} -c "from democracy_exe.cli import export_collection; export_collection()"
+
+# Import a collection of data
+uv_import_collection:
+	{{PYTHON}} -c "from democracy_exe.cli import import_collection; import_collection()"
+
+# Import a single file
+uv_import_file:
+	{{PYTHON}} -c "from democracy_exe.cli import import_file; import_file()"
+
+# Lint markdown files
+uv_lint_markdown:
+	{{UV_RUN}} pymarkdownlnt --disable-rules=MD013,MD034 scan README.md
+
+# Serve documentation locally
+uv_serve_docs:
+	{{UV_RUN}} mkdocs serve
+
+# Convert pylint configuration to ruff
+uv_pylint_to_ruff:
+	{{UV_RUN}} pylint-to-ruff
+
+# Start a simple HTTP server
+uv_http:
+	{{UV_RUN}} -m http.server 8008
+
+# Display current user
+uv_whoami:
+	whoami
+
+# Install missing mypy type stubs
+uv_mypy_missing:
+	{{UV_RUN}} mypy --install-types
+
+# Run pre-commit hooks on all files
+uv_fmt:
+	{{UV_RUN}} pre-commit run --all-files
+
+# Run pylint checks
+uv_pylint:
+	{{PYTHON}} -m invoke ci.pylint --everything
+
+# Run pylint with error-only configuration
+uv_pylint_error_only:
+	{{UV_RUN}} pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
+
+# Run pylint on all files
+uv_lint_all:
+	{{PYTHON}} -m pylint -j4 --output-format=colorized --rcfile pyproject.toml tests democracy_exe
+
+# Run ruff linter
+uv_lint:
+	{{PYTHON}} -m ruff check --fix . --config=pyproject.toml
+
+# Run all typecheck tasks
+uv_typecheck:
+	just uv_typecheck_pyright
+	just uv_typecheck_mypy
+
+# Run Pyright type checker
+uv_typecheck_pyright:
+	rm pyright.log || true
+	touch pyright.log
+	{{UV_RUN}} pyright --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
+	cat pyright.log
+
+# Verify types using Pyright, ignoring external packages
+typecheck: uv_typecheck_pyright
+
+# Verify types using Pyright, ignoring external packages
+uv_typecheck_verify_types:
+	{{UV_RUN}} pyright --verifytypes democracy_exe --ignoreexternal --verbose
+
+# Run MyPy type checker and open coverage report
+uv_typecheck_mypy:
+	just uv_ci_mypy
+	just uv_open_mypy_coverage
+
+# Generate changelog draft
+uv_docs_changelog:
+	{{UV_RUN}} towncrier build --version main --draft
+
+# Run MyPy with various report formats
+uv_ci_mypy:
+	{{UV_RUN}} mypy --config-file=pyproject.toml --html-report typingcov --cobertura-xml-report typingcov_cobertura --xml-report typingcov_xml --txt-report typingcov_txt .
+
+# Open MyPy coverage report
+uv_open_mypy_coverage:
+	open typingcov/index.html
+
+# Open Zipkin UI
+uv_open_zipkin:
+	open http://127.0.0.1:9411
+
+# Open OpenTelemetry endpoint
+uv_open_otel:
+	open http://127.0.0.1:4317
+
+# Open test coverage report
+uv_open_coverage:
+	just local-open-coverage
+
+# Open pgAdmin
+uv_open_pgadmin:
+	open http://127.0.0.1:4000
+
+# Open Prometheus UI
+uv_open_prometheus:
+	open http://127.0.0.1:9999
+
+# Open Grafana UI
+uv_open_grafana:
+	open http://127.0.0.1:3333
+
+# Open Chroma UI
+uv_open_chroma:
+	open http://127.0.0.1:9010
+
+# Open ChromaDB Admin UI
+uv_open_chromadb_admin:
+	open http://127.0.0.1:4001
+
+# Open all UIs and reports
+uv_open_all:
+	just uv_open_mypy_coverage
+	just uv_open_chroma
+	just uv_open_zipkin
+	just uv_open_otel
+	just uv_open_pgadmin
+	just uv_open_prometheus
+	just uv_open_grafana
+	just uv_open_chromadb_admin
+	just uv_open_coverage
+
+
+# Run simple unit tests with coverage
+uv_unittests_simple:
+	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests in debug mode with extended output
+uv_unittests_debug:
+	{{UV_RUN}} pytest -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run service-related unit tests in debug mode
+uv_unittests_debug_services:
+	{{UV_RUN}} pytest -m services -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run asynciotyper-related unit tests in debug mode
+uv_unittests_debug_asynciotyper:
+	{{UV_RUN}} pytest -s -vv --diff-width=60 --diff-symbols --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=. -m asynciotyper
+
+# Run pgvector-related unit tests in debug mode
+uv_unittests_debug_pgvector:
+	{{UV_RUN}} pytest -m pgvectoronly -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Profile unit tests in debug mode using pyinstrument
+uv_profile_unittests_debug:
+	{{UV_RUN}} pyinstrument -m pytest -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Profile unit tests in debug mode using py-spy
+uv_spy_unittests_debug:
+	{{UV_RUN}} py-spy top -- python -m pytest -s -vv --diff-width=60 --diff-symbols --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run standard unit tests with coverage
+uv_unittests:
+	{{UV_RUN}} pytest --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests with VCR in record mode
+uv_unittests_vcr_record:
+	{{UV_RUN}} pytest --record-mode=all --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests with VCR in rewrite mode
+uv_unittests_vcr_record_rewrite:
+	{{UV_RUN}} pytest --record-mode=rewrite --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run unit tests with VCR in once mode
+uv_unittests_vcr_record_once:
+	{{UV_RUN}} pytest --record-mode=once --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+# Run all VCR recording tests
+uv_unittests_vcr_record_all: uv_unittests_vcr_record
+
+# Run final VCR recording tests (NOTE: this is the only one that works)
+uv_unittests_vcr_record_final: uv_unittests_vcr_record
+
+# Run simple tests without warnings
+uv_test_simple:
+	{{UV_RUN}} pytest -p no:warnings
+
+# Alias for simple tests without warnings
+uv_simple_test:
+	{{UV_RUN}} pytest -p no:warnings
+
+# Run unit tests in debug mode with extended output
+uv_new_unittests_debug:
+	{{UV_RUN}} pytest -s --verbose --pdb --pdbcls bpdb:BPdb --showlocals --tb=short
+
+# Run linting and unit tests
+uv_test:
+	just uv_lint
+	just uv_unittests
+
+# Combine coverage data
+uv_coverage_combine:
+	{{UV_RUN}} python -m coverage combine
+
+# Generate HTML coverage report
+uv_coverage_html:
+	{{UV_RUN}} python -m coverage html --skip-covered --skip-empty
+
+# Run pytest with coverage
+uv_coverage_pytest:
+	{{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest tests
+
+# Run pytest with coverage in debug mode
+uv_coverage_pytest_debug:
+	{{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose -vvv --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no tests
+
+# Run pytest with coverage for evals in debug mode
+uv_coverage_pytest_evals_debug:
+	{{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose -vv --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no -m evals --slow tests
+
+# Run pytest with coverage and memray in debug mode
+uv_memray_coverage_pytest_debug:
+	{{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose -vvv --memray --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no tests
+
+# Run pytest with coverage and memray for evals in debug mode
+uv_memray_coverage_pytest_evals_debug:
+	{{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose --memray -vv --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no -m evals --slow tests
+
+# Generate and view coverage report
+uv_coverage_report:
+	just uv_coverage_pytest
+	just uv_coverage_combine
+	just uv_coverage_show
+	just uv_coverage_html
+	just uv_coverage_open
+
+# Generate and view coverage report in debug mode
+uv_coverage_report_debug:
+	just uv_coverage_pytest_debug
+	just uv_coverage_combine
+	just uv_coverage_show
+	just uv_coverage_html
+	just uv_coverage_open
+
+# Generate and view coverage report for evals in debug mode
+uv_coverage_report_debug_evals:
+	just uv_coverage_pytest_debug
+	just uv_coverage_pytest_evals_debug
+	just uv_coverage_combine
+	just uv_coverage_show
+	just uv_coverage_html
+	just uv_coverage_open
+
+# Run end-to-end tests with coverage in debug mode
+uv_e2e_coverage_pytest_debug:
+	{{UV_RUN}} coverage run --rcfile=pyproject.toml -m pytest --verbose --pdb --pdbcls bpdb:BPdb --showlocals --tb=short --capture=no tests -m e2e
+
+# Generate and view end-to-end coverage report in debug mode
+uv_e2e_coverage_report_debug:
+	just uv_e2e_coverage_pytest_debug
+	just uv_coverage_combine
+	just uv_coverage_show
+	just uv_coverage_html
+	just uv_coverage_open
+
+# Show coverage report
+uv_coverage_show:
+	{{UV_RUN}} python -m coverage report --fail-under=5
+
+# Open coverage report
+uv_coverage_open:
+	just local-open-coverage
+
+# Run linting and tests (CI)
+uv_ci:
+	just uv_lint
+	just uv_test
+
+# Run debug unit tests and open coverage report (CI debug)
+uv_ci_debug:
+	just uv_unittests_debug
+	just uv_coverage_open
+
+# Run simple unit tests and open coverage report (CI simple)
+uv_ci_simple:
+	just uv_unittests_simple
+	just uv_coverage_open
+
+# Run CI with evals
+uv_ci_with_evals:
+	just uv_coverage_pytest_debug
+	just uv_coverage_pytest_evals_debug
+	just uv_coverage_combine
+	just uv_coverage_show
+	just uv_coverage_html
+	just uv_coverage_open
+
+# Run CI with evals and memray
+uv_ci_with_evals_memray:
+	just uv_memray_coverage_pytest_debug
+	just uv_memray_coverage_pytest_evals_debug
+	just uv_coverage_combine
+	just uv_coverage_show
+	just uv_coverage_html
+	just uv_coverage_open
+
+# Deploy documentation to GitHub Pages
+uv_gh_deploy:
+	{{UV_RUN}} mkdocs gh-deploy --force --message '[skip ci] Docs updates'
+
+# Create site directory
+uv_mkdir_site:
+	mkdir site
+
+# Deploy documentation
+uv_deploy_docs:
+	just uv_mkdir_site
+	just uv_gh_deploy
+
+# Add bespoke adobe concepts to cursor context
+add-cursor-context:
+	mkdir -p democracy_exe/vendored || true
+	gh repo clone universityofprofessorex/cerebro-bot democracy_exe/vendored/cerebro-bot || true && cd democracy_exe/vendored/cerebro-bot && git checkout feature-discord-utils && cd ../../..
+	gh repo clone bossjones/sandbox_agent democracy_exe/vendored/sandbox_agent || true
+	gh repo clone langchain-ai/retrieval-agent-template democracy_exe/vendored/retrieval-agent-template || true
+	gh repo clone langchain-ai/rag-research-agent-template democracy_exe/vendored/rag-research-agent-template || true
+	gh repo clone langchain-ai/memory-template democracy_exe/vendored/memory-template || true
+	gh repo clone langchain-ai/react-agent democracy_exe/vendored/react-agent || true
+	gh repo clone langchain-ai/chat-langchain democracy_exe/vendored/chat-langchain || true
+	gh repo clone bossjones/goob_ai democracy_exe/vendored/goob_ai || true
+	gh repo clone langchain-ai/langchain democracy_exe/vendored/langchain || true
+	gh repo clone langchain-ai/langgraph democracy_exe/vendored/langgraph || true
+	gh repo clone CraftSpider/dpytest democracy_exe/vendored/dpytest || true
+
+	rm -rf democracy_exe/vendored/cerebro-bot/.git
+	rm -rf democracy_exe/vendored/sandbox_agent/.git
+	rm -rf democracy_exe/vendored/retrieval-agent-template/.git
+	rm -rf democracy_exe/vendored/rag-research-agent-template/.git
+	rm -rf democracy_exe/vendored/memory-template/.git
+	rm -rf democracy_exe/vendored/react-agent/.git
+	rm -rf democracy_exe/vendored/chat-langchain/.git
+	rm -rf democracy_exe/vendored/goob_ai/.git
+	rm -rf democracy_exe/vendored/langchain/.git
+	rm -rf democracy_exe/vendored/langgraph/.git
+	rm -rf democracy_exe/vendored/langchain-academy/.git
+	rm -rf democracy_exe/vendored/dpytest/.git
+
+# List outdated packages
+outdated:
+	{{UV_RUN}} pip list --outdated
+
+# Install llm cli plugins
+install-llm-cli-plugins:
+	uv add llm
+	uv add llm-cmd llm-clip llm-sentence-transformers llm-replicate llm-perplexity llm-claude-3 llm-python llm-gemini llm-jq
+
+# Smoke test the react agent
+smoke-test:
+	cd democracy_exe/agentic/studio/react && {{UV_RUN}} python -m memory_agent
+
+# Commitizen commands
+# commit using commitizen
+commit:
+	{{UV_RUN}} cz commit
+
+commit-help:
+	{{UV_RUN}} cz commit -h
+
+# bump version using commitizen
+bump:
+	{{UV_RUN}} cz bump
+
+# tag using commitizen
+tag:
+	{{UV_RUN}} cz tag
+
+# release using commitizen
+release:
+	{{UV_RUN}} cz release
+
+# bump patch version using commitizen
+bump-patch:
+	{{UV_RUN}} cz bump --patch
+
+# bump minor version using commitizen
+bump-minor:
+	{{UV_RUN}} cz bump --minor
+
+# bump major version using commitizen
+bump-major:
+	{{UV_RUN}} cz bump --major
+
+# bump prerelease version using commitizen
+bump-prerelease:
+	{{UV_RUN}} cz bump --prerelease
+
+# bump postrelease version using commitizen
+bump-postrelease:
+	{{UV_RUN}} cz bump --postrelease
+
+# Generate AI commit messages
+ai-commit:
+	aicommits --generate 3 --type conventional
+
+# Run the bot
+run:
+	{{UV_RUN}} democracyctl run-bot
+
+
+# Test the code with pytest
+test:
+	@echo "🚀 Testing code: Running pytest"
+	{{UV_RUN}} pytest --diff-width=60 --diff-symbols --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=.
+
+
+# Test the code with pytest in debug mode
+test-debug: uv_new_unittests_debug open-coverage
+
+# Getting corefiles
+corefiles:
+	{{UV_RUN}} files-to-prompt -e rs -e py -e toml --ignore "node_modules|__pycache__|scripts|debug|.o|deps|release|target|inputs" . | pbcopy
+
+# Install youtube-transcript
+install-youtube-transcript:
+	cargo install youtube-transcript
+
+# Run linting
+test-lint:
+	uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
+
+# Run linting for duplicate code
+test-lint-similarities:
+	uv run pylint --disable=all --enable=duplicate-code --output-format=colorized --max-line-length=120 --rcfile pyproject.toml democracy_exe tests
+
+# Verify types with pyright
+pyright-verify-types:
+	#!/usr/bin/env bash
+	# Get the list of installed packages
+	packages=$(uv run pip freeze | cut -d '=' -f 1)
+
+	rm -f pyright-verify-types.log
+	touch pyright-verify-types.log
+
+	# Iterate through each package
+	for package in $packages; do
+			echo "Checking package: $package"
+			echo "----------------------------------------"
+
+			# Run pyright and print the output
+			# uv run pyright --verifytypes "$package" --verbose
+			uv run pyright --verifytypes "$package" | tee -a pyright-verify-types.log
+
+			echo "----------------------------------------"
+	done
+
+	echo "Verification complete."
+
+# Create stubs for missing packages
+pyright-createstubs-missing:
+	#!/usr/bin/env bash
+	# Run pyright and capture output
+	uv run pyright . | grep -E "warning: Stub file not found for \"[^\"]+\"" | sed -E 's/.*"([^"]+)".*/\1/' | sort -u | while read package; do
+		echo "Creating stub for package: $package"
+		uv run pyright --createstub "$package"
+	done
+
+# generate-ai-docs-koalabot-simple:
+# 	@echo "🚀 Generating AI docs"
+# 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml"
+# 	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/koalabot.py /Users/malcolm/dev/KoalaBot/tests/conftest.py /Users/malcolm/dev/KoalaBot/tests/test_koalabot.py /Users/malcolm/dev/KoalaBot/tests/test_utils.py /Users/malcolm/dev/KoalaBot/koala/utils.py /Users/malcolm/dev/KoalaBot/koala/cogs/base/cog.py /Users/malcolm/dev/KoalaBot/tests/cogs/base/test_cog.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_simple.xml
+# just generate-ai-docs-koalabot-simple
+
+# Generate AI docs
+generate-ai-docs:
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml"
+	uv run files-to-prompt /Users/malcolm/dev/KoalaBot/tests/cogs \
+	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
+	/Users/malcolm/dev/KoalaBot/tests/test_koalabot.py \
+	/Users/malcolm/dev/KoalaBot/tests/test_utils.py \
+	/Users/malcolm/dev/KoalaBot/tests/tests_utils \
+	/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koalabot.py \
+	/Users/malcolm/dev/KoalaBot/koala/utils.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_advanced.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/koalabot_cog_testing.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/KoalaBot/tests/conftest.py \
+	/Users/malcolm/dev/KoalaBot/koala/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/tests/tests_utils \
+	/Users/malcolm/dev/KoalaBot/tests/cogs/text_filter \
+	/Users/malcolm/dev/KoalaBot/koalabot.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/koalabot_cog_testing.xml
+
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/movienightbot.xml"
+	uv run files-to-prompt /Users/malcolm/dev/MovieNightBot/tests/conftest.py \
+	/Users/malcolm/dev/MovieNightBot/tests/utils.py \
+	/Users/malcolm/dev/MovieNightBot/tests/actions \
+	/Users/malcolm/dev/MovieNightBot/movienightbot/application.py \
+	/Users/malcolm/dev/MovieNightBot/movienightbot/util.py \
+	/Users/malcolm/dev/MovieNightBot/movienightbot/commands \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/movienightbot.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dptest.xml"
+	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/dpytest.readthedocs.io/en/latest \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dptest.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml"
+	uv run files-to-prompt /Users/malcolm/Documents/ai_docs/rtdocs/docs.aiohttp.org/en/stable/testing.html \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/pytest_aiohttp_testing.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml"
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/sandbox_agent/tests/test_bot.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/tests/conftest.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/bot.py \
+	/Users/malcolm/dev/bossjones/sandbox_agent/src/sandbox_agent/cogs \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/sandbox_agent_testing.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/dpytest/tests/test_edit.py \
+	/Users/malcolm/dev/dpytest/tests/test_fetch_message.py \
+	/Users/malcolm/dev/dpytest/tests/test_configure.py \
+	/Users/malcolm/dev/dpytest/tests/test_send.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_embed.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_file.py \
+	/Users/malcolm/dev/dpytest/tests/test_verify_message.py \
+	/Users/malcolm/dev/dpytest/tests/test_activity.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/dpytest_minimal_test_examples.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/configuration.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/api.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/advanced.html \
+	/Users/malcolm/Documents/ai_docs/rtdocs/vcrpy.readthedocs.io/en/latest/debugging.html \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml"
+	uv run files-to-prompt \
+	/Users/malcolm/dev/gallery-dl/test/__init__.py \
+	/Users/malcolm/dev/gallery-dl/test/test_cache.py \
+	/Users/malcolm/dev/gallery-dl/test/test_config.py \
+	/Users/malcolm/dev/gallery-dl/test/test_cookies.py \
+	/Users/malcolm/dev/gallery-dl/test/test_downloader.py \
+	/Users/malcolm/dev/gallery-dl/test/test_extractor.py \
+	/Users/malcolm/dev/gallery-dl/test/test_formatter.py \
+	/Users/malcolm/dev/gallery-dl/test/test_job.py \
+	/Users/malcolm/dev/gallery-dl/test/test_oauth.py \
+	/Users/malcolm/dev/gallery-dl/test/test_output.py \
+	/Users/malcolm/dev/gallery-dl/test/test_postprocessor.py \
+	/Users/malcolm/dev/gallery-dl/test/test_results.py \
+	/Users/malcolm/dev/gallery-dl/test/test_text.py \
+	/Users/malcolm/dev/gallery-dl/test/test_util.py \
+	/Users/malcolm/dev/gallery-dl/test/test_ytdl.py \
+	--cxml -o ~/dev/bossjones/democracy-exe/ai_docs/gallery_dl_tests.xml
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/cerebro.xml"
+	uv run files-to-prompt /Users/malcolm/dev/universityofprofessorex/cerebro-bot/cerebro_bot/cogs/autoresize.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/cerebro_bot/autoresize_cog.xml
+
+# Run unit tests in debug mode with extended output
+test-twitter-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
+
+# {{UV_RUN}} pytest -s --verbose  --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
+# {{UV_RUN}} pytest -k  test_download_tweet_success_twitter_cog
+
+# Run unit tests specifically for twitter cog
+test-twitter-cog:
+	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
+
+
+
+# In order to properly create new cassette files, you must first delete the existing cassette files and directories. This will regenerate all cassette files and rerun tests.
+
+# Delete existing cassettes
+delete-existing-cassettes:
+	./scripts/delete-existing-cassettes.sh
+
+# delete all cassette files and directories, regenerate all cassette files and rerun tests
+local-regenerate-cassettes:
+	@echo -e "\nDelete all cassette files and directories\n"
+	just delete-existing-cassettes
+	@echo -e "\nRegenerate all cassette files using --record-mode=all\n"
+	@echo -e "\nNOTE: This is expected to FAIL the first time when it is recording the cassette files!\n"
+	just uv_unittests_vcr_record_final || true
+	@echo -e "\nrun regulate tests to verify that the cassettes are working\n"
+	just test-debug
+
+# (alias) delete all cassette files and directories, regenerate all cassette files and rerun tests
+local-regenerate-vcr: local-regenerate-cassettes
+
+# Regenerate all cassette files and rerun tests
+regenerate-cassettes: local-regenerate-cassettes
+
+# Run unit tests in debug mode with extended output
+test-gallery-dl-debug:
+	uv run pytest --capture=tee-sys --pdb --pdbcls bpdb:BPdb --showlocals --tb=short -k test_run_single_tweet
+
+# Run unit tests specifically for gallery-dl
+test-gallery-dl:
+	uv run pytest --capture=tee-sys -k test_run_single_tweet
+
+# Run unit tests specifically for dropbox
+generate-cassettes-dropboxonly:
+	{{UV_RUN}} pytest --record-mode=once --verbose --showlocals --tb=short --cov-append --cov-report=term-missing --junitxml=junit/test-results.xml --cov-report=xml:cov.xml --cov-report=html:htmlcov --cov-report=annotate:cov_annotate --cov=. -m dropboxonly
+
+# Run unit tests specifically for dropbox
+test-dropbox:
+	uv run pytest --showlocals --tb=short --capture=tee-sys -m dropboxonly
+
+# Run unit tests specifically for dropbox in debug mode
+test-dropbox-debug:
+	uv run pytest --showlocals --tb=short --capture=tee-sys --pdb --pdbcls bpdb:BPdb -m dropboxonly
+
+# Run unit tests in debug mode with extended output
+test-autocrop-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace tests/unittests/chatbot/cogs/test_autocrop.py
+
+# Run unit tests in debug mode with extended output
+test-toolsonly-cog-debug:
+	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
+
+# Run unit tests specifically for tools
+test-toolsonly-cog:
+	uv run pytest --showlocals --tb=short --capture=tee-sys tests/unittests/chatbot/cogs/ tests/unittests/agentic/tools/
+
+# DISABLED: uv run pytest --capture=tee-sys tests/unittests/utils/test_utils_dropbox_.py
+# use this with aider to fix tests incrementally
+
+# Run unit tests specifically for utils
+test-fix:
+	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
+
+# Generate langgraph dockerfile for studio
+generate-langgraph-dockerfile-studio:
+	#!/bin/bash
+	cd cookbook/studio && langgraph dockerfile -c langgraph.json Dockerfile
+
+# Generate langgraph dockerfile
+generate-langgraph-dockerfile:
+	uv export --no-hashes --format requirements-txt -o democracy_exe/requirements.txt
+	gsed -i "s/langgraph-sdk==0.1.46/{{LANGGRAPH_REPLACEMENT}}/g" democracy_exe/requirements.txt
+	langgraph dockerfile -c langgraph.json Dockerfile
+	cat Dockerfile
+
+# Build docker image for debugging
+docker-build-debug:
+	docker build -f Dockerfile.debugging -t democracy-exe-debugging .
+
+# Run docker image for debugging
+docker-run-debug:
+	docker run -it democracy-exe-debugging
+
+# Update requirements.txt from pyproject.toml using yq
+update-requirements:
+	@echo "🚀 Updating requirements.txt from pyproject.toml for use with Langgraph studio"
+	./update_requirements.sh
+	langgraph dockerfile -c langgraph.json Dockerfile
+	cat Dockerfile
+
+
+# Tail the LangGraph Studio logs
+tail-langgraph-studio:
+	log stream --predicate 'process == "LangGraph Studio"' --level info
+
+logs-langgraph-studio:
+	#!/bin/bash
+	log show --predicate 'process == "LangGraph Studio"' --last 5m --debug --info --backtrace
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/Makefile</source>
+<document_content>
+.PHONY: install
+install: ## Install the virtual environment and install the pre-commit hooks
+	@echo "🚀 Creating virtual environment using uv"
+	@uv sync
+	@uv run pre-commit install
+
+.PHONY: check
+check: ## Run code quality tools.
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	@uv lock --locked
+	@echo "🚀 Linting code: Running pre-commit"
+	@uv run pre-commit run -a
+	@echo "🚀 Static type checking: Running mypy"
+	@uv run mypy
+	@echo "🚀 Checking for obsolete dependencies: Running deptry"
+	@uv run deptry .
+
+.PHONY: test
+test: ## Test the code with pytest
+	@echo "🚀 Testing code: Running pytest"
+	@uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
+
+
+# @echo "🚀 Linting code: mypy"
+# @uv run mypy --config-file=pyproject.toml --html-report typingcov --cobertura-xml-report typingcov_cobertura --xml-report typingcov_xml --txt-report typingcov_txt .
+.PHONY: ci
+ci: ## Test the code with pytest
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	@uv lock --locked
+	@echo "🚀 Linting code: pylint"
+	@uv run pylint --output-format=colorized --disable=all --max-line-length=120 --enable=F,E --rcfile pyproject.toml democracy_exe tests
+
+.PHONY: build
+build: clean-build ## Build wheel file
+	@echo "🚀 Creating wheel file"
+	@uvx --from build pyproject-build --installer uv
+
+.PHONY: clean-build
+clean-build: ## Clean build artifacts
+	@echo "🚀 Removing build artifacts"
+	@uv run python -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
+
+.PHONY: publish
+publish: ## Publish a release to PyPI.
+	@echo "🚀 Publishing."
+	@uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+
+.PHONY: build-and-publish
+build-and-publish: build publish ## Build and publish.
+
+.PHONY: docs-test
+docs-test: ## Test if documentation can be built without warnings or errors
+	@uv run mkdocs build -s
+
+.PHONY: docs
+docs: ## Build and serve the documentation
+	@uv run mkdocs serve
+
+.PHONY: help
+help:
+	@uv run python -c "import re; \
+	[[print(f'\033[36m{m[0]:<20}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
+
+.DEFAULT_GOAL := help
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/Dockerfile</source>
+<document_content>
+FROM langchain/langgraph-api:3.12
+
+# Install system dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends python3-dev python3 ca-certificates python3-numpy python3-setuptools python3-wheel python3-pip g++ gcc ninja-build cmake build-essential autoconf automake libtool libmagic-dev poppler-utils libreoffice libomp-dev tesseract-ocr tesseract-ocr-por libyaml-dev ffmpeg libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git libpq5 libpq-dev libxml2-dev libxslt1-dev libcairo2-dev libgirepository1.0-dev libgraphviz-dev libjpeg-dev libopencv-dev libpango1.0-dev libprotobuf-dev protobuf-compiler rustc cargo libwebp-dev libzbar0 libzbar-dev imagemagick ghostscript pandoc aria2 zsh bash-completion libpq-dev pkg-config libssl-dev  openssl unzip gzip vim tree less sqlite3 && rm -rf /var/lib/apt/lists/*
+# debugging, show the current directory and the contents of the deps directory, look for .venv which should not exist.
+RUN ls -lta && echo `pwd` && ls -lta && tree
+# ENV PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+# RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.11.2
+# RUN echo "source ~/.asdf/asdf.sh" >> ~/.bashrc
+# Hopefully this will fix the path issue with langgraph studio grabbing the env vars from my host machine.
+RUN echo "PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'" >> ~/.bashrc
+RUN echo "PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'" >> ~/.profile
+ENV TAPLO_VERSION=0.9.3
+COPY ./install_taplo.sh .
+RUN chmod +x install_taplo.sh && bash -x ./install_taplo.sh && mv taplo /usr/local/bin/taplo && rm install_taplo.sh
+# Install rust
+ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash -x -s -- -y
+ENV PATH='/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+# Install justfile
+RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -x -s -- --to /usr/bin
+# Install UV 0.5.14
+ADD https://astral.sh/uv/0.5.14/install.sh /uv-installer.sh
+RUN env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash -x /uv-installer.sh && rm /uv-installer.sh
+ENV PATH='/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+# Configure UV
+# UV_SYSTEM_PYTHON: Equivalent to the --system command-line argument. If set to true, uv will use the first Python interpreter found in the system PATH. WARNING: UV_SYSTEM_PYTHON=true is intended for use in continuous integration (CI) or containerized environments and should be used with caution, as modifying the system Python can lead to unexpected behavior.
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_PIP_DEFAULT_PYTHON=/usr/bin/python3
+ENV UV_LINK_MODE=copy
+# Compiling Python source files to bytecode is typically desirable for production images as it tends to improve startup time (at the cost of increased installation time).
+# ENV UV_COMPILE_BYTECODE=1
+ENV UV_CACHE_DIR=/root/.cache/uv/
+# Install dependencies first (for better caching)
+WORKDIR /deps/democracy-exe
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml --mount=type=bind,source=democracy_exe/requirements.txt,target=requirements.txt uv sync --frozen --no-install-project  --all-extras  --verbose --no-dev && uv pip install --system -r requirements.txt -e .[all] --no-deps --verbose
+# Copy project and install
+COPY . /deps/democracy-exe
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --verbose --no-dev --frozen && uv tool dir --bin
+# Pre-compile bytecode
+# RUN python3 -m compileall .
+RUN ls -lta && pwd && ls -lta /deps && tree /deps && cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile && echo "alias pip='uv pip'" >> ~/.bashrc && echo "alias pip='uv pip'" >> ~/.profile
+# Use the virtual environment automatically
+# ENV VIRTUAL_ENV="/deps/democracy-exe/.venv"
+# uv: Once the project is installed, you can either activate the project virtual environment by placing its binary directory at the front of the path:
+# Place entry points in the environment at the front of the path
+# Disabling the virtual environment for now.
+# ENV PATH='/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+# Add the project directory to the Python path. Source: https://github.com/bradcstevens/mtg-judgebot/blob/35ab51f7cd7341801f9364e93871a58464c93e7b/langgraph.json
+# ENV PYTHONPATH='/deps/democracy-exe'
+# ENV PYTHONPATH='/deps/democracy-exe:$PYTHONPATH'
+# hardcoded path cause langgraph is rendering the env vars from my host machine.
+# ENV PATH="/deps/democracy-exe/.venv/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
+#RUN cat ~/.bashrc && env && cat ~/.cargo/env && cat ~/.profile
+# EXPERIMENTAL: alias pip='uv pip' to use uv pip instead of pip
+# RUN echo "alias pip='uv pip'" >> ~/.bashrc
+# RUN echo "alias pip='uv pip'" >> ~/.profile
+# Seems as though things only work when we don't use the virtual environment and add it to our path.
+# Enable asyncio debugging
+ENV PYTHONASYNCIODEBUG=1
+# Enable fault handler
+ENV PYTHONFAULTHANDLER=1
+
+ADD . /deps/democracy-exe
+
+RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+
+ENV LANGSERVE_GRAPHS='{"react": "/deps/democracy-exe/democracy_exe/agentic/workflows/react/graph.py:graph"}'
+
+WORKDIR /deps/democracy-exe
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/pyproject.toml</source>
+<document_content>
+[project]
+name = "democracy-exe"
+version = "0.0.1"
+description = "democracy_exe is an advanced, agentic Python application leveraging LangChain and LangGraph to orchestrate and manage a network of AI agents and subgraphs. This system emulates the principles of 'managed democracy' from the Helldivers universe, automating decision-making processes and task delegation across multiple AI entities. Based on Helldivers."
+authors = [{name = "Malcolm Jones", email = "bossjones@theblacktonystark.com"}]
+readme = "README.md"
+keywords = ['python']
+requires-python = ">=3.10,<4.0"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "better-exceptions>=0.3.3",
+    "discord-py>=2.4.0",
+    "langchain>=0.3.7",
+    "langchain-anthropic>=0.2.4",
+    "langchain-chroma>=0.1.4",
+    "langchain-community>=0.3.5",
+    "langchain-core>=0.3.15",
+    "langchain-google-genai>=2.0.4",
+    "langchain-groq>=0.2.1",
+    "langchain-openai>=0.2.6",
+    "langchainhub>=0.1.21",
+    "langgraph>=0.2.45",
+    "aiodebug>=2.3.0",
+    "aiofile>=3.9.0",
+    "aiofiles>=24.1.0",
+    "aiohttp>=3.10.10",
+    "aiomonitor>=0.7.0",
+    "aioprometheus[starlette]>=23.12.0",
+    "aiopytesseract>=0.14.0",
+    "aiosql>=12.2",
+    "aiosqlite>=0.20.0",
+    "asyncer>=0.0.8",
+    "beautifulsoup4>=4.12.3",
+    "attrs>=24.2.0",
+    "babel>=2.16.0",
+    "fastapi[all]>=0.115.4",
+    "gallery-dl>=1.27.7",
+    "imageio>=2.36.0",
+    "imutils>=0.5.4",
+    "lazy-object-proxy>=1.10.0",
+    "logging-tree>=1.10",
+    "loguru>=0.7.2",
+    "lxml>=5.3.0",
+    "markdown>=3.7",
+    "matplotlib>=3.9.2",
+    "md2pdf>=1.0.1",
+    "memory-profiler>=0.61.0",
+    "motor>=3.6.0",
+    "moviepy>=1.0.3",
+    "pinecone-client[grpc]>=5.0.1",
+    "pydantic[email]>=2.9.2",
+    "pydantic-settings>=2.6.1",
+    "pyinstrument>=5.0.0",
+    "pypdf2>=3.0.1",
+    "pypdf>=5.1.0",
+    "pdf2image>=1.17.0",
+    "pytesseract>=0.3.13",
+    "python-decouple>=3.8",
+    "python-docx>=1.1.2",
+    "python-dotenv>=1.0.1",
+    "python-json-logger>=2.0.7",
+    "python-levenshtein>=0.26.1",
+    "python-slugify>=8.0.4",
+    "pytz>=2024.2",
+    "rank-bm25>=0.2.2",
+    "rapidfuzz>=3.10.1",
+    "rapidocr-onnxruntime>=1.3.25",
+    "redis>=5.2.0",
+    "requests-toolbelt>=1.0.0",
+    "requests>=2.32.3",
+    "scenedetect[opencv]>=0.6.4",
+    "sentence-transformers>=3.2.1",
+    "sentencepiece>=0.2.0",
+    "uritools>=4.0.3",
+    "pandas>=2.2.3",
+    "codetiming>=1.4.0",
+    "webcolors>=24.8.0",
+    "dask>=2024.11.0",
+    "torchvision>=0.20.1",
+    "langgraph-sdk>=0.1.36",
+    "langgraph-checkpoint-sqlite>=2.0.1",
+    "notebook>=7.2.2",
+    "tavily-python>=0.5.0",
+    "wikipedia>=1.4.0",
+    "marimo>=0.9.19",
+    "trustcall>=0.0.25",
+    "llm>=0.17.1",
+    "toolong>=1.5.0",
+    "llm-gemini>=0.3",
+    "llm-cmd>=0.2a0",
+    "llm-clip>=0.1",
+    "llm-sentence-transformers>=0.2",
+    "llm-replicate>=0.3.1",
+    "llm-perplexity>=0.9",
+    "llm-claude-3>=0.8",
+    "llm-python>=0.1",
+    "llm-jq>=0.1.1",
+    "ttok>=0.3",
+    "symbex>=1.4",
+    "strip-tags>=0.5.1",
+    "files-to-prompt>=0.4",
+    "langchain-fireworks>=0.2.5",
+    "pinecone-text>=0.9.0",
+    "pinecone-notebooks>=0.1.1",
+    "nest-asyncio>=1.6.0",
+    "grandalf>=0.8",
+    "emoji==1.7.0",
+    "emoji-country-flag==1.3.2",
+    "dropbox>=12.0.2",
+    "langsmith==0.2.3",
+]
+
+[project.urls]
+Homepage = "https://bossjones.github.io/democracy-exe/"
+Repository = "https://github.com/bossjones/democracy-exe"
+Documentation = "https://bossjones.github.io/democracy-exe/"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.2.0",
+    "pre-commit>=2.20.0",
+    "tox-uv>=1.11.3",
+    "deptry>=0.20.0",
+    "mypy>=0.991",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.6.9",
+    "mkdocs>=1.4.2",
+    "mkdocs-material>=8.5.10",
+    "mkdocstrings[python]>=0.26.1",
+    "black>=24.10.0",
+    "bpython>=0.24",
+    "coverage[toml]>=7.6.4",
+    "debugpy>=1.8.8",
+    "docformatter[tomli]>=1.7.5",
+    "dpytest>=0.7.0",
+    "flake8>=7.1.1",
+    "grpc-stubs>=1.53.0.5",
+    "hunter>=3.7.0",
+    "isort>=5.13.2",
+    "langsmith>=0.1.142",
+    "manhole>=1.8.1",
+    "mdformat-footnote>=0.1.1",
+    "mdformat-frontmatter>=2.0.8",
+    "mdformat-gfm>=0.3.7",
+    "mdformat-mkdocs>=3.1.1",
+    "mdformat-pyproject>=0.0.1",
+    "mdx-gh-links>=0.4",
+    "memray>=1.14.0",
+    "mkdocs-include-markdown-plugin>=7.0.0",
+    "mkdocs-jupyter>=0.25.1",
+    "mkdocs-mermaid2-plugin>=1.2.1",
+    "mkdocs-redirects>=1.2.2",
+    "mkdocs-simple-hooks>=0.1.5",
+    "mkdocs-version-annotations>=1.0.0",
+    "mkdocs-with-pdf>=0.9.3",
+    "monkeytype>=23.3.0",
+    "pandas-stubs>=2.2.3.241009",
+    "pydocstringformatter>=0.7.3",
+    "pydocstyle>=6.3.0",
+    "pylint>=3.3.1",
+    "pylint-per-file-ignores>=1.3.2",
+    "pylint-to-ruff>=0.3.0",
+    "pymarkdownlnt>=0.9.25",
+    "pyright>=1.1.388",
+    "pysnooper>=1.2.1",
+    "pytest-aiohttp>=1.0.5",
+    "pytest-asyncio>=0.24.0",
+    "pytest-clarity>=1.0.1",
+    "pytest-httpx>=0.33.0",
+    "pytest-ignore-flaky>=2.2.1",
+    "pytest-memray>=1.7.0",
+    "pytest-mock>=3.14.0",
+    "pytest-recording>=0.13.2",
+    "pytest-retry>=1.6.3",
+    "pytest-skip-slow>=0.0.5",
+    "pytest-sugar>=1.0.0",
+    "pyupgrade>=3.19.0",
+    "requests-mock>=1.12.1",
+    "respx>=0.21.1",
+    "rich>=13.9.4",
+    "towncrier>=24.8.0",
+    "tox>=4.23.2",
+    "types-aiofiles>=24.1.0.20240626",
+    "types-beautifulsoup4>=4.12.0.20241020",
+    "types-cffi>=1.16.0.20240331",
+    "types-click>=7.1.8",
+    "types-click-spinner>=0.1.13.20240311",
+    "types-colorama>=0.4.15.20240311",
+    "types-contextvars>=2.4.7.3",
+    "types-dataclasses>=0.6.6",
+    "types-freezegun>=1.1.10",
+    "types-html5lib>=1.1.11.20241018",
+    "types-jsonschema>=4.23.0.20240813",
+    "types-mock>=5.1.0.20240425",
+    "types-mypy-extensions>=1.0.0.20240311",
+    "types-protobuf>=5.28.3.20241030",
+    "types-psutil>=6.1.0.20241102",
+    "types-pyasn1>=0.6.0.20240913",
+    "types-python-jose>=3.3.4.20240106",
+    "types-pytz>=2024.2.0.20241003",
+    "types-pyyaml>=6.0.12.20240917",
+    "types-redis>=4.6.0.20241004",
+    "types-regex>=2024.11.6.20241108",
+    "types-setuptools>=75.3.0.20241107",
+    "types-six>=1.16.21.20241105",
+    "types-toml>=0.10.8.20240310",
+    "types-tqdm>=4.66.0.20240417",
+    "types-ujson>=5.10.0.20240515",
+    "types-urllib3>=1.26.25.14",
+    "typing-extensions>=4.12.2",
+    "validate-pyproject[all,store]>=0.22",
+    "vcrpy>=6.0.2",
+    "yamlfix>=1.17.0",
+    "yamllint>=1.35.1",
+    "changelogs",
+    "pylint-pydantic>=0.3.2",
+    "nbqa[toolchain]>=1.9.1",
+    "commitizen>=1.0.0",
+    "pytest-aioresponses>=0.2.0",
+    "pytest-loguru>=0.4.0",
+    "pytest-skipuntil>=0.2.0",
+    "pytest-freezegun",
+]
+
+[tool.uv.sources]
+changelogs = {git = "https://github.com/bossjones/changelogs"}
+pytest-freezegun = { git = "https://github.com/parafoxia/pytest-freezegun" }
+
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["democracy_exe"]
+
+[project.scripts]
+democracy-exe = 'democracy_exe.cli:entry'
+democracyctl = 'democracy_exe.cli:entry'
+
+[tool.mypy]
+files = ["democracy_exe"]
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = false
+warn_unused_ignores = true
+# Display the codes needed for # type: ignore[code] annotations.
+show_error_codes = true
+exclude = '''(?x)(
+    ^tasks/    # anything under tasks directory
+    | ^typings/? # typings directory or typings file
+    | ^\.venv/   # .venv directory
+    | ^contrib/  # contrib directory
+    | ^scripts/  # scripts directory
+    | ^venv/     # venv directory
+)'''
+
+# from sandbox agent
+# mypy_path = "democracy_exe"
+# show_column_numbers = true
+# disallow_subclassing_any = false
+# disallow_untyped_calls = false
+# disallow_untyped_decorators = false
+# strict = false
+# ***********************************************!SECTION
+
+# Enable optional errors.
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "redundant-self",
+    "truthy-bool",
+    "truthy-iterable",
+    "unused-awaitable",
+]
+
+# The following list of codes are globally ignored, do not add to this list
+
+disable_error_code = [
+    # annotation-unchecked are 'warning notes', not errors and won't cause mypy to fail
+    # but it does create a lot of noise in the CI mypy step.
+    # https://mypy-lang.blogspot.com/2022/11/mypy-0990-released.html
+    "import-untyped",
+    "annotation-unchecked",
+    "assignment",
+    "attr-defined",
+    "call-arg",
+    "has-type",
+    "import",
+    "misc",
+    "name-defined",
+    "operator",
+    "type-var",
+    "var-annotated",
+    "union-attr",
+    "return",
+]
+
+# Causes mypy to treat arguments with a None default value as having an implicit Optional type.
+follow_imports = "skip"
+# follow_imports = "silent"
+
+# Warns about casting an expression to its inferred type.
+warn_redundant_casts = true
+
+# Causes mypy to suppress errors caused by not being able to fully infer the types of global and class variables.
+allow_redefinition = true
+
+strict_optional = true
+
+# warn_unused_ignores = true
+
+# Warn of unreachable or redundant code.
+warn_unreachable = true
+
+# dmypy enables local_partial_types implicitly. We need mypy to align
+# with this behavior.
+local_partial_types = true
+
+# plugins = ["pydantic.mypy", "loguru_mypy"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+# NOTE: https://docs.pydantic.dev/latest/integrations/mypy/#configuring-the-plugin
+# See https://docs.pydantic.dev/latest/integrations/mypy/#mypy-plugin-capabilities for the effects of these options.
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# By default, imported values to a module are treated as exported and mypy allows other modules to import them.
+# This flag changes the behavior to not re-export unless the item is imported using from-as or is included in __all__.
+# Note this is always treated as enabled for stub files. For example:
+no_implicit_reexport = true
+
+# Ignores all non-fatal errors.
+ignore_errors = true
+# warn_untyped_fields = true
+
+
+ignore_missing_imports = true
+follow_imports = "skip"
+strict_optional = true
+
+# ===========================[ MYPY OVERRIDES ]========================
+[[tool.mypy.overrides]]
+check_untyped_defs = true
+ignore_missing_imports = true
+module = "tests.*"
+
+# Ignore specific error codes
+[[tool.mypy.overrides]]
+module = "typings.*"
+ignore_errors = true
+
+
+[[tool.mypy.overrides]]
+module = [
+    "prometheus_client.*",
+    "_pytest.*",
+    "_string",
+    "absl.*",
+    "albumentations.*",
+    "asr_python.*",
+    "astroid.*",
+    "boto3.*",
+    "botocore.*",
+    "colorama.*",
+    "colorama",
+    "contributors_txt",
+    "coverage",
+    "cv2.*",
+    "dill",
+    "discord.*",
+    "discord.client.*",
+    "enchant.*",
+    "etils.*",
+    "flatbuffers.*",
+    "flax.*",
+    "git.*",
+    "google.colab.*",
+    "importlib_metadata.*",
+    "invoke.*",
+    "IPython.*",
+    "iree.*",
+    "jax.experimental.jax2tf.tests.back_compat_testdata",
+    "jax.experimental.jax2tf.tests.flax_models",
+    "jaxlib.*",
+    "jaxlib.mlir.*",
+    "jraph.*",
+    "libtpu.*",
+    "matplotlib.*",
+    "mccabe",
+    "multiprocessing.*",
+    "numpy.*",
+    "opt_einsum.*",
+    "optax.*",
+    "pl_bolts.*",
+    "pssh.*",
+    "pygments.*",
+    "pytest_benchmark.*",
+    "pytest.*",
+    "pytest",
+    "rich.*",
+    "robustness.*",
+    "scipy.*",
+    "seaborn",
+    "setuptools.*",
+    "skimage.*",
+    "sklearn.*",
+    "sphinx.*",
+    "tensorboard_plugin_profile.convert.*",
+    "tensorboard.*",
+    "tensorflow.*",
+    "tensorflow.io.*",
+    "tensorflowjs.*",
+    "tensorstore.*",
+    "timm.*",
+    "torch.*",
+    "torchvision.*",
+    "usort.*",
+    "uvloop.*",
+    "web_pdb.*",
+    "wilds.*",
+    "zstandard.*",
+    "aiodebug.*",
+    "aiomonitor.*",
+    # "loguru.*",
+    "aiofiles.*",
+    "passlib.*",
+    "orjson",
+    "sentence_transformers.*",
+    "requests_toolbelt",
+    "requests_toolbelt.multipart",
+    "requests_toolbelt.multipart.decoder",
+    'vcr',
+    'vcr.*',
+    "pysnooper",
+    "rich",
+    "rich.console",
+    "rich.panel",
+    "rich.pretty",
+    "rich.progress",
+    "rich.status",
+    "rich.table",
+    "rich.text",
+    "pydantic_settings",
+    "pydantic_settings.*",
+    "pydantic_core",
+    "pydantic_core.*",
+    "pydantic",
+    "pydantic.*",
+    "pydantic_extra",
+    "pydantic_extra.*",
+
+
+]
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas._config.config",                      # TODO
+    "pandas._libs.*",
+    "pandas._testing.*",                          # TODO
+    "pandas.compat.numpy.function",               # TODO
+    "pandas.compat.compressors",                  # TODO
+    "pandas.core._numba.executor",                # TODO
+    "pandas.core.array_algos.masked_reductions",  # TODO
+    "pandas.core.array_algos.putmask",            # TODO
+    "pandas.core.array_algos.quantile",           # TODO
+    "pandas.core.array_algos.replace",            # TODO
+    "pandas.core.array_algos.take",               # TODO
+    "pandas.core.arrays.*",                       # TODO
+    "pandas.core.computation.*",                  # TODO
+    "pandas.core.dtypes.astype",                  # TODO
+    "pandas.core.dtypes.cast",                    # TODO
+    "pandas.core.dtypes.common",                  # TODO
+    "pandas.core.dtypes.concat",                  # TODO
+    "pandas.core.dtypes.dtypes",                  # TODO
+    "pandas.core.dtypes.generic",                 # TODO
+    "pandas.core.dtypes.missing",                 # TODO
+    "pandas.core.groupby.generic",                # TODO
+    "pandas.core.groupby.grouper",                # TODO
+    "pandas.core.groupby.groupby",                # TODO
+    "pandas.core.groupby.ops",                    # TODO
+    "pandas.core.indexers.*",                     # TODO
+    "pandas.core.indexes.*",                      # TODO
+    "pandas.core.interchange.column",             # TODO
+    "pandas.core.interchange.dataframe_protocol", # TODO
+    "pandas.core.interchange.from_dataframe",     # TODO
+    "pandas.core.internals.*",                    # TODO
+    "pandas.core.ops.array_ops",                  # TODO
+    "pandas.core.ops.common",                     # TODO
+    "pandas.core.ops.missing",                    # TODO
+    "pandas.core.reshape.*",                      # TODO
+    "pandas.core.strings.*",                      # TODO
+    "pandas.core.tools.*",                        # TODO
+    "pandas.core.window.common",                  # TODO
+    "pandas.core.window.ewm",                     # TODO
+    "pandas.core.window.expanding",               # TODO
+    "pandas.core.window.numba_",                  # TODO
+    "pandas.core.window.online",                  # TODO
+    "pandas.core.window.rolling",                 # TODO
+    "pandas.core.accessor",                       # TODO
+    "pandas.core.algorithms",                     # TODO
+    "pandas.core.apply",                          # TODO
+    "pandas.core.arraylike",                      # TODO
+    "pandas.core.base",                           # TODO
+    "pandas.core.common",                         # TODO
+    "pandas.core.construction",                   # TODO
+    "pandas.core.flags",                          # TODO
+    "pandas.core.frame",                          # TODO
+    "pandas.core.generic",                        # TODO
+    "pandas.core.indexing",                       # TODO
+    "pandas.core.missing",                        # TODO
+    "pandas.core.nanops",                         # TODO
+    "pandas.core.resample",                       # TODO
+    "pandas.core.roperator",                      # TODO
+    "pandas.core.sample",                         # TODO
+    "pandas.core.series",                         # TODO
+    "pandas.core.sorting",                        # TODO
+    "pandas.errors",                              # TODO
+    "pandas.io.clipboard",                        # TODO
+    "pandas.io.excel._base",                      # TODO
+    "pandas.io.excel._odfreader",                 # TODO
+    "pandas.io.excel._openpyxl",                  # TODO
+    "pandas.io.excel._pyxlsb",                    # TODO
+    "pandas.io.excel._xlrd",                      # TODO
+    "pandas.io.excel._xlsxwriter",                # TODO
+    "pandas.io.formats.excel",                    # TODO
+    "pandas.io.formats.format",                   # TODO
+    "pandas.io.formats.style",                    # TODO
+    "pandas.io.formats.style_render",             # TODO
+    "pandas.io.formats.xml",                      # TODO
+    "pandas.io.json.*",                           # TODO
+    "pandas.io.parsers.*",                        # TODO
+    "pandas.io.sas.sas_xport",                    # TODO
+    "pandas.io.sas.sas7bdat",                     # TODO
+    "pandas.io.clipboards",                       # TODO
+    "pandas.io.html",                             # TODO
+    "pandas.io.parquet",                          # TODO
+    "pandas.io.pytables",                         # TODO
+    "pandas.io.sql",                              # TODO
+    "pandas.io.xml",                              # TODO
+    "pandas.plotting.*",                          # TODO
+    "pandas.tests.*",
+    "pandas.tseries.frequencies",                 # TODO
+    "pandas.tseries.holiday",                     # TODO
+    "pandas.util._decorators",                    # TODO
+    "pandas.util._doctools",                      # TODO
+    "pandas.util._test_decorators",               # TODO
+    "pandas.util._validators",                    # TODO
+    "pandas.util",                                # TODO
+    "pandas._version",
+    "pandas.conftest",
+    "pandas",
+]
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.tests.*",
+    "pandas._version",
+    "pandas.io.clipboard",
+]
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.tests.apply.test_series_apply",
+    "pandas.tests.arithmetic.conftest",
+    "pandas.tests.arrays.sparse.test_combine_concat",
+    "pandas.tests.dtypes.test_common",
+    "pandas.tests.frame.methods.test_to_records",
+    "pandas.tests.groupby.test_rank",
+    "pandas.tests.groupby.transform.test_transform",
+    "pandas.tests.indexes.interval.test_interval",
+    "pandas.tests.indexing.test_categorical",
+    "pandas.tests.io.excel.test_writers",
+    "pandas.tests.reductions.test_reductions",
+    "pandas.tests.test_expressions",
+]
+ignore_errors = true
+
+# Ignore specific errors in certain files/modules
+[[tool.mypy.overrides]]
+module = "democracy_exe.utils.imitools"
+disable_error_code = [
+    "ignore-without-code",
+    "unreachable",
+    "index",
+    "call-overload",
+    "return",
+    "union-attr",
+    "arg-type",
+]
+
+[[tool.mypy.overrides]]
+module = "democracy_exe.utils.async_"
+disable_error_code = [
+    "unused-awaitable",
+    "ignore-without-code",
+]
+
+[[tool.mypy.overrides]]
+module = "democracy_exe.utils.file_functions"
+disable_error_code = [
+    "ignore-without-code",
+    "arg-type",
+    "redundant-expr",
+    "unreachable",
+]
+
+[[tool.mypy.overrides]]
+module = "democracy_exe.utils.vidops"
+disable_error_code = [
+    "unused-awaitable",
+]
+
+[[tool.mypy.overrides]]
+module = "democracy_exe.utils.__init__"
+disable_error_code = [
+    "redundant-expr",
+    "arg-type",
+    "return-value",
+]
+
+[[tool.mypy.overrides]]
+module = "democracy_exe.clients.http_client"
+disable_error_code = [
+    "str-bytes-safe",
+    "no-redef",
+]
+
+# ***********************************************!SECTION
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+fix = true
+
+extend-include = [
+    "*.ipynb",
+    "democracy_exe/*.ipynb",
+    "notebook/*.ipynb",
+    "notebooks/*.ipynb",
+    "notebooks/*.py",
+    "*.py",
+    "*.pyi",
+    "**/pyproject.toml",
+    "*.ipynb",
+    "pyproject.toml",
+    "democracy_exe/**/*.py",
+]
+output-format = "full"
+force-exclude = true
+respect-gitignore = true
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+extend-exclude = [
+    "__pycache__",
+    "__pypackages__",
+    "_build",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git-rewrite",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "**/__pycache__",
+    "buck-out",
+    "build",
+    "data",
+    "data/*",
+    "dist",
+    "docs",
+    "doc",
+    "git",
+    "logs/*",
+    "node_modules",
+    # "notebooks/*",
+    "tests/data",
+    "venv",
+    "typings",
+    "contrib",
+]
+
+# https://docs.astral.sh/ruff/settings/#indent-width
+# The formatter wraps lines at a length of 88
+unsafe-fixes = false
+
+[tool.ruff.lint]
+# **************************************
+# extend-select = ["I", "N812"]
+unfixable = [
+    "ERA", # do not autoremove commented out code
+]
+fixable = ["ALL"]
+select = [
+    # flake8-2020
+    "YTT",
+    # flake8-bandit
+    "S",
+    # flake8-bugbear
+    "B",
+    # flake8-builtins
+    "A",
+    # flake8-comprehensions
+    "C4",
+    # flake8-debugger
+    "T10",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # mccabe
+    "C90",
+    # pycodestyle
+    "E",
+    "W",
+    # pyflakes
+    "F",
+    # pygrep-hooks
+    "PGH",
+    # pyupgrade
+    "UP",
+    # ruff
+    "RUF",
+    # tryceratops
+    # "TRY",
+
+    "C90",    # mccabe
+    "I002",   # from __future__ import annotations
+    "N812",   # lowercase-imported-as-non-lowercase (N812) - Derived from the pep8-naming linter.
+    "NPY001", # numpy-deprecated-type-alias
+]
+# ignore = [
+#     # LineTooLong
+#     "E501",
+#     # DoNotAssignLambda
+#     "E731",
+# ]
+# SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
+# Conflicts with the formatter
+ignore = [
+    "C408",  # Checks for unnecessary calls to dict(), list(), or tuple() that can be rewritten as empty literals
+    "UP031", # Checks for unnecessary format string usage
+    "UP040", # Checks for unnecessary use of typing.TypeAlias in Python 3.12+
+
+    "SIM110", # Checks for `return` statements that can be simplified to a single `return` statement
+    "SIM103", # Checks for `return` statements that can be simplified by removing unnecessary `else` clauses
+    "RUF012", # Checks for mutable default values in class attributes
+    "A002",   # Checks for function arguments that shadow built-in names
+    "RUF008", # Checks for non-pep604 unions (e.g., `Union[int, str]` instead of `int | str`)
+    "RUF013", # Checks for implicit `Optional` in type annotations when the default parameter value is `None`
+    "S602",   # Checks for `subprocess` calls with `shell=True`
+    "RUF006", # Checks for unnecessary `elif` statements after `if` statements that always return
+    "SIM108", # Checks for `if`-`else` blocks that can be replaced with a ternary operator
+    "C416",   # Checks for unnecessary list/set/dict comprehensions
+    "SIM101", # Checks for duplicate `if` conditions
+    "B007",   # Checks for unused loop variables
+    "RUF002", # Checks for ambiguous unicode characters
+    "S608",   # Checks for SQL injection vulnerabilities in SQL string formatting
+    "SIM116", # Checks for `if` blocks that can be replaced with `dict.get()` or `getattr()`
+    "S101",   # Checks for uses of the `assert` keyword
+    "B904",   # Checks for `raise` statements in exception handlers without a `from` clause
+    "SIM117", # Checks for nested `with` statements that can be combined
+    "UP038",  # Checks for uses of `sys.version` or `sys.version_info`
+    "A001",   # Checks for variable assignments that shadow built-in names
+    "SIM115", # Checks for cases where files are opened without using a context manager
+    "S113",   # Checks for HTTP requests without a timeout
+    "S108",   # Checks for hardcoded temporary file paths
+    "S605",   # Checks for calls to `subprocess.run()` without explicitly setting `shell=False`
+    "C417",   # Checks for unnecessary use of `map()` or `filter()` with `lambda`
+    "B018",   # Checks for useless expressions
+
+
+    "S105",    # Possible hardcoded password
+    "UP007",   # Use X | Y for union types
+    "TRY003",  # Long messages outside exception class
+    "N815",    # Mixed case vars in class scope
+    "PLW0603", # Global statement at module level
+    "D",       # Docstring style rules (multiple)
+    "COM812",  # Missing trailing comma
+    "ISC001",  # Implicit string concatenation
+    "N804",    # First param of classmethod not cls
+    "F821",    # Undefined name
+    "PLR1722", # Use sys.exit() instead of exit
+    "N802",    # Function name should be lowercase
+    "N801",    # Class name should use CapWords
+    "PLW0602", # Global variable undefined
+    "PLW2901", # Outer loop variable overwritten
+    "YTT201",  # sys.version instead of sys.version_info
+    "E722",    # Do not use bare except
+    "PLC0132", # Use format specifiers in logging
+    "PLW0128", # Redundant if-else in comprehension
+    "W191",    # tab-indentation
+    "E111",    # indentation-with-invalid-multiple
+    "E114",    # indentation-with-invalid-multiple-comment
+    "E117",    # over-indented
+    "D206",    # indent-with-spaces
+    "D300",    # triple-single-quotes
+    "Q000",    # bad-quotes-inline-string
+    "Q001",    # bad-quotes-multiline-string
+    "Q002",    # bad-quotes-docstring
+    "Q003",    # avoidable-escaped-quote
+    "COM812",  # missing-trailing-comma
+    "COM819",  # prohibited-trailing-comma
+    "ISC001",  # single-line-implicit-string-concatenation
+    "ISC002",  # multi-line-implicit-string-concatenation
+
+    "E501",    # Line too long
+    "E721",    # Don't compare types, use isinstance()
+    "E741",    # Ambiguous variable name
+    "E731",    # Do not assign lambda expression
+    "PLR1714", # Consider merging dict literals
+    "N818",    # Exception name should end with "Error"
+    "PLW0127", # Self-assigning variable
+    "PT012",   # pytest.raises() without match=
+    "N806",    # Variable in function should be lowercase
+    "E712",    # Use "is" to compare with True/False/None
+    "E711",    # Use "is" to compare with None
+    "W505",    # Doc line too long
+    "PT006",   # pytest.parametrize() values not a tuple
+    "PLR2004", # Magic value used in comparison
+    "N812",    # Lowercase imported as non-lowercase
+    "F841",    # Local variable is assigned but unused
+
+    "TID",     # flake8-tidy-imports (TID)#
+    "F401",    # unused-import	{name} imported but unused; consider using importlib.util.find_spec to test for availability
+    "F402",    # import-shadowed-by-loop-var	Import {name} from {row} shadowed by loop variable
+    "F403",    # undefined-local-with-import-star	from {name} import * used; unable to detect undefined names
+    "F404",    # late-future-import	from __future__ imports must occur at the beginning of the file
+    "F405",    # undefined-local-with-import-star-usage	{name} may be undefined, or defined from star imports
+    "F406",    # undefined-local-with-nested-import-star-usage	from {name} import * only allowed at module level
+    "E401",    # multiple-imports-on-one-line	Multiple imports on one line
+    "E402",    # module-import-not-at-top-of-file	Module level import not at top of cell
+    "UP026",   # deprecated-mock-import	mock is deprecated, use unittest.mock
+    "UP029",   # unnecessary-builtin-import	Unnecessary builtin import: {import}
+    "UP035",   # deprecated-import	Import from {target} instead: {names}
+    "ICN",     # flake8-import-conventions (ICN)
+    "TCH",     # flake8-type-checking (TCH)#
+    "PLC0414", # useless-import-alias	Import alias does not rename original package
+    "PLC0415", # PLC0415	import-outside-top-level	import should be at the top-level of a file
+    "PLC2403", # non-ascii-import-name	Module alias {name} contains a non-ASCII character, use an ASCII-only alias
+    "PLC2701", # import-private-name	Private name import {name} from external module {module}
+    "PLR0402", # manual-from-import	Use from {module} import {name} in lieu of alias
+    "PLW0406", # import-self	Module {name} imports itself
+
+    # via hatch: https://github.com/pypa/hatch/blob/864854478bac936de2d94273ae083c7c29564df2/scripts/update_ruff.py#L12
+    # Allow non-abstract empty methods in abstract base classes
+    'B027', # empty-method-without-abstract-decorator	{name} is an empty method in an abstract base class, but has no abstract decorator
+    # Allow boolean positional values in function calls, like `dict.get(... True)`
+    'FBT003', # boolean-positional-value-in-call	Boolean positional value in function call
+    # Ignore complexity
+    'C901',    # complex-structure	{name} is too complex ({complexity} > {max_complexity})
+    'PLR0904', # too-many-public-methods	Too many public methods ({methods} > {max_methods})
+    "PLR0911", # too-many-return-statements	Too many return statements ({returns} > {max_returns})
+    "PLR0912", # too-many-branches	Too many branches ({branches} > {max_branches})
+    "PLR0913", # too-many-arguments	Too many arguments in function definition ({c_args} > {max_args})
+    "PLR0914", # too-many-locals	Too many local variables ({current_amount}/{max_amount})
+    "PLR0915", # too-many-statements	Too many statements ({statements} > {max_statements})
+    "PLR0916", # too-many-boolean-expressions	Too many Boolean expressions ({expressions} > {max_expressions})
+    "PLR0917", # too-many-positional	Too many positional arguments ({c_pos}/{max_pos})
+    'PLR1702', # too-many-nested-blocks	Too many nested blocks ({nested_blocks} > {max_nested_blocks})
+
+    # These are dependent on projects themselves
+    'AIR', # airflow
+    'CPY', # flake8-copyright (CPY)#
+    'D',   # pydocstyle (D)#
+    # 'NPY', # NumPy-specific rules (NPY)#
+    'PD', # pandas-vet (PD)
+
+    # Many projects either don't have type annotations or it would take much effort to satisfy this
+    'ANN', # flake8-annotations (ANN).
+
+    # Don't be too strict about TODOs as not everyone uses them the same way
+    'FIX',     # flake8-fixme (FIX)#
+    'TD001',   # invalid-todo-tag	Invalid TODO tag: {tag}
+    'TD002',   # missing-todo-author	Missing author in TODO; try: # TODO(<author_name>): ... or # TODO @<author_name>: ...
+    'TD003',   # missing-todo-link	Missing issue link on the line following this TODO
+    'PTH',     # flake8-use-pathlib (PTH) # There are valid reasons to not use pathlib such as performance and import cost
+    'FURB101', # read-whole-file	open and read should be replaced by Path({filename}).{suggestion}
+
+    # Conflicts with type checking
+    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value
+    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value
+
+    # Under review https://github.com/astral-sh/ruff/issues/8796
+    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore
+    'PT005', # pytest-incorrect-fixture-name-underscore	Fixture {function} returns a value, remove leading underscore
+
+    # Buggy https://github.com/astral-sh/ruff/issues/4845
+    'ERA001', # commented-out-code	Found commented-out code
+
+    # Business logic relying on other programs has no choice but to use subprocess
+    'S404', # suspicious-subprocess-import	subprocess module is possibly insecure
+
+    # Too prone to false positives and might be removed https://github.com/astral-sh/ruff/issues/4045
+    'S603', # subprocess-without-shell-equals-true	subprocess call: check for execution of untrusted input
+
+    # Too prone to false positives https://github.com/astral-sh/ruff/issues/8761
+    'SIM401', # if-else-block-instead-of-dict-get	Use {contents} instead of an if block
+
+    # Allow for easy ignores
+    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues
+    'PGH004', # blanket-noqa	Use specific rule codes when using noqa
+
+    # This is required sometimes, and doesn't matter on Python 3.11+
+    'PERF203', # try-except-in-loop	try-except within a loop incurs performance overhead
+
+    # Potentially unnecessary on Python 3.12+
+    'FURB140', # reimplemented-starmap	Use itertools.starmap instead of the generator
+
+    # Conflicts with formatter, see:
+    # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "E111",    # indentation-with-invalid-multiple	Indentation is not a multiple of {indent_size}
+    "E114",    # indentation-with-invalid-multiple-comment	Indentation is not a multiple of {indent_size} (comment)
+    "E117",    # over-indented	Over-indented (comment)
+    "E301",    # blank-line-between-methods	Expected {BLANK_LINES_NESTED_LEVEL:?} blank line, found 0
+    "E302",    # blank-lines-top-level	Expected {expected_blank_lines:?} blank lines, found {actual_blank_lines}
+    "E303",    # too-many-blank-lines	Too many blank lines ({actual_blank_lines})
+    "E304",    # blank-line-after-decorator	Blank lines found after function decorator ({lines})
+    "E305",    # blank-lines-after-function-or-class	Expected 2 blank lines after class or function definition, found ({blank_lines})
+    "E306",    # blank-lines-before-nested-definition	Expected 1 blank line before a nested definition, found 0
+    "E501",    # line-too-long	Line too long ({width} > {limit})
+    "W191",    # tab-indentation	Indentation contains tabs
+    "D206",    # indent-with-spaces	Docstring should be indented with spaces, not tabs
+    "D300",    # triple-single-quotes	Use triple double quotes """
+    "COM812",  # missing-trailing-comma	Trailing comma missing
+    "COM819",  # prohibited-trailing-comma	Trailing comma prohibited
+    "ISC001",  # single-line-implicit-string-concatenation	Implicitly concatenated string literals on one line
+    "ISC002",  # multi-line-implicit-string-concatenation	Implicitly concatenated string literals over multiple lines
+    "Q000",    # bad-quotes-inline-string	Single quotes found but double quotes preferred
+    "Q001",    # bad-quotes-multiline-string	Single quote multiline found but double quotes preferred
+    "Q002",    # bad-quotes-docstring	Single quote docstring found but double quotes preferred
+    "Q003",    # avoidable-escaped-quote	Change outer quotes to avoid escaping inner quotes
+    "Q004",    # unnecessary-escaped-quote	Unnecessary escape on inner quote character
+    "PLE1141", # dict-iter-missing-items	Unpacking a dictionary in iteration without calling .items()
+    "PLE1142", # await-outside-async	await should be used within an async function
+    "Q",       # Various quote-related rules
+    "N999",    # Invalid module name
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+
+# SOURCE: https://github.com/google/jax/blob/a1c82219e2d23ec994e42761ebcaf4c53d9e4ea7/pyproject.toml#L159C1-L160C20
+[tool.ruff.lint.mccabe]
+# max-complexity = 18
+max-complexity = 31 # C901: Recommended goal is 10
+
+# 4. Ignore `E402` (import violations) in all `__init__.py` files, and in select subdirectories.
+[tool.ruff.lint.per-file-ignores]
+"democracy_exe/models/loggers/__init__.py" = ["N815", "B005", "RUF005", "F811"]
+"democracy_exe/agentic/studio/react/*" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/studio/*" = ["N815", "B005", "RUF005"]
+"cookbook/studio/*" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/graph.py" = ["N815", "B005", "RUF005"]
+"democracy_exe/agentic/studio/graph.py" = ["N815", "B005", "RUF005"]
+"democracy_exe/democracy_exe/gen_ai/models/vectorstores/*" = ["N815"]
+"tests/*" = ["PT011", "S101"]
+"democracy_exe/democracy_exe/tutorials/design_patterns/practical_examples/*" = [
+    "PT018",
+    "PLW0211",
+    "ISC003",
+    "N803",
+]
+"__init__.py" = ["F401", "E402"]
+"**/{tests,docs,doc}/*" = ["E402"]
+# https://github.com/astral-sh/ruff/issues/3928
+# "*.pyi" = [
+#     "I002", # from __future__ import annotations
+# ]
+"conf/*" = ["D"]
+"demo/*" = ["D"]
+"docs/*" = ["D"]
+"test/*" = ["D", "C410", "S311"]
+"tests/tests_utils/*" = ["D", "C410", "S311"]
+"tests/conftest.py" = ["D", "F811"]
+"*.pyi" = ["D", "E501", "E701", "I002"]
+"democracy_exe/chatbot/core/bot.py" = ["B026"]
+"democracy_exe/utils/twitter_utils/models.py" = ["SIM102"]
+"democracy_exe/utils/aiodbx.py" = ["SIM102", "S112", "S110", "SIM105"]
+"democracy_exe/bot_logger/__init__.py" = ["SIM105", "S110"]
+
+# ===========================[ ISORT ]========================
+# SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
+[tool.ruff.lint.isort]
+# Use a single line between direct and from import.
+lines-between-types = 1
+# Use a single line after each import block.
+lines-after-imports = 2
+
+# Add the specified import line to all files.
+# PEP 563: Postponed evaluation of annotations
+# https://peps.python.org/pep-0563/
+required-imports = ["from __future__ import annotations"]
+
+# Allow imports relative to the "app" directory.
+known-third-party = [
+    "boto3",
+    "fastapi",
+    "langchain",
+    "pydantic",
+    "beautifulsoup4",
+    "langchain_community",
+    "langchain_openai",
+    "openai",
+    "requests",
+    "discord",
+    "uvicorn",
+]
+split-on-trailing-comma = false
+
+known-first-party = ["democracy_exe", "tests"]
+
+known-local-folder = ["democracy_exe/*"]
+
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "pytest",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+# Group all Django imports into a separate section.
+"pytest" = ["conftest", "pytest", "pytest_mock"]
+
+# ===========================[ FLAKE8-TYPE-CHECKING ]========================
+[tool.ruff.lint.flake8-type-checking]
+# pydantic models use annotations at runtime
+runtime-evaluated-base-classes = [
+    # NOTE: ruff is unable to detect that these are subclasses of pydantic.BaseModel
+    "pydantic.BaseModel",
+]
+runtime-evaluated-decorators = ["pydantic.dataclasses.dataclass"]
+
+# ===========================[ PYUPGRADE ]========================
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.ruff.lint.pydocstyle]
+ignore-decorators = ["typing.overload"]
+property-decorators = ["gi.repository.GObject.Property"]
+# NOTE: Enabling a convention will disable any rules that are not included in the specified convention. As such, the intended workflow is to enable a convention and then selectively enable or disable any additional rules on top of it. See: https://github.com/astral-sh/ruff/blob/c3e28f9d55b4484b0e7507d3bee6339b9fb83bb5/docs/faq.md
+# Accepts: "google", "numpy", or "pep257".
+convention = "pep257"
+
+
+[tool.ruff.format]
+preview = true
+# SOURCE: https://github.com/ansible-collections/cloud-content-handbook/blob/9be137d78af4d1cc140b210f3058977164021c9d/proposals/ruff_transition.md - end
+# Conflicts with the formatter
+exclude = [
+    "N999", # Invalid module name
+    "D203", # one-blank-line-before-class	1 blank line required before class docstring
+
+    "COM812",  # Missing trailing comma
+    "ISC001",  # Implicit string concatenation
+    "N804",    # First param of classmethod not 'cls'
+    "F821",    # Undefined name
+    "PLR1722", # Use sys.exit() instead of exit()
+    "N802",    # Function name should be lowercase
+    "N801",    # Class name should use CapWords
+    "PLW0602", # Global variable undefined
+    "F811",    # Redefinition of unused name
+    "PLW2901", # Outer loop var overwritten in loop
+    "YTT201",  # sys.version instead of version_info
+    "E722",    # Do not use bare 'except'
+    "PLC0132", # Use f-strings in logging
+    "PLW0128", # Redundant if-else in comprehension
+
+    "W191",   # tab-indentation
+    "E111",   # indentation-with-invalid-multiple
+    "E114",   # indentation-with-invalid-multiple-comment
+    "E117",   # over-indented
+    "D206",   # indent-with-spaces
+    "D300",   # triple-single-quotes
+    "Q000",   # bad-quotes-inline-string
+    "Q001",   # bad-quotes-multiline-string
+    "Q002",   # bad-quotes-docstring
+    "Q003",   # avoidable-escaped-quote
+    "COM812", # missing-trailing-comma
+    "COM819", # prohibited-trailing-comma
+    "ISC001", # single-line-implicit-string-concatenation
+    "ISC002", # multi-line-implicit-string-concatenation
+
+    "E501",    # Line too long
+    "E721",    # Don't compare types, use isinstance()
+    "E741",    # Ambiguous variable name
+    "E731",    # Do not assign lambda expression
+    "PLR1714", # Consider merging dict literals
+    "N818",    # Exception name should end with "Error"
+    "PLW0127", # Self-assigning variable
+    "PT012",   # pytest.raises() without match=
+    "N806",    # Variable in function should be lowercase
+    "E712",    # Use "is" to compare with True/False/None
+    "E711",    # Use "is" to compare with None
+    "W505",    # Doc line too long
+    "PT006",   # pytest.parametrize() values not a tuple
+    "PLR2004", # Magic value used in comparison
+    "N812",    # Lowercase imported as non-lowercase
+    "F841",    # Local variable is assigned but unused
+
+    "TID",     # flake8-tidy-imports (TID)#
+    "F401",    # unused-import	{name} imported but unused; consider using importlib.util.find_spec to test for availability
+    "F402",    # import-shadowed-by-loop-var	Import {name} from {row} shadowed by loop variable
+    "F403",    # undefined-local-with-import-star	from {name} import * used; unable to detect undefined names
+    "F404",    # late-future-import	from __future__ imports must occur at the beginning of the file
+    "F405",    # undefined-local-with-import-star-usage	{name} may be undefined, or defined from star imports
+    "F406",    # undefined-local-with-nested-import-star-usage	from {name} import * only allowed at module level
+    "E401",    # multiple-imports-on-one-line	Multiple imports on one line
+    "E402",    # module-import-not-at-top-of-file	Module level import not at top of cell
+    "UP026",   # deprecated-mock-import	mock is deprecated, use unittest.mock
+    "UP029",   # unnecessary-builtin-import	Unnecessary builtin import: {import}
+    "UP035",   # deprecated-import	Import from {target} instead: {names}
+    "ICN",     # flake8-import-conventions (ICN)
+    "TCH",     # flake8-type-checking (TCH)#
+    "PLC0414", # useless-import-alias	Import alias does not rename original package
+    "PLC0415", # PLC0415	import-outside-top-level	import should be at the top-level of a file
+    "PLC2403", # non-ascii-import-name	Module alias {name} contains a non-ASCII character, use an ASCII-only alias
+    "PLC2701", # import-private-name	Private name import {name} from external module {module}
+    "PLR0402", # manual-from-import	Use from {module} import {name} in lieu of alias
+    "PLW0406", # import-self	Module {name} imports itself
+
+    # via hatch: https://github.com/pypa/hatch/blob/864854478bac936de2d94273ae083c7c29564df2/scripts/update_ruff.py#L12
+    # Allow non-abstract empty methods in abstract base classes
+    'B027', # empty-method-without-abstract-decorator	{name} is an empty method in an abstract base class, but has no abstract decorator
+    # Allow boolean positional values in function calls, like `dict.get(... True)`
+    'FBT003', # boolean-positional-value-in-call	Boolean positional value in function call
+    # Ignore complexity
+    'C901',    # complex-structure	{name} is too complex ({complexity} > {max_complexity})
+    'PLR0904', # too-many-public-methods	Too many public methods ({methods} > {max_methods})
+    "PLR0911", # too-many-return-statements	Too many return statements ({returns} > {max_returns})
+    "PLR0912", # too-many-branches	Too many branches ({branches} > {max_branches})
+    "PLR0913", # too-many-arguments	Too many arguments in function definition ({c_args} > {max_args})
+    "PLR0914", # too-many-locals	Too many local variables ({current_amount}/{max_amount})
+    "PLR0915", # too-many-statements	Too many statements ({statements} > {max_statements})
+    "PLR0916", # too-many-boolean-expressions	Too many Boolean expressions ({expressions} > {max_expressions})
+    "PLR0917", # too-many-positional	Too many positional arguments ({c_pos}/{max_pos})
+    'PLR1702', # too-many-nested-blocks	Too many nested blocks ({nested_blocks} > {max_nested_blocks})
+
+    # These are dependent on projects themselves
+    'AIR', # airflow
+    'CPY', # flake8-copyright (CPY)#
+    'D',   # pydocstyle (D)#
+
+    'PD', # pandas-vet (PD)
+
+    # Many projects either don't have type annotations or it would take much effort to satisfy this
+    'ANN', # flake8-annotations (ANN).
+
+    # Don't be too strict about TODOs as not everyone uses them the same way
+    'FIX',     # flake8-fixme (FIX)#
+    'TD001',   # invalid-todo-tag	Invalid TODO tag: {tag}
+    'TD002',   # missing-todo-author	Missing author in TODO; try: # TODO(<author_name>): ... or # TODO @<author_name>: ...
+    'TD003',   # missing-todo-link	Missing issue link on the line following this TODO
+    'PTH',     # flake8-use-pathlib (PTH) # There are valid reasons to not use pathlib such as performance and import cost
+    'FURB101', # read-whole-file	open and read should be replaced by Path({filename}).{suggestion}
+
+    # Conflicts with type checking
+    'RET501', # unnecessary-return-none	Do not explicitly return None in function if it is the only possible return value
+    'RET502', # implicit-return-value	Do not implicitly return None in function able to return non-None value
+
+    # Under review https://github.com/astral-sh/ruff/issues/8796
+    'PT004', # pytest-missing-fixture-name-underscore	Fixture {function} does not return anything, add leading underscore
+    'PT005', # pytest-incorrect-fixture-name-underscore	Fixture {function} returns a value, remove leading underscore
+
+    # Buggy https://github.com/astral-sh/ruff/issues/4845
+    'ERA001', # commented-out-code	Found commented-out code
+
+    # Business logic relying on other programs has no choice but to use subprocess
+    'S404', # suspicious-subprocess-import	subprocess module is possibly insecure
+
+    # Too prone to false positives and might be removed https://github.com/astral-sh/ruff/issues/4045
+    'S603', # subprocess-without-shell-equals-true	subprocess call: check for execution of untrusted input
+
+    # Too prone to false positives https://github.com/astral-sh/ruff/issues/8761
+    'SIM401', # if-else-block-instead-of-dict-get	Use {contents} instead of an if block
+
+    # Allow for easy ignores
+    'PGH003', # blanket-type-ignore	Use specific rule codes when ignoring type issues
+    'PGH004', # blanket-noqa	Use specific rule codes when using noqa
+
+    # This is required sometimes, and doesn't matter on Python 3.11+
+    'PERF203', # try-except-in-loop	try-except within a loop incurs performance overhead
+
+    # Potentially unnecessary on Python 3.12+
+    'FURB140', # reimplemented-starmap	Use itertools.starmap instead of the generator
+
+    # Conflicts with formatter, see:
+    # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "E111",    # indentation-with-invalid-multiple	Indentation is not a multiple of {indent_size}
+    "E114",    # indentation-with-invalid-multiple-comment	Indentation is not a multiple of {indent_size} (comment)
+    "E117",    # over-indented	Over-indented (comment)
+    "E301",    # blank-line-between-methods	Expected {BLANK_LINES_NESTED_LEVEL:?} blank line, found 0
+    "E302",    # blank-lines-top-level	Expected {expected_blank_lines:?} blank lines, found {actual_blank_lines}
+    "E303",    # too-many-blank-lines	Too many blank lines ({actual_blank_lines})
+    "E304",    # blank-line-after-decorator	Blank lines found after function decorator ({lines})
+    "E305",    # blank-lines-after-function-or-class	Expected 2 blank lines after class or function definition, found ({blank_lines})
+    "E306",    # blank-lines-before-nested-definition	Expected 1 blank line before a nested definition, found 0
+    "E501",    # line-too-long	Line too long ({width} > {limit})
+    "W191",    # tab-indentation	Indentation contains tabs
+    "D206",    # indent-with-spaces	Docstring should be indented with spaces, not tabs
+    "D300",    # triple-single-quotes	Use triple double quotes """
+    "COM812",  # missing-trailing-comma	Trailing comma missing
+    "COM819",  # prohibited-trailing-comma	Trailing comma prohibited
+    "ISC001",  # single-line-implicit-string-concatenation	Implicitly concatenated string literals on one line
+    "ISC002",  # multi-line-implicit-string-concatenation	Implicitly concatenated string literals over multiple lines
+    "Q000",    # bad-quotes-inline-string	Single quotes found but double quotes preferred
+    "Q001",    # bad-quotes-multiline-string	Single quote multiline found but double quotes preferred
+    "Q002",    # bad-quotes-docstring	Single quote docstring found but double quotes preferred
+    "Q003",    # avoidable-escaped-quote	Change outer quotes to avoid escaping inner quotes
+    "Q004",    # unnecessary-escaped-quote	Unnecessary escape on inner quote character
+    "PLE1141", # dict-iter-missing-items	Unpacking a dictionary in iteration without calling .items()
+    "PLE1142", # await-outside-async	await should be used within an async function
+    "Q",
+]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+# Enable auto-formatting of code examples in docstrings. Markdown, reStructuredText code/literal blocks and doctests are all supported
+# This is currently disabled by default, but it is planned for this to be opt-out in the future.
+docstring-code-format = true
+# Set the line length limit used when formatting code snippets in docstrings. This only has an effect when the `docstring-code-format` setting is enabled.
+docstring-code-line-length = "dynamic"
+
+# ===========================[ RUFF pycodestyle ]========================
+# https://docs.astral.sh/ruff/settings/#lint_pycodestyle_max-doc-length
+[tool.ruff.lint.pycodestyle]
+# E501 reports lines that exceed the length of 100
+max-doc-length = 120
+# E501 reports lines that exceed the length of 100.
+max-line-length = 120
+
+[tool.coverage.report]
+skip_empty = true
+
+exclude_lines = [
+    '\(Protocol\):$',
+    '\s*\.\.\.$',
+    "@(abc.)?abstractmethod",
+    "@overload",
+    "@typing.overload",
+    "assert_never",
+    "def __repr__",
+    "def __str__",
+    "except ImportError:",
+    "if __name__ == .__main__.:",
+    "if not _PANDAS_AVAILABLE:",
+    "if self.debug",
+    "if settings.DEBUG",
+    "if TYPE_CHECKING:",
+    "if TYPE_CHECKING",
+    "if typing.TYPE_CHECKING:",
+    "pragma: $TEST_PLATFORM no cover",
+    "pragma: no cover",
+    "pragma: py$PYTHON_MAJOR_VERSION no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "return NotImplemented",
+    "typing.assert_never",
+]
+omit = [
+    "test/*",
+    "tests/*",
+    "democracy_exe/agentic/studio/*",
+    "cookbook/studio/*",
+]
+# fail if coverage drops below the specified percentage:
+fail_under = 10
+
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ d .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+
+    # 1. Exclude an except clause of a specific form:
+    "except ValueError:\\n\\s*assume\\(False\\)",
+    # 2. Comments to turn coverage on and off:
+    "no cover: start(?s:.)*?no cover: stop",
+    # 3. A pragma comment that excludes an entire file:
+    "\\A(?s:.*# pragma: exclude file.*)\\Z",
+]
+
+# (boolean, default False) Ignore source code that can't be found, emitting a warning instead of an exception.
+ignore_errors = false
+# (boolean, default False) When running a summary report, show missing lines. See Coverage summary: coverage report for more information.
+show_missing = true
+# (boolean, default False) Don't report files that are 100% covered. This helps you focus on files that need attention.
+skip_covered = false
+
+[tool.coverage.run]
+parallel = true
+
+# NOTE: This might break some SHIT (5/8/2024)
+# SOURCE: https://github.com/anthonycorletti/snok/blob/039ae9aaf403485ce9b7fedb0e1943c25a250eed/snok/templates/__shared/_pyproject_toml#L130
+concurrency = ["thread", "greenlet", "multiprocessing"]
+omit = [
+    "**/democracy_exe/tutorials/**",
+]
+
+
+branch = true
+source = ["democracy_exe"]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "cov.xml"
+
+
+# =========================[ PYTEST INI OPTIONS ]========================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+filterwarnings = [
+    'ignore:configuration option "asyncio_default_fixture_loop_scope" is unset',
+    "ignore::DeprecationWarning:.venv.*:",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20:.venv.*:",
+    "ignore::DeprecationWarning:discord.*:",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20:pydantic.*:",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20:fireworks.*:",
+    "ignore::DeprecationWarning:audioop:",
+    "default::DeprecationWarning:democracy_exe.*:",
+    "default::pydantic.warnings.PydanticDeprecatedSince20:democracy_exe.*:",
+]
+# retries = 5
+# retry_delay = 0.5
+# retry_delay = 30
+pythonpath = "."
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = [
+    # Print runtimes of the slowest tests.
+    '--durations=10',
+    '--durations-min=0.05',
+    '--junitxml=junit/test-results.xml',
+    '--cov-report=annotate:cov_annotate',
+]
+
+# ###################################################################################
+# # enable live logging when needed (very useful when debugging evals)
+# ###################################################################################
+log_cli = false
+log_cli_level = "DEBUG"
+# log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+# log_cli_format = "%(asctime)s [%(levelname)8s] %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+log_cli_format = "%(asctime)s [%(levelname)8s] [%(threadName)s] %(name)s - %(module)s.%(funcName)s (%(filename)s:%(lineno)d) - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+# Enable live logging to a file when needed (very useful when debugging evals)
+log_file = "pytest-accuracy-debug.log"
+log_file_date_format = "%Y-%m-%d %H:%M:%S"
+log_file_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_file_level = "DEBUG"
+
+# markers=["basic", "filetree", "suites", "markers", "parametrization", "buildmeta"]
+# allows you to conditionally call only a subset of pytest baased on the marker provided
+markers = [
+    "cogs: marks tests that run code that utilizes the cogs module (deselect with '-m \"not cogs\"')",
+    "configonly: marks tests that run code that utilizes the config module (deselect with '-m \"not configonly\"')",
+    "e2e: marks tests dealing with e2e testing (deselect with '-m \"not e2e\"')",
+    "evals: marks tests as evals (run with '-m evals')",
+    "fast: marks tests as fast (run with '-m fast')",
+    "httpclientonly: marks tests that run code that utilizes the http_client module (deselect with '-m \"not httpclientonly\"')",
+    "imgops: marks tests as imgops (run with '-m imgops')",
+    "integration: marks tests dealing with integration testing (deselect with '-m \"not integration\"')",
+    "onboardingonly: marks tests that run code that utilizes the new_dev_onboarding_tool module (deselect with '-m \"not onboardingonly\"')",
+    "utilsonly: marks tests that run code that utilizes any utils module (deselect with '-m \"not utilsonly\"')",
+    "retryonly: marks tests that run code that utilizes the retry module (deselect with '-m \"not retryonly\"')",
+    "skip_in_parallel: marks tests that should be run in serial only (deselect with '-m \"not skip_in_parallel\"')",
+    "slow: marks tests as slow (run with '-m slow')",
+    "toolonly: marks tests that run code that utilizes a Custom Langchain tool module in the tools directory (deselect with '-m \"not toolonly\"')",
+    "unittest: marks tests dealing with unittest (deselect with '-m \"not unittest\"')",
+    "vectorstoronly: marks tests that run code that utilizes the flex_vector_store_tool module (deselect with '-m \"not vectorstoronly\"')",
+    "visiontoolonly: marks tests that run code that utilizes vision_tool.py (deselect with '-m \"not visiontoolonly\"')",
+    "webpagetoolonly: marks tests that run code that utilizes the fetch_webpage_tool module (deselect with '-m \"not webpagetoolonly\"')",
+    "vcronly: marks tests that run code that utilizes the vcr module (deselect with '-m \"not vcronly\"')",
+    "vcrcanary: marks tests that run code that utilizes the vcr test canary module (deselect with '-m \"not vcrcanary\"')",
+    "pgvectoronly: marks tests that run code that utilizes the pgvector module (deselect with '-m \"not pgvectoronly\"')",
+    "services: marks tests that run code that belongs to the services module  (deselect with '-m \"not services\"')",
+    "slower: marks tests that run code that belongs to the slower calls at end of pytest run module  (deselect with '-m \"not slower\"')",
+    "discordonly: marks tests that run code that belongs to the discordonly calls at end of pytest run module  (deselect with '-m \"not discordonly\"')",
+    "cursorgenerated: marks tests that are cursor generated (deselect with '-m \"not cursorgenerated\"')",
+    "aidergenerated: marks tests that are aider generated (deselect with '-m \"not aidergenerated\"')",
+    "asynciotyper: marks tests that are asyncio typer generated (deselect with '-m \"not asynciotyper\"')",
+    "cli: marks tests that are cli generated (deselect with '-m \"not cli\"')",
+    "dropboxonly: marks tests that run code that utilizes the dropbox module (deselect with '-m \"not dropboxonly\"')",
+    "gallerydlonly: marks tests that run code that utilizes the gallery-dl module (deselect with '-m \"not gallerydlonly\"')",
+]
+
+
+# =========================[ PYTEST-COV ]========================
+[tool.coverage.paths]
+# SOURCE: https://coverage.readthedocs.io/en/latest/config.html
+# the first path is the path on the local filesystem
+# the second path is the path as it appears within the Docker container
+source = [
+    "democracy_exe/",
+    "/democracy_exe",
+]
+
+# =========================[ BLACK ]========================
+[tool.black]
+line-length = 120
+target-version = ["py310", "py311", "py312"]
+
+
+[tool.pylint.MAIN]
+extension-pkg-allow-list = [
+    "torch",
+    "numpy",
+    "orjson",
+    "cv2",
+]
+extension-pkg-whitelist = ["pydantic", "torch", "numpy", "orjson", "cv2"]
+py-version = "3.12"
+# Use a conservative default here; 2 should speed up most setups and not hurt
+# any too bad. Override on command line as appropriate.
+jobs = 0
+fail-on = ["I"]
+load-plugins = [
+    "pylint.extensions.code_style",
+    "pylint.extensions.typing",
+    "pylint_pydantic",
+]
+persistent = false
+# ignore = "lib"
+ignore-paths = [
+    ".venv",                               # Virtual Environment
+    "^.*.pyi$",                            # Type Hinting
+    "^.*_prv_.*$",                         # Private Files/Folders (e.g. _prv_*.py | _prv_* folder)
+    "lib",                                 # External Libraries
+    "democracy_exe/utils/run_service.py",
+    "democracy_exe/utils/imgops.py",
+    "democracy_exe/utils/files_import.py",
+    "democracy_exe/agentic/studio/*",
+]
+
+[tool.pylint.similarities]
+min-similarity-lines = 4
+ignore-comments = "yes"
+ignore-docstrings = "yes"
+ignore-imports = "yes"
+
+
+# SOURCE: https://github.com/ocellicode/gpyt-commandbus/blob/80172644b35af7b4679ace734bea1c5ea2212a52/pyproject.toml#L21
+[tool.pylint.exceptions]
+overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
+
+
+[tool.pylint.BASIC]
+class-const-naming-style = "any"
+
+[tool.pylint."MESSAGES CONTROL"]
+# https://github.com/pydantic/pydantic/issues/1961
+extension-pkg-whitelist = "pydantic"
+
+# Reasons disabled:
+# format - handled by ruff
+# locally-disabled - it spams too much
+# duplicate-code - unavoidable
+# cyclic-import - doesn't test if both import on load
+# abstract-class-little-used - prevents from setting right foundation
+# unused-argument - generic callbacks and setup methods create a lot of warnings
+# too-many-* - are not enforced for the sake of readability
+# too-few-* - same as too-many-*
+# abstract-method - with intro of async there are always methods missing
+# inconsistent-return-statements - doesn't handle raise
+# too-many-ancestors - it's too strict.
+# wrong-import-order - isort guards this
+# consider-using-f-string - str.format sometimes more readable
+# ---
+# Pylint CodeStyle plugin
+# consider-using-namedtuple-or-dataclass - too opinionated
+# consider-using-assignment-expr - decision to use := better left to devs
+disable = [
+    "possibly-used-before-assignment",                  # Warns about variables potentially used before assignment
+    "raw-checker-failed",                               # Internal pylint error
+    "bad-inline-option",                                # Invalid inline pylint option
+    "file-ignored",                                     # Entire file was ignored due to configuration
+    "suppressed-message",                               # Message was suppressed via inline comment
+    "deprecated-pragma",                                # Use of deprecated pragma
+    "use-implicit-booleaness-not-comparison-to-string", # Suggests using implicit boolean check instead of comparing to empty string
+    "use-implicit-booleaness-not-comparison-to-zero",   # Suggests using implicit boolean check instead of comparing to zero
+    "fixme",                                            # Warns about FIXME, TODO and XXX comments
+    "line-too-long",                                    # Line exceeds maximum allowed length
+    "missing-class-docstring",                          # Class has no docstring
+    "missing-function-docstring",                       # Function or method has no docstring
+    "missing-module-docstring",                         # Module has no docstring
+    "too-few-public-methods",                           # Class has too few public methods
+    "raise-missing-from",                               # Exception raised without 'from' clause
+    "abstract-method",                                  # Abstract method is not overridden
+    "consider-using-assignment-expr",                   # Suggests using assignment expression (:=)
+    "consider-using-f-string",                          # Suggests using f-strings for string formatting
+    "consider-using-namedtuple-or-dataclass",           # Suggests using namedtuple or dataclass
+    "cyclic-import",                                    # Detects cyclic imports between modules
+    "duplicate-code",                                   # Detects duplicated code
+    "format",                                           # Related to code formatting issues
+    "inconsistent-return-statements",                   # Function has inconsistent return statements
+    "locally-disabled",                                 # Warns about locally disabled pylint messages
+    "not-context-manager",                              # Suggests using 'with' statement for context managers
+    "too-few-public-methods",                           # Class has too few public methods (duplicate)
+    "too-many-ancestors",                               # Class has too many parent classes
+    "too-many-arguments",                               # Function or method has too many arguments
+    "too-many-boolean-expressions",                     # Boolean expression is too complex
+    "too-many-instance-attributes",                     # Class has too many instance attributes
+    "too-many-lines",                                   # Module has too many lines
+    "too-many-locals",                                  # Function or method has too many local variables
+    "too-many-public-methods",                          # Class has too many public methods
+    "wrong-import-order",                               # Imports are in the wrong order
+    # Handled by ruff
+    # Ref: <https://github.com/astral-sh/ruff/issues/970>
+    "await-outside-async",    # PLE1142  # Warns about 'await' used outside an async function
+    "bad-str-strip-call",     # PLE1310  # Detects suspicious arguments in str.strip() calls
+    "bad-string-format-type", # PLE1307  # Warns about invalid format string types
+    "bidirectional-unicode",  # PLE2502  # Detects potentially dangerous bidirectional Unicode characters
+    "continue-in-finally",    # PLE0116  # Warns about 'continue' in 'finally' block which may swallow exceptions
+    "duplicate-bases",        # PLE0241  # Detects duplicate base classes in class definitions
+    "format-needs-mapping",   # F502     # Warns when a format string needs a mapping (dict) but receives something else
+    "function-redefined",     # F811     # Detects when a function is redefined
+    # Needed because ruff does not understand type of __all__ generated by a function
+    # "invalid-all-format", # PLE0605
+    "anomalous-backslash-in-string",      # W605     # Detects anomalous backslash in string
+    "assert-on-string-literal",           # PLW0129  # Warns about assert statements on string literals
+    "assert-on-tuple",                    # F631     # Warns about assert statements on tuples
+    "bad-format-string",                  # W1302, F # Detects invalid format strings
+    "bad-format-string-key",              # W1300, F # Warns about invalid keys in format strings
+    "bare-except",                        # E722     # Warns about bare except clauses
+    "binary-op-exception",                # PLW0711  # Warns about binary operators used with exceptions
+    "cell-var-from-loop",                 # B023     # Detects cell variables from loop variables
+    "invalid-all-object",                 # PLE0604  # Warns about invalid objects in __all__
+    "invalid-character-backspace",        # PLE2510  # Detects invalid backspace characters
+    "invalid-character-esc",              # PLE2513  # Detects invalid escape characters
+    "invalid-character-nul",              # PLE2514  # Detects invalid null characters
+    "invalid-character-sub",              # PLE2512  # Detects invalid substitute characters
+    "invalid-character-zero-width-space", # PLE2515  # Detects invalid zero-width space characters
+    "logging-too-few-args",               # PLE1206  # Warns about too few arguments in logging calls
+    "logging-too-many-args",              # PLE1205  # Warns about too many arguments in logging calls
+    "missing-format-string-key",          # F524     # Detects missing keys in format strings
+    "mixed-format-string",                # F506     # Warns about mixed old and new style format strings
+    "no-method-argument",                 # N805     # Warns when a method has no 'self' parameter
+    "no-self-argument",                   # N805     # Warns when a method has no 'self' parameter (duplicate)
+    "nonexistent-operator",               # B002     # Warns about nonexistent operators
+    "nonlocal-without-binding",           # PLE0117  # Warns about nonlocal variables without binding
+    "not-in-loop",                        # F701, F702 # Warns about break/continue statements outside loops
+    "notimplemented-raised",              # F901     # Warns when NotImplemented is raised instead of NotImplementedError
+    "return-in-init",                     # PLE0101  # Warns about return statements in __init__ methods
+    "return-outside-function",            # F706     # Warns about return statements outside functions
+    "syntax-error",                       # E999     # Detects syntax errors
+    "too-few-format-args",                # F524     # Warns about too few arguments for format string
+    "too-many-format-args",               # F522     # Warns about too many arguments for format string
+    "too-many-star-expressions",          # F622     # Warns about too many starred expressions in assignment
+    "truncated-format-string",            # F501     # Detects truncated format strings
+    "undefined-all-variable",             # F822     # Warns about undefined variables in __all__
+    "undefined-variable",                 # F821     # Warns about undefined variables
+    "used-prior-global-declaration",      # PLE0118  # Warns when a variable is used before its global declaration
+    "yield-inside-async-function",        # PLE1700  # Warns about yield statements inside async functions
+    "yield-outside-function",             # F704     # Warns about yield statements outside functions
+    # "dangerous-default-value", # B006, ruff catches new occurrences, needs more work
+    "duplicate-except",                     # B014     # Warns about duplicate except clauses
+    "duplicate-key",                        # F601     # Warns about duplicate keys in dictionaries
+    "duplicate-string-formatting-argument", # F        # Warns about duplicate keys in format strings
+    "duplicate-value",                      # F        # Warns about duplicate values in sets
+    "eval-used",                            # S307     # Warns about the use of eval()
+    "exec-used",                            # S102     # Warns about the use of exec()
+    "expression-not-assigned",              # B018     # Warns about expressions that are not assigned
+    "f-string-without-interpolation",       # F541     # Warns about f-strings without any interpolation
+    "forgotten-debug-statement",            # T100     # Warns about forgotten debug statements
+    "format-string-without-interpolation",  # F        # Warns about format strings without any interpolation
+    # "global-statement", # PLW0603, ruff catches new occurrences, needs more work
+    "global-variable-not-assigned",  # PLW0602  # Warns about global variables that are not assigned
+    "implicit-str-concat",           # ISC001   # Warns about implicit string concatenation
+    "import-self",                   # PLW0406  # Warns when a module imports itself
+    "inconsistent-quotes",           # Q000     # Warns about inconsistent use of quotes
+    "invalid-envvar-default",        # PLW1508  # Warns about invalid default values for environment variables
+    "keyword-arg-before-vararg",     # B026     # Warns about keyword arguments appearing before variable arguments
+    "logging-format-interpolation",  # G        # Warns about using % formatting in logging functions
+    "logging-fstring-interpolation", # G        # Warns about using f-strings in logging functions
+    "logging-not-lazy",              # G        # Warns about non-lazy logging calls
+    "misplaced-future",              # F404     # Warns about misplaced __future__ imports
+    "named-expr-without-context",    # PLW0131  # Warns about named expressions (walrus operator) without proper context
+    "nested-min-max",                # PLW3301  # Warns about nested min/max calls that can be flattened
+    "pointless-statement",           # B018     # Warns about pointless statements
+    "raise-missing-from",            # B904     # Warns about raise statements missing 'from' clause
+    # "redefined-builtin", # A001, ruff is way more stricter, needs work
+    "bad-classmethod-argument",          # N804     # Warns about incorrect first argument name in classmethods
+    "comparison-of-constants",           # PLR0133  # Warns about comparisons between constants
+    "comparison-with-itself",            # PLR0124  # Warns about comparisons of a value with itself
+    "consider-alternative-union-syntax", # UP007    # Suggests using alternative union syntax (Python 3.10+)
+    "consider-iterating-dictionary",     # SIM118   # Suggests iterating over dictionary items directly
+    "consider-merging-isinstance",       # PLR1701  # Suggests merging multiple isinstance checks
+    "consider-using-alias",              # UP006    # Suggests using type aliases (Python 3.7+)
+    "consider-using-dict-comprehension", # C402     # Suggests using dict comprehension instead of dict()
+    "consider-using-generator",          # C417     # Suggests using a generator expression instead of a list comprehension
+    "consider-using-get",                # SIM401   # Suggests using dict.get() instead of checking for key existence
+    "consider-using-set-comprehension",  # C401     # Suggests using set comprehension instead of set()
+    "consider-using-sys-exit",           # PLR1722  # Suggests using sys.exit() instead of exit()
+    "consider-using-ternary",            # SIM108   # Suggests using ternary operator instead of if-else
+    "empty-docstring",                   # D419     # Warns about empty docstrings
+    "invalid-name",                      # N815     # Warns about invalid names (variables, functions, classes, etc.)
+    "line-too-long",                     # E501     # Warns about lines that are too long (disabled globally)
+    "literal-comparison",                # F632     # Warns about comparisons to literals using is/is not
+    "missing-class-docstring",           # D101     # Warns about missing docstrings in classes
+    "missing-final-newline",             # W292     # Warns about missing final newline in files
+    "missing-function-docstring",        # D103     # Warns about missing docstrings in functions
+    "missing-module-docstring",          # D100     # Warns about missing docstrings in modules
+    "multiple-imports",                  # E401     # Warns about multiple imports on one line
+    "no-else-break",                     # RET508   # Suggests removing unnecessary else after break
+    "no-else-continue",                  # RET507   # Suggests removing unnecessary else after continue
+    "no-else-raise",                     # RET506   # Suggests removing unnecessary else after raise
+    "no-else-return",                    # RET505   # Suggests removing unnecessary else after return
+    "property-with-parameters",          # PLR0206  # Warns about properties with parameters
+    "singleton-comparison",              # E711, E712 # Warns about comparison to True, False, or None
+    "subprocess-run-check",              # PLW1510  # Suggests using check=True with subprocess.run()
+    "super-with-arguments",              # UP008    # Suggests using super() without arguments (Python 3+)
+    "superfluous-parens",                # UP034    # Warns about unnecessary parentheses
+    "too-many-branches",                 # PLR0912  # Warns about too many branches in a function
+    "too-many-return-statements",        # PLR0911  # Warns about too many return statements in a function
+    "too-many-statements",               # PLR0915  # Warns about too many statements in a function
+    "trailing-comma-tuple",              # COM818   # Warns about trailing commas in single-item tuples
+    "try-except-raise",                  # TRY302   # Suggests simplifying try-except-raise blocks
+    "ungrouped-imports",                 # I001     # Warns about ungrouped imports
+    "unidiomatic-typecheck",             # E721     # Warns about unidiomatic type checking
+    "unnecessary-comprehension",         # C416     # Warns about unnecessary list comprehensions
+    "unnecessary-direct-lambda-call",    # PLC3002  # Warns about unnecessary direct lambda calls
+    "unnecessary-lambda-assignment",     # PLC3001  # Warns about unnecessary lambda assignments
+    "unnecessary-pass",                  # PIE790   # Warns about unnecessary pass statements
+    "unneeded-not",                      # SIM208   # Suggests simplifying unnecessary not operators
+    "unused-argument",                   # ARG001   # Warns about unused function arguments
+    "unused-format-string-argument",     # F507     # Warns about unused format string arguments
+    "unused-format-string-key",          # F504     # Warns about unused format string keys
+    "unused-import",                     # F401     # Warns about unused imports
+    "unused-variable",                   # F841     # Warns about unused variables
+    "use-a-generator",                   # C417     # Suggests using a generator instead of a list comprehension
+    "use-dict-literal",                  # C406     # Suggests using dict literal instead of dict()
+    "use-list-literal",                  # C405     # Suggests using list literal instead of list()
+    "useless-else-on-loop",              # PLW0120  # Warns about useless else clauses on loops
+    "useless-import-alias",              # PLC0414  # Warns about useless import aliases
+    "useless-object-inheritance",        # UP004    # Warns about useless object inheritance in Python 3
+    "useless-return",                    # PLR1711  # Warns about useless return statements
+    "wildcard-import",                   # F403     # Warns about wildcard imports
+    "wrong-import-order",                # I001     # Warns about incorrect import order
+    "wrong-import-position",             # E402     # Warns about imports not at the top of the file
+    # "no-self-use", # PLR6301  # Optional plugin, not enabled
+    # Handled by mypy
+    # Ref: <https://github.com/antonagestam/pylint-mypy-overlap>
+    "abstract-class-instantiated",               # Warns about instantiation of abstract classes
+    "arguments-differ",                          # Warns when overridden method arguments differ from superclass
+    "assigning-non-slot",                        # Warns about assigning to attributes not defined in __slots__
+    "assignment-from-no-return",                 # Warns about assigning result of a function that doesn't return
+    "assignment-from-none",                      # Warns about assigning None to variables
+    "bad-exception-cause",                       # Warns about incorrect exception causes
+    "bad-format-character",                      # Warns about bad characters in format strings
+    "bad-reversed-sequence",                     # Warns about reversing non-sequence objects
+    "bad-super-call",                            # Warns about incorrect super() calls
+    "bad-thread-instantiation",                  # Warns about incorrect threading.Thread subclass instantiation
+    "catching-non-exception",                    # Warns about catching non-exception objects
+    "comparison-with-callable",                  # Warns about comparisons between callable and non-callable
+    "deprecated-class",                          # Warns about usage of deprecated classes
+    "dict-iter-missing-items",                   # Warns about dict.iter*() methods missing .items()
+    "format-combined-specification",             # Warns about combined format string specifications
+    "global-variable-undefined",                 # Warns about undefined global variables
+    "import-error",                              # Warns about imports that cannot be resolved
+    "inconsistent-mro",                          # Warns about inconsistent method resolution order
+    "inherit-non-class",                         # Warns about inheriting from non-class objects
+    "init-is-generator",                         # Warns about __init__ methods declared as generators
+    "invalid-class-object",                      # Warns about invalid objects in class statements
+    "invalid-enum-extension",                    # Warns about invalid enum extensions
+    "invalid-envvar-value",                      # Warns about invalid environment variable values
+    "invalid-format-returned",                   # Warns about invalid values returned by __format__
+    "invalid-hash-returned",                     # Warns about invalid values returned by __hash__
+    "invalid-metaclass",                         # Warns about invalid metaclasses
+    "invalid-overridden-method",                 # Warns about invalid method overrides
+    "invalid-repr-returned",                     # Warns about invalid values returned by __repr__
+    "invalid-sequence-index",                    # Warns about invalid sequence indices
+    "invalid-slice-index",                       # Warns about invalid slice indices
+    "invalid-slots",                             # Used when an invalid __slots__ is found in class. Only a string, an iterable or a sequence is permitted.
+    "invalid-slots-object",                      # Warns about invalid __slots__ objects
+    "invalid-star-assignment-target",            # Warns about invalid targets in star assignments
+    "invalid-str-returned",                      # Warns when __str__ doesn't return a string
+    "invalid-unary-operand-type",                # Warns about invalid types for unary operators
+    "invalid-unicode-codec",                     # Warns about invalid Unicode codec operations
+    "isinstance-second-argument-not-valid-type", # Warns when isinstance() second argument is not a type
+    "method-hidden",                             # Warns about methods hidden by instance attributes
+    "misplaced-format-function",                 # Warns about misplaced string format method calls
+    "missing-format-argument-key",               # Warns about missing keys in format string arguments
+    "missing-format-attribute",                  # Warns about missing attributes in format strings
+    "missing-kwoa",                              # Warns about missing keyword-only arguments
+    # "no-member",
+    "no-value-for-parameter",                       # Warns when a function call is missing a required parameter
+    "non-iterator-returned",                        # Warns when a __iter__ method doesn't return an iterator
+    "non-str-assignment-to-dunder-name",            # Warns when assigning non-string to __name__
+    "nonlocal-and-global",                          # Warns when a variable is declared both nonlocal and global
+    "not-a-mapping",                                # Warns when a non-mapping is used where a mapping is expected
+    "not-an-iterable",                              # Warns when a non-iterable is used where an iterable is expected
+    "not-async-context-manager",                    # Warns when an async context manager is expected but not used
+    "not-callable",                                 # Warns when trying to call a non-callable object
+    "not-context-manager",                          # Warns when a context manager is expected but not used
+    "overridden-final-method",                      # Warns when a final method is overridden
+    "raising-bad-type",                             # Warns when raising a non-exception type
+    "raising-non-exception",                        # Warns when raising a non-exception object
+    "redundant-keyword-arg",                        # Warns about redundant keyword arguments
+    "relative-beyond-top-level",                    # Warns about relative imports beyond top-level package
+    "self-cls-assignment",                          # Warns about assigning to self or cls in methods
+    "signature-differs",                            # Warns when an overriding method's signature differs
+    "star-needs-assignment-target",                 # Warns when * is used without an assignment target
+    "subclassed-final-class",                       # Warns when a final class is subclassed
+    "super-without-brackets",                       # Warns about using super without parentheses (Python 2 style)
+    "too-many-function-args",                       # Warns when a function is called with too many arguments
+    "typevar-double-variance",                      # Warns about TypeVar with conflicting variance
+    "typevar-name-mismatch",                        # Warns when a TypeVar name doesn't match its parameter
+    "unbalanced-dict-unpacking",                    # Warns about unbalanced dict unpacking in assignments
+    "unbalanced-tuple-unpacking",                   # Warns about unbalanced tuple unpacking in assignments
+    "unexpected-keyword-arg",                       # Warns about unexpected keyword arguments in function calls
+    "unhashable-member",                            # Warns when trying to hash an unhashable object
+    "unpacking-non-sequence",                       # Warns when trying to unpack a non-sequence
+    "unsubscriptable-object",                       # Warns when trying to subscript a non-subscriptable object
+    "unsupported-assignment-operation",             # Warns about unsupported assignment operations
+    "unsupported-binary-operation",                 # Warns about unsupported binary operations
+    "unsupported-delete-operation",                 # Warns about unsupported delete operations
+    "unsupported-membership-test",                  # Warns about unsupported membership test operations
+    "used-before-assignment",                       # Warns when a variable is used before it's assigned
+    "using-final-decorator-in-unsupported-version", # Warns about using @final decorator in unsupported Python versions
+    "wrong-exception-operation",                    # Warns about wrong operations on exception objects
+]
+enable = [
+    "use-symbolic-message-instead",
+]
+
+[tool.pylint.REPORTS]
+score = false
+
+# SOURCE: https://github.com/atlassian-api/atlassian-python-api/blob/master/pyproject.toml
+[tool.pylint.TYPECHECK]
+# List of members which are set dynamically and missed by pylint inference
+# system, and so shouldn't trigger E1101 when accessed. Python regular
+# expressions are accepted.
+generated-members = 'numpy.*, torch.*, cv2.*, discord.*,logging.root.*'
+ignored-classes = [
+    "_CountingAttr", # for attrs
+]
+mixin-class-rgx = ".*[Mm]ix[Ii]n"
+
+[tool.pylint.FORMAT]
+expected-line-ending-format = "LF"
+
+
+[tool.pylint.TYPING]
+runtime-typing = false
+
+[tool.pylint.CODE_STYLE]
+# Max line length for which to sill emit suggestions.
+# Used to prevent optional suggestions which would get split by a code formatter
+# (e.g., black). Will default to the setting for ``max-line-length``.
+max-line-length-suggestions = 72
+
+[tool.pylint.logging]
+# Possible choices: ['old', 'new']
+logging-format-style = "new"
+
+logging-modules = ["logging", "loguru"]
+
+# [tool.pylint.similarities]
+# ignore-comments = true
+# ignore-docstrings = true
+# ignore-imports = false
+# min-similarity-lines = 5
+
+# NOTE: see https://github.com/Ruzzy77/python-template/blob/57c8964f1efb2635d0bdca5684613a8d8736aed0/pyrightconfig.json
+[tool.pyright]
+include = [
+    "democracy_exe",
+    "tests",
+]
+exclude = [
+    "**/__pycache__",
+    "build",
+    "dist",
+    "docs",
+    "**/node_modules",
+    ".git",
+    "**/build",
+    "tasks",
+    "democracy_exe/vendored/*",
+    "**/vendored/*",
+]
+extraPaths = [
+    # ".venv",
+]
+############################################################################
+# FIXME: THIS MIGHT BREAK SHIT
+# SOURCE: https://github.com/charbonnierg/pytest-broadcaster/blob/e98456b2f6db7f99a034795f162ac0013a8001d7/pyproject.toml#L157C1-L158C15
+venv = ".venv"
+venvPath = "."
+# FIXME: THIS MIGHT BREAK SHIT
+############################################################################
+defineConstant = {DEBUG = true}
+stubPath = "./typings"
+# https://github.com/microsoft/pyright/blob/main/docs/configuration.md#reportGeneralTypeIssues
+reportUnnecessaryTypeIgnoreComment = "none"
+pythonVersion = "3.12"
+verboseOutput = true
+reportUnusedImport = "none"
+reportMissingImports = "error"
+reportImportCycles = "error"
+reportUnusedVariable = "none"
+reportMissingTypeStubs = "warning"
+
+reportUnusedFunction = "warning" # this is what we use in ad
+reportUnusedClass = "warning"    # this is what we use in ad
+
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+
+# very strict errors
+reportUnusedCallResult = false
+reportImplicitStringConcatenation = false
+reportCallInDefaultInitializer = true
+reportAttributeAccessIssue = "error"
+
+[tool.pydocstringformatter]
+write = false
+style = ["pep257"]
+strip-whitespaces = true
+# Activate or deactivate split-summary-body: Split the
+# summary and body of a docstring based on a period and
+# max length. The maximum length of a summary can be set
+# with the --max-summary-lines option. Styles: pep257.
+# (default: True)
+split-summary-body = false
+numpydoc-section-hyphen-length = false
+
+[tool.mdformat]
+# docs: https://mdformat.readthedocs.io/en/stable/users/configuration_file.html
+wrap = 120         # possible values: {"keep", "no", INTEGER}
+number = false     # possible values: {false, true}
+end_of_line = "lf" # possible values: {"lf", "crlf", "keep"}
+
+[tool.pydocstyle]
+convention = "pep257"
+
+[tool.docformatter]
+# wrap long summary lines at this length; set to 0 to disable wrapping (default: 79, 88 with --black option)
+wrap-summaries = 120
+# wrap descriptions at this length; set to 0 to disable wrapping (default: 72, 88 with --black option)
+wrap-descriptions = 120
+in-place = true
+# add a newline before one-line or the summary of a multi-line docstring
+pre-summary-newline = true
+# place closing triple quotes on a new-line when a one-line docstring wraps to two or more lines
+close-quotes-on-newline = true
+#  make formatting compatible with standard black options
+black = true
+# add blank line after elaborate description
+blank = true
+recursive = true
+style = "google"
+
+# add a newline before and after a one-line docstring
+# make_summary_multiline = false
+# add a newline before one-line or the summary of a multi-line docstring
+# pre_summary_newline    = false
+# add a space between the opening triple quotes and the first word in a one-line or summary line of a multi-line docstring
+# pre_summary_space      = false
+
+exclude = [
+    ".venv",
+    "build",
+    "dist",
+    "docs",
+    "examples",
+    "notebooks",
+    "sample*",
+    "test*",
+    "tasks*",
+    "task*",
+]
+
+
+[tool.yamlfix]
+line_length = 120
+preserve_quotes = true
+sequence_style = "block_style"
+comments_min_spaces_from_content = 1
+comments_require_starting_space = false
+whitelines = 1
+
+
+# SOURCE: https://github.com/astropy/astropy/blob/922afe8446cda46f65c5b5ec4aac9e43fadabcc3/pyproject.toml#L427
+[tool.repo-review]
+ignore = [
+    # "PLW0603",
+    "MY",    # ignore MyPy setting checks
+    "PC111", # ignore using `blacken-docs` in pre-commit
+    "PC140", # ignore using `mypy` in pre-commit
+    "PC180", # ignore using `prettier` in pre-commit
+    "PC901", # ignore using custom update message (we have many of the default ones in our history already)
+    "PP308", # ignore requiring `-ra` flag for pytest, astropy's test suite is too large for this to be useful
+]
+
+
+[tool.pycln]
+# path = "."
+paths = ["src", "tests"]
+# include=".*_util\.py$"
+exclude = ".*test.py$"
+# Expand wildcard star imports.
+expand_stars = true
+# Also emit messages to stderr about files that were not changed and about files/imports that were ignored.
+verbose = true
+# Do not write the files back, just output a diff for each file on stdout.
+diff = true
+# Remove all unused imports (not just those checked from side effects).
+# all=true
+no_gitignore = false
+# Stop enforcing the existence of the __all__ dunder in __init__.py files. (disabling this policy)
+disable_all_dunder_policy = true
+
+
+[tool.nbqa.md]
+blacken-docs = true
+
+[tool.nbqa.shell]
+flake8heavened = true
+
+
+[tool.commitizen]
+name = "cz_customize"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:^version",
+]
+update_changelog_on_bump = true
+changelog_incremental = true
+bump_message = "bump: $current_version → $new_version"
+
+
+[tool.commitizen.customize]
+# Pattern used to identify which commits will be used to decide version bump (major, minor, patch)
+bump_pattern = "^(feat|fix|hotfix|refactor|docs|build|tests)(\\(.+\\))?(!)?"
+# Pattern that decides which type of version bump should be done
+# Any type followed by an '!' = MAJOR, as the '!' represents a breaking change
+bump_map = {"^(\\w+)(\\(.+\\))?!" = "MAJOR", "^(feat|build)" = "MINOR", "^(fix|hotfix|refactor|docs|tests)" = "PATCH"}
+# Pattern that decides which commits will be used to create the changelog
+# This accepts any commit that has a change type and a message.
+changelog_pattern = "^(feat|fix|hotfix|refactor|docs|build|tests)(\\(.+\\))?!?:\\s+\\S"
+# Pattern that extracts the change type, scope, whether the commit is a breaking change and the message as named groups
+commit_parser = "^(?P<change_type>feat|fix|hotfix|refactor|docs|build|tests)(\\((?P<scope>.+)\\))?(?P<breaking>!)?:\\s+(?P<message>.*)"
+# This decides how the change type will look like in the changelog
+change_type_map = {"feat" = "New features", "fix" = "Bugfixes", "hotfix" = "Bugfixes", "docs" = "Documentation updates", "refactor" = "Refactoring", "build" = "Build system", "tests" = "Testing"}
+# This decides the order in which commits are added to the changelog, based on their change type
+change_type_order = [
+    "New features",
+    "Bugfixes",
+    "Build system",
+] # the rest are added after these, alphabetically
+
+# These options help Commitizen create commits with consistent messages
+example = "feat: implement Git crawler\nfix(api)!: crash in api call\ndocs(api): add response code documentation for all endpoints"
+schema = "Normal:\n  <type>: <message>\nScoped:\n  <type>(<scope>): <message>\nBreaking change:\n  <type>(<scope>)!: <message>"
+schema_pattern = "^(\\w+)(\\(.+\\))?(!)?"
+message_template = "{{change_type}}{% if scope %}({{scope}}){% endif %}{% if is_breaking %}!{% endif %}: {{message}}{% if body %}\n\n{{body}}{% endif %}"
+
+# Questions asked by 'cz commit' to create the commit message
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+message = "Select the type of change you are committing:"
+choices = [
+    {value = "feat", name = "new: A new feature, or additions to existing features."},
+    {value = "fix", name = "fix: A bug fix."},
+    {value = "tiny", name = "tiny: A very small change, such as fixing a typo or updating a link."},
+    {value = "refactor", name = "refactor: Code refactoring for better readibility/structure"},
+    {value = "docs", name = "docs: An update to the docs."},
+    {value = "build", name = "build: Update to the build files (e.g. Dockerfile/Jenkinsfile)"},
+    {value = "hotfix", name = "hotfix: An urgent bug fix for production."},
+    {value = "tests", name = "tests: Changes to tests"},
+]
+
+[[tool.commitizen.customize.questions]]
+type = "confirm"
+name = "is_breaking"
+default = false
+message = "Is this a breaking change?"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "scope"
+message = "Scope of this change (skip/leave blank if none):"
+
+[[tool.commitizen.customize.questions]]
+type = "text"
+name = "message"
+message = "Short commit message (lowercase, 3-7 words)."
+
+[[tool.commitizen.customize.questions]]
+type = "text"
+name = "body"
+multiline = true
+message = "Commit message body (leave blank if not needed)."
+instruction = "Ctrl+Escape, then Enter to submit\n>"
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/update_requirements.sh</source>
+<document_content>
+#!/bin/bash
+
+# Export base requirements
+uv export --no-hashes --prune langserve --prune notebook --format requirements-txt --extra dev  -o democracy_exe/requirements.txt
+
+command -v yq >/dev/null 2>&1 || { echo >&2 "yq is required but it's not installed. run 'brew install yq' or 'pip install yq'"; exit 1; }
+
+command -v langgraph >/dev/null 2>&1 || { echo >&2 "langgraph is required but it's not installed. run 'brew install langgraph-cli' or 'pip install langgraph-cli'"; exit 1; }
+
+# Get all dependencies from pyproject.toml and process them
+yq -r ".project.dependencies[]" pyproject.toml | while read -r dep; do
+    pkg=$(echo "$dep" | gsed -E "s/([^>=<~!]+).*/\1/")
+    ver=$(echo "$dep" | gsed -E "s/[^>=<~!]+(.+)/\1/")
+    gsed -i "s|^$pkg==.*|$pkg$ver|g" democracy_exe/requirements.txt
+done
+
+
+# Get all dev-dependencies and process them
+yq -r ".[\"tool.uv\"][\"dev-dependencies\"][]" pyproject.toml | while read -r dep; do
+    pkg=$(echo "$dep" | gsed -E "s/([^>=<~!]+).*/\1/")
+    ver=$(echo "$dep" | gsed -E "s/[^>=<~!]+(.+)/\1/")
+    gsed -i "s|^$pkg==.*|$pkg$ver|g" democracy_exe/requirements.txt
+done
+
+# Remove exact version requirement for sse-starlette
+gsed -i 's/^sse-starlette==.*/sse-starlette/g' democracy_exe/requirements.txt
+
+gsed -i 's/^langserve\[all\]==.*/langserve\[all\]/g' democracy_exe/requirements.txt
+gsed -i 's/^langserve==.*/langserve/g' democracy_exe/requirements.txt
+gsed -i 's/^tenacity==.*/tenacity/g' democracy_exe/requirements.txt
+
+git diff democracy_exe/requirements.txt
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/install_taplo.sh</source>
+<document_content>
+#!/bin/bash
+
+# Set Taplo version
+TAPLO_VERSION=0.9.3
+
+# Determine the architecture
+if [ "$(uname -m)" = "aarch64" ]; then
+    DESIRED_ARCH=aarch64
+elif [ "$(uname -m)" = "x86_64" ]; then
+    DESIRED_ARCH=x86_64
+else
+    echo "Unsupported architecture: $(uname -m)"
+    exit 1
+fi
+
+# Download Taplo
+curl -Lo taplo-v${TAPLO_VERSION}.linux.${DESIRED_ARCH}.gz https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-linux-${DESIRED_ARCH}.gz
+
+# Decompress the file
+gunzip -c taplo-v${TAPLO_VERSION}.linux.${DESIRED_ARCH}.gz > taplo
+
+# Remove the compressed file
+rm taplo-v${TAPLO_VERSION}.linux.${DESIRED_ARCH}.gz
+
+# Make the binary executable
+chmod +x taplo
+
+echo "Taplo v${TAPLO_VERSION} for ${DESIRED_ARCH} has been installed successfully."
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/agentic/workflows/react/requirements.txt</source>
+<document_content>
+langgraph
+langchain-core
+langchain-community
+langchain-openai
+trustcall
+langchain-fireworks
+pinecone-client
+tiktoken
+loguru
+typing-extensions
+python-dotenv
+uuid
+aiohttp
+discord.py
+rich
+pydantic_settings
+yarl
+pinecone-text
+grandalf
+nest_asyncio
+
+</document_content>
+</document>
+</documents>

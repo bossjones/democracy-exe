@@ -11,10 +11,11 @@ import tempfile
 
 from typing import TYPE_CHECKING, Any, List
 
+from structlog.testing import capture_logs
+
 import pytest
 
 from democracy_exe.chatbot.utils.extension_utils import aio_extensions
-from democracy_exe.utils._testing import ContextLogger
 
 
 if TYPE_CHECKING:
@@ -68,7 +69,7 @@ async def test_aio_extensions_finds_cogs(
         caplog: Pytest log capture fixture
     """
 
-    with ContextLogger(caplog):
+    with capture_logs() as cap_logs:
         caplog.set_level("DEBUG", logger="democracy_exe")
         # Mock HERE to point to our test directory
         monkeypatch.setattr("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_directory.parent))

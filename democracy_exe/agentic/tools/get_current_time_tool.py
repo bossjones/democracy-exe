@@ -7,9 +7,13 @@ import re
 from datetime import datetime
 from typing import Any, Dict, Optional, Type, Union
 
+import structlog
+
 from langchain_core.callbacks import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from langchain_core.tools import BaseTool
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import BaseModel, Field
 
 

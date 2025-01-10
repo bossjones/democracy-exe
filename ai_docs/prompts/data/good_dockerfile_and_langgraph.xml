@@ -1,0 +1,195 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/malcolm/ada-agent/langgraph.json</source>
+<document_content>
+{
+  "dockerfile_lines": [
+    "# Set environment variables",
+    "ENV UV_SYSTEM_PYTHON=1 \\",
+    "    UV_PIP_DEFAULT_PYTHON=/usr/bin/python3 \\",
+    "    UV_LINK_MODE=copy \\",
+    "    UV_CACHE_DIR=/root/.cache/uv/ \\",
+    "    PYTHONASYNCIODEBUG=1 \\",
+    "    DEBIAN_FRONTEND=noninteractive \\",
+    "    TAPLO_VERSION=0.9.3 \\",
+    "    PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \\",
+    "    PYTHONFAULTHANDLER=1 \\",
+    "    PYTHONDONTWRITEBYTECODE=1 \\",
+    "    PYTHONUNBUFFERED=1",
+    "",
+    "# Install system dependencies",
+    "RUN apt-get update && apt-get -qq install -y --no-install-recommends \\",
+    "    curl \\",
+    "    openssl \\",
+    "    xz-utils \\",
+    "    unzip \\",
+    "    gzip \\",
+    "    pkg-config \\",
+    "    python3-dev \\",
+    "    gcc \\",
+    "    g++ \\",
+    "    git \\",
+    "    make \\",
+    "    bash-completion \\",
+    "    libpq-dev \\",
+    "    libssl-dev \\",
+    "    build-essential \\",
+    "    vim \\",
+    "    tree \\",
+    "    less \\",
+    "    sqlite3 && \\",
+    "    rm -rf /var/lib/apt/lists/*",
+    "",
+    "# Install taplo",
+    "COPY ./install_taplo.sh .",
+    "RUN chmod +x install_taplo.sh && \\",
+    "    bash ./install_taplo.sh && \\",
+    "    mv taplo /usr/local/bin/taplo && \\",
+    "    rm install_taplo.sh",
+    "",
+    "# Install rust",
+    "RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \\",
+    "    env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash -s -- -y",
+    "",
+    "ENV PATH='/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'",
+    "",
+    "# Install UV 0.5.14",
+    "ADD https://astral.sh/uv/0.5.14/install.sh /uv-installer.sh",
+    "RUN env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash /uv-installer.sh && \\",
+    "    rm /uv-installer.sh",
+    "",
+    "ENV PATH='/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'",
+    "",
+    "# Set up working directory and install dependencies",
+    "WORKDIR /deps/ada-agent",
+    "",
+    "COPY pyproject.toml uv.lock ./",
+    "",
+    "RUN --mount=type=cache,target=/root/.cache/uv \\",
+    "    --mount=type=bind,source=uv.lock,target=uv.lock \\",
+    "    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \\",
+    "    --mount=type=bind,source=app/requirements-langgraph.txt,target=requirements.txt \\",
+    "    pip install -U pip && \\",
+    "    uv sync --frozen --no-install-project --no-dev && \\",
+    "    PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -r requirements.txt -e . /deps/*",
+    "",
+    "# Copy project files",
+    "COPY . /deps/ada-agent",
+    "",
+    "# Final dependency sync",
+    "RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --frozen"
+  ],
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "react": "./app/agents/graph.py:graph"
+  },
+  "pip_config_file": "pip.conf",
+  "env": ".env",
+  "python_version": "3.11",
+  "env_vars": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "UV_CACHE_DIR": "/root/.cache/uv/",
+    "UV_COMPILE_BYTECODE": "1",
+    "UV_LINK_MODE": "copy",
+    "UV_PIP_DEFAULT_PYTHON": "/usr/bin/python3",
+    "UV_SYSTEM_PYTHON": "1",
+    "TAPLO_VERSION": "0.9.3",
+    "PYTHONPATH": "${PYTHONPATH}:${PWD}",
+    "PATH": "/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin"
+  }
+}
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/malcolm/ada-agent/Dockerfile.langgraph</source>
+<document_content>
+FROM langchain/langgraph-api:3.11
+
+# Set environment variables
+ENV UV_SYSTEM_PYTHON=1 \
+    UV_PIP_DEFAULT_PYTHON=/usr/bin/python3 \
+    UV_LINK_MODE=copy \
+    UV_CACHE_DIR=/root/.cache/uv/ \
+    PYTHONASYNCIODEBUG=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    TAPLO_VERSION=0.9.3 \
+    PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get -qq install -y --no-install-recommends \
+    curl \
+    openssl \
+    xz-utils \
+    unzip \
+    gzip \
+    pkg-config \
+    python3-dev \
+    gcc \
+    g++ \
+    git \
+    make \
+    bash-completion \
+    libpq-dev \
+    libssl-dev \
+    build-essential \
+    vim \
+    tree \
+    less \
+    sqlite3 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install taplo
+COPY ./install_taplo.sh .
+RUN chmod +x install_taplo.sh && \
+    bash ./install_taplo.sh && \
+    mv taplo /usr/local/bin/taplo && \
+    rm install_taplo.sh
+
+# Install rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash -s -- -y
+
+ENV PATH='/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+# Install UV 0.5.14
+ADD https://astral.sh/uv/0.5.14/install.sh /uv-installer.sh
+RUN env PATH='/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' bash /uv-installer.sh && \
+    rm /uv-installer.sh
+
+ENV PATH='/root/.local/bin:/root/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+# Set up working directory and install dependencies
+WORKDIR /deps/ada-agent
+
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=app/requirements-langgraph.txt,target=requirements.txt \
+    pip install -U pip && \
+    uv sync --frozen --no-install-project --no-dev && \
+    PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -r requirements.txt -e . /deps/*
+
+# Copy project files
+COPY . /deps/ada-agent
+
+# Final dependency sync
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --frozen
+
+ADD pip.conf /pipconfig.txt
+
+ENV LANGSERVE_GRAPHS='{"react": "/deps/democracy-exe/democracy_exe/agentic/workflows/react/graph.py:graph"}'
+
+WORKDIR /deps/democracy-exe
+
+</document_content>
+</document>
+</documents>

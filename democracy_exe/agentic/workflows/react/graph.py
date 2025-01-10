@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 
 from datetime import UTC, datetime, timezone
@@ -19,6 +20,9 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 
 import langsmith
 import rich
+
+# from democracy_exe.aio_settings import aiosettings
+import structlog
 import tiktoken
 
 from langchain.chat_models import init_chat_model
@@ -38,7 +42,15 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
+
+
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 from pydantic import BaseModel, Field
 from trustcall import create_extractor
 from trustcall._base import ExtractionOutputs, InputsLike
@@ -49,7 +61,25 @@ from democracy_exe.agentic.workflows.react.prompts import (
     MODEL_SYSTEM_MESSAGE,
     TRUSTCALL_INSTRUCTION,
 )
-from democracy_exe.aio_settings import aiosettings
+
+
+# if aiosettings.debug_langgraph_studio:
+#     print("DEBUG_LANGGRAPH_STUDIO is True")
+#     logger.remove()
+#     from democracy_exe.bot_logger import get_logger, global_log_config
+#     from langchain.globals import set_debug, set_verbose
+#     # Setting the global debug flag will cause all LangChain components with callback support (chains, models, agents, tools, retrievers) to print the inputs they receive and outputs they generate. This is the most verbose setting and will fully log raw inputs and outputs.
+#     set_debug(True)
+#     # Setting the verbose flag will print out inputs and outputs in a slightly more readable format and will skip logging certain raw outputs (like the token usage stats for an LLM call) so that you can focus on application logic.
+#     set_verbose(True)
+
+#     # SOURCE: https://github.com/Delgan/loguru/blob/420704041797daf804b505e5220805528fe26408/docs/resources/recipes.rst#L1083
+#     global_log_config(
+#         log_level=logging.getLevelName("DEBUG"),
+#         json=False,
+#     )
+
+# logger.remove()
 
 
 # import nest_asyncio
@@ -115,8 +145,8 @@ class Spy:
         Args:
             run: The run object containing execution information.
         """
-        logger.info(f"Spy: {run}")
-        logger.info(f"Spy type: {type(run)}")
+        rich.print(f"Spy: {run}")
+        rich.print(f"Spy type: {type(run)}")
         q: list = [run]
         while q:
             r = q.pop()
@@ -372,7 +402,7 @@ async def aio_tasks_democracy_ai(
 
     # system_msg = configurable.system_prompt.format(user_profile=user_profile, todo=todo, instructions=instructions)
     system_msg = MODEL_SYSTEM_MESSAGE.format(user_profile=user_profile, todo=todo, instructions=instructions)
-    logger.error(f"system_msg: {system_msg}")
+    rich.print(f"system_msg: {system_msg}")
     # ---------------------------------------------------------------------------------------
     # Note: Passing the config through explicitly is required for python < 3.11
     # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
@@ -386,6 +416,7 @@ async def aio_tasks_democracy_ai(
 
     # Respond using memory as well as the chat history
     response = await model.bind_tools([UpdateMemory], parallel_tool_calls=False).ainvoke([SystemMessage(content=system_msg)]+state["messages"], config=config)
+
 
     return {"messages": [response]}
 
@@ -479,6 +510,8 @@ async def aio_update_profile(
         )
 
     tool_calls = state['messages'][-1].tool_calls
+
+
     # Return tool message with update verification
     return {
         "messages": [{

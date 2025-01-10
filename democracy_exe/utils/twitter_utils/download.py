@@ -17,8 +17,10 @@ from typing import Any, Dict, List, Optional
 import aiofiles
 import aiohttp
 import rich
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 from tqdm.auto import tqdm
 
 from democracy_exe import shell

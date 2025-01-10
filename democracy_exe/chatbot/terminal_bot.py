@@ -7,11 +7,15 @@ import sys
 from collections.abc import AsyncGenerator, Generator
 from typing import Annotated, Any, Dict, List, Optional, TypedDict, Union
 
+import structlog
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 from rich import print as rprint
 
 from democracy_exe.agentic import _utils as agentic_utils
@@ -35,8 +39,8 @@ class FlushingStderr:
         sys.stderr.flush()
 
 
-logger.remove()
-logger.add(FlushingStderr(), enqueue=True)
+# logger.remove()
+# logger.add(FlushingStderr(), enqueue=True)
 
 
 async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
@@ -54,7 +58,7 @@ async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
     config: RunnableConfig = {"configurable": {"thread_id": "1", "user_id": "1"}}
 
     # User input
-    await logger.complete()
+    # await logger.complete()
 
     # Flush stderr before input prompt
     sys.stderr.flush()

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 
-from loguru import logger
+import structlog
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.aio_settings import aiosettings
 
@@ -19,7 +22,7 @@ async def main():
     #     #     bot.pool = pool
     #     await bot.start()
 
-    await logger.complete()
+    # await logger.complete()
 
 
 if __name__ == "__main__":

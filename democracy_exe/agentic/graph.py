@@ -25,6 +25,7 @@ from typing import Literal, Optional, Tuple, Union
 
 import langsmith
 import rich
+import structlog
 import tiktoken
 
 from langchain_anthropic import ChatAnthropic
@@ -38,7 +39,9 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph  # type: ignore
 from langgraph.prebuilt import ToolNode
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
 
 from democracy_exe.agentic import _constants as constants
 from democracy_exe.agentic import _schemas as schemas
@@ -99,7 +102,7 @@ async def save_recall_memory(memory: str) -> str:
         vectors=documents,
         namespace=aiosettings.pinecone_namespace,
     )
-    await logger.complete()
+    # await logger.complete()
     return memory
 
 
@@ -311,7 +314,7 @@ async def agent(
             "current_time": datetime.now(tz=UTC).isoformat(),
         }
     )
-    await logger.complete()
+    # await logger.complete()
     return {
         "messages": prediction,
     }

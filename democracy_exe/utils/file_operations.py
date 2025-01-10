@@ -23,9 +23,12 @@ from typing import Any, Dict, List, Tuple, Union
 import aiofiles
 import aiofiles.os
 import aiohttp
+import structlog
 
 from discord import Attachment, File
-from loguru import logger as LOGGER
+
+
+logger = structlog.get_logger(__name__)
 from PIL import Image
 
 from democracy_exe import shell
@@ -128,7 +131,7 @@ async def handle_save_attachment_locally(attm_data_dict: dict[str, Any], dir_roo
     fname = f"{dir_root}/orig_{attm_data_dict['id']}_{attm_data_dict['filename']}"
     print(f"Saving to ... {fname}")
     parent_dir = await aio_create_nested_directories(fname)
-    LOGGER.info(f"created parent_dir = {parent_dir}")
+    logger.info(f"created parent_dir = {parent_dir}")
     await attm_data_dict["attachment_obj"].save(fname, use_cached=True)
     await asyncio.sleep(1)
     return fname
@@ -172,11 +175,11 @@ async def aio_create_temp_directory() -> str:
         # await aiofiles.os.mkdir(os.path.dirname(tmpdirname))
         await aiofiles.os.makedirs(os.path.dirname(tmpdirname), exist_ok=True)
     except Exception as e:
-        LOGGER.error(f"Error creating temporary directory: {e}")
+        logger.error(f"Error creating temporary directory: {e}")
         raise e
     print("created temporary directory", tmpdirname)
-    LOGGER.info("created temporary directory", tmpdirname)
-    await LOGGER.complete()
+    logger.info("created temporary directory", tmpdirname)
+    # await logger.complete()
     return tmpdirname
 
 
@@ -189,7 +192,7 @@ def create_temp_directory() -> str:
     tmpdirname = f"temp/{uuid.uuid4()!s}"
     os.makedirs(os.path.dirname(tmpdirname), exist_ok=True)
     print("created temporary directory", tmpdirname)
-    LOGGER.info("created temporary directory", tmpdirname)
+    logger.info("created temporary directory", tmpdirname)
     return tmpdirname
 
 
@@ -218,8 +221,19 @@ async def aio_create_nested_directories(file_path: str) -> str:
     """
     path = pathlib.Path(file_path)
     parent_dir = path.parent
-    LOGGER.info(f"path = {path}")
-    LOGGER.info(f"parent_dir = {parent_dir}")
+    logger.info(f"path = {path}")
+    logger.info(f"parent_dir = {parent_dir}")
     await aiofiles.os.makedirs(parent_dir, exist_ok=True)
-    await LOGGER.complete()
+    # await logger.complete()
     return str(parent_dir)
+
+
+async def acreate_temp_directory() -> str:
+    """Create a temporary directory and return its path.
+
+    This is an alias for aio_create_temp_directory() to maintain consistent naming conventions.
+
+    Returns:
+        str: The path of the created temporary directory.
+    """
+    return await aio_create_temp_directory()

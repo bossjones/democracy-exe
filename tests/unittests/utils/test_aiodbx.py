@@ -39,8 +39,10 @@ from io import BytesIO
 
 import aiofiles
 import aiohttp
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

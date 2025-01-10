@@ -1,4 +1,4 @@
-# democracy-exe
+**# democracy-exe
 
 [![Release](https://img.shields.io/github/v/release/bossjones/democracy-exe)](https://img.shields.io/github/v/release/bossjones/democracy-exe)
 [![Build status](https://img.shields.io/github/actions/workflow/status/bossjones/democracy-exe/main.yml?branch=main)](https://github.com/bossjones/democracy-exe/actions/workflows/main.yml?query=branch%3Amain)
@@ -75,3 +75,4 @@ For more details, see [here](https://fpgmaas.github.io/cookiecutter-uv/features/
 ---
 
 Repository initiated with [fpgmaas/cookiecutter-uv](https://github.com/fpgmaas/cookiecutter-uv).
+**

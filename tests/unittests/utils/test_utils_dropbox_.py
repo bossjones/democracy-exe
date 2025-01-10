@@ -18,10 +18,15 @@ from urllib.parse import parse_qs, urlencode
 
 import pytest_asyncio
 import requests
+import structlog
 
 from dropbox.exceptions import ApiError, AuthError
 from langsmith import tracing_context
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
+
+from structlog.testing import capture_logs
 
 import pytest
 
@@ -30,7 +35,6 @@ from pytest_mock import MockerFixture
 from democracy_exe import aio_settings
 from democracy_exe.chatbot.utils.discord_utils import aunlink_orig_file, unlink_orig_file
 from democracy_exe.utils import dropbox_
-from democracy_exe.utils._testing import ContextLogger
 from democracy_exe.utils.dropbox_ import (
     BadInputException,
     cli_oauth,
@@ -268,8 +272,7 @@ class TestDropboxClient:
 
         # import bpdb; bpdb.set_trace()
         with capsys.disabled():
-            with ContextLogger(caplog) as _logger:
-                _logger.add(sys.stdout, level="DEBUG")
+            with capture_logs() as captured:
                 caplog.set_level(logging.DEBUG)
 
                 with tracing_context(enabled=False):

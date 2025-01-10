@@ -21,8 +21,10 @@ from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 import aiofiles
 import aiohttp
 import bpdb
+import structlog
 
-from loguru import logger
+
+logger = structlog.get_logger(__name__)
 from pydantic import SecretStr
 
 from democracy_exe.aio_settings import aiosettings
@@ -501,7 +503,7 @@ class AsyncDropboxAPI:
                 logger.error("API token validation failed: Invalid response")
                 raise DropboxAPIError(401, "Invalid API token")
             logger.info("API token validated successfully")
-            await logger.complete()
+            # await logger.complete()
             return True
 
         except Exception as ex:
@@ -516,17 +518,17 @@ class AsyncDropboxAPI:
             print(f"exc_type: {exc_type}")
             print(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            await logger.complete()
+            # await logger.complete()
             rich.print(f"aiosettings.dev_mode: {aiosettings.dev_mode}")
             if aiosettings.dev_mode:
                 bpdb.pm()
 
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(401, f"Token validation failed: {ex}")
 
         # except Exception as e:
         #     logger.error(f"API token validation failed: {e!s}")
-        #     await logger.complete()
+        #     # await logger.complete()
         #     raise DropboxAPIError(401, f"Token validation failed: {e!s}")
 
     async def download_file(self, dropbox_path: str, local_path: str | None = None) -> str:
@@ -563,11 +565,11 @@ class AsyncDropboxAPI:
                 else:
                     await f.write(response)
             logger.info(f"File downloaded successfully: {local_path}")
-            await logger.complete()
+            # await logger.complete()
             return local_path
         except Exception as e:
             logger.error(f"File download failed: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, f"Download failed: {e!s}")
 
     async def download_folder(self, dropbox_path: str, local_path: str | None = None) -> str:
@@ -604,11 +606,11 @@ class AsyncDropboxAPI:
                 else:
                     await f.write(response)
             logger.info(f"Folder downloaded successfully: {local_path}")
-            await logger.complete()
+            # await logger.complete()
             return local_path
         except Exception as e:
             logger.error(f"Folder download failed: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, f"Download failed: {e!s}")
 
     async def download_shared_link(self, shared_link: str, local_path: str | None = None) -> str:
@@ -641,10 +643,10 @@ class AsyncDropboxAPI:
                     await f.write(response.encode())
                 else:
                     await f.write(response)
-            await logger.complete()
+            # await logger.complete()
             return local_path
         except Exception as e:
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, f"Download failed: {e!s}")
 
     async def upload_start(self, local_path: str, dropbox_path: str) -> dict[str, Any]:
@@ -676,11 +678,11 @@ class AsyncDropboxAPI:
                 data = await f.read()
                 response = await self._do_request("POST", url, headers=headers, data=data)
                 logger.info("Upload session started successfully")
-                await logger.complete()
+                # await logger.complete()
                 return response
         except Exception as e:
             logger.error(f"Failed to start upload session: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, f"Upload failed: {e!s}")
 
     async def upload_finish(self) -> dict[str, Any]:
@@ -694,7 +696,7 @@ class AsyncDropboxAPI:
         """
         if not self.upload_session:
             logger.error("No active upload session to finish")
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(400, "No active upload session")
 
         logger.info("Finishing upload session...")
@@ -712,7 +714,7 @@ class AsyncDropboxAPI:
             session_id = response.get("async_job_id")
             if not session_id:
                 logger.error("No async job ID received in response")
-                await logger.complete()
+                # await logger.complete()
                 raise DropboxAPIError(500, "No async job ID in response")
 
             logger.info("Waiting for upload completion...")
@@ -732,11 +734,11 @@ class AsyncDropboxAPI:
                 await asyncio.sleep(1)
 
             logger.info("Upload session completed successfully")
-            await logger.complete()
+            # await logger.complete()
             return response
         except Exception as e:
             logger.error(f"Upload session failed: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, f"Upload finish failed: {e!s}")
         finally:
             self.upload_session = []
@@ -787,11 +789,11 @@ class AsyncDropboxAPI:
                 data = await f.read()
                 response = await self._do_request("POST", url, headers=headers, data=data)
                 logger.info(f"File uploaded successfully: {dropbox_path}")
-                await logger.complete()
+                # await logger.complete()
                 return response
         except Exception as e:
             logger.error(f"File upload failed: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, f"Upload failed: {e!s}")
 
     async def create_shared_link(self, dropbox_path: str) -> str:
@@ -818,17 +820,17 @@ class AsyncDropboxAPI:
         try:
             response = await self._do_request("POST", url, headers=headers, data=data)
             logger.info("Shared link created successfully")
-            await logger.complete()
+            # await logger.complete()
             return response["url"]
         except DropboxAPIError as e:
             if e.status == 409:  # Link already exists
                 logger.info("Shared link already exists, retrieving existing link")
                 url = "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata"
                 response = await self._do_request("POST", url, headers=headers, data=data)
-                await logger.complete()
+                # await logger.complete()
                 return response["url"]
             logger.error(f"Failed to create shared link: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise
 
     async def get_shared_link_metadata(self, shared_link: str) -> dict[str, Any]:
@@ -855,17 +857,17 @@ class AsyncDropboxAPI:
         try:
             response = await self._do_request("POST", url, headers=headers, data=data)
             logger.info("Retrieved shared link metadata successfully")
-            await logger.complete()
+            # await logger.complete()
             return response
         except DropboxAPIError as e:
             if e.status == 409:  # Link already exists
                 logger.info("Using existing shared link metadata")
                 url = "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata"
                 response = await self._do_request("POST", url, headers=headers, data=data)
-                await logger.complete()
+                # await logger.complete()
                 return response
             logger.error(f"Failed to get shared link metadata: {e!s}")
-            await logger.complete()
+            # await logger.complete()
             raise
 
     async def get_connection_metrics(self) -> dict[str, Any]:
@@ -1054,7 +1056,7 @@ class AsyncDropboxAPI:
                 logger.info("Upload completed, creating shared link...")
                 shared_link = await self.get_shared_link_metadata(dropbox_path)
                 logger.info("File uploaded and shared successfully")
-                await logger.complete()
+                # await logger.complete()
                 return shared_link["url"]
 
         except DropboxAPIError:
@@ -1063,5 +1065,5 @@ class AsyncDropboxAPI:
         except Exception as e:
             error_msg = f"Upload failed: {e!s}"
             logger.error(error_msg)
-            await logger.complete()
+            # await logger.complete()
             raise DropboxAPIError(500, error_msg) from e

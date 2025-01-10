@@ -19,17 +19,21 @@ import discord
 import discord.ext.test as dpytest
 import pytest_asyncio
 import rich
+import structlog
 
 from discord.client import _LoopSentinel
 from discord.ext import commands
-from loguru import logger
+
+
+logger = structlog.get_logger(__name__)
+
+from structlog.testing import capture_logs
 
 import pytest
 
 from democracy_exe.chatbot.cogs.twitter import HELP_MESSAGE, TwitterError
 from democracy_exe.chatbot.cogs.twitter import Twitter as TwitterCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
-from democracy_exe.utils._testing import ContextLogger
 from democracy_exe.utils.twitter_utils.embed import create_error_embed, create_info_embed
 from democracy_exe.utils.twitter_utils.models import TweetInfo
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode, TweetMetadata
@@ -320,57 +324,6 @@ def assert_success_message(message: discord.Message) -> None:
     assert "Download complete!" in message.content
 
 
-# @pytest.mark.asyncio
-# async def test_twitter_cog_init(twitter_cog: TwitterCog) -> None:
-#     """Test Twitter cog initialization.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#     """
-#     assert isinstance(twitter_cog, TwitterCog)
-#     assert isinstance(twitter_cog.bot, commands.Bot)
-
-
-# @pytest.mark.asyncio
-# async def test_twitter_cog_on_ready(twitter_cog: TwitterCog, caplog: LogCaptureFixture) -> None:
-#     """Test Twitter cog on_ready event.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         caplog: Pytest log capture fixture
-#     """
-#     await twitter_cog.on_ready()
-#     assert any(record.message == f"{type(twitter_cog).__name__} Cog ready." for record in caplog.records)
-
-
-# @pytest.mark.asyncio
-# async def test_twitter_cog_on_guild_join(
-#     twitter_cog: TwitterCog, test_guild: discord.Guild, caplog: LogCaptureFixture
-# ) -> None:
-#     """Test Twitter cog on_guild_join event.
-
-#     Args:
-#         twitter_cog: The Twitter cog instance
-#         test_guild: Test guild fixture
-#         caplog: Pytest log capture fixture
-#     """
-#     await twitter_cog.on_guild_join(test_guild)
-#     assert any(record.message == f"Adding new guild to database: {test_guild.id}" for record in caplog.records)
-#     assert any(record.message == f"Successfully added guild {test_guild.id} to database" for record in caplog.records)
-
-
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2025, 1, 25),
-#     strict=True,
-#     msg="Alert is suppressed. Make progress till then"
-# )
-# @pytest.mark.vcronly()
-# @pytest.mark.default_cassette("test_download_tweet_success_twitter_cog.yaml")
-# @pytest.mark.vcr(
-#     allow_playback_repeats=True,
-#     match_on=["method", "scheme", "port", "path", "query", "body", "headers"],
-#     ignore_localhost=False,
-# )
 @pytest.mark.asyncio
 @pytest.mark.asyncio
 async def test_twitter_cog_init(bot_with_twitter_cog: DemocracyBot) -> None:
@@ -392,9 +345,14 @@ async def test_twitter_cog_on_ready(bot_with_twitter_cog: DemocracyBot, caplog: 
         bot_with_twitter_cog: The Discord bot instance with Twitter cog
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_twitter_cog.get_cog("Twitter")
-    await cog.on_ready()  # type: ignore
-    assert any(record.message == "Twitter Cog ready." for record in caplog.records)
+    with capture_logs() as captured:
+        cog = bot_with_twitter_cog.get_cog("Twitter")
+        await cog.on_ready()  # type: ignore
+
+        # Check if the log message exists in the captured structlog events
+        assert any(log.get("event") == "Twitter Cog ready." for log in captured), (
+            "Expected 'Twitter Cog ready.' message not found in logs"
+        )
 
 
 @pytest.mark.asyncio
@@ -405,10 +363,15 @@ async def test_twitter_cog_on_guild_join(bot_with_twitter_cog: DemocracyBot, cap
         bot_with_twitter_cog: The Discord bot instance with Twitter cog
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_twitter_cog.get_cog("Twitter")
-    guild = bot_with_twitter_cog.guilds[0]
-    await cog.on_guild_join(guild)  # type: ignore
-    assert any(f"Adding new guild to database: {guild.id}" in record.message for record in caplog.records)
+    with capture_logs() as captured:
+        cog = bot_with_twitter_cog.get_cog("Twitter")
+        guild = bot_with_twitter_cog.guilds[0]
+        await cog.on_guild_join(guild)  # type: ignore
+
+        # Check if the log message exists in the captured structlog events
+        assert any(log.get("event") == f"Adding new guild to database: {guild.id}" for log in captured), (
+            f"Expected 'Adding new guild to database: {guild.id}' message not found in logs"
+        )
 
 
 # NOTE: to get this to to pass after the refactor, you might need to incorporate things like which channel this is being said in etc. (via aider)
@@ -429,8 +392,22 @@ async def test_tweet_help_command(bot_with_twitter_cog: DemocracyBot) -> None:
     Args:
         bot_with_twitter_cog: The Discord bot instance with Twitter cog
     """
-    await dpytest.message("?tweet")
-    assert dpytest.verify().message().content(HELP_MESSAGE)
+    with capture_logs() as captured:
+        await dpytest.message("?tweet")
+        assert dpytest.verify().message().content(HELP_MESSAGE)
+
+        # Verify expected log events
+        assert any(log.get("event") == "AI is disabled, skipping message processing... with llm" for log in captured), (
+            "Expected 'AI is disabled' message not found in logs"
+        )
+
+        assert any(log.get("event") == "Tweet command invoked by TestUser0#0001 in Test Guild 0" for log in captured), (
+            "Expected tweet command invocation message not found in logs"
+        )
+
+        assert any(log.get("event") == "No subcommand specified, sending help message" for log in captured), (
+            "Expected help message event not found in logs"
+        )
 
 
 @pytest.mark.skip_until(
@@ -454,10 +431,7 @@ async def test_download_tweet_failure(
         capsys: Pytest stdout/stderr capture fixture
     """
     with capsys.disabled():
-        with ContextLogger(caplog) as _logger:
-            _logger.add(sys.stdout, level="DEBUG")
-            caplog.set_level(logging.DEBUG)
-
+        with capture_logs() as captured:
             # Mock shell command execution
             mock_shell = mocker.AsyncMock(return_value=(b"", b""))
             mocker.patch("democracy_exe.shell._aio_run_process_and_communicate", side_effect=mock_shell)
@@ -489,25 +463,23 @@ async def test_download_tweet_failure(
 
             try:
                 # First message should be progress embed
-                # progress = dpytest.get_message(peek=True)
-                # assert_download_progress_embed(progress.embeds[0], TEST_TWEET_URL, "single")
-
-                # assert dpytest.verify().message().embed(dummy_embed)
                 assert dpytest.verify().message().peek().embed(dummy_embed)
-
-                # The progress message should be edited to show the error
-                # We need to get the message again to see the edit
-                # error = dpytest.get_message()
-                # assert error.embeds, "Expected error message to have embeds"
-                # assert_error_embed(error.embeds[0], error_msg)
 
                 mock_download.assert_called_once()
                 mock_shell.assert_called()
 
-                # Verify logs
-                assert any("Download command invoked" in record.message for record in caplog.records)
-                assert any("Download failed" in record.message for record in caplog.records)
-                assert any(error_msg in record.message for record in caplog.records)
+                # Verify logs using structlog's capture_logs
+                assert any(log.get("event") == "Download command invoked" for log in captured), (
+                    "Expected 'Download command invoked' message not found in logs"
+                )
+
+                assert any(log.get("event") == "Download failed" for log in captured), (
+                    "Expected 'Download failed' message not found in logs"
+                )
+
+                assert any(log.get("event") == error_msg for log in captured), (
+                    f"Expected '{error_msg}' message not found in logs"
+                )
             finally:
                 # Cleanup
                 await dpytest.empty_queue()
@@ -637,15 +609,20 @@ async def test_cleanup_temp_dir(
         tmp_path: Pytest temporary path fixture
         caplog: Pytest log capture fixture
     """
-    cog = bot_with_twitter_cog.get_cog("Twitter")
-    test_dir = tmp_path / "gallery-dl" / "test"
-    test_dir.mkdir(parents=True)
-    test_file = test_dir / "test.txt"
-    test_file.touch()
+    with capture_logs() as captured:
+        cog = bot_with_twitter_cog.get_cog("Twitter")
+        test_dir = tmp_path / "gallery-dl" / "test"
+        test_dir.mkdir(parents=True)
+        test_file = test_dir / "test.txt"
+        test_file.touch()
 
-    cog._cleanup_temp_dir(str(test_file))  # type: ignore
-    assert not test_dir.exists()
-    assert any("Temporary directory cleanup complete" in record.message for record in caplog.records)
+        cog._cleanup_temp_dir(str(test_file))  # type: ignore
+        assert not test_dir.exists()
+
+        # Verify cleanup was logged using structlog's capture_logs
+        assert any(log.get("event") == "Temporary directory cleanup complete" for log in captured), (
+            "Expected 'Temporary directory cleanup complete' message not found in logs"
+        )
 
 
 async def test_download_tweet_success_twitter_cog(
@@ -675,8 +652,7 @@ async def test_download_tweet_success_twitter_cog(
         AssertionError: If expected messages are not received or in wrong format
     """
     with capsys.disabled():
-        with ContextLogger(caplog) as _logger:
-            _logger.add(sys.stdout, level="DEBUG")
+        with capture_logs() as captured:
             caplog.set_level(logging.DEBUG)
 
             mock_aio_tweet_data, tmp_path = mock_aio_tweet_data_with_media
