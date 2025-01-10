@@ -64,7 +64,7 @@ logger = structlog.get_logger(__name__)
 # )
 
 # # NOTE: this is the new format for loguru
-# NEW_LOGGER_FORMAT = (
+# NEW_logger_FORMAT = (
 #     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
 #     "<level>{level: <8}</level> | "
 #     "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
@@ -170,7 +170,7 @@ logger = structlog.get_logger(__name__)
 #     # >>>                      {'age': 27, 'is_active': True, 'name': 'Alex'}]}]
 
 #     # """
-#     format_string = NEW_LOGGER_FORMAT
+#     format_string = NEW_logger_FORMAT
 #     if record["extra"].get("payload") is not None:
 #         record["extra"]["payload"] = pformat(record["extra"]["payload"], indent=4, compact=True, width=88)
 #         format_string += "\n<level>{extra[payload]}</level>"

@@ -9,7 +9,9 @@ import prompts
 import rich
 
 from langchain_core.runnables import RunnableConfig, ensure_config
-from loguru import logger
+import structlog
+
+logger = structlog.get_logger(__name__)
 from rich.pretty import pprint
 
 

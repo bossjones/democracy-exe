@@ -9,7 +9,9 @@ from collections.abc import Generator, Iterable, Iterator, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Literal, Set, Union
 
-from loguru import logger as LOGGER
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 import pytest
 

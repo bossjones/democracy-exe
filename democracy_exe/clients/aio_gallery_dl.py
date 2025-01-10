@@ -454,7 +454,9 @@ if __name__ == "__main__":
     import rich
 
     from langsmith import tracing_context
-    from loguru import logger
+    import structlog
+
+logger = structlog.get_logger(__name__)
 
     async def main() -> None:
         """Run the AsyncGalleryDL tool asynchronously."""

@@ -40,7 +40,9 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
-from loguru import logger
+import structlog
+
+logger = structlog.get_logger(__name__)
 from prompts import CREATE_INSTRUCTIONS, MODEL_SYSTEM_MESSAGE, TRUSTCALL_INSTRUCTION
 from pydantic import BaseModel, Field
 from settings import aiosettings

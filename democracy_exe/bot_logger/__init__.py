@@ -29,7 +29,7 @@
 #     LOGURU_FILE_FORMAT: str
 #         The log format string for file logging.
 
-#     NEW_LOGGER_FORMAT: str
+#     NEW_logger_FORMAT: str
 #         The new log format string for console logging.
 
 #     LOG_LEVEL: Literal
@@ -169,7 +169,7 @@ from democracy_exe.models.loggers import LoggerModel, LoggerPatch
 # )
 
 # # NOTE: this is the new format for loguru
-# NEW_LOGGER_FORMAT = (
+# NEW_logger_FORMAT = (
 #     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
 #     "<level>{level: <8}</level> | "
 #     "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
@@ -822,7 +822,7 @@ from democracy_exe.models.loggers import LoggerModel, LoggerPatch
 # #             log_file,
 # #             rotation="1 MB",
 # #             retention=backup_count,
-# #             format=NEW_LOGGER_FORMAT,
+# #             format=NEW_logger_FORMAT,
 # #             enqueue=True,
 # #         )
 
@@ -1156,16 +1156,16 @@ def generate_tree() -> LoggerModel:
 #         json=False,
 #         mp_context="spawn",
 #     )
-#     # LOGGER = logger
+#     # logger = logger
 
 #     # def dump_logger_tree():
 #     #     rootm = generate_tree()
-#     #     LOGGER.debug(rootm)
+#     #     logger.debug(rootm)
 
 #     # def dump_logger(logger_name: str):
-#     #     LOGGER.debug(f"getting logger {logger_name}")
+#     #     logger.debug(f"getting logger {logger_name}")
 #     #     rootm = generate_tree()
 #     #     return get_lm_from_tree(rootm, logger_name)
 
-#     # LOGGER.info("TESTING TESTING 1-2-3")
+#     # logger.info("TESTING TESTING 1-2-3")
 #     # printout()

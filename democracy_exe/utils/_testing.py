@@ -26,7 +26,9 @@ class ContextLogger:
         Args:
             caplog: Flag indicating if pytest's caplog fixture is being used.
         """
-        from loguru import logger
+        import structlog
+
+logger = structlog.get_logger(__name__)
 
         self.logger = logger
         self.using_caplog = False

@@ -17,7 +17,9 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnableConfig
-from loguru import logger
+import structlog
+
+logger = structlog.get_logger(__name__)
 from pinecone import Pinecone, ServerlessSpec
 from settings import aiosettings
 

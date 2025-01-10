@@ -24,11 +24,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Tuple, TypeVar, Union
 
 from discord.utils import maybe_coroutine
-from loguru import logger as LOGGER
 
 from democracy_exe import constants
 from democracy_exe.aio_settings import aiosettings
 from democracy_exe.types import CoroType, FuncType, TypeGuard
+
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 if TYPE_CHECKING:
@@ -666,15 +669,15 @@ def get_end_user_data_statement(file: Path | str) -> str | None:
         info_json = file / "info.json"
         statement = get_end_user_data_statement_or_raise(info_json)
     except FileNotFoundError:
-        LOGGER.critical("'%s' does not exist.", str(info_json))
+        logger.critical("'%s' does not exist.", str(info_json))
     except KeyError:
-        LOGGER.critical("'%s' is missing an entry for 'end_user_data_statement'", str(info_json))
+        logger.critical("'%s' is missing an entry for 'end_user_data_statement'", str(info_json))
     except json.JSONDecodeError as exc:
-        LOGGER.critical("'%s' is not a valid JSON file.", str(info_json), exc_info=exc)
+        logger.critical("'%s' is not a valid JSON file.", str(info_json), exc_info=exc)
     except UnicodeError as exc:
-        LOGGER.critical("'%s' has a bad encoding.", str(info_json), exc_info=exc)
+        logger.critical("'%s' has a bad encoding.", str(info_json), exc_info=exc)
     except Exception as exc:
-        LOGGER.critical(
+        logger.critical(
             "There was an error when trying to load the end user data statement from '%s'.",
             str(info_json),
             exc_info=exc,
@@ -725,7 +728,7 @@ def get_end_user_data_statement_or_raise(file: Path | str) -> str:
 
 # SOURCE: https://github.com/makupi/cookiecutter-discord.py-postgres/blob/master/%7B%7Bcookiecutter.bot_slug%7D%7D/bot/utils/__init__.py
 def get_guild_prefix(_bot, guild_id):
-    LOGGER.info(f"get_guild_prefix(_bot, guild_id) - > get_guild_prefix({_bot}, {guild_id})")
+    logger.info(f"get_guild_prefix(_bot, guild_id) - > get_guild_prefix({_bot}, {guild_id})")
     prefix = aiosettings.prefix
     guild_data = _bot.guild_data.get(guild_id, None)
     if guild_data is not None:
@@ -733,5 +736,5 @@ def get_guild_prefix(_bot, guild_id):
         if _prefix is not None:
             prefix = _prefix
 
-    LOGGER.info(f"inside get_guild_prefix(_bot, guild_id) - > get_guild_prefix({_bot}, {guild_id})")
+    logger.info(f"inside get_guild_prefix(_bot, guild_id) - > get_guild_prefix({_bot}, {guild_id})")
     return prefix

@@ -14,7 +14,9 @@ from typing import Any, Dict, Optional
 
 import yaml
 
-from loguru import logger
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 def load_yaml_config(config_path: Path) -> dict[str, Any]:

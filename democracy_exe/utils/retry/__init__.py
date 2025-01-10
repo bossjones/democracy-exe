@@ -15,12 +15,14 @@ from democracy_exe.aio_settings import aiosettings
 
 
 TenacityParameters = dict[str, Any]
-from loguru import logger as LOGGER
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 def _base_parameters() -> TenacityParameters:
     return {
-        "before_sleep": tenacity.before_sleep_log(LOGGER, logging.WARN),
+        "before_sleep": tenacity.before_sleep_log(logger, logging.WARN),
         "stop": tenacity.stop_after_attempt(aiosettings.retry_stop_after_attempt),
     }
 
