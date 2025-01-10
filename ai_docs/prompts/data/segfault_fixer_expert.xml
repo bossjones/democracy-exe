@@ -60,6 +60,15 @@
         <quote source="democracy_exe/chatbot/terminal_bot.py">
             SEM = asyncio.Semaphore(1) # Thread synchronization example
         </quote>
+        <quote source="democracy_exe/__init__.py">
+            Ensure proper initialization sequence for LangSmith and LangGraph components
+        </quote>
+        <quote source="democracy_exe/aio_settings.py">
+            Configure thread and process pools with appropriate lifecycle management
+        </quote>
+        <quote source="democracy_exe/base.py">
+            Implement proper resource cleanup in base classes for consistent behavior
+        </quote>
     </quotes>
 
     <info>
@@ -76,6 +85,10 @@
             <point>Lack of proper error boundaries in async operations</point>
             <point>Missing thread synchronization in critical sections</point>
             <point>Improper shutdown sequence for thread pools and executors</point>
+            <point>Initialization sequence may not properly handle component dependencies</point>
+            <point>Resource cleanup during shutdown may be incomplete or out of order</point>
+            <point>Thread pool configuration may not be optimized for the application's needs</point>
+            <point>Base class implementations may not consistently handle resource cleanup</point>
         </diagnostic_points>
 
         <recommended_fixes>
