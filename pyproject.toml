@@ -1891,7 +1891,7 @@ reportUnusedImport = "none"
 reportMissingImports = "error"
 reportImportCycles = "error"
 reportUnusedVariable = "none"
-reportMissingTypeStubs = "warning"
+# reportMissingTypeStubs = "warning"
 
 reportUnusedFunction = "warning" # this is what we use in ad
 reportUnusedClass = "warning"    # this is what we use in ad
@@ -1905,6 +1905,7 @@ reportUnusedCallResult = false
 reportImplicitStringConcatenation = false
 reportCallInDefaultInitializer = true
 reportAttributeAccessIssue = false
+reportMissingTypeStubs = false
 
 [tool.pydocstringformatter]
 write = false
