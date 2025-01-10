@@ -69,6 +69,18 @@
         <quote source="democracy_exe/base.py">
             Implement proper resource cleanup in base classes for consistent behavior
         </quote>
+        <quote source="error_trace">
+            File "/usr/local/lib/python3.12/site-packages/langsmith/_internal/_background_thread.py", line 100 in _tracing_thread_handle_batch shows thread safety issues in batch processing
+        </quote>
+        <quote source="error_trace">
+            File "/api/langgraph_api/sse.py", line 59 in stream_response indicates SSE stream handling issues
+        </quote>
+        <quote source="error_trace">
+            Multiple worker threads in ThreadPoolExecutor showing improper shutdown sequence
+        </quote>
+        <quote source="error_trace">
+            Interaction between asyncio.run() and multiprocessing in uvicorn server startup
+        </quote>
     </quotes>
 
     <info>
@@ -99,7 +111,31 @@
             <point>Nested event loops can cause deadlocks</point>
             <point>State isolation failures between threads can corrupt data</point>
             <point>Loop creation/cleanup errors can leave resources dangling</point>
+            <point>LangSmith client background thread operations showing race conditions</point>
+            <point>SSE stream handling in langgraph_api lacks proper error boundaries</point>
+            <point>ThreadPoolExecutor shutdown sequence is incomplete</point>
+            <point>Multiprocessing and asyncio interaction in uvicorn needs coordination</point>
+            <point>Multiple threads accessing shared LangSmith client resources unsafely</point>
+            <point>Background thread batch processing lacks proper synchronization</point>
         </diagnostic_points>
+
+        <environment_settings>
+            <setting>
+                <name>PYTHONFAULTHANDLER</name>
+                <value>1</value>
+                <description>Enable for better crash diagnostics</description>
+            </setting>
+            <setting>
+                <name>PYTHONASYNCIODEBUG</name>
+                <value>1</value>
+                <description>Enable asyncio debugging</description>
+            </setting>
+            <setting>
+                <name>PYTHONDEVMODE</name>
+                <value>1</value>
+                <description>Enable additional runtime checks</description>
+            </setting>
+        </environment_settings>
 
         <recommended_fixes>
             <fix priority="high">
@@ -995,6 +1031,200 @@
                         ]]>
                     </example>
                 </pattern>
+
+                <pattern name="context_var_management">
+                    <description>Pattern for managing context variables in multiprocessing</description>
+                    <example>
+                        <![CDATA[
+                        import contextvars
+                        from multiprocessing import Process
+
+                        class SafeContextManager:
+                            def __init__(self):
+                                self._context = contextvars.copy_context()
+                                self._process_vars = {}
+
+                            def _init_process_context(self):
+                                """Initialize context in new process."""
+                                for var, value in self._process_vars.items():
+                                    var.set(value)
+
+                            def run_in_process(self, func, *args, **kwargs):
+                                """Run function in new process with proper context."""
+                                self._process_vars = {
+                                    var: var.get()
+                                    for var in self._context.keys()
+                                }
+                                p = Process(target=self._run_with_context,
+                                          args=(func, args, kwargs))
+                                p.start()
+                                return p
+
+                            def _run_with_context(self, func, args, kwargs):
+                                """Run function with restored context."""
+                                self._init_process_context()
+                                return func(*args, **kwargs)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_safe_logging">
+                    <description>Pattern for thread-safe structured logging</description>
+                    <example>
+                        <![CDATA[
+                        import structlog
+                        from threading import local
+
+                        class ThreadSafeLogger:
+                            _thread_local = local()
+
+                            def __init__(self):
+                                self._logger = structlog.get_logger()
+                                self._context_lock = asyncio.Lock()
+
+                            async def bind_context(self, **kwargs):
+                                """Bind context variables thread-safely."""
+                                async with self._context_lock:
+                                    self._thread_local.context = {
+                                        **(getattr(self._thread_local, 'context', {})),
+                                        **kwargs
+                                    }
+
+                            async def log(self, level, event, **kwargs):
+                                """Log with thread-local context."""
+                                context = getattr(self._thread_local, 'context', {})
+                                logger = self._logger.bind(**context)
+                                logger.log(level, event, **kwargs)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="safe_event_loop">
+                    <description>Pattern for safe event loop management in worker threads</description>
+                    <example>
+                        <![CDATA[
+                        class ThreadEventLoopManager:
+                            def __init__(self):
+                                self._loop = None
+                                self._loop_lock = threading.Lock()
+                                self._thread_id = None
+
+                            def get_loop(self):
+                                """Get or create event loop for current thread."""
+                                current_thread = threading.current_thread()
+                                if (self._thread_id is not None and
+                                    self._thread_id != current_thread.ident):
+                                    raise RuntimeError(
+                                        "Loop accessed from wrong thread")
+
+                                with self._loop_lock:
+                                    if self._loop is None:
+                                        self._loop = asyncio.new_event_loop()
+                                        self._thread_id = current_thread.ident
+                                        asyncio.set_event_loop(self._loop)
+                                    return self._loop
+
+                            async def cleanup(self):
+                                """Clean up event loop resources."""
+                                with self._loop_lock:
+                                    if self._loop is not None:
+                                        try:
+                                            # Cancel all tasks
+                                            tasks = asyncio.all_tasks(self._loop)
+                                            for task in tasks:
+                                                task.cancel()
+                                            # Wait for cancellation
+                                            if tasks:
+                                                await asyncio.gather(
+                                                    *tasks,
+                                                    return_exceptions=True
+                                                )
+                                        finally:
+                                            self._loop.close()
+                                            self._loop = None
+                                            self._thread_id = None
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="event_loop_isolation">
+                    <description>Pattern for testing event loop isolation</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_event_loop_isolation():
+                            manager = ThreadEventLoopManager()
+
+                            async def worker():
+                                loop = manager.get_loop()
+                                assert loop is asyncio.get_running_loop()
+                                await asyncio.sleep(0.1)
+
+                            # Run in multiple threads
+                            threads = []
+                            for _ in range(3):
+                                thread = threading.Thread(
+                                    target=lambda: asyncio.run(worker())
+                                )
+                                threads.append(thread)
+                                thread.start()
+
+                            for thread in threads:
+                                thread.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="multiprocessing_coordination">
+                    <description>Pattern for testing multiprocessing coordination</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_multiprocessing_coordination():
+                            ctx_manager = SafeContextManager()
+
+                            def worker_func():
+                                assert 'test_var' in ctx_manager._process_vars
+                                return True
+
+                            # Set context variable
+                            test_var = contextvars.ContextVar('test_var')
+                            test_var.set('test_value')
+
+                            # Run in new process
+                            process = ctx_manager.run_in_process(worker_func)
+                            process.join()
+                            assert process.exitcode == 0
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="resource_leak_detection">
+                    <description>Pattern for detecting resource leaks in tests</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_resource_leaks():
+                            import psutil
+                            import os
+
+                            process = psutil.Process(os.getpid())
+                            start_fds = process.num_fds()
+                            start_threads = len(process.threads())
+
+                            # Run test operation
+                            client = SafeLangSmithClient()
+                            try:
+                                await client._send_batch({"test": "data"})
+                            finally:
+                                await client.cleanup()
+
+                            # Verify no leaks
+                            assert process.num_fds() <= start_fds
+                            assert len(process.threads()) <= start_threads
+                        ]]>
+                    </example>
+                </pattern>
             </test_patterns>
 
             <configuration>
@@ -1125,4 +1355,215 @@
             </restoration_steps>
         </report_format>
     </functionality_check>
+
+    <implementation_patterns>
+        <pattern name="thread_safe_event">
+            <description>Pattern for implementing thread-safe events with proper cleanup</description>
+            <example>
+                <![CDATA[
+                class ThreadSafeEvent:
+                    def __init__(self):
+                        self._event = None
+                        self._loop = None
+                        self._closed = False
+                        self._cleanup_lock = asyncio.Lock()
+
+                    async def __aenter__(self):
+                        if not self._event:
+                            self._loop = asyncio.get_running_loop()
+                            self._event = asyncio.Event()
+                        return self
+
+                    async def __aexit__(self, exc_type, exc_val, exc_tb):
+                        async with self._cleanup_lock:
+                            try:
+                                await self.cleanup()
+                            finally:
+                                self._closed = True
+
+                    async def cleanup(self):
+                        if self._event:
+                            self._event.set()  # Wake up any waiters
+                            self._event = None
+                        self._loop = None
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="safe_thread_pool">
+            <description>Pattern for safe thread pool management with proper cleanup</description>
+            <example>
+                <![CDATA[
+                class SafeThreadPoolExecutor:
+                    def __init__(self, max_workers=None):
+                        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+                        self._shutdown = False
+                        self._lock = threading.Lock()
+
+                    async def submit(self, fn, *args, **kwargs):
+                        with self._lock:
+                            if self._shutdown:
+                                raise RuntimeError("Executor is shut down")
+                            loop = asyncio.get_running_loop()
+                            return await loop.run_in_executor(
+                                self._executor,
+                                functools.partial(fn, *args, **kwargs)
+                            )
+
+                    async def shutdown(self, wait=True):
+                        with self._lock:
+                            if not self._shutdown:
+                                self._shutdown = True
+                                self._executor.shutdown(wait=wait)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="sse_stream_handler">
+            <description>Pattern for safe SSE stream handling with proper cleanup</description>
+            <example>
+                <![CDATA[
+                async def safe_stream_response(graph, input_data):
+                    response = aiohttp.web.StreamResponse()
+                    response.headers['Content-Type'] = 'text/event-stream'
+                    response.headers['Cache-Control'] = 'no-cache'
+                    response.headers['Connection'] = 'keep-alive'
+
+                    try:
+                        await response.prepare(request)
+                        async for event in graph.stream(input_data):
+                            try:
+                                await response.write(
+                                    f"data: {json.dumps(event)}\n\n".encode()
+                                )
+                            except ConnectionResetError:
+                                break
+                    except Exception as e:
+                        logger.exception("Stream error")
+                        raise
+                    finally:
+                        await response.write_eof()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="langsmith_client_wrapper">
+            <description>Pattern for thread-safe LangSmith client operations</description>
+            <example>
+                <![CDATA[
+                class SafeLangSmithClient:
+                    def __init__(self):
+                        self._client = Client()
+                        self._lock = asyncio.Lock()
+                        self._batch_lock = asyncio.Lock()
+                        self._closed = False
+
+                    async def _send_batch(self, batch):
+                        async with self._batch_lock:
+                            if self._closed:
+                                return
+                            try:
+                                await self._client._multipart_ingest_ops(batch)
+                            except Exception as e:
+                                logger.exception("Batch send error")
+                                raise
+
+                    async def cleanup(self):
+                        async with self._lock:
+                            if not self._closed:
+                                self._closed = True
+                                # Cleanup code here
+                ]]>
+            </example>
+        </pattern>
+    </implementation_patterns>
+
+    <testing_patterns>
+        <pattern name="thread_safety_test">
+            <description>Pattern for testing thread safety of components</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_thread_safety():
+                    client = SafeLangSmithClient()
+                    tasks = []
+                    for _ in range(10):
+                        tasks.append(asyncio.create_task(
+                            client._send_batch({"test": "data"})
+                        ))
+
+                    try:
+                        await asyncio.gather(*tasks)
+                    finally:
+                        await client.cleanup()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="sse_stream_test">
+            <description>Pattern for testing SSE stream handling</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_sse_stream():
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get("/stream") as response:
+                            try:
+                                async for line in response.content:
+                                    if line:
+                                        event = json.loads(line.decode())
+                                        assert "data" in event
+                            finally:
+                                await response.release()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="cleanup_verification">
+            <description>Pattern for verifying proper resource cleanup</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_cleanup():
+                    pool = SafeThreadPoolExecutor()
+                    try:
+                        await pool.submit(lambda: "test")
+                    finally:
+                        await pool.shutdown(wait=True)
+                        assert pool._shutdown
+                        assert pool._executor._shutdown
+                ]]>
+            </example>
+        </pattern>
+    </testing_patterns>
+
+    <diagnostic_tools>
+        <tool>
+            <name>memray</name>
+            <description>Memory profiling for Python applications</description>
+            <usage>
+                <![CDATA[
+                # Track memory allocations
+                memray run --native your_script.py
+
+                # Generate flame graph
+                memray flamegraph memray-your_script.py.bin
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>py-spy</name>
+            <description>Sampling profiler for Python programs</description>
+            <usage>
+                <![CDATA[
+                # Record CPU profile
+                py-spy record -o profile.svg --pid YOUR_PID
+
+                # Live CPU monitoring
+                py-spy top --pid YOUR_PID
+                ]]>
+            </usage>
+        </tool>
+    </diagnostic_tools>
 </segfault_guidelines>

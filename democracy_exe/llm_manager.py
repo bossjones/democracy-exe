@@ -9,8 +9,6 @@ import structlog
 
 from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch, RunnableLambda, RunnableMap
 from langchain_openai import ChatOpenAI, OpenAI
-from langsmith import traceable
-from langsmith.wrappers import wrap_openai
 
 
 logger = structlog.get_logger(__name__)

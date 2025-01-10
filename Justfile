@@ -1028,7 +1028,15 @@ generate-ai-docs:
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/langgraph/tests \
 			--cxml -o ai_docs/prompts/data/langgraph_docs_test_and_code.xml
 
-	echo "AI documentation generation complete"
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/sdk-py/langgraph_sdk \
+			--cxml -o ai_docs/prompts/data/langgraph_sdk_docs_test_and_code.xml
+
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langsmith-sdk/python/langsmith \
+			--cxml -o ai_docs/prompts/data/langsmith_sdk_code.xml
+
+	@echo "AI documentation generation complete"
 
 
 # Run unit tests in debug mode with extended output

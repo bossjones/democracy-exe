@@ -128,7 +128,7 @@ langgraph>=0.2.45
 langgraph-checkpoint==2.0.9
 langgraph-checkpoint-sqlite>=2.0.1
 langgraph-sdk>=0.1.36
-langsmith==0.1.147
+langsmith>=0.1.147
 lazy-object-proxy>=1.10.0
 levenshtein==0.26.1
 linkify-it-py==2.0.3
@@ -220,7 +220,7 @@ propcache==0.2.1
 proto-plus==1.25.0
 protobuf==4.25.5
 protoc-gen-openapiv2==0.0.1
-psutil==6.1.1
+psutil>=6.1.1
 puremagic==1.28
 pyasn1==0.6.1
 pyasn1-modules==0.4.1

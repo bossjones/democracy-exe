@@ -11,6 +11,7 @@ ENV UV_SYSTEM_PYTHON=1 \
     UV_VERSION=0.5.16 \
     PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     PYTHONFAULTHANDLER=1 \
+    PYTHONDEVMODE=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
