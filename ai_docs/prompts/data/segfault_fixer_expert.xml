@@ -335,6 +335,57 @@
                         ]]>
                     </example>
                 </guideline>
+
+                <guideline>
+                    <name>Event Loop Policy Management</name>
+                    <description>
+                        - Configure custom event loop policies when needed
+                        - Handle policy changes safely between tests
+                        - Restore default policies in teardown
+                        - Handle platform-specific policy requirements
+                        - Ensure proper cleanup of policy changes
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.fixture
+                        def event_loop_policy(request):
+                            """Configure and cleanup custom event loop policies."""
+                            original_policy = asyncio.get_event_loop_policy()
+                            policy = CustomEventLoopPolicy()
+                            asyncio.set_event_loop_policy(policy)
+                            yield policy
+                            asyncio.set_event_loop_policy(original_policy)
+                        ]]>
+                    </example>
+                </guideline>
+
+                <guideline>
+                    <name>Structured Logging in Tests</name>
+                    <description>
+                        - Use structlog for test logging
+                        - Configure logging specifically for test environment
+                        - Capture and verify log messages
+                        - Add context to log messages
+                        - Clean up logging handlers
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.fixture(autouse=True)
+                        def configure_structlog(log_output):
+                            structlog.configure(
+                                processors=[
+                                    structlog.processors.add_log_level,
+                                    structlog.processors.TimeStamper(fmt="iso"),
+                                    log_output
+                                ],
+                                wrapper_class=structlog.make_filtering_bound_logger("DEBUG"),
+                                context_class=dict,
+                                logger_factory=structlog.testing.LogCapture,
+                                cache_logger_on_first_use=True
+                            )
+                        ]]>
+                    </example>
+                </guideline>
             </async_testing_guidelines>
 
             <test_patterns>
@@ -393,6 +444,68 @@
                                 resource.cleanup()
                                 for resource in active_resources
                             ])
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncGeneratorTest">
+                    <description>Pattern for testing async generators and cleanup</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_async_generator():
+                            agen = async_generator_func()
+                            try:
+                                async for item in agen:
+                                    assert item is not None
+                            finally:
+                                await agen.aclose()  # Proper cleanup of async generator
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncMocking">
+                    <description>Pattern for mocking async functions and methods</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_with_async_mock(mocker):
+                            async def async_mock(*args, **kwargs):
+                                return "mocked"
+
+                            mocker.patch(
+                                "module.async_function",
+                                side_effect=async_mock
+                            )
+                            result = await function_under_test()
+                            assert result == "mocked"
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncContextVerification">
+                    <description>Pattern for verifying async context manager behavior</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_async_context():
+                            entered = False
+                            exited = False
+
+                            class TestContext:
+                                async def __aenter__(self):
+                                    nonlocal entered
+                                    entered = True
+                                    return self
+
+                                async def __aexit__(self, exc_type, exc_val, exc_tb):
+                                    nonlocal exited
+                                    exited = True
+
+                            async with TestContext():
+                                assert entered
+                                assert not exited
+                            assert exited
                         ]]>
                     </example>
                 </pattern>
