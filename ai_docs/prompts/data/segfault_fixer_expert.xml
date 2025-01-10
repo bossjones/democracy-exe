@@ -213,6 +213,127 @@
             <recommendation>Test error handling and recovery mechanisms</recommendation>
             <recommendation>Add tests for proper async context management</recommendation>
             <recommendation>Test proper coordination between different execution contexts</recommendation>
+            <recommendation>Ensure event loops are properly scoped and managed in tests</recommendation>
+            <recommendation>Test thread-safe operations from both async and non-async contexts</recommendation>
+            <recommendation>Verify proper cleanup of event loop references</recommendation>
+            <recommendation>Test thread synchronization with explicit coordination mechanisms</recommendation>
+
+            <async_testing_patterns>
+                <pattern name="event_loop_management">
+                    <description>
+                        When testing async code that involves event loops:
+                        - Store event loops at appropriate scope (function, class, module)
+                        - Verify event loop is running before use
+                        - Clean up event loop references after use
+                        - Handle event loop access from different threads properly
+                        - Use proper fixture scopes for event loops
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio(loop_scope="module")
+                        class TestAsync:
+                            # Store loop at class level for shared access
+                            _loop: asyncio.AbstractEventLoop | None = None
+
+                            async def test_remember_loop(self) -> None:
+                                """Test loop storage for shared tests."""
+                                current_loop = asyncio.get_running_loop()
+                                assert isinstance(current_loop, asyncio.AbstractEventLoop)
+                                TestAsync._loop = current_loop
+                                assert current_loop.is_running()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_safe_event_testing">
+                    <description>
+                        When testing thread-safe event coordination:
+                        - Create events in proper async context
+                        - Use explicit thread synchronization
+                        - Test multiple concurrent waiters
+                        - Verify proper cleanup in all scenarios
+                        - Test error handling in different contexts
+                        - Use appropriate timeouts to prevent hangs
+                    </description>
+                    <example>
+                        <![CDATA[
+                        async def test_thread_safe_event(self) -> None:
+                            event = ThreadSafeEvent()  # Create in async context
+                            results: list[bool] = []
+                            ready_event = threading.Event()  # Thread coordination
+
+                            async def waiter() -> None:
+                                try:
+                                    await asyncio.wait_for(event.wait(), timeout=2.0)
+                                    results.append(True)
+                                except TimeoutError:
+                                    results.append(False)
+
+                            def thread_set() -> None:
+                                ready_event.wait(timeout=1.0)  # Wait for signal
+                                event.set()
+
+                            # Coordinate threads explicitly
+                            thread = threading.Thread(target=thread_set)
+                            thread.start()
+                            ready_event.set()
+                            await asyncio.gather(*[waiter() for _ in range(5)])
+                            thread.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="resource_cleanup_verification">
+                    <description>
+                        When testing resource cleanup:
+                        - Verify all resources are properly closed
+                        - Test cleanup during normal operation
+                        - Test cleanup during exceptions
+                        - Verify resource state after cleanup
+                        - Test operations after cleanup
+                        - Ensure proper reference cleanup
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # Test cleanup and post-cleanup state
+                        event.close()
+                        assert event._closed, "Event should be closed"
+                        assert event._event is None, "Internal event should be None"
+                        assert event._loop is None, "Event loop reference should be cleared"
+
+                        # Verify operations after cleanup
+                        event.set()  # Should return silently
+                        event.clear()  # Should return silently
+                        with pytest.raises(RuntimeError, match="Event is closed"):
+                            await event.wait()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_context_validation">
+                    <description>
+                        When testing operations across different thread contexts:
+                        - Test creation in async vs non-async contexts
+                        - Verify proper error handling in wrong contexts
+                        - Test thread-safe operations from different threads
+                        - Ensure proper error messages for context violations
+                        - Test thread coordination mechanisms
+                    </description>
+                    <example>
+                        <![CDATA[
+                        # Test creating event in non-async context
+                        def create_event_in_thread() -> None:
+                            with pytest.raises(RuntimeError,
+                                match="must be created from an async context"):
+                                ThreadSafeEvent()
+
+                        thread = threading.Thread(target=create_event_in_thread)
+                        thread.start()
+                        thread.join()
+                        ]]>
+                    </example>
+                </pattern>
+            </async_testing_patterns>
 
             <iterative_testing_strategy>
                 <description>
