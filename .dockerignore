@@ -374,6 +374,7 @@ notebooks/e2e_evals.ipynb
 # tests/services/cassettes/.*
 democracy_exe/data/chroma/vectorstorage/
 democracy_exe/vendored
+democracy_exe/vendored/*
 
 
 __pycache__/

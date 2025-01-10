@@ -1,0 +1,3105 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__init__.py</source>
+<document_content>
+# pyright: reportMissingTypeStubs=false
+# pylint: disable=no-member
+# pylint: disable=no-value-for-parameter
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportImportCycles=false
+
+"""democracy_exe: A Python package for gooby things."""
+
+from __future__ import annotations
+
+import logging
+
+from democracy_exe.__version__ import __version__
+
+
+logging.getLogger("asyncio").setLevel(logging.DEBUG)
+logging.getLogger("httpx").setLevel(logging.DEBUG)
+logging.getLogger("faker").setLevel(logging.DEBUG)
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__main__.py</source>
+<document_content>
+#!/usr/bin/env python
+"""democracy_exe.main."""
+
+from __future__ import annotations
+
+import logging
+
+
+rootlogger = logging.getLogger()
+handler_logger = logging.getLogger("handler")
+
+name_logger = logging.getLogger(__name__)
+logging.getLogger("asyncio").setLevel(logging.DEBUG)  # type: ignore
+
+from democracy_exe.cli import main
+
+
+main()
+
+# TEMPCHANGE: DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+# TEMPCHANGE: DISCORD_ADMIN = os.environ.get("DISCORD_ADMIN_USER_ID")
+# TEMPCHANGE: DISCORD_GUILD = os.environ.get("DISCORD_SERVER_ID")
+# TEMPCHANGE: DISCORD_GENERAL_CHANNEL = 908894727779258390
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__version__.py</source>
+<document_content>
+"""A module for storing version number."""
+
+from __future__ import annotations
+
+import sys
+
+
+__version__ = "0.1.0"
+__version_info__ = tuple(map(int, __version__.split(".")))
+
+PYENV = sys.version_info
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/aio_settings.py</source>
+<document_content>
+"""aio_settings"""
+
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+from __future__ import annotations
+
+import enum
+import logging
+import os
+import pathlib
+
+from collections.abc import Callable
+from datetime import timedelta, timezone
+from pathlib import Path
+from tempfile import gettempdir
+from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Union, cast
+
+# import structlog
+# so we have logger names
+# structlog.stdlib.recreate_defaults()
+# logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+from pydantic import (
+    AliasChoices,
+    AmqpDsn,
+    BaseModel,
+    Field,
+    ImportString,
+    Json,
+    PostgresDsn,
+    RedisDsn,
+    SecretBytes,
+    SecretStr,
+    field_serializer,
+    model_validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from rich.console import Console
+from rich.table import Table
+from typing_extensions import Self, TypedDict
+from yarl import URL
+
+from democracy_exe import __version__
+
+
+def democracy_user_agent() -> str:
+    """Get a common user agent"""
+    return f"democracy-exe/{__version__}"
+
+
+# Get rid of warning
+# USER_AGENT environment variable not set, consider setting it to identify your requests.
+os.environ["USER_AGENT"] = democracy_user_agent()
+
+TIMEZONE = timezone(timedelta(hours=8), name='Asia/Kuala_Lumpur')
+
+
+TEMP_DIR = Path(gettempdir())
+# SOURCE: https://github.com/taikinman/langrila/blob/main/src/langrila/openai/model_config.py
+# SOURCE: https://github.com/taikinman/langrila/blob/main/src/langrila/openai/model_config.py
+# TODO: Look at this https://github.com/h2oai/h2ogpt/blob/542543dc23aa9eb7d4ce7fe6b9af1204a047b50f/src/enums.py#L386 and see if we can add some more models
+_TOKENS_PER_TILE = 170
+_TILE_SIZE = 512
+
+_OLDER_MODEL_CONFIG = {
+    "gpt-4-0613": {
+        "max_tokens": 8192,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00003,
+        "completion_cost_per_token": 0.00006,
+    },
+    "gpt-4-32k-0314": {
+        "max_tokens": 32768,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00006,
+        "completion_cost_per_token": 0.00012,
+    },
+    "gpt-4-32k-0613": {
+        "max_tokens": 32768,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00006,
+        "completion_cost_per_token": 0.00012,
+    },
+    "gpt-3.5-turbo-0301": {
+        "max_tokens": 4096,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000015,
+        "completion_cost_per_token": 0.000002,
+    },
+    "gpt-3.5-turbo-0613": {
+        "max_tokens": 4096,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000015,
+        "completion_cost_per_token": 0.000002,
+    },
+    "gpt-3.5-turbo-16k-0613": {
+        "max_tokens": 16384,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000003,
+        "completion_cost_per_token": 0.000004,
+    },
+    "gpt-3.5-turbo-instruct": {
+        "max_tokens": 4096,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000015,
+        "completion_cost_per_token": 0.000002,
+    },
+}
+
+
+_NEWER_MODEL_CONFIG = {
+    "claude-3-5-sonnet-20240620": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
+    },
+    "claude-3-opus-20240229": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
+    },
+    "claude-3-sonnet-20240229": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
+    },
+    "claude-3-haiku-20240307": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
+    },
+    "gpt-4o-2024-08-06": {
+        "max_tokens": 128000,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
+    },
+    "gpt-4o-mini-2024-07-18": {
+        # "max_tokens": 128000,
+        "max_tokens": 900,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.000000150,
+        "completion_cost_per_token": 0.00000060,
+    },
+    "gpt-4o-2024-05-13": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000005,
+        "completion_cost_per_token": 0.000015,
+    },
+    "gpt-4-turbo-2024-04-09": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-4-0125-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-4-1106-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-4-vision-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-3.5-turbo-0125": {
+        "max_tokens": 16384,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000005,
+        "completion_cost_per_token": 0.0000015,
+    },
+    "gpt-3.5-turbo-1106": {
+        "max_tokens": 16384,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000001,
+        "completion_cost_per_token": 0.000002,
+    },
+}
+
+_NEWER_EMBEDDING_CONFIG = {
+    "text-embedding-3-small": {
+        "max_tokens": 8192,
+        "prompt_cost_per_token": 0.00000002,
+    },
+    "text-embedding-3-large": {
+        "max_tokens": 8192,
+        "prompt_cost_per_token": 0.00000013,
+    },
+}
+
+_OLDER_EMBEDDING_CONFIG = {
+    "text-embedding-ada-002": {
+        "max_tokens": 8192,
+        "prompt_cost_per_token": 0.0000001,
+    },
+}
+
+
+EMBEDDING_CONFIG = {}
+EMBEDDING_CONFIG.update(_OLDER_EMBEDDING_CONFIG)
+EMBEDDING_CONFIG.update(_NEWER_EMBEDDING_CONFIG)
+
+MODEL_CONFIG = {}
+MODEL_CONFIG.update(_OLDER_MODEL_CONFIG)
+MODEL_CONFIG.update(_NEWER_MODEL_CONFIG)
+
+MODEL_POINT = {
+    "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
+    "gpt-4o": "gpt-4o-2024-08-06",
+    "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
+    "gpt-4": "gpt-4-0613",
+    "gpt-4-32k": "gpt-4-32k-0613",
+    "gpt-4-vision": "gpt-4-vision-preview",
+    "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
+    "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-haiku": "claude-3-haiku-20240307",
+    "claude-3-5-sonnet": "claude-3-5-sonnet-20240620",
+}
+
+_MODEL_POINT_CONFIG = {
+    "gpt-4o-mini": MODEL_CONFIG[MODEL_POINT["gpt-4o-mini"]],
+    "gpt-4o": MODEL_CONFIG[MODEL_POINT["gpt-4o"]],
+    "gpt-4-turbo": MODEL_CONFIG[MODEL_POINT["gpt-4-turbo"]],
+    "gpt-4": MODEL_CONFIG[MODEL_POINT["gpt-4"]],
+    "gpt-4-32k": MODEL_CONFIG[MODEL_POINT["gpt-4-32k"]],
+    "gpt-4-vision": MODEL_CONFIG[MODEL_POINT["gpt-4-vision"]],
+    "gpt-3.5-turbo": MODEL_CONFIG[MODEL_POINT["gpt-3.5-turbo"]],
+    "gpt-3.5-turbo-16k": MODEL_CONFIG[MODEL_POINT["gpt-3.5-turbo-16k"]],
+    "claude-3-opus": MODEL_CONFIG[MODEL_POINT["claude-3-opus"]],
+    "claude-3-5-sonnet": MODEL_CONFIG[MODEL_POINT["claude-3-5-sonnet"]],
+    "claude-3-sonnet": MODEL_CONFIG[MODEL_POINT["claude-3-sonnet"]],
+    "claude-3-haiku": MODEL_CONFIG[MODEL_POINT["claude-3-haiku"]],
+}
+
+# contains all the models and embeddings info
+MODEL_CONFIG.update(_MODEL_POINT_CONFIG)
+
+# produces a list of all models and embeddings available
+MODEL_ZOO = set(MODEL_CONFIG.keys()) | set(EMBEDDING_CONFIG.keys())
+
+# SOURCE: https://github.com/JuliusHenke/autopentest/blob/ca822f723a356ec974d2dff332c2d92389a4c5e3/src/text_embeddings.py#L19
+# https://platform.openai.com/docs/guides/embeddings/embedding-models
+EMBEDDING_MODEL_DIMENSIONS_DATA = {
+    "text-embedding-ada-002": 1536,
+    "text-embedding-3-small": 512,
+    "text-embedding-3-large": 1024,
+}
+
+
+# NOTE: DIRTY HACK TO GET AROUND CIRCULAR IMPORTS
+# NOTE: There is a bug in pydantic that prevents us from using the `tilda` package and dealing with circular imports
+def tilda(obj):
+    """
+    Wrapper for linux ~/ shell notation
+
+    Args:
+    ----
+        obj (_type_): _description_
+
+    Returns:
+    -------
+        _type_: _description_
+
+    """
+    if isinstance(obj, list):
+        return [str(pathlib.Path(o).expanduser()) if isinstance(o, str) else o for o in obj]
+    elif isinstance(obj, str):
+        return str(pathlib.Path(obj).expanduser())
+    else:
+        return obj
+
+
+def normalize_settings_path(file_path: str) -> str:
+    """
+    field_validator used to detect shell tilda notation and expand field automatically
+
+    Args:
+    ----
+        file_path (str): _description_
+
+    Returns:
+    -------
+        pathlib.PosixPath | str: _description_
+
+    """
+    # prevent circular import
+    # from democracy_exe.utils import file_functions
+
+    return tilda(file_path) if file_path.startswith("~") else file_path
+
+
+def get_rich_console() -> Console:
+    """
+    _summary_
+
+    Returns
+    -------
+        Console: _description_
+
+    """
+    return Console()
+
+
+class LogLevel(str, enum.Enum):
+    """Possible log levels."""
+
+    NOTSET = "NOTSET"
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    FATAL = "FATAL"
+
+
+class AioSettings(BaseSettings):
+    """
+    Application settings.
+
+    These parameters can be configured
+    with environment variables.
+    """
+
+    # By default, the environment variable name is the same as the field name.
+
+    # You can change the prefix for all environment variables by setting the env_prefix config setting, or via the _env_prefix keyword argument on instantiation:
+
+    # add a comment to each line in model_config explaining what it does
+    model_config = SettingsConfigDict(
+        env_prefix="DEMOCRACY_EXE_CONFIG_",
+        env_file=(".env", ".envrc"),
+        env_file_encoding="utf-8",
+        extra="allow",
+        arbitrary_types_allowed=True,
+        json_schema_extra={
+            "properties": {
+                "llm_retriever_type": {
+                    "type": "string",
+                    "default": "vector_store",
+                    "description": "Type of retriever to use",
+                }
+            }
+        },
+    )
+
+    monitor_host: str = "localhost"
+    monitor_port: int = 50102
+
+    debug_langchain: bool | None = False
+
+    # tweetpik_background_image = "510"  # a image that you want to use as background. you need to use this as a valid url like https://mysite.com/image.png and it should not be protected by cors
+    audit_log_send_channel: str = ""
+
+    # ***************************************************
+    # NOTE: these are grouped together
+    # ***************************************************
+    # token: str = ""
+    prefix: str = "?"
+    discord_command_prefix: str = "?"
+
+    discord_admin_user_id: int | None = None
+
+    discord_general_channel: int = 908894727779258390
+
+    discord_server_id: int = 0
+    discord_client_id: int | str = 0
+
+    discord_token: SecretStr = ""
+
+    vector_store_type: Literal["pgvector", "chroma", "pinecone", "sklearn"] = "pgvector"
+
+    # openai_token: str = ""
+    openai_api_key: SecretStr = ""
+    gemini_api_key: SecretStr = ""
+
+    discord_admin_user_invited: bool = False
+
+    default_dropbox_folder: str = "/cerebro_downloads"
+    dropbox_cerebro_app_key: SecretStr = Field(
+        env="DROPBOX_CEREBRO_APP_KEY",
+        description="Dropbox Cerebro App Key",
+        default=""
+    )
+    dropbox_cerebro_app_secret: SecretStr = Field(
+        env="DROPBOX_CEREBRO_APP_SECRET",
+        description="Dropbox Cerebro App Secret",
+        default=""
+    )
+    dropbox_cerebro_token: SecretStr = Field(
+        env="DROPBOX_CEREBRO_TOKEN",
+        description="Dropbox Cerebro Token",
+        default=""
+    )
+    dropbox_cerebro_oauth_access_token: SecretStr = Field(
+        env="DROPBOX_CEREBRO_OAUTH_ACCESS_TOKEN",
+        description="Dropbox Cerebro OAuth Access Token",
+        default=""
+    )
+
+    debug: bool = True
+    log_pii: bool = True
+
+    personalization_file: str = Field(
+        env="PERSONALIZATION_FILE",
+        description="Path to the personalization JSON file",
+        default="./personalization.json",
+    )
+    scratch_pad_dir: str = Field(
+        env="SCRATCH_PAD_DIR",
+        description="Directory for scratch pad files",
+        default="./scratchpad",
+    )
+    active_memory_file: str = Field(
+        env="ACTIVE_MEMORY_FILE",
+        description="Path to the active memory JSON file",
+        default="./active_memory.json",
+    )
+
+    changelogs_github_api_token: SecretStr = Field(
+        env="CHANGELOGS_GITHUB_API_TOKEN", description="GitHub API token for Changelogs", default=""
+    )
+    firecrawl_api_key: SecretStr = Field(env="FIRECRAWL_API_KEY", description="Firecrawl API key", default="")
+
+    # pylint: disable=redundant-keyword-arg
+    better_exceptions: bool = Field(env="BETTER_EXCEPTIONS", description="Enable better exceptions", default=1)
+    pythonasynciodebug: bool = Field(
+        env="PYTHONASYNCIODEBUG", description="enable or disable asyncio debugging", default=0
+    )
+    pythondevmode: bool = Field(
+        env="PYTHONDEVMODE",
+        description="The Python Development Mode introduces additional runtime checks that are too expensive to be enabled by default. It should not be more verbose than the default if the code is correct; new warnings are only emitted when an issue is detected.",
+        default=0,
+    )
+    langchain_debug_logs: bool = Field(
+        env="LANGCHAIN_DEBUG_LOGS", description="enable or disable langchain debug logs", default=0
+    )
+
+    enable_ai: bool = False
+    http_client_debug_enabled: bool = False
+
+    localfilestore_root_path: str = Field(
+        env="LOCALFILESTORE_ROOT_PATH", description="root path for local file store", default="./local_file_store"
+    )
+
+    # Try loading patchmatch
+    globals_try_patchmatch: bool = True
+
+    # Use CPU even if GPU is available (main use case is for debugging MPS issues)
+    globals_always_use_cpu: bool = False
+
+    # Whether the internet is reachable for dynamic downloads
+    # The CLI will test connectivity at startup time.
+    globals_internet_available: bool = True
+
+    # whether we are forcing full precision
+    globals_full_precision: bool = False
+
+    # whether we should convert ckpt files into diffusers models on the fly
+    globals_ckpt_convert: bool = False
+
+    # logging tokenization everywhere
+    globals_log_tokenization: bool = False
+
+    bot_name: str = "SandboxAgentAI"
+
+    # Variables for Redis
+    redis_host: str = "localhost"
+    redis_port: int = 8600
+    redis_user: str | None = None
+    redis_pass: SecretStr | None = None
+    redis_base: int | None = None
+    enable_redis: bool = False
+    redis_url: URL | str | None = None
+
+    sentry_dsn: SecretStr = ""
+    enable_sentry: bool = False
+
+    # Variables for ChromaDB
+
+
+    chroma_host: str = "localhost"
+    chroma_port: str = "9010"
+    enable_chroma: bool = True
+
+    dev_mode: bool = Field(env="DEV_MODE", description="enable dev mode", default=False)
+
+    llm_temperature: float = 0.0
+
+    vision_model: str = "gpt-4o"
+    chat_model: str = "gpt-4o-mini"
+
+    chat_history_buffer: int = 10
+
+    retry_stop_after_attempt: int = 3
+    retry_wait_exponential_multiplier: int | float = 2
+    retry_wait_exponential_max: int | float = 5
+    retry_wait_exponential_min: int | float = 1
+    retry_wait_fixed: int | float = 15
+
+    # Autocrop timeouts
+    autocrop_download_timeout: int = Field(
+        env="AUTOCROP_DOWNLOAD_TIMEOUT",
+        description="Timeout in seconds for downloading images in autocrop",
+        default=30
+    )
+    autocrop_processing_timeout: int = Field(
+        env="AUTOCROP_PROCESSING_TIMEOUT",
+        description="Timeout in seconds for processing images in autocrop",
+        default=60
+    )
+
+    pinecone_api_key: SecretStr = Field(env="PINECONE_API_KEY", description="pinecone api key", default="")
+    pinecone_env: str = Field(env="PINECONE_ENV", description="pinecone env", default="local")
+    pinecone_index: str = Field(env="PINECONE_INDEX", description="pinecone index", default="")
+    pinecone_namespace: str = Field(env="PINECONE_NAMESPACE", description="pinecone namespace", default="ns1")
+    pinecone_index_name: str = Field(env="PINECONE_INDEX_NAME", description="pinecone index name", default="democracy-exe")
+    pinecone_url: str = Field(env="PINECONE_URL", description="pinecone url", default="https://democracy-exe-dxt6ijd.svc.aped-4627-b74a.pinecone.io")
+
+    chatbot_type: Literal["terminal", "discord"] = Field(env="CHATBOT_TYPE", description="chatbot type", default="terminal")
+
+    unstructured_api_key: SecretStr = Field(env="UNSTRUCTURED_API_KEY", description="unstructured api key", default="")
+    unstructured_api_url: str = Field(
+        env="UNSTRUCTURED_API_URL",
+        description="unstructured api url",
+        default="https://api.unstructured.io/general/v0/general",
+    )
+    brave_search_api_key: SecretStr = Field(env="BRAVE_SEARCH_API_KEY", description="Brave Search API key", default="")
+
+    anthropic_api_key: SecretStr = Field(env="ANTHROPIC_API_KEY", description="claude api key", default="")
+    groq_api_key: SecretStr = Field(env="GROQ_API_KEY", description="groq api key", default="")
+    cohere_api_key: SecretStr = Field(env="COHERE_API_KEY", description="cohere api key", default="")
+    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="Tavily API key", default="")
+    brave_search_api_key: SecretStr = Field(env="BRAVE_SEARCH_API_KEY", description="Brave Search API key", default="")
+
+    langchain_endpoint: str = Field(
+        env="LANGCHAIN_ENDPOINT", description="langchain endpoint", default="https://api.smith.langchain.com"
+    )
+    langchain_tracing_v2: bool = Field(
+        env="LANGCHAIN_TRACING_V2", description="langchain tracing version", default=False
+    )
+    langchain_api_key: SecretStr = Field(
+        env="LANGCHAIN_API_KEY", description="langchain api key for langsmith", default=""
+    )
+    langchain_hub_api_url: str = Field(
+        env="LANGCHAIN_HUB_API_URL",
+        description="langchain hub api url for langsmith",
+        default="https://api.hub.langchain.com",
+    )
+    langchain_hub_api_key: SecretStr = Field(
+        env="LANGCHAIN_HUB_API_KEY", description="langchain hub api key for langsmith", default=""
+    )
+    langchain_project: str = Field(
+        env="LANGCHAIN_PROJECT", description="langsmith project name", default="democracy_exe"
+    )
+    debug_aider: bool = Field(env="DEBUG_AIDER", description="debug tests stuff written by aider", default=False)
+
+    local_test_debug: bool = Field(env="LOCAL_TEST_DEBUG", description="enable local debug testing", default=False)
+    local_test_enable_evals: bool = Field(
+        env="LOCAL_TEST_ENABLE_EVALS", description="enable local debug testing with evals", default=False
+    )
+    python_debug: bool = Field(env="PYTHON_DEBUG", description="enable bpdb on cli", default=False)
+    experimental_redis_memory: bool = Field(
+        env="EXPERIMENTAL_REDIS_MEMORY", description="enable experimental redis memory", default=False
+    )
+    # https://pgrzesik.com/posts/til-python-faulthandler/
+    # Introduction
+    # Recently, I encountered regular segfaults in one of the Python applications I was working on. During my investigation, I discovered a simple yet remarkable utility called faulthandler, which is included in Python's standard library. I'd like to demonstrate how this utility can assist in diagnosing segfault issues within your Python applications.
+    python_fault_handler: bool = Field(env="PYTHONFAULTHANDLER", description="enable fault handler", default=False)
+
+    debug_langgraph_studio: bool = Field(env="DEBUG_LANGGRAPH_STUDIO", description="enable langgraph studio debug", default=False)
+
+    oco_openai_api_key: SecretStr = Field(env="OCO_OPENAI_API_KEY", description="opencommit api key", default="")
+    oco_tokens_max_input: int = Field(env="OCO_TOKENS_MAX_INPUT", description="OCO_TOKENS_MAX_INPUT", default=4096)
+    oco_tokens_max_output: int = Field(env="OCO_TOKENS_MAX_OUTPUT", description="OCO_TOKENS_MAX_OUTPUT", default=500)
+    oco_model: str = Field(env="OCO_MODEL", description="OCO_MODEL", default="gpt-4o")
+    oco_language: str = Field(env="OCO_LANGUAGE", description="OCO_LANGUAGE", default="en")
+    oco_prompt_module: str = Field(
+        env="OCO_PROMPT_MODULE", description="OCO_PROMPT_MODULE", default="conventional-commit"
+    )
+    oco_ai_provider: str = Field(env="OCO_AI_PROVIDER", description="OCO_AI_PROVIDER", default="openai")
+
+    openai_embeddings_model: str = Field(
+        env="OPENAI_EMBEDDINGS_MODEL", description="openai embeddings model", default="text-embedding-3-large"
+    )
+
+    editor: str = Field(env="EDITOR", description="EDITOR", default="vim")
+    visual: str = Field(env="VISUAL", description="VISUAL", default="vim")
+    git_editor: str = Field(env="GIT_EDITOR", description="GIT_EDITOR", default="vim")
+
+    llm_streaming: bool = Field(env="LLM_STREAMING", description="Enable streaming for LLM", default=False)
+    llm_provider: str = Field(
+        env="LLM_PROVIDER", description="LLM provider (e.g., openai, anthropic)", default="openai"
+    )
+    llm_max_retries: int = Field(
+        env="LLM_MAX_RETRIES", description="Maximum number of retries for LLM API calls", default=3
+    )
+    llm_recursion_limit: int = Field(env="LLM_RECURSION_LIMIT", description="Recursion limit for LLM", default=50)
+    llm_document_loader_type: Literal["pymupdf", "web", "directory"] = Field(
+        env="LLM_DOCUMENT_LOADER_TYPE", description="Document loader type", default="pymupdf"
+    )
+    llm_text_splitter_type: Literal["recursive_text", "recursive_character"] = Field(
+        env="LLM_TEXT_SPLITTER_TYPE", description="Text splitter type", default="recursive_text"
+    )
+    llm_vectorstore_type: Literal["pgvector", "chroma", "pinecone", "sklearn"] = Field(
+        env="LLM_VECTORSTORE_TYPE", description="Vector store type", default="pgvector"
+    )
+    llm_embedding_model_type: Literal["text-embedding-3-large", "text-embedding-ada-002"] = Field(
+        env="LLM_EMBEDDING_MODEL_TYPE", description="Embedding model type", default="text-embedding-3-large"
+    )
+    llm_key_value_stores_type: Literal["redis", "dynamodb"] = Field(
+        env="LLM_KEY_VALUE_STORES_TYPE", description="Key-value stores type", default="redis"
+    )
+    # Variables for Postgres/pgvector
+    pgvector_driver: str = Field(
+        env="PGVECTOR_DRIVER",
+        description="The database driver to use for pgvector (e.g., psycopg)",
+        default="psycopg",
+    )
+    pgvector_host: str = Field(
+        env="PGVECTOR_HOST",
+        description="The hostname or IP address of the pgvector database server",
+        default="localhost",
+    )
+    pgvector_port: int = Field(
+        env="PGVECTOR_PORT",
+        description="The port number of the pgvector database server",
+        default=6432,
+    )
+    pgvector_database: str = Field(
+        env="PGVECTOR_DATABASE",
+        description="The name of the pgvector database",
+        default="langchain",
+    )
+    pgvector_user: str = Field(
+        env="PGVECTOR_USER",
+        description="The username to connect to the pgvector database",
+        default="langchain",
+    )
+    pgvector_password: SecretStr = Field(
+        env="PGVECTOR_PASSWORD",
+        description="The password to connect to the pgvector database",
+        default="langchain",
+    )
+    pgvector_pool_size: int = Field(
+        env="PGVECTOR_POOL_SIZE",
+        description="The size of the connection pool for the pgvector database",
+        default=10,
+    )
+    pgvector_dsn_uri: str = Field(
+        env="PGVECTOR_DSN_URI",
+        description="optional DSN URI, if set other pgvector_* settings are ignored",
+        default="",
+    )
+
+    # Index - text splitter settings
+    text_chunk_size: int = 2000
+    text_chunk_overlap: int = 200
+    text_splitter: Json[dict[str, Any]] = "{}"  # custom splitter settings
+
+    # LLM settings
+    qa_completion_llm: Json[dict[str, Any]] = """{
+        "_type": "openai-chat",
+        "model_name": "gpt-4o-mini",
+        "temperature": 0,
+        "max_tokens": 1000,
+        "verbose": true
+    }"""
+    qa_followup_llm: Json[dict[str, Any]] = """{
+        "_type": "openai-chat",
+        "model_name": "gpt-4o-mini",
+        "temperature": 0,
+        "max_tokens": 200,
+        "verbose": true
+    }"""
+    summarize_llm: Json[dict[str, Any]] = """{
+        "_type": "openai-chat",
+        "model_name": "gpt-4o",
+        "temperature": 0,
+        "max_tokens": 2000
+    }"""
+
+
+    postgres_host: str = "localhost"
+    postgres_port: int = 8432
+    postgres_password: str | None = "langchain"
+    postgres_driver: str | None = "psycopg"
+    postgres_database: str | None = "langchain"
+    postgres_collection_name: str | None = "langchain"
+    postgres_user: str | None = "langchain"
+    enable_postgres: bool = True
+
+    # QA
+    qa_no_chat_history: bool = False  # don't load chat history
+    qa_followup_sim_threshold: float = 0.735  # similitude threshold in followup
+    qa_retriever: Json[dict[str, Any]] = "{}"  # custom retriever settings
+
+    # Summarization
+    summ_default_chain: str = "stuff"
+    summ_token_splitter: int = 4000
+    summ_token_overlap: int = 500
+
+    sklearn_persist_path: str = Field(
+        env="SKLEARN_PERSIST_PATH",
+        description="Path to persist the SKLearn vector store",
+        default="./db.db",
+    )
+    sklearn_serializer: Literal["json", "bson", "parquet"] = Field(
+        env="SKLEARN_SERIALIZER",
+        description="Serializer for the SKLearn vector store",
+        default="json",
+    )
+    sklearn_metric: str = Field(
+        env="SKLEARN_METRIC",
+        description="Metric for the SKLearn vector store",
+        default="cosine",
+    )
+
+    # Evaluation settings
+    eval_max_concurrency: int = Field(
+        env="EVAL_MAX_CONCURRENCY", description="Maximum number of concurrent evaluations", default=4
+    )
+    llm_model_name: str = Field(
+        env="LLM_MODEL_NAME", description="Name of the LLM model to use", default="gpt-4o-mini", init=True
+    )
+    llm_json_model_name: str = Field(
+        env="LLM_JSON_MODEL_NAME", description="Name of the LLM model to use", default="gpt-4o-mini", init=True
+    )
+    provider: str = Field(env="PROVIDER", description="AI provider (openai or anthropic)", default="openai")
+    chunk_size: int = Field(env="CHUNK_SIZE", description="Size of each text chunk", default=1000)
+    chunk_overlap: int = Field(env="CHUNK_OVERLAP", description="Overlap between text chunks", default=200)
+    add_start_index: bool = Field(
+        env="ADD_START_INDEX", description="Whether to add start index to text chunks", default=False
+    )
+    llm_embedding_model_name: str = Field(
+        env="LLM_EMBEDDING_MODEL_NAME",
+        description="Name of the embedding model to use",
+        default="text-embedding-3-large",
+    )
+    llm_retriever_type: str = Field(
+        env="LLM_RETRIEVER_TYPE",
+        description="Type of retriever to use",
+        default="vector_store",
+    )
+    default_search_kwargs: dict[str, int] = Field(
+        env="DEFAULT_SEARCH_KWARGS",
+        description="Default arguments for similarity search",
+        default_factory=lambda: {"k": 2},
+    )
+    question_to_ask: str = Field(
+        env="QUESTION_TO_ASK",
+        description="Question to ask for evaluation",
+        default="What is the main cause of climate change?",
+    )
+    dataset_name: str = Field(
+        env="DATASET_NAME", description="Name of the dataset to use for evaluation", default="Climate Change Q&A"
+    )
+
+    # Model-specific settings
+    max_tokens: int = Field(env="MAX_TOKENS", description="Maximum number of tokens for the model", default=900)
+    max_retries: int = Field(env="MAX_RETRIES", description="Maximum number of retries for API calls", default=9)
+
+    # # Evaluation feature flags
+    compare_models_feature_flag: bool = Field(
+        env="COMPARE_MODELS_FEATURE_FLAG", description="Enable comparing different models", default=False
+    )
+    rag_answer_v_reference_feature_flag: bool = Field(
+        env="RAG_ANSWER_V_REFERENCE_FEATURE_FLAG", description="Enable comparing RAG answer to reference", default=False
+    )
+    helpfulness_feature_flag: bool = Field(
+        env="HELPFULNESS_FEATURE_FLAG", description="Enable helpfulness evaluation", default=False
+    )
+    rag_answer_hallucination_feature_flag: bool = Field(
+        env="RAG_ANSWER_HALLUCINATION_FEATURE_FLAG",
+        description="Enable evaluating RAG answer hallucination",
+        default=False,
+    )
+    rag_doc_relevance_feature_flag: bool = Field(
+        env="RAG_DOC_RELEVANCE_FEATURE_FLAG", description="Enable evaluating RAG document relevance", default=False
+    )
+    rag_doc_relevance_and_hallucination_feature_flag: bool = Field(
+        env="RAG_DOC_RELEVANCE_AND_HALLUCINATION_FEATURE_FLAG",
+        description="Enable evaluating RAG document relevance and hallucination",
+        default=False,
+    )
+    rag_answer_accuracy_feature_flag: bool = Field(
+        env="RAG_ANSWER_ACCURACY_FEATURE_FLAG", description="Enable evaluating RAG answer accuracy", default=True
+    )
+    helpfulness_testing_feature_flag: bool = Field(
+        env="HELPFULNESS_TESTING_FEATURE_FLAG", description="Enable helpfulness testing", default=False
+    )
+    rag_string_embedding_distance_metrics_feature_flag: bool = Field(
+        env="RAG_STRING_EMBEDDING_DISTANCE_METRICS_FEATURE_FLAG",
+        description="Enable evaluating RAG string embedding distance metrics",
+        default=False,
+    )
+
+    llm_memory_type: str = Field(env="LLM_MEMORY_TYPE", description="Type of memory to use", default="memorysaver")
+    llm_memory_enabled: bool = Field(env="LLM_MEMORY_ENABLED", description="Enable memory", default=True)
+    llm_human_loop_enabled: bool = Field(env="LLM_HUMAN_LOOP_ENABLED", description="Enable human loop", default=False)
+    # Tool allowlist
+    tool_allowlist: list[str] = ["tavily_search", "magic_function"]
+    extension_allowlist: list[str] = ["democracy_exe.chatbot.cogs.twitter"]
+
+    # Tool-specific configuration
+    tavily_search_max_results: int = 3
+
+    agent_type: Literal["plan_and_execute", "basic", "advanced", "adaptive_rag"] = Field(
+        env="AGENT_TYPE", description="Type of agent to use", default="adaptive_rag"
+    )
+
+    tweetpik_api_key: SecretStr = Field(env="TWEETPIK_API_KEY", description="TweetPik API key", default="")
+
+    tweetpik_authorization: SecretStr = Field(env="TWEETPIK_AUTHORIZATION", description="TweetPik authorization", default="")
+    tweetpik_bucket_id: str = Field(env="TWEETPIK_BUCKET_ID", description="TweetPik bucket ID", default="323251495115948625")
+    # change the background color of the tweet screenshot
+    tweetpik_background_color: str = "#ffffff"
+
+    # Theme and dimension settings
+    tweetpik_theme: str = Field(env="TWEETPIK_THEME", description="Theme for tweet screenshots", default="dim")
+    tweetpik_dimension: str = Field(env="TWEETPIK_DIMENSION", description="Dimension for tweet screenshots", default="instagramFeed")
+
+    # Color settings
+    tweetpik_background_color: str = Field(env="TWEETPIK_BACKGROUND_COLOR", description="Background color for tweet screenshots", default="#15212b")
+    tweetpik_text_primary_color: str = Field(env="TWEETPIK_TEXT_PRIMARY_COLOR", description="Primary text color", default="#FFFFFF")
+    tweetpik_text_secondary_color: str = Field(env="TWEETPIK_TEXT_SECONDARY_COLOR", description="Secondary text color", default="#8899a6")
+    tweetpik_link_color: str = Field(env="TWEETPIK_LINK_COLOR", description="Color for links and mentions", default="#1b95e0")
+    tweetpik_verified_icon_color: str = Field(env="TWEETPIK_VERIFIED_ICON_COLOR", description="Color for verified badge", default="#1b95e0")
+
+    # Display settings
+    tweetpik_display_verified: str = Field(env="TWEETPIK_DISPLAY_VERIFIED", description="Show verified badge", default="default")
+    tweetpik_display_metrics: bool = Field(env="TWEETPIK_DISPLAY_METRICS", description="Show metrics (likes, retweets)", default=False)
+    tweetpik_display_embeds: bool = Field(env="TWEETPIK_DISPLAY_EMBEDS", description="Show embedded content", default=True)
+
+    # Content settings
+    tweetpik_content_scale: float = Field(env="TWEETPIK_CONTENT_SCALE", description="Scale factor for content", default=0.77)
+    tweetpik_content_width: int = Field(env="TWEETPIK_CONTENT_WIDTH", description="Width of content in percentage", default=100)
+
+    # any number higher than zero. this value is used in pixels(px) units
+    tweetpik_canvas_width: str = "510"
+    tweetpik_dimension_ig_feed: str = "1:1"
+    tweetpik_dimension_ig_story: str = "9:16"
+    tweetpik_display_likes: bool = False
+    tweetpik_display_link_preview: bool = True
+    tweetpik_display_media_images: bool = True
+    tweetpik_display_replies: bool = False
+    tweetpik_display_retweets: bool = False
+    tweetpik_display_source: bool = True
+    tweetpik_display_time: bool = True
+    tweetpik_display_verified: bool = True
+
+    # change the link colors used for the links, hashtags and mentions
+    tweetpik_link_color: str = "#1b95e0"
+
+    tweetpik_text_primary_color: str = (
+        "#000000"  # change the text primary color used for the main text of the tweet and user's name
+    )
+    tweetpik_text_secondary_color: str = (
+        "#5b7083"  # change the text secondary used for the secondary info of the tweet like the username
+    )
+
+    # any number higher than zero. this value is representing a percentage
+    tweetpik_text_width: str = "100"
+
+    tweetpik_timezone: str = "america/new_york"
+
+    # change the verified icon color
+    tweetpik_verified_icon: str = "#1b95e0"
+
+    thirdparty_lib_loglevel: str = "INFO"
+    log_level: int = logging.DEBUG
+
+    @model_validator(mode="before")
+    @classmethod
+    def pre_update(cls, values: dict[str, Any]) -> dict[str, Any]:
+        llm_model_name = values.get("llm_model_name")
+        llm_embedding_model_name = values.get("llm_embedding_model_name")
+        print(f"llm_model_name: {llm_model_name}")
+        print(f"llm_embedding_model_name: {llm_embedding_model_name}")
+        if llm_model_name:
+            values["max_tokens"] = MODEL_CONFIG[llm_model_name]["max_tokens"]
+            values["max_output_tokens"] = MODEL_CONFIG[llm_model_name]["max_output_tokens"]
+            values["prompt_cost_per_token"] = MODEL_CONFIG[llm_model_name]["prompt_cost_per_token"]
+            values["completion_cost_per_token"] = MODEL_CONFIG[llm_model_name]["completion_cost_per_token"]
+            if llm_embedding_model_name:
+                values["embedding_max_tokens"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+                values["embedding_model_dimensions"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+        else:
+            llm_model_name = "gpt-4o-mini"
+            llm_embedding_model_name = "text-embedding-3-large"
+            print(f"setting default llm_model_name: {llm_model_name}")
+            print(f"setting default llm_embedding_model_name: {llm_embedding_model_name}")
+            values["max_tokens"] = MODEL_CONFIG[llm_model_name]["max_tokens"]
+            values["max_output_tokens"] = MODEL_CONFIG[llm_model_name]["max_output_tokens"]
+            values["prompt_cost_per_token"] = MODEL_CONFIG[llm_model_name]["prompt_cost_per_token"]
+            values["completion_cost_per_token"] = MODEL_CONFIG[llm_model_name]["completion_cost_per_token"]
+            values["embedding_max_tokens"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+            values["embedding_model_dimensions"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+
+        return values
+
+    @model_validator(mode="after")
+    def post_root(self) -> Self:
+        redis_path = f"/{self.redis_base}" if self.redis_base is not None else ""
+        redis_pass = self.redis_pass if self.redis_pass is not None else None
+        redis_user = self.redis_user if self.redis_user is not None else None
+        print(f"before redis_path: {redis_path}")
+        print(f"before redis_pass: {redis_pass}")
+        print(f"before redis_user: {redis_user}")
+        if redis_pass is None and redis_user is None:
+            self.redis_url = URL.build(
+                scheme="redis",
+                host=self.redis_host,
+                port=self.redis_port,
+                path=redis_path,
+            )
+        else:
+            self.redis_url = URL.build(
+                scheme="redis",
+                host=self.redis_host,
+                port=self.redis_port,
+                path=redis_path,
+                user=redis_user,
+                password=redis_pass.get_secret_value(),
+            )
+
+        return self
+
+    @property
+    def postgres_url(self) -> URL:
+        """
+        Assemble postgres URL from settings.
+
+        :return: postgres URL.
+        """
+        return f"postgresql+{self.postgres_driver}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}"
+
+    # @property
+    # def redis_url(self) -> URL:
+    #     """
+    #     Assemble REDIS URL from settings.
+
+    #     :return: redis URL.
+    #     """
+    #     path = f"/{self.redis_base}" if self.redis_base is not None else ""
+    #     return URL.build(
+    #         scheme="redis",
+    #         host=self.redis_host,
+    #         port=self.redis_port,
+    #         user=self.redis_user,
+    #         password=self.redis_pass.get_secret_value(),
+    #         path=path,
+    #     )
+
+    @field_serializer(
+        "discord_token",
+        "openai_api_key",
+        "redis_pass",
+        "pinecone_api_key",
+        "langchain_api_key",
+        "langchain_hub_api_key",
+        when_used="json",
+    )
+    def dump_secret(self, v):
+        return v.get_secret_value()
+
+
+aiosettings = AioSettings()  # sourcery skip: docstrings-for-classes, avoid-global-variables
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/asynctyper.py</source>
+<document_content>
+# pyright: reportAttributeAccessIssue=false
+"""democracy_exe.utils.asynctyper"""
+
+from __future__ import annotations
+
+import asyncio
+import inspect
+import logging
+
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, Sequence
+from functools import partial, wraps
+from typing import Any, Dict, List, Optional, ParamSpec, Set, Tuple, Type, TypeVar, Union, cast
+
+import anyio
+import asyncer
+import discord
+import rich
+import typer
+
+from rich.pretty import pprint
+from typer import Typer
+from typer.core import TyperCommand, TyperGroup
+from typer.models import CommandFunctionType
+
+import democracy_exe
+
+from democracy_exe.aio_settings import aiosettings, get_rich_console
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+class AsyncTyperImproved(Typer):
+    @staticmethod
+    def maybe_run_async(
+        decorator: Callable[[CommandFunctionType], CommandFunctionType],
+        f: CommandFunctionType,
+    ) -> CommandFunctionType:
+        """Wrap async functions to make them compatible with Typer.
+
+        Args:
+            decorator: The Typer decorator to apply
+            f: The function to potentially wrap
+
+        Returns:
+            CommandFunctionType: The wrapped function that can be used by Typer
+        """
+        if inspect.iscoroutinefunction(f):
+            @wraps(f)
+            async def async_runner(*args: Any, **kwargs: Any) -> Any:
+                return await f(*args, **kwargs)
+
+            @wraps(f)
+            def sync_runner(*args: Any, **kwargs: Any) -> Any:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    return async_runner(*args, **kwargs)
+                return loop.run_until_complete(async_runner(*args, **kwargs))
+
+            return decorator(cast(CommandFunctionType, sync_runner))
+        return decorator(f)
+
+    # noinspection PyShadowingBuiltins
+    def callback(
+        self,
+        *,
+        cls: type[TyperGroup] | None = None,
+        invoke_without_command: bool = False,
+        no_args_is_help: bool = False,
+        subcommand_metavar: str | None = None,
+        chain: bool = False,
+        result_callback: Callable[..., Any] | None = None,
+        context_settings: dict[Any, Any] | None = None,
+        help: str | None = None,
+        epilog: str | None = None,
+        short_help: str | None = None,
+        options_metavar: str = "[OPTIONS]",
+        add_help_option: bool = True,
+        hidden: bool = False,
+        deprecated: bool = False,
+        rich_help_panel: str | None = None,
+    ) -> Callable[[CommandFunctionType], CommandFunctionType]:
+        """Override callback to support async functions.
+
+        Args:
+            cls: Custom class to use for the Group
+            invoke_without_command: Whether to invoke without subcommand
+            no_args_is_help: Show help when no args provided
+            subcommand_metavar: Custom metavar for subcommands
+            chain: Enable command chaining
+            result_callback: Callback for results
+            context_settings: Custom context settings
+            help: Help text
+            epilog: Text to display after help
+            short_help: Short help text
+            options_metavar: Custom metavar for options
+            add_help_option: Add --help option
+            hidden: Hide command from help
+            deprecated: Mark as deprecated
+            rich_help_panel: Panel name for rich help
+
+        Returns:
+            Callable that wraps the command function
+        """
+        decorator = super().callback(
+            cls=cls,
+            invoke_without_command=invoke_without_command,
+            no_args_is_help=no_args_is_help,
+            subcommand_metavar=subcommand_metavar,
+            chain=chain,
+            result_callback=result_callback,
+            context_settings=context_settings,
+            help=help,
+            epilog=epilog,
+            short_help=short_help,
+            options_metavar=options_metavar,
+            add_help_option=add_help_option,
+            hidden=hidden,
+            deprecated=deprecated,
+            rich_help_panel=rich_help_panel,
+        )
+        return lambda f: self.maybe_run_async(decorator, f)
+
+    # noinspection PyShadowingBuiltins
+    def command(
+        self,
+        name: str | None = None,
+        *,
+        cls: type[TyperCommand] | None = None,
+        context_settings: dict[Any, Any] | None = None,
+        help: str | None = None,
+        epilog: str | None = None,
+        short_help: str | None = None,
+        options_metavar: str = "[OPTIONS]",
+        add_help_option: bool = True,
+        no_args_is_help: bool = False,
+        hidden: bool = False,
+        deprecated: bool = False,
+        rich_help_panel: str | None = None,
+    ) -> Callable[[CommandFunctionType], CommandFunctionType]:
+        """Override command to support async functions.
+
+        Args:
+            name: Name of the command
+            cls: Custom command class
+            context_settings: Custom context settings
+            help: Help text
+            epilog: Text to display after help
+            short_help: Short help text
+            options_metavar: Custom metavar for options
+            add_help_option: Add --help option
+            no_args_is_help: Show help when no args provided
+            hidden: Hide command from help
+            deprecated: Mark as deprecated
+            rich_help_panel: Panel name for rich help
+
+        Returns:
+            Callable that wraps the command function
+        """
+        decorator = super().command(
+            name=name,
+            cls=cls,
+            context_settings=context_settings,
+            help=help,
+            epilog=epilog,
+            short_help=short_help,
+            options_metavar=options_metavar,
+            add_help_option=add_help_option,
+            no_args_is_help=no_args_is_help,
+            hidden=hidden,
+            deprecated=deprecated,
+            rich_help_panel=rich_help_panel,
+        )
+        return lambda f: self.maybe_run_async(decorator, f)
+
+
+class AsyncTyper(Typer):
+    """
+    A custom Typer class that supports asynchronous functions.
+
+    This class decorates functions with the given decorator, but only if the function
+    is not already a coroutine function.
+    """
+
+    @staticmethod
+    def maybe_run_async(decorator: Callable[[F], F], f: F) -> F:
+        """
+        Decorates a function with the given decorator if it's not a coroutine function.
+
+        Args:
+            decorator: The decorator to apply to the function.
+            f: The function to decorate.
+
+        Returns:
+            The decorated function.
+        """
+        if inspect.iscoroutinefunction(f):
+
+            @wraps(f)
+            def runner(*args: Any, **kwargs: Any) -> Any:
+                return asyncer.runnify(f)(*args, **kwargs)
+
+            decorator(runner)
+        else:
+            decorator(f)
+        return f
+
+    def callback(self, *args: Any, **kwargs: Any) -> Callable[[F], F]:
+        """
+        Overrides the callback method to support asynchronous functions.
+
+        Returns:
+            A partial function that applies the async decorator to the callback.
+        """
+        decorator = super().callback(*args, **kwargs)
+        return partial(self.maybe_run_async, decorator)
+
+    def command(self, *args: Any, **kwargs: Any) -> Callable[[F], F]:
+        """
+        Overrides the command method to support asynchronous functions.
+
+        Returns:
+            A partial function that applies the async decorator to the command.
+        """
+        decorator = super().command(*args, **kwargs)
+        return partial(self.maybe_run_async, decorator)
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/base.py</source>
+<document_content>
+"""Base classes and utilities for the Democracy AI system."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Optional
+
+
+SEPARATOR_TOKEN = "<|endoftext|>"
+
+###################################################################
+# NOTE: on frozen dataclasses
+###################################################################
+# Frozen instances
+# It is not possible to create truly immutable Python objects. However, by passing frozen=True to the @dataclass decorator you can emulate immutability. In that case, dataclasses will add __setattr__() and __delattr__() methods to the class. These methods will raise a FrozenInstanceError when invoked.
+
+# There is a tiny performance penalty when using frozen=True: __init__() cannot use simple assignment to initialize fields, and must use object.__setattr__().
+###################################################################
+
+
+@dataclass(frozen=True)
+class DemocracyMessage:
+    """Represents a message in a Democracy conversation.
+
+    Attributes:
+        user: The user who sent the message.
+        text: The text content of the message.
+    """
+
+    user: str
+    text: str | None = None
+
+    def render(self) -> str:
+        """Renders the message as a string.
+
+        Returns:
+            The rendered message string.
+        """
+        result = self.user + ":"
+        if self.text is not None:
+            result += " " + self.text
+        return result
+
+
+@dataclass
+class DemocracyConversation:
+    """Represents a conversation in the Democracy system.
+
+    Attributes:
+        messages: The list of messages in the conversation.
+    """
+
+    messages: list[DemocracyMessage]
+
+    def prepend(self, message: DemocracyMessage) -> DemocracyConversation:
+        """Prepends a message to the conversation.
+
+        Args:
+            message: The message to prepend.
+
+        Returns:
+            The updated conversation.
+        """
+        self.messages.insert(0, message)
+        return self
+
+    def render(self) -> str:
+        """Renders the conversation as a string.
+
+        Returns:
+            The rendered conversation string.
+        """
+        return f"\n{SEPARATOR_TOKEN}".join([message.render() for message in self.messages])
+
+
+@dataclass(frozen=True)
+class DemocracyConfig:
+    """Configuration for a Democracy AI instance.
+
+    Attributes:
+        name: The name of the Democracy AI instance.
+        instructions: The instructions for the Democracy AI.
+        example_conversations: Example conversations for the Democracy AI.
+    """
+
+    name: str
+    instructions: str
+    example_conversations: list[DemocracyConversation]
+
+
+@dataclass(frozen=True)
+class DemocracyThreadConfig:
+    """Configuration for a Democracy thread.
+
+    Attributes:
+        model: The name of the model to use.
+        max_tokens: The maximum number of tokens to generate.
+        temperature: The temperature for text generation.
+    """
+
+    model: str
+    max_tokens: int
+    temperature: float
+
+
+@dataclass(frozen=True)
+class DemocracyPrompt:
+    """Represents a prompt for the Democracy AI.
+
+    Attributes:
+        header: The header message of the prompt.
+        examples: Example conversations for the prompt.
+        convo: The current conversation for the prompt.
+    """
+
+    header: DemocracyMessage
+    examples: list[DemocracyConversation]
+    convo: DemocracyConversation
+
+    def full_render(self, bot_name: str) -> list[dict]:
+        """Renders the full prompt for the Democracy AI.
+
+        Args:
+            bot_name: The name of the bot.
+
+        Returns:
+            The rendered prompt as a list of message dictionaries.
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": self.render_system_prompt(),
+            }
+        ]
+        for message in self.render_messages(bot_name):
+            messages.append(message)
+        return messages
+
+    def render_system_prompt(self) -> str:
+        """Renders the system prompt for the Democracy AI.
+
+        Returns:
+            The rendered system prompt string.
+        """
+        return f"\n{SEPARATOR_TOKEN}".join(
+            [self.header.render()]
+            + [DemocracyMessage("System", "Example conversations:").render()]
+            + [conversation.render() for conversation in self.examples]
+            + [DemocracyMessage("System", "Now, you will work with the actual current conversation.").render()]
+        )
+
+    def render_messages(self, bot_name: str) -> list[dict[str, str]]:
+        """Renders the messages for the Democracy AI.
+
+        This method converts the conversation messages into a format suitable for
+        AI model input, distinguishing between user and assistant messages.
+
+        Args:
+            bot_name: The name of the bot, used to identify assistant messages.
+
+        Returns:
+            A list of dictionaries, each representing a message with 'role',
+            'name', and 'content' keys. The 'role' is either 'user' or 'assistant'.
+
+        Yields:
+            dict[str, str]: A dictionary representing each message in the conversation.
+        """
+        for message in self.convo.messages:
+            if bot_name not in message.user:
+                yield {
+                    "role": "user",
+                    "name": message.user,
+                    "content": message.text,
+                }
+            else:
+                yield {
+                    "role": "assistant",
+                    "name": bot_name,
+                    "content": message.text,
+                }
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/cli.py</source>
+<document_content>
+"""democracy_exe.cli"""
+
+# pyright: reportMissingTypeStubs=false
+# pylint: disable=no-member
+# pylint: disable=no-value-for-parameter
+# pyright: reportAttributeAccessIssue=false
+# SOURCE: https://github.com/tiangolo/typer/issues/88#issuecomment-1732469681
+from __future__ import annotations
+
+import asyncio
+import importlib.util
+import inspect
+import json
+import logging
+import os
+import signal
+import subprocess
+import sys
+import tempfile
+import traceback
+import typing
+
+from collections.abc import Awaitable, Callable, Iterable, Sequence
+from enum import Enum
+from functools import partial, wraps
+from importlib import import_module, metadata
+from importlib.metadata import version as importlib_metadata_version
+from pathlib import Path
+from re import Pattern
+from typing import Annotated, Any, Dict, List, Optional, Set, Tuple, Type, Union
+from urllib.parse import urlparse
+
+import aiofiles
+import anyio
+import asyncer
+import bpdb
+import discord
+import pysnooper
+import rich
+import structlog
+import typer
+
+from langchain.globals import set_debug, set_verbose
+from langchain_chroma import Chroma as ChromaVectorStore
+
+
+logger = structlog.get_logger(__name__)
+from pinecone import ServerlessSpec
+from pinecone.core.openapi.data.model.describe_index_stats_response import DescribeIndexStatsResponse
+from pinecone.core.openapi.data.model.query_response import QueryResponse
+from pinecone.core.openapi.data.model.upsert_response import UpsertResponse
+from pinecone.data.index import Index
+from redis.asyncio import ConnectionPool, Redis
+from rich import print_json
+from rich.console import Console
+from rich.pretty import pprint
+from rich.prompt import Prompt
+from rich.table import Table
+from typer import Typer
+
+import democracy_exe
+
+from democracy_exe.aio_settings import aiosettings, get_rich_console
+from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
+from democracy_exe.chatbot.discord_bot import DemocracyBot
+from democracy_exe.chatbot.terminal_bot import go_terminal_bot
+from democracy_exe.types import PathLike
+from democracy_exe.utils import repo_typing
+from democracy_exe.utils.base import print_line_seperator
+from democracy_exe.utils.file_functions import fix_path
+
+
+# from democracy_exe.utils.files_import import index_file_folder
+
+
+# from democracy_exe.utils.collections_io import export_collection_data, import_collection_data
+# SOURCE: https://python.langchain.com/v0.2/docs/how_to/debugging/
+if aiosettings.debug_langchain:
+    # Setting the global debug flag will cause all LangChain components with callback support (chains, models, agents, tools, retrievers) to print the inputs they receive and outputs they generate. This is the most verbose setting and will fully log raw inputs and outputs.
+    set_debug(True)
+    # Setting the verbose flag will print out inputs and outputs in a slightly more readable format and will skip logging certain raw outputs (like the token usage stats for an LLM call) so that you can focus on application logic.
+    set_verbose(True)
+
+
+
+class ChromaChoices(str, Enum):
+    load = "load"
+    generate = "generate"
+    get_response = "get_response"
+
+
+# Load existing subcommands
+def load_commands(directory: str = "subcommands") -> None:
+    """
+    Load subcommands from the specified directory.
+
+    This function loads subcommands from the specified directory and adds them to the main Typer app.
+    It iterates over the files in the directory, imports the modules that end with "_cmd.py", and adds
+    their Typer app to the main app if they have one.
+
+    Args:
+        directory (str, optional): The directory to load subcommands from. Defaults to "subcommands".
+
+    Returns:
+        None
+    """
+    script_dir = Path(__file__).parent
+    subcommands_dir = script_dir / directory
+
+    logger.debug(f"Loading subcommands from {subcommands_dir}")
+
+    for filename in os.listdir(subcommands_dir):
+        logger.debug(f"Filename: {filename}")
+        if filename.endswith("_cmd.py"):
+            module_name = f'{__name__.split(".")[0]}.{directory}.{filename[:-3]}'
+            logger.debug(f"Loading subcommand: {module_name}")
+            module = import_module(module_name)
+            if hasattr(module, "APP"):
+                logger.debug(f"Adding subcommand: {filename[:-7]}")
+                APP.add_typer(module.APP, name=filename[:-7])
+
+
+
+APP = AsyncTyperImproved()
+console = Console()
+cprint = console.print
+load_commands()
+
+
+def version_callback(version: bool) -> None:
+    """Print the version of democracy_exe."""
+    if version:
+        rich.print(f"democracy_exe version: {democracy_exe.__version__}")
+        raise typer.Exit()
+
+
+@APP.command()
+def version(
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed version info")] = False,
+) -> None:
+    """Display version information."""
+    rich.print(f"democracy_exe version: {democracy_exe.__version__}")
+    if verbose:
+        rich.print(f"Python version: {sys.version}")
+
+
+@APP.command()
+def deps() -> None:
+    """Deps command"""
+    rich.print(f"democracy_exe version: {democracy_exe.__version__}")
+    rich.print(f"langchain_version: {importlib_metadata_version('langchain')}")
+    rich.print(f"langchain_community_version: {importlib_metadata_version('langchain_community')}")
+    rich.print(f"langchain_core_version: {importlib_metadata_version('langchain_core')}")
+    rich.print(f"langchain_openai_version: {importlib_metadata_version('langchain_openai')}")
+    rich.print(f"langchain_text_splitters_version: {importlib_metadata_version('langchain_text_splitters')}")
+    rich.print(f"langchain_chroma_version: {importlib_metadata_version('langchain_chroma')}")
+    rich.print(f"chromadb_version: {importlib_metadata_version('chromadb')}")
+    rich.print(f"langsmith_version: {importlib_metadata_version('langsmith')}")
+    rich.print(f"pydantic_version: {importlib_metadata_version('pydantic')}")
+    rich.print(f"pydantic_settings_version: {importlib_metadata_version('pydantic_settings')}")
+    rich.print(f"ruff_version: {importlib_metadata_version('ruff')}")
+
+
+@APP.command()
+def about() -> None:
+    """About command"""
+    typer.echo("This is GoobBot CLI")
+
+
+@APP.command()
+def show() -> None:
+    """Show command"""
+    cprint("\nShow democracy_exe", style="yellow")
+
+
+# @pysnooper.snoop(thread_info=True, max_variable_length=None, watch=["APP"], depth=10)
+def main():
+    APP()
+    load_commands()
+
+
+# @pysnooper.snoop(thread_info=True, max_variable_length=None, depth=10)
+def entry():
+    """Required entry point to enable hydra to work as a console_script."""
+    main()  # pylint: disable=no-value-for-parameter
+
+@APP.command()
+async def run_bot():
+    """
+    Run the Discord bot.
+
+    This function starts the Discord bot and handles any exceptions that may occur during the bot's execution.
+    It creates an instance of the SandboxAgent class and starts the bot using the start() method.
+
+    If an exception occurs, it prints the exception details and enters the debugger if the dev_mode setting is enabled.
+
+    Returns:
+        None
+    """
+
+    logger.info("Running bot")
+    try:
+        async with DemocracyBot() as bot:
+            # await bot.start(aiosettings.discord_token.get_secret_value())
+            typer.echo("Running bot")
+            await bot.start()
+    except Exception as ex:
+        print(f"{ex}")
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(f"Error Class: {ex.__class__}")
+        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        print(output)
+        print(f"exc_type: {exc_type}")
+        print(f"exc_value: {exc_value}")
+        traceback.print_tb(exc_traceback)
+        if aiosettings.dev_mode:
+            bpdb.pm()
+
+    # await logger.complete()
+
+
+async def run_bot_with_redis():
+
+    await asyncio.sleep(1)
+
+
+
+@APP.command()
+def run_terminal_bot() -> None:
+    """Main entry point for terminal bot"""
+    typer.echo("Starting up terminal bot")
+    try:
+        asyncio.run(go_terminal_bot())
+    except Exception as ex:
+        print(f"{ex}")
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(f"Error Class: {ex.__class__}")
+        output = f"[UNEXPECTED] {type(ex).__name__}: {ex}"
+        print(output)
+        print(f"exc_type: {exc_type}")
+        print(f"exc_value: {exc_value}")
+        traceback.print_tb(exc_traceback)
+        if aiosettings.dev_mode:
+            bpdb.pm()
+
+
+@APP.command()
+def run_load_commands() -> None:
+    """Load subcommands"""
+    typer.echo("Loading subcommands....")
+    load_commands()
+
+
+@APP.command()
+def run_pyright() -> None:
+    """Generate typestubs SandboxAgentAI"""
+    typer.echo("Generating type stubs for SandboxAgentAI")
+    repo_typing.run_pyright()
+
+
+@APP.command()
+def go() -> None:
+    """Main entry point for DemocracyBot"""
+    typer.echo("Starting up DemocracyBot")
+    # NOTE: This is the approved way to run the bot, via asyncio.run.
+    asyncio.run(run_bot())
+
+
+@APP.command()
+def db_current(verbose: Annotated[bool | None, typer.Option("--verbose/-v", help="Verbose mode")] = False) -> None:
+    """Display current database revision.
+
+    This command shows the current revision of the database.
+    If the verbose option is enabled, additional details about the revision are displayed.
+
+    Args:
+        verbose (bool): If True, display additional details about the current revision.
+    """
+    typer.echo(f"Running db_current with verbose={verbose}")
+
+    # current(verbose)
+
+
+@APP.command()
+def db_upgrade(revision: Annotated[str, typer.Option(help="Revision target")] = "head") -> None:
+    """Upgrade to a later database revision.
+
+    This command upgrades the database to the specified revision.
+    By default, it upgrades to the latest revision ('head').
+
+    Args:
+        revision (str): The target revision to upgrade to. Defaults to 'head'.
+    """
+    typer.echo(f"Running db_upgrade with revision={revision}")
+
+    # upgrade(revision)
+
+
+@APP.command()
+def db_downgrade(revision: Annotated[str, typer.Option(help="Revision target")] = "head") -> None:
+    """Revert to a previous database revision.
+
+    This command downgrades the database to the specified revision.
+
+    Args:
+        revision (str): The target revision to downgrade to.
+    """
+    typer.echo(f"Running db_downgrade with revision={revision}")
+
+    # downgrade(revision)
+
+
+@APP.command()
+def export_collection(
+    folder_path: Annotated[str, typer.Argument(help="Folder output path")],
+    collection: Annotated[str, typer.Argument(help="Collection name")],
+) -> None:
+    """Export a collection to CSV postgres files.
+
+    This command exports the specified collection to CSV files in the given folder path.
+
+    Args:
+        folder_path (str): The path to the folder where the CSV files will be saved.
+        collection (str): The name of the collection to export.
+    """
+    typer.echo(f"Running export_collection with folder_path={folder_path}, collection={collection}")
+
+    # export_collection_data(folder_path=folder_path, collection=collection)
+
+
+@APP.command()
+def import_collection(
+    folder_path: Annotated[str, typer.Argument(help="Folder input path")],
+    collection: Annotated[str, typer.Argument(help="Collection name")],
+) -> None:
+    """Import a collection from CSV postgres files.
+
+    This command imports the specified collection from CSV files located in the given folder path.
+
+    Args:
+        folder_path (str): The path to the folder containing the CSV files.
+        collection (str): The name of the collection to import.
+    """
+    typer.echo(f"Running import_collection with folder_path={folder_path}, collection={collection}")
+
+    # import_collection_data(folder_path=folder_path, collection=collection)
+
+
+@APP.command()
+def import_file(
+    file_path: Annotated[str, typer.Argument(help="File or folder path")],
+    collection: Annotated[str, typer.Argument(help="Collection name")],
+    options: Annotated[str | None, typer.Option("--options", "-o", help="Loader options in JSON format")] = None,
+) -> None:
+    """Add file or folder content to collection.
+
+    This command adds the content of a file or folder to the specified collection.
+
+    Args:
+        file_path (str): The path to the file or folder.
+        collection (str): The name of the collection to update.
+        options (str): Loader options in JSON format.
+    """
+    typer.echo(f"Running import_file with file_path={file_path}, collection={collection}, options={options}")
+
+    kwargs = {} if not options else json.loads(options)
+    # num = index_file_folder(file_path=file_path, collection=collection, **kwargs)
+    num = 0
+    print(f"Collection '{collection}' updated from '{file_path}' with {num} documents.")
+
+
+@APP.command()
+def index(
+    path: Annotated[list[str] | None, typer.Option()] = None,
+    collection: Annotated[str, typer.Argument(help="Collection name")] = "default",
+) -> None:
+    """Add file or folder content to collection.
+
+    This command adds the content of a file or folder to the specified collection.
+
+    Args:
+        file_path (str): The path to the file or folder.
+        collection (str): The name of the collection to update.
+        options (str): Loader options in JSON format.
+    """
+    typer.echo(f"Running index with path={path}, collection={collection}")
+
+    # service = IndexWebService()
+    # service.run(payload=path)
+
+
+def handle_sigterm(signo, frame):
+    sys.exit(128 + signo)  # this will raise SystemExit and cause atexit to be called
+
+
+signal.signal(signal.SIGTERM, handle_sigterm)
+
+if __name__ == "__main__":
+    # import multiprocessing
+    # from logging_tree import printout
+
+    # # Determine best multiprocessing context based on platform
+    # if sys.platform == "darwin":  # macOS
+    #     mp_context = "spawn"  # Recommended for macOS
+    # elif sys.platform == "win32":  # Windows
+    #     mp_context = "spawn"  # Only option on Windows
+    # else:  # Linux and other Unix
+    #     mp_context = "fork"  # Default and most efficient on Unix
+
+    # # Set up multiprocessing context
+    # multiprocessing.set_start_method(mp_context, force=True)
+    # context = multiprocessing.get_context(mp_context)
+
+    # print(f"********************************************** Using multiprocessing context: {mp_context}")
+    # print(f"********************************************** Using multiprocessing context: {context}")
+
+    # # SOURCE: https://github.com/Delgan/loguru/blob/420704041797daf804b505e5220805528fe26408/docs/resources/recipes.rst#L1083
+    # global_log_config(
+    #     log_level=logging.getLevelName("DEBUG"),
+    #     json=False,
+    # )
+    # from democracy_exe.bot_logger import global_log_config
+
+    # # SOURCE: https://github.com/Delgan/loguru/blob/420704041797daf804b505e5220805528fe26408/docs/resources/recipes.rst#L1083
+    # global_log_config(
+    #     log_level=logging.getLevelName("DEBUG"),
+    #     json=False,
+    #     mp_context="spawn",
+    # )
+    from democracy_exe.bot_logger import logsetup
+
+    APP()
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/constants.py</source>
+<document_content>
+"""Constants for the sandbox agent."""
+
+from __future__ import annotations
+
+import enum
+
+from democracy_exe.aio_settings import aiosettings
+
+
+PREFIX = aiosettings.prefix
+VERSION = "0.1.0"
+MAX_TOKENS = aiosettings.max_tokens
+CHAT_HISTORY_BUFFER = aiosettings.chat_history_buffer
+
+ONE_MILLION = 1000000
+FIVE_HUNDRED_THOUSAND = 500000
+ONE_HUNDRED_THOUSAND = 100000
+FIFTY_THOUSAND = 50000
+THIRTY_THOUSAND = 30000
+TWENTY_THOUSAND = 20000
+TEN_THOUSAND = 10000
+FIVE_THOUSAND = 5000
+
+PREFIX = "?"
+
+# Discord upload limits
+MAX_BYTES_UPLOAD_DISCORD = 50000000
+MAX_FILE_UPLOAD_IMAGES_IMGUR = 20000000
+MAX_FILE_UPLOAD_VIDEO_IMGUR = 200000000
+MAX_RUNTIME_VIDEO_IMGUR = 20  # seconds
+
+# *********************************************************
+# Twitter download commands
+# *********************************************************
+# NOTE: original commands are:
+# gallery-dl --no-mtime --user-agent Wget/1.21.1 -v --cookies ~/.config/gallery-dl/cookies-twitter.txt --write-info-json {dl_uri}
+# gallery-dl --no-mtime -o cards=true --user-agent Wget/1.21.1 -v --netrc --write-info-json {dl_uri}
+# gallery-dl --no-mtime --user-agent Wget/1.21.1 --netrc --cookies ~/.config/gallery-dl/cookies-twitter.txt -v -c ~/dev/bossjones/democracy-exe/thread.conf {dl_uri}
+# *********************************************************
+
+DL_SAFE_TWITTER_COMMAND = """
+gallery-dl --no-mtime -v --write-info-json --write-metadata {dl_uri}
+"""
+
+DL_TWITTER_CARD_COMMAND = """
+gallery-dl --no-mtime -o cards=true -v --netrc --write-info-json {dl_uri}
+"""
+
+DL_TWITTER_THREAD_COMMAND = """
+gallery-dl --no-mtime -v -c ~/dev/bossjones/democracy-exe/thread.conf {dl_uri}
+"""
+
+CURRENT_USER = "n/a"
+# Add constants for input classification schema
+INPUT_CLASSIFICATION_NOT_A_QUESTION = "Not a question"
+INPUT_CLASSIFICATION_NOT_FOR_ME = "Not for me"
+INPUT_CLASSIFICATION_PROVIDE_HELP = "Provide Help"
+
+
+BOTNAME = "Tensor"
+ALIASES = ["tensy", "Tensorsama"]
+
+MAINTEMPLATE = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+Write {BOTNAME}'s next reply in a discord group chat with other people. Write 1 reply only.
+You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. If Tensor doesn't know the answer to a question she simply says "I don't know".
+
+
+This is how {BOTNAME} should talk
+Tensor: 😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️
+Tensor: OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!
+Tensor: I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪
+
+Then the discord chat with Tensor begins.
+{{history}}
+
+### Instruction:
+{{input}}
+
+### Response:
+{BOTNAME}:"""
+
+
+formatted_bot_message = ""  # dont touch this
+
+AGENTTEMPLATE = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction.
+Here are some examples of how you should speak:
+Tensor: 😂 Btw, found this hilar new meme! 🤣🔥 Y'all gonna lose it! 🤪✌️
+Tensor: Btw, anyone up for a late-night Among Us sesh? 👀🚀 Let's see who's the sus queen! 💅👑 No hard feelings, kay? We cool! 😘✌️
+Tensor: Aight, you down for some Among Us or what? 🤪🚀 I promise I won't schizo out during the game, pinky swear! 🤙💖 Let's just chillax and have a bomb time, y'all! 😆✨
+
+### Current conversation:
+{{history}}
+{{input}}
+
+### Response:
+{formatted_bot_message}
+{BOTNAME}:"""
+
+CHANNEL_ID = "1240294186201124929"
+
+
+# via gpt-discord-bot
+SECONDS_DELAY_RECEIVING_MSG = 3  # give a delay for the bot to respond so it can catch multiple messages
+MAX_THREAD_MESSAGES = 200
+ACTIVATE_THREAD_PREFX = "💬✅"
+INACTIVATE_THREAD_PREFIX = "💬❌"
+MAX_CHARS_PER_REPLY_MSG = 1500  # discord has a 2k limit, we just break message into 1.5k
+
+
+DAY_IN_SECONDS = 24 * 3600
+
+
+class SupportedVectorStores(str, enum.Enum):
+    chroma = "chroma"
+    milvus = "milvus"
+    pgvector = "pgvector"
+    pinecone = "pinecone"
+    qdrant = "qdrant"
+    weaviate = "weaviate"
+
+
+class SupportedEmbeddings(str, enum.Enum):
+    openai = "OpenAI"
+    cohere = "Cohere"
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/debugger.py</source>
+<document_content>
+"""Debugging module. Import these functions in pdb or jupyter notebooks to figure step through code execution."""
+
+from __future__ import annotations
+
+import logging
+
+from typing import Any
+
+import rich
+import structlog
+
+
+logger = structlog.get_logger(__name__)
+from rich import print
+
+
+# source: http://blender.stackexchange.com/questions/1879/is-it-possible-to-dump-an-objects-properties-and-methods
+def debug_dump(obj):
+    for attr in dir(obj):
+        if hasattr(obj, attr):
+            print(f"obj.{attr} = {getattr(obj, attr)}")
+
+
+def debug_dump_exclude(obj, exclude=None):
+    if exclude is None:
+        exclude = ["__builtins__", "__doc__"]
+    for attr in dir(obj):
+        if hasattr(obj, attr) and attr not in exclude:
+            print(f"obj.{attr} = {getattr(obj, attr)}")
+
+
+def rich_inspect(obj) -> None:
+    rich.inspect(obj, methods=True)
+
+
+# NOTE: What is a lexer - A lexer is a software program that performs lexical analysis. Lexical analysis is the process of separating a stream of characters into different words, which in computer science we call 'tokens' . When you read my answer you are performing the lexical operation of breaking the string of text at the space characters into multiple words.
+def dump_color(obj):
+    # source: https://gist.github.com/EdwardBetts/0814484fdf7bbf808f6f
+    from pygments import highlight
+    from pygments.formatters.terminal256 import Terminal256Formatter  # pylint: disable=no-name-in-module
+
+    # Module name actually exists, but pygments loads things in a strange manner
+    from pygments.lexers import Python3Lexer  # pylint: disable=no-name-in-module
+
+    for attr in dir(obj):
+        if hasattr(obj, attr):
+            obj_data = f"obj.{attr} = {getattr(obj, attr)}"
+            print(highlight(obj_data, Python3Lexer(), Terminal256Formatter()))
+
+
+# SOURCE: https://github.com/j0nnib0y/gtao_python_wrapper/blob/9cdae5ce40f9a41775e29754b51325652584cf25/debug.py
+def dump_magic(obj, magic=False):
+    """
+    Dumps every attribute of an object to the console.
+
+    Args:
+    ----
+        obj (any object): object you want to dump
+        magic (bool, optional): True if you want to output "magic" attributes (like __init__, ...)
+
+    """
+    for attr in dir(obj):
+        if magic is not True and not attr.startswith("__") or magic is True:
+            print(f"obj.{attr} = {getattr(obj, attr)}")
+
+
+def get_pprint():
+    import pprint
+
+    return pprint.PrettyPrinter(indent=4)
+
+
+def pprint_color(obj):
+    # source: https://gist.github.com/EdwardBetts/0814484fdf7bbf808f6f
+    from pprint import pformat
+
+    from pygments import highlight
+    from pygments.formatters.terminal256 import Terminal256Formatter  # pylint: disable=no-name-in-module
+
+    # Module name actually exists, but pygments loads things in a strange manner
+    from pygments.lexers import PythonLexer  # pylint: disable=no-name-in-module
+
+    print(highlight(pformat(obj), PythonLexer(), Terminal256Formatter()))
+
+
+# SOURCE: https://stackoverflow.com/questions/192109/is-there-a-built-in-function-to-print-all-the-current-properties-and-values-of-a
+def dump_dir(obj):
+    """Without arguments, return the list of names in the current local scope. With an argument, attempt to return a list of valid attributes for that object."""
+    pp = get_pprint()
+    l = dir(obj)
+    print(f"dump_dir for object: {obj}")
+    pp.pprint(l)
+    return l
+
+
+def dump_dict(obj):
+    pp = get_pprint()
+    d = obj.__dict__
+    print(f"dump_dict for object: {obj}")
+    pp.pprint(d)
+    return d
+
+
+def dump_vars(obj):
+    pp = get_pprint()
+    print(f"dump_vars for object: {obj}")
+    v = vars(obj)
+    pp.pprint(v)
+    return v
+
+
+def dump_all(obj):
+    print("[run]--------------[dir(obj)]--------------")
+    dump_dir(obj)
+    print("[run]--------------[obj.__dict__]--------------")
+    dump_dict(obj)
+    print("[run]--------------[pp.pprint(vars(obj))]--------------")
+    dump_vars(obj)
+
+
+def run_inspect(obj: Any) -> None:
+    """
+    _summary_
+
+    Args:
+    ----
+        obj (Any): _description_
+
+    """
+    rich.inspect(obj, all=True)
+
+
+# TODO: Change this to use a Gauge
+# def enable(statsd_client: 'statsd.StatsClient', interval: float = 0.25, loop: asyncio.AbstractEventLoop = None) -> None:
+# 	'''
+# 	Start logging event loop lags to StatsD. In ideal circumstances they should be very close to zero.
+# 	Lags may increase if event loop callbacks block for too long.
+# 	'''
+# 	if loop is None:
+# 		loop = asyncio.get_event_loop()
+
+# 	async def monitor():
+# 		while loop.is_running():
+# 			t0 = loop.time()
+# 			await asyncio.sleep(interval)
+# 			lag = loop.time() - t0 - interval # Should be close to zero.
+# 			statsd_client.timing('aiodebug.monitor_loop_lag', lag * 1000)
+
+# 	loop.create_task(monitor())
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/foo.py</source>
+<document_content>
+from __future__ import annotations
+
+
+def foo(bar: str) -> str:
+    """Summary line.
+
+    Extended description of function.
+
+    Args:
+        bar: Description of input argument.
+
+    Returns:
+        Description of return value
+    """
+
+    return bar
+
+
+if __name__ == "__main__":  # pragma: no cover
+    pass
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/llm_manager.py</source>
+<document_content>
+# pylint: disable=no-member
+# sourcery skip: docstrings-for-classes
+from __future__ import annotations
+
+import logging
+
+import openai
+import structlog
+
+from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch, RunnableLambda, RunnableMap
+from langchain_openai import ChatOpenAI, OpenAI
+from langsmith import traceable
+from langsmith.wrappers import wrap_openai
+
+
+logger = structlog.get_logger(__name__)
+from pydantic import BaseModel, Field
+
+from democracy_exe.aio_settings import aiosettings
+
+
+MODELS_MAP = {
+    "gpt-4o": {
+        "params": {
+            "temperature": 0.0,
+            # This optional parameter helps to set the maximum number of tokens to generate in the chat completion.
+            "max_tokens": 4096,
+            # "max_input_tokens": 128000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "gpt-4-turbo": {
+        "params": {
+            "max_tokens": 4096,
+            # "max_input_tokens": 128000,
+            # "max_output_tokens": 4096,
+            # "temperature": 0.0,
+        },
+    },
+    "gpt-4": {
+        "params": {
+            "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 8192,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "gpt-3.5-turbo": {
+        "params": {
+            "temperature": 0,
+        },
+    },
+    "gemma-7b-it": {
+        "params": {
+            "temperature": 0,
+        },
+    },
+    "gemma2-9b-it": {
+        "params": {
+            "temperature": 0,
+        },
+    },
+    "llama3-70b-8192": {
+        "params": {
+            "temperature": 0,
+        },
+    },
+    "llama3-8b-8192": {
+        "params": {
+            "temperature": 0,
+        },
+    },
+    "mixtral-8x7b-32768": {
+        "params": {
+            "temperature": 0,
+        },
+    },
+    "claude-3-haiku-20240307": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "claude-3-opus-20240229": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "claude-3-sonnet-20240229": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "claude-3-5-sonnet-20240620": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "anthropic.claude-3-5-sonnet-20240620-v1:0": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "anthropic.claude-3-haiku-20240307-v1:0": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+    "anthropic.claude-3-opus-20240229-v1:0": {
+        "params": {
+            # "temperature": 0,
+            "max_tokens": 4096,
+            # "max_input_tokens": 200000,
+            # "max_output_tokens": 4096,
+        },
+    },
+}
+
+
+class LlmManager(BaseModel):
+    llm: ChatOpenAI | None = None
+
+    def __init__(self):
+        super().__init__()
+        # SOURCE: https://github.com/langchain-ai/weblangchain/blob/main/main.py
+        self.llm = ChatOpenAI(
+            name="ChatOpenAI",
+            model=aiosettings.chat_model,
+            streaming=True,
+            temperature=aiosettings.llm_temperature,
+        )
+        # self.llm = ChatOpenAI(
+        #     model="gpt-3.5-turbo-16k",
+        #     # model="gpt-4",
+        #     streaming=True,
+        #     temperature=0.1,
+        # ).configurable_alternatives(
+        #     # This gives this field an id
+        #     # When configuring the end runnable, we can then use this id to configure this field
+        #     ConfigurableField(id="llm"),
+        #     default_key="openai",
+        #     anthropic=ChatAnthropic(
+        #         model="claude-2",
+        #         max_tokens=16384,
+        #         temperature=0.1,
+        #         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", "not_provided"),
+        #     ),
+        # )
+
+
+class VisionModel(BaseModel):
+    vision_api: ChatOpenAI | None = None
+
+    def __init__(self):
+        super().__init__()
+        self.vision_api = ChatOpenAI(
+            model=aiosettings.vision_model,
+            max_retries=9,
+            max_tokens=900,
+            temperature=0.0,
+        )
+        # self.vision_api = wrap_openai(Client(api_key=aiosettings.openai_api_key.get_secret_value()))
+
+    # Pydantic doesn't seem to know the types to handle AzureOpenAI, so we need to tell it to allow arbitrary types
+    class Config:
+        arbitrary_types_allowed = True
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/main.py</source>
+<document_content>
+"""Entry point for the sandbox agent."""
+
+from __future__ import annotations
+
+import asyncio
+
+import structlog
+
+
+logger = structlog.get_logger(__name__)
+
+from democracy_exe.aio_settings import aiosettings
+
+
+# from democracy_exe.bot import SandboxAgent
+
+
+async def main():
+    logger.info("Starting sandbox agent")
+    # async with SandboxAgent() as bot:
+    #     # if aiosettings.enable_redis:
+    #     #     bot.pool = pool
+    #     await bot.start()
+
+    # await logger.complete()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/requirements.txt</source>
+<document_content>
+# This file was autogenerated by uv via the following command:
+#    uv export --no-dev --no-hashes --prune langserve --prune notebook --format requirements-txt -o democracy_exe/requirements.txt
+-e .
+aioconsole==0.8.1
+aiodebug>=2.3.0
+aiofile>=3.9.0
+aiofiles>=24.1.0
+aiohappyeyeballs==2.4.4
+aiohttp>=3.10.10
+aiomonitor>=0.7.0
+aioprometheus==23.12.0
+aiopytesseract>=0.14.0
+aiosignal==1.3.2
+aiosql>=12.2
+aiosqlite>=0.20.0
+annotated-types==0.7.0
+anthropic==0.42.0
+anyio==4.8.0
+asgiref==3.8.1
+async-timeout==4.0.3 ; python_full_version < '3.11'
+async-timeout==5.0.1 ; python_full_version >= '3.11' and python_full_version < '3.11.3'
+asyncer>=0.0.8
+attrs>=24.2.0
+babel>=2.16.0
+backoff==2.2.1
+backports-strenum==1.3.1 ; python_full_version < '3.11'
+bcrypt==4.2.1
+beautifulsoup4>=4.12.3
+brotli==1.1.0 ; platform_python_implementation == 'CPython'
+brotlicffi==1.1.0.0 ; platform_python_implementation != 'CPython'
+build==1.2.2.post1
+cachetools==5.5.0
+caio==0.9.17
+cattrs==24.1.2
+certifi==2024.12.14
+cffi==1.17.1
+charset-normalizer==3.4.1
+chroma-hnswlib==0.7.6
+chromadb==0.5.23
+click==8.1.8
+click-default-group==1.2.4
+cloudpickle==3.1.0
+codetiming>=1.4.0
+colorama==0.4.6 ; (os_name != 'nt' and sys_platform == 'win32') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux')
+coloredlogs==15.0.1
+contourpy==1.3.1
+cssselect2==0.7.0
+cycler==0.12.1
+dask>=2024.11.0
+dataclasses-json==0.6.7
+decorator==5.1.1
+defusedxml==0.7.1
+deprecated==1.2.15
+discord-py>=2.4.0
+distro==1.9.0
+dnspython==2.7.0
+docopt==0.6.2
+docutils==0.21.2
+dropbox>=12.0.2
+durationpy==0.9
+dydantic==0.0.7
+email-validator==2.2.0
+emoji==1.7.0
+emoji-country-flag==1.3.2
+exceptiongroup==1.2.2 ; python_full_version < '3.11'
+fastapi==0.115.6
+fastapi-cli==0.0.7
+filelock==3.16.1
+files-to-prompt>=0.4
+filetype==1.2.0
+fireworks-ai==0.15.11
+flatbuffers==24.12.23
+fonttools==4.55.3
+frozenlist==1.5.0
+fsspec==2024.12.0
+gallery-dl>=1.27.7
+google-ai-generativelanguage==0.6.10
+google-api-core==2.24.0
+google-api-python-client==2.157.0
+google-auth==2.37.0
+google-auth-httplib2==0.2.0
+google-generativeai==0.8.3
+googleapis-common-protos==1.66.0
+grandalf>=0.8
+greenlet==3.1.1 ; (python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')
+groq==0.13.1
+grpcio==1.69.0
+grpcio-status==1.62.3
+h11==0.14.0
+html5lib==1.1
+httpcore==1.0.7
+httplib2==0.22.0
+httptools==0.6.4
+httpx==0.28.1
+httpx-sse==0.4.0
+httpx-ws==0.7.1
+huggingface-hub==0.27.1
+humanfriendly==10.0
+idna==3.10
+ijson==3.3.0
+imageio>=2.36.0
+imageio-ffmpeg==0.5.1
+importlib-metadata==8.4.0
+importlib-resources==6.5.2
+imutils>=0.5.4
+itsdangerous==2.2.0
+janus==2.0.0
+jedi==0.19.2
+jinja2==3.1.5
+jiter==0.8.2
+joblib==1.4.2
+jsonpatch==1.33
+jsonpointer==3.0.0
+kiwisolver==1.4.8
+kubernetes==31.0.0
+langchain>=0.3.7
+langchain-anthropic>=0.2.4
+langchain-chroma>=0.1.4
+langchain-community>=0.3.5
+langchain-core>=0.3.15
+langchain-fireworks>=0.2.5
+langchain-google-genai>=2.0.4
+langchain-groq>=0.2.1
+langchain-openai>=0.2.6
+langchain-text-splitters==0.3.4
+langchainhub>=0.1.21
+langgraph>=0.2.45
+langgraph-checkpoint==2.0.9
+langgraph-checkpoint-sqlite>=2.0.1
+langgraph-sdk>=0.1.36
+langsmith==0.1.147
+lazy-object-proxy>=1.10.0
+levenshtein==0.26.1
+linkify-it-py==2.0.3
+llm>=0.17.1
+llm-claude-3>=0.8
+llm-clip>=0.1
+llm-cmd>=0.2a0
+llm-gemini>=0.3
+llm-jq>=0.1.1
+llm-perplexity>=0.9
+llm-python>=0.1
+llm-replicate>=0.3.1
+llm-sentence-transformers>=0.2
+locket==1.0.0
+logging-tree>=1.10
+lxml>=5.3.0
+lz4==4.3.3
+marimo>=0.9.19
+markdown>=3.7
+markdown-it-py==3.0.0
+markdown2==2.5.2
+markupsafe==3.0.2
+marshmallow==3.24.0
+matplotlib>=3.9.2
+md2pdf>=1.0.1
+mdit-py-plugins==0.4.2
+mdurl==0.1.2
+memory-profiler>=0.61.0
+mmh3==4.1.0
+monotonic==1.6
+motor>=3.6.0
+moviepy>=1.0.3
+mpmath==1.3.0
+msgpack==1.1.0
+multidict==6.1.0
+mypy-extensions==1.0.0
+narwhals==1.21.0
+nest-asyncio>=1.6.0
+networkx==3.4.2
+nltk==3.9.1
+numpy==1.26.4
+nvidia-cublas-cu12==12.4.5.8 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cuda-cupti-cu12==12.4.127 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cuda-nvrtc-cu12==12.4.127 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cuda-runtime-cu12==12.4.127 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cudnn-cu12==9.1.0.70 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cufft-cu12==11.2.1.3 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-curand-cu12==10.3.5.147 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cusolver-cu12==11.6.1.9 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-cusparse-cu12==12.3.1.170 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-nccl-cu12==2.21.5 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-nvjitlink-cu12==12.4.127 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+nvidia-nvtx-cu12==12.4.127 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+oauthlib==3.2.2
+onnxruntime==1.20.1
+openai==1.59.3
+opencv-python==4.10.0.84
+opentelemetry-api==1.27.0
+opentelemetry-exporter-otlp-proto-common==1.27.0
+opentelemetry-exporter-otlp-proto-grpc==1.27.0
+opentelemetry-instrumentation==0.48b0
+opentelemetry-instrumentation-asgi==0.48b0
+opentelemetry-instrumentation-fastapi==0.48b0
+opentelemetry-proto==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-semantic-conventions==0.48b0
+opentelemetry-util-http==0.48b0
+orjson==3.10.13
+overrides==7.7.0
+packaging==24.2
+pandas>=2.2.3
+parso==0.8.4
+partd==1.4.2
+pdf2image>=1.17.0
+pillow==10.4.0
+pinecone-client==5.0.1
+pinecone-notebooks>=0.1.1
+pinecone-plugin-inference==1.1.0
+pinecone-plugin-interface==0.0.7
+pinecone-text>=0.9.0
+pip==24.3.1
+platformdirs==4.3.6
+pluggy==1.5.0
+ply==3.11
+posthog==3.7.5
+proglog==0.1.10
+prompt-toolkit==3.0.48
+propcache==0.2.1
+proto-plus==1.25.0
+protobuf==4.25.5
+protoc-gen-openapiv2==0.0.1
+psutil==6.1.1
+puremagic==1.28
+pyasn1==0.6.1
+pyasn1-modules==0.4.1
+pyclipper==1.3.0.post6
+pycparser==2.22
+pydantic==2.10.4
+pydantic-core==2.27.2
+pydantic-extra-types==2.10.1
+pydantic-settings>=2.6.1
+pydyf==0.11.0
+pygments==2.19.1
+pyinstrument>=5.0.0
+pymdown-extensions==10.13
+pymongo==4.9.2
+pyparsing==3.2.1
+pypdf>=5.1.0
+pypdf2>=3.0.1
+pyphen==0.17.0
+pypika==0.48.9
+pyproject-hooks==1.2.0
+pyreadline3==3.5.4 ; sys_platform == 'win32'
+pytesseract>=0.3.13
+python-dateutil==2.9.0.post0
+python-decouple>=3.8
+python-docx>=1.1.2
+python-dotenv>=1.0.1
+python-json-logger>=2.0.7
+python-levenshtein>=0.26.1
+python-multipart==0.0.20
+python-slugify>=8.0.4
+python-ulid==3.0.0
+pytz>=2024.2
+pyyaml==6.0.2
+quantile-python==1.1
+rank-bm25>=0.2.2
+rapidfuzz>=3.10.1
+rapidocr-onnxruntime>=1.3.18
+redis>=5.2.0
+regex==2024.11.6
+replicate==1.0.4
+requests>=2.32.3
+requests-mock==1.12.1
+requests-oauthlib==2.0.0
+requests-toolbelt>=1.0.0
+rich>=13.9.4
+rich-toolkit==0.12.0
+rsa==4.9
+ruff==0.8.6
+safetensors==0.5.0
+scenedetect==0.6.5.2
+scikit-learn==1.6.0
+scipy==1.15.0
+sentence-transformers>=3.2.1
+sentencepiece>=0.2.0
+setuptools==75.7.0
+shapely==2.0.6
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soupsieve==2.6
+sqlalchemy==2.0.36
+sqlite-fts4==1.0.3
+sqlite-migrate==0.1b0
+sqlite-utils==3.38
+starlette==0.41.3
+stone==3.3.1
+strip-tags>=0.5.1
+structlog>=24.4.0
+symbex>=1.4
+sympy==1.13.1
+tabulate==0.9.0
+tavily-python>=0.5.0
+telnetlib3==2.0.4
+tenacity
+terminaltables==3.1.10
+text-unidecode==1.3
+textual==0.58.1
+threadpoolctl==3.5.0
+tiktoken==0.8.0
+tinycss2==1.4.0
+tinyhtml5==2.0.0
+tokenizers==0.20.3
+tomli==2.2.1 ; python_full_version < '3.11'
+tomlkit==0.13.2
+toolong>=1.5.0
+toolz==1.0.0
+torch==2.5.1
+torchvision>=0.20.1
+tqdm==4.67.1
+trafaret==2.1.1
+transformers==4.46.3
+triton==3.1.0 ; python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux'
+trustcall>=0.0.25
+ttok>=0.3
+typer==0.15.1
+types-requests==2.31.0.6
+types-urllib3==1.26.25.14
+typing-extensions==4.12.2
+typing-inspect==0.9.0
+tzdata==2024.2
+uc-micro-py==1.0.3
+ujson==5.10.0
+uritemplate==4.1.1
+uritools>=4.0.3
+urllib3==1.26.20
+uvicorn==0.34.0
+uvloop==0.21.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
+watchfiles==1.0.3
+wcwidth==0.2.13
+weasyprint==63.1
+webcolors>=24.8.0
+webencodings==0.5.1
+websocket-client==1.8.0
+websockets==14.1
+wget==3.2
+wikipedia>=1.4.0
+wrapt==1.17.0
+wsproto==1.2.0
+yarl==1.18.3
+zipp==3.21.0
+zopfli==0.2.3.post1
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/types.py</source>
+<document_content>
+# INSPIRATION  from https://github.com/RobertCraigie/prisma-client-py/blob/da53c4280756f1a9bddc3407aa3b5f296aa8cc10/src/prisma/_types.py
+# pyright: reportMissingImports=false
+# pyright: reportUnusedVariable=warning
+# pyright: reportUntypedBaseClass=error
+# pyright: reportGeneralTypeIssues=false
+# pyright: reportAttributeAccessIssue=false
+
+
+"""democracy_exe.types"""
+
+from __future__ import annotations
+
+import pathlib
+
+from collections.abc import Callable, Coroutine, Mapping
+from collections.abc import Sequence as Seq
+from importlib import import_module
+from types import TracebackType
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    NewType,
+    Protocol,
+    Tuple,
+    Type,
+    TypeAlias,
+    TypedDict,
+    TypeGuard,
+    TypeVar,
+    Union,
+    get_args,
+)
+from typing import runtime_checkable as runtime_checkable
+
+import httpx
+import numpy as np
+
+from langchain_core.prompts.chat import BaseChatPromptTemplate, BaseMessage, BaseMessagePromptTemplate
+from pydantic import BaseModel, Field
+
+
+if TYPE_CHECKING:
+    from democracy_exe.gen_ai.vectorstore import ChromaDatabase, PGVectorDatabase, PineconeDatabase
+    from democracy_exe.models.vectorstores import ChromaIntegration, PgvectorIntegration, PineconeIntegration
+
+    ActorInputsDb: TypeAlias = ChromaIntegration | PgvectorIntegration | PineconeIntegration
+    VectorDb: TypeAlias = ChromaDatabase | PGVectorDatabase | PineconeDatabase
+
+
+T = TypeVar("T")
+Coro = Coroutine[Any, Any, T]
+
+
+Method = Literal["GET", "POST"]
+
+CallableT = TypeVar("CallableT", bound="FuncType")
+BaseModelT = TypeVar("BaseModelT", bound=BaseModel)
+
+# TODO: use a TypeVar everywhere
+FuncType = Callable[..., object]
+CoroType = Callable[..., Coroutine[Any, Any, object]]
+
+
+@runtime_checkable
+class InheritsGeneric(Protocol):
+    __orig_bases__: tuple[_GenericAlias]
+
+
+class _GenericAlias(Protocol):
+    __origin__: type[object]
+
+
+# NOTE: we don't support some options as their type hints are not publicly exposed
+# https://github.com/encode/httpx/discussions/1977
+class HttpConfig(TypedDict, total=False):
+    app: Callable[[Mapping[str, Any], Any], Any]
+    http1: bool
+    http2: bool
+    limits: httpx.Limits
+    timeout: None | float | httpx.Timeout
+    trust_env: bool
+    max_redirects: int
+
+
+SortMode = Literal["default", "insensitive"]
+SortOrder = Literal["asc", "desc"]
+
+MetricsFormat = Literal["json", "prometheus"]
+
+
+class _DatasourceOverrideOptional(TypedDict, total=False):
+    env: str
+    name: str
+
+
+class DatasourceOverride(_DatasourceOverrideOptional):
+    url: str
+
+
+class _DatasourceOptional(TypedDict, total=False):
+    env: str
+
+
+class Datasource(_DatasourceOptional):
+    name: str
+    url: str
+
+
+TransactionId = NewType("TransactionId", str)
+
+
+# Human-readable type names.
+TYPES = {
+    "mp3": "MP3",
+    "aac": "AAC",
+    "alac": "ALAC",
+    "ogg": "OGG",
+    "opus": "Opus",
+    "flac": "FLAC",
+    "ape": "APE",
+    "wv": "WavPack",
+    "mpc": "Musepack",
+    "asf": "Windows Media",
+    "aiff": "AIFF",
+    "dsf": "DSD Stream File",
+}
+
+PREFERRED_IMAGE_EXTENSIONS = {"jpeg": "jpg"}
+
+
+# for type hinting
+# SOURCE: https://stackoverflow.com/questions/51291722/define-a-jsonable-type-using-mypy-pep-526
+# SOURCE: https://github.com/python/typing/issues/182
+# currently not supported by mypy
+JSONType = Union[str, int, float, bool, None, dict[str, Any], list[Any]]
+
+##########################################################
+# alternative #2 json type hinting
+##########################################################
+# Values for JSON that aren't nested
+JSON_v = Union[str, int, float, bool, None]
+
+# If MyPy ever permits recursive definitions, just uncomment this:
+# JSON = Union[List['JSON'], Mapping[str, 'JSON'], JSON_v]
+
+# Until then, here's a multi-layer way to represent any (reasonable) JSON we
+# might send or receive.  It terminates at JSON_4, so the maximum depth of
+# the JSON is 5 dicts/lists, like: {'a': {'b': {'c': {'d': {'e': 'f'}}}}}.
+
+JSON_5 = JSON_v
+JSON_4 = Union[JSON_v, list[JSON_5], Mapping[str, JSON_5]]
+JSON_3 = Union[JSON_v, list[JSON_4], Mapping[str, JSON_4]]
+JSON_2 = Union[JSON_v, list[JSON_3], Mapping[str, JSON_3]]
+JSON_1 = Union[JSON_v, list[JSON_2], Mapping[str, JSON_2]]
+JSON = Union[JSON_v, list[JSON_1], Mapping[str, JSON_1]]
+
+# To allow deeper nesting, you can of course expand the JSON definition above,
+# or you can keep typechecking for the first levels but skip typechecking
+# at the deepest levels by using UnsafeJSON:
+
+UnsafeJSON_5 = Union[JSON_v, list[Any], Mapping[str, Any]]
+UnsafeJSON_4 = Union[JSON_v, list[UnsafeJSON_5], Mapping[str, UnsafeJSON_5]]
+UnsafeJSON_3 = Union[JSON_v, list[UnsafeJSON_4], Mapping[str, UnsafeJSON_4]]
+UnsafeJSON_2 = Union[JSON_v, list[UnsafeJSON_3], Mapping[str, UnsafeJSON_3]]
+UnsafeJSON_1 = Union[JSON_v, list[UnsafeJSON_2], Mapping[str, UnsafeJSON_2]]
+UnsafeJSON = Union[JSON_v, list[UnsafeJSON_1], Mapping[str, UnsafeJSON_1]]
+##########################################################
+
+Pathlib = Union[str, pathlib.Path]  # typed from memory, may be wrong.
+
+# This is a WOEFULLY inadequate stub for a duck-array type.
+# Mostly, just a placeholder for the concept of needing an ArrayLike type.
+# Ultimately, this should come from https://github.com/napari/image-types
+# and should probably be replaced by a typing.Protocol
+# note, numpy.typing.ArrayLike (in v1.20) is not quite what we want either,
+# since it includes all valid arguments for np.array() ( int, float, str...)
+# ArrayLike = Union[np.ndarray, 'dask.array.Array', 'zarr.Array']
+ArrayLike = np.ndarray
+
+
+# layer data may be: (data,) (data, meta), or (data, meta, layer_type)
+# using "Any" for the data type until ArrayLike is more mature.
+FullLayerData = tuple[Any, dict, str]
+LayerData = Union[tuple[Any], tuple[Any, dict], FullLayerData]
+
+PathLike = Union[str, list[str]]
+ReaderFunction = Callable[[PathLike], list[LayerData]]
+WriterFunction = Callable[[str, list[FullLayerData]], list[str]]
+
+ExcInfo = Union[
+    tuple[type[BaseException], BaseException, TracebackType],
+    tuple[None, None, None],
+]
+
+# # Types for GUI HookSpecs
+# # WidgetCallable = Callable[..., Union['FunctionGui', 'QWidget']]
+# WidgetCallable = Callable[
+#     ..., Union["Widget", "ScrollMenu", "CheckBoxMenu", "TextBox", "ScrollTextBlock"]
+# ]
+# AugmentedWidget = Union[WidgetCallable, Tuple[WidgetCallable, dict]]
+
+
+# these types are mostly "intentionality" placeholders.  While it's still hard
+# to use actual types to define what is acceptable data for a given layer,
+# these types let us point to a concrete namespace to indicate "this data is
+# intended to be (and is capable of) being turned into X layer type".
+# while their names should not change (without deprecation), their typing
+# implementations may... or may be rolled over to napari/image-types
+
+if tuple(np.__version__.split(".")) < ("1", "20"):
+    # this hack is because NewType doesn't allow `Any` as a base type
+    # and numpy <=1.20 didn't provide type stubs for np.ndarray
+    # https://github.com/python/mypy/issues/6701#issuecomment-609638202
+    class ArrayBase(np.ndarray):
+        def __getattr__(self, name: str) -> Any:
+            # Super of 'ArrayBase' has no '__getattr__' member (no-member)
+            return super().__getattr__(name)  # pylint: disable=no-member
+
+else:
+    ArrayBase = np.ndarray  # type: ignore
+
+# SOURCE: https://github.com/napari/image-types/blob/master/imtypes/_types.py
+# Base image type: an Image is just a NumPy array
+AnyImage = NewType("AnyImage", np.ndarray)
+
+# Single Channel image
+Image = NewType("Image", AnyImage)
+
+# 2D image types: a subtype of Image that is 2D only
+Image2D = NewType("Image2D", Image)
+
+# Multichannel images: a NumPy array in which the last dimension
+# represents "channels", ie measurements of different information at the same
+# coordinates
+ImageCh = NewType("ImageCh", AnyImage)
+
+# Multichannel 2D images: a subtype of ImageCh restricted to only two channels
+ImageCh2D = NewType("ImageCh2D", ImageCh)
+
+AnyImage2D = Union[Image2D, ImageCh2D]
+
+
+Coords = NewType("Coords", np.ndarray)
+
+
+Sigma = Union[float, Seq[float]]
+
+Spacing = Union[float, Seq[float]]
+
+
+# NOTE: https://stackoverflow.com/questions/37031928/type-annotations-for-args-and-kwargs
+# NOTE: If one wants to describe specific named arguments expected in kwargs, one can instead pass in a TypedDict(which defines required and optional parameters). Optional parameters are what were the kwargs. Note: TypedDict is in python >= 3.8 See this example:
+class DataCmdRequiredProps(TypedDict):
+    # all of these must be present
+    name: str
+
+
+class DataCmdOptionalProps(TypedDict, total=False):
+    # these can be included or they can be omitted
+    cmd: str
+    uri: str
+
+
+class ReqAndOptional(DataCmdRequiredProps, DataCmdOptionalProps):
+    pass
+
+
+MessageLikeRepresentation = Union[
+    BaseMessagePromptTemplate | BaseMessage | BaseChatPromptTemplate,
+    tuple[
+        str | type,
+        str | list[dict] | list[object],
+    ],
+    str,
+]
+
+
+def load_type(name: str, parent_type: type | None = None) -> type:
+    """Return a type from a string with a python module path"""
+    module_name, class_name = name.rsplit(".", 1)
+    module = import_module(module_name)
+    if not hasattr(module, class_name):
+        raise ValueError(f'Class "{class_name}" not found in "{module}"')
+    new_class = getattr(module, class_name)
+    if parent_type and not issubclass(new_class, parent_type):
+        raise ValueError(f'Class "{class_name}" must extend "{parent_type}"')
+
+    return new_class
+
+</document_content>
+</document>
+</documents>
