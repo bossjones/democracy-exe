@@ -1128,14 +1128,14 @@ generate-langgraph-dockerfile-langraph-simple:
 	@echo "🚀 Updating requirements.txt from pyproject.toml for use with Langgraph studio"
 	./update_requirements.sh
 	langgraph dockerfile -c langgraph.json Dockerfile
+	echo "" >> Dockerfile
+	echo "CMD bash -l" >> Dockerfile
+	echo "" >> Dockerfile
 	cat Dockerfile
 
 # Build docker image for debugging and testing containers (NOTE: this is a langgraph specific dockerfile, use this to verify that the langgraph studio version of the dockerfile is working)
 docker-build-langraph:
 	@just generate-langgraph-dockerfile-langraph-simple
-	echo "" >> Dockerfile
-	echo "CMD bash -l" >> Dockerfile
-	echo "" >> Dockerfile
 	docker build -f Dockerfile -t democracy-langraph .
 
 # Run docker image for debugging
