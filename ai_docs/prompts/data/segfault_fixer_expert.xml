@@ -213,68 +213,278 @@
             <recommendation>Test error handling and recovery mechanisms</recommendation>
             <recommendation>Add tests for proper async context management</recommendation>
             <recommendation>Test proper coordination between different execution contexts</recommendation>
-        </testing_recommendations>
 
-        <code_patterns>
-            <pattern name="SafeFileHandler">
-                <description>Pattern for safe file operations with proper cleanup</description>
-                <example>
-                    async with SafeFileHandler(path, mode="r") as f:
-                        content = await f.read()
-                </example>
-            </pattern>
+            <async_testing_guidelines>
+                <guideline>
+                    <name>Event Loop Management</name>
+                    <description>
+                        - Use @pytest.mark.asyncio for all async tests
+                        - Configure asyncio_mode = auto in pytest config
+                        - Use loop_scope="module" for class-based tests sharing a loop
+                        - Initialize loops properly with _async_setup_hook()
+                        - Clean up loops in teardown with shutdown_asyncgens() and close()
+                        - Handle event loop lifecycle consistently across tests
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio(loop_scope="module")
+                        class TestAsyncOperations:
+                            async def test_async_operation(self):
+                                await self.setup_loop()
+                                try:
+                                    await self.run_test()
+                                finally:
+                                    await self.cleanup_loop()
+                        ]]>
+                    </example>
+                </guideline>
 
-            <pattern name="ThreadPoolExecutor">
-                <description>Pattern for proper thread pool management</description>
-                <example>
-                    with ThreadPoolExecutor() as pool:
-                        try:
-                            result = await loop.run_in_executor(pool, func)
-                        finally:
-                            pool.shutdown(wait=True)
-                </example>
-            </pattern>
+                <guideline>
+                    <name>Resource Cleanup</name>
+                    <description>
+                        - Clear shared resources between tests
+                        - Use fixtures for proper setup/teardown
+                        - Implement proper cleanup in async context managers
+                        - Handle executor shutdown carefully to avoid deadlocks
+                        - Close all async generators before loop shutdown
+                        - Ensure proper cleanup order in teardown
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest_asyncio.fixture
+                        async def database():
+                            db = await setup_test_db()
+                            yield db
+                            await db.cleanup()
+                        ]]>
+                    </example>
+                </guideline>
 
-            <pattern name="AsyncContextManager">
-                <description>Pattern for proper async resource management</description>
-                <example>
-                    async def __aexit__(self, exc_type, exc_val, exc_tb):
-                        try:
-                            await self.cleanup()
-                        finally:
-                            await self.close()
-                </example>
-            </pattern>
+                <guideline>
+                    <name>Error Handling</name>
+                    <description>
+                        - Re-raise errors in test environment for better debugging
+                        - Use structured logging for test output
+                        - Implement proper exception boundaries
+                        - Add comprehensive error context
+                        - Track and log all async operations
+                        - Handle timeouts properly
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_with_error_handling():
+                            with structlog.testing.capture_logs() as logs:
+                                try:
+                                    await async_operation()
+                                except Exception as e:
+                                    assert "expected error" in str(e)
+                                    assert any(
+                                        "error_event" in log.get("event")
+                                        for log in logs
+                                    )
+                        ]]>
+                    </example>
+                </guideline>
 
-            <pattern name="EventLoopSafety">
-                <description>Pattern for safe event loop operations</description>
-                <example>
-                    async def io_operation():
-                        return await loop.run_in_executor(None, blocking_io_func)
-                </example>
-            </pattern>
+                <guideline>
+                    <name>Test Organization</name>
+                    <description>
+                        - Group related tests in classes with shared loop
+                        - Use fixtures for common setup/teardown
+                        - Separate unit and integration tests
+                        - Add proper type annotations for test functions
+                        - Document test requirements and assumptions
+                        - Maintain consistent test structure
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        @pytest.mark.integration
+                        class TestIntegration:
+                            @pytest_asyncio.fixture(autouse=True)
+                            async def setup(self):
+                                self.resource = await setup_test_resource()
+                                yield
+                                await cleanup_test_resource(self.resource)
+                        ]]>
+                    </example>
+                </guideline>
 
-            <pattern name="ThreadSynchronization">
-                <description>Pattern for proper thread synchronization</description>
-                <example>
-                    self._lock = asyncio.Lock()
-                    async with self._lock:
-                        await self._perform_operation()
-                </example>
-            </pattern>
+                <guideline>
+                    <name>Thread Safety Testing</name>
+                    <description>
+                        - Use thread-safe event handling in tests
+                        - Implement proper synchronization for shared resources
+                        - Handle concurrent operations carefully
+                        - Use proper thread pool management
+                        - Clean up thread resources in teardown
+                        - Test thread interaction scenarios
+                    </description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_thread_safety():
+                            async with ThreadPoolManager() as pool:
+                                futures = [
+                                    pool.submit(thread_operation)
+                                    for _ in range(10)
+                                ]
+                                results = await asyncio.gather(*futures)
+                                assert all(results)
+                        ]]>
+                    </example>
+                </guideline>
+            </async_testing_guidelines>
 
-            <pattern name="ResourceCleanup">
-                <description>Pattern for comprehensive resource cleanup</description>
-                <example>
-                    async def cleanup(self):
-                        async with self._cleanup_lock:
+            <test_patterns>
+                <pattern name="AsyncFixture">
+                    <description>Pattern for async fixture setup and teardown</description>
+                    <example>
+                        <![CDATA[
+                        @pytest_asyncio.fixture
+                        async def database():
+                            db = await setup_test_db()
+                            yield db
+                            await db.cleanup()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="SharedLoopTest">
+                    <description>Pattern for tests sharing an event loop</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio(loop_scope="module")
+                        class TestSharedLoop:
+                            loop: asyncio.AbstractEventLoop
+
+                            async def test_remember_loop(self):
+                                self.loop = asyncio.get_running_loop()
+
+                            async def test_using_loop(self):
+                                assert self.loop is asyncio.get_running_loop()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncErrorBoundary">
+                    <description>Pattern for testing async error handling</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_error_boundary():
+                            with pytest.raises(CustomError) as exc_info:
+                                async with error_boundary():
+                                    await failing_operation()
+                            assert "expected error" in str(exc_info.value)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ResourceCleanup">
+                    <description>Pattern for comprehensive resource cleanup in tests</description>
+                    <example>
+                        <![CDATA[
+                        @pytest_asyncio.fixture(autouse=True)
+                        async def cleanup_resources():
+                            yield
+                            await asyncio.gather(*[
+                                resource.cleanup()
+                                for resource in active_resources
+                            ])
+                        ]]>
+                    </example>
+                </pattern>
+            </test_patterns>
+
+            <configuration>
+                <pytest_config>
+                    <![CDATA[
+                    # pytest.ini or pyproject.toml
+                    [tool.pytest.ini_options]
+                    asyncio_mode = "auto"
+                    markers = [
+                        "asyncio: mark test as async",
+                        "integration: mark as integration test",
+                    ]
+                    ]]>
+                </pytest_config>
+            </configuration>
+
+            <code_patterns>
+                <pattern name="SafeFileHandler">
+                    <description>Pattern for safe file operations with proper cleanup</description>
+                    <example>
+                        <![CDATA[
+                        async with SafeFileHandler(path, mode="r") as f:
+                            content = await f.read()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ThreadPoolExecutor">
+                    <description>Pattern for proper thread pool management</description>
+                    <example>
+                        <![CDATA[
+                        with ThreadPoolExecutor() as pool:
                             try:
-                                await self._cleanup_resources()
+                                result = await loop.run_in_executor(pool, func)
                             finally:
-                                self._closed = True
-                </example>
-            </pattern>
-        </code_patterns>
+                                pool.shutdown(wait=True)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncContextManager">
+                    <description>Pattern for proper async resource management</description>
+                    <example>
+                        <![CDATA[
+                        async def __aexit__(self, exc_type, exc_val, exc_tb):
+                            try:
+                                await self.cleanup()
+                            finally:
+                                await self.close()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="EventLoopSafety">
+                    <description>Pattern for safe event loop operations</description>
+                    <example>
+                        <![CDATA[
+                        async def io_operation():
+                            return await loop.run_in_executor(None, blocking_io_func)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ThreadSynchronization">
+                    <description>Pattern for proper thread synchronization</description>
+                    <example>
+                        <![CDATA[
+                        self._lock = asyncio.Lock()
+                        async with self._lock:
+                            await self._perform_operation()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="ComprehensiveCleanup">
+                    <description>Pattern for comprehensive resource cleanup</description>
+                    <example>
+                        <![CDATA[
+                        async def cleanup(self):
+                            async with self._cleanup_lock:
+                                try:
+                                    await self._cleanup_resources()
+                                finally:
+                                    self._closed = True
+                        ]]>
+                    </example>
+                </pattern>
+            </code_patterns>
+        </testing_recommendations>
     </info>
 
     <implementation>
