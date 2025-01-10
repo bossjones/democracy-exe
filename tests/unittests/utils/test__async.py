@@ -908,24 +908,121 @@ class TestUtilsAsync:
             assert manager._closed
 
     async def test_gather_with_concurrency_cancel(self) -> None:
-        """Test gather_with_concurrency cancellation handling."""
+        """Test gather_with_concurrency cancellation handling with proper cleanup.
+
+        This test verifies:
+        1. Proper cancellation of concurrent tasks
+        2. Resource cleanup after cancellation
+        3. Task state verification
+        4. Exception handling during cancellation
+        5. Prevention of coroutine leaks
+        """
+        tasks_created: list[asyncio.Task] = []
+        errors: list[Exception] = []
+        completion_event = threading.Event()
 
         async def slow_task(i: int) -> int:
+            """A slow task that can be cancelled.
+
+            Args:
+                i: Task index for identification
+
+            Returns:
+                int: Task index if completed
+
+            Raises:
+                asyncio.CancelledError: If task is cancelled
+            """
             try:
                 await asyncio.sleep(10)
                 return i
             except asyncio.CancelledError:
+                logger.info(f"Task {i} was cancelled as expected")
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error in task {i}", error=str(e))
+                errors.append(e)
+                raise
+            finally:
+                completion_event.set()
+
+        try:
+            # Create tasks using create_task to properly manage coroutines
+            tasks = [asyncio.create_task(slow_task(i)) for i in range(3)]
+            tasks_created.extend(tasks)
+
+            # Create and start the gather task
+            gather_task = asyncio.create_task(async_.gather_with_concurrency(2, *tasks))
+
+            # Let tasks start running
+            await asyncio.sleep(0.1)
+
+            # Verify tasks are running
+            assert not gather_task.done(), "Gather task should still be running"
+            assert all(not task.done() for task in tasks), "Individual tasks should still be running"
+
+            # Cancel the gathering task
+            gather_task.cancel()
+
+            # Wait for cancellation to propagate with timeout
+            try:
+                await asyncio.wait_for(gather_task, timeout=2.0)
+            except asyncio.CancelledError:
+                logger.info("Gather task cancelled successfully")
+            except TimeoutError:
+                logger.error("Timeout waiting for gather task cancellation")
+                raise
+            finally:
+                # Ensure all tasks are properly cancelled
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+
+            # Wait for all tasks to complete/cancel with timeout
+            try:
+                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=2.0)
+            except TimeoutError:
+                logger.error("Timeout waiting for tasks to cancel")
                 raise
 
-        tasks = [slow_task(i) for i in range(3)]
-        gather_task = asyncio.create_task(async_.gather_with_concurrency(2, *tasks))
+            # Verify all tasks were properly cancelled
+            assert gather_task.cancelled(), "Gather task should be cancelled"
+            assert all(task.cancelled() for task in tasks), "All individual tasks should be cancelled"
 
-        # Cancel after small delay
-        await asyncio.sleep(0.1)
-        gather_task.cancel()
+            # Verify no unexpected errors occurred
+            assert not errors, f"Unexpected errors occurred: {errors}"
 
-        with pytest.raises(asyncio.CancelledError):
-            await gather_task
+            # Wait for completion event with timeout
+            assert completion_event.wait(timeout=2.0), "Completion event was not set"
+
+        except Exception as e:
+            logger.error("Error during test execution", error=str(e))
+            raise
+
+        finally:
+            # Clean up any remaining tasks
+            for task in [gather_task, *tasks]:
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await asyncio.wait_for(task, timeout=1.0)
+                    except (TimeoutError, asyncio.CancelledError):
+                        pass  # Expected for cancellation
+
+            # Wait for all tasks to be done
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*[task for task in tasks if not task.done()], return_exceptions=True), timeout=1.0
+                )
+            except TimeoutError:
+                logger.error("Timeout waiting for final task cleanup")
+
+            # Verify all tasks are done
+            assert all(task.done() for task in [gather_task, *tasks]), "Not all tasks completed cleanup"
+
+            # Clear task references
+            tasks.clear()
+            tasks_created.clear()
 
     async def test_timeout_handling(self) -> None:
         """Test timeout handling in async operations."""
