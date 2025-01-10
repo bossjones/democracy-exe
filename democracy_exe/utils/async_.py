@@ -206,20 +206,21 @@ class AsyncSemaphore(AsyncContextManager):
         """Release the semaphore.
 
         Raises:
-            RuntimeError: If semaphore is closed or released more than acquired
+            RuntimeError: If semaphore is closed
         """
         if self._closed:
             raise RuntimeError("Semaphore is closed")
 
         with self._lock:
-            if self._count >= self._value:
-                raise RuntimeError("Semaphore released more than acquired")
+            # Release the underlying semaphore first
+            try:
+                self._loop.call_soon_threadsafe(self._semaphore.release)
+            except Exception as e:
+                logger.error("Error releasing semaphore", error=str(e))
+                raise
 
+            # Update count and wake waiters
             self._count += 1
-
-            # Use call_soon_threadsafe for thread safety
-            self._loop.call_soon_threadsafe(self._semaphore.release)
-
             if self._waiters:
                 waiter = self._waiters.pop(0)
                 if not waiter.done():

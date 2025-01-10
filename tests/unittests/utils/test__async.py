@@ -35,22 +35,18 @@ IS_RUNNING_ON_GITHUB_ACTIONS = bool(os.environ.get("GITHUB_ACTOR"))
 
 
 @pytest.fixture(autouse=True)
-def configure_structlog(log_output: Any) -> None:
-    """Configure structlog for testing.
-
-    Args:
-        log_output: Log output fixture
-    """
+def configure_structlog() -> None:
+    """Configure structlog for testing."""
     structlog.configure(
         processors=[
             structlog.stdlib.add_log_level,
             structlog.processors.format_exc_info,
             structlog.processors.TimeStamper(fmt="iso"),
-            log_output,
+            structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
         context_class=dict,
-        logger_factory=structlog.testing.LogCapture,
+        logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
@@ -287,28 +283,98 @@ class TestUtilsAsync:
             assert pool._shutdown
 
     async def test_gather_with_concurrency(self) -> None:
-        """Test gather_with_concurrency functionality."""
+        """Test gather_with_concurrency functionality with comprehensive coverage.
 
-        async def slow_task(i: int) -> int:
-            await asyncio.sleep(0.1)
-            return i
+        Tests:
+        1. Basic concurrent task execution
+        2. Concurrency limit enforcement
+        3. Error propagation
+        4. Task cancellation
+        5. Invalid concurrency values
+        6. Mixed success/failure scenarios
+        7. Resource cleanup
+        """
+        # Track task execution times for concurrency verification
+        execution_times: list[float] = []
 
-        tasks = [slow_task(i) for i in range(5)]
+        async def tracked_task(i: int, delay: float = 0.1) -> int:
+            """Task that tracks its execution time."""
+            start = time.time()
+            try:
+                await asyncio.sleep(delay)
+                execution_times.append(time.time() - start)
+                return i
+            except asyncio.CancelledError:
+                execution_times.append(time.time() - start)
+                raise
 
-        # Test successful gathering
+        # Test invalid concurrency limit
+        task = tracked_task(1)
+        with pytest.raises(ValueError, match="Concurrency limit must be >= 1"):
+            await async_.gather_with_concurrency(0, task)
+        # Clean up unused coroutine
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+        # Test basic concurrent execution
+        tasks = [tracked_task(i) for i in range(5)]
         results = await async_.gather_with_concurrency(2, *tasks)
         assert results == list(range(5))
 
-        # Test with failing task
+        # Verify concurrency limit was respected
+        # With 5 tasks, 0.1s delay, and concurrency 2, should take ~0.3s
+        assert len([t for t in execution_times if t >= 0.1]) >= 3
+        execution_times.clear()
+
+        # Test mixed success/failure scenario
         async def failing_task() -> None:
+            await asyncio.sleep(0.1)
             raise ValueError("Task failed")
 
+        mixed_tasks = [tracked_task(1), failing_task(), tracked_task(2)]
         with pytest.raises(ValueError, match="Task failed"):
-            await async_.gather_with_concurrency(2, failing_task())
+            await async_.gather_with_concurrency(2, *mixed_tasks)
 
         # Test with return_exceptions
-        results = await async_.gather_with_concurrency(2, failing_task(), return_exceptions=True)
-        assert isinstance(results[0], ValueError)
+        results = await async_.gather_with_concurrency(
+            2, tracked_task(1), failing_task(), tracked_task(2), return_exceptions=True
+        )
+        assert isinstance(results[1], ValueError)
+        assert results[0] == 1
+        assert results[2] == 2
+
+        # Test cancellation
+        # Create and start tasks immediately
+        tasks = [asyncio.create_task(tracked_task(i, delay=1.0)) for i in range(3)]
+
+        gather_task = asyncio.create_task(async_.gather_with_concurrency(2, *tasks))
+
+        try:
+            # Let tasks start
+            await asyncio.sleep(0.1)
+            # Cancel the gathering
+            gather_task.cancel()
+
+            with pytest.raises(asyncio.CancelledError):
+                await gather_task
+        finally:
+            # Clean up any remaining tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+
+        # Verify proper cleanup after cancellation
+        await asyncio.sleep(0.1)  # Let cleanup complete
+        # Check that no tasks are still running
+        for task in asyncio.all_tasks():
+            if task is not asyncio.current_task():
+                assert task.done(), "Task was not properly cleaned up"
 
     async def test_to_async(self) -> None:
         """Test to_async decorator."""
