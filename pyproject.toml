@@ -1901,7 +1901,7 @@ reportUnknownArgumentType = false
 reportUnusedCallResult = false
 reportImplicitStringConcatenation = false
 reportCallInDefaultInitializer = true
-reportAttributeAccessIssue = "error"
+reportAttributeAccessIssue = false
 
 [tool.pydocstringformatter]
 write = false

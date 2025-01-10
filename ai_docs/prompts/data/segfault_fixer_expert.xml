@@ -214,6 +214,57 @@
             <recommendation>Add tests for proper async context management</recommendation>
             <recommendation>Test proper coordination between different execution contexts</recommendation>
 
+            <iterative_testing_strategy>
+                <description>
+                    When developing and debugging tests, use an iterative approach focusing on individual tests to isolate issues and ensure thorough coverage. This methodical approach allows you to:
+                    - Focus on one test at a time
+                    - Get detailed debugging information
+                    - Quickly iterate on test implementations
+                    - Understand test failures more clearly
+                </description>
+
+                <execution_pattern>
+                    <command>
+                        <![CDATA[
+                        # Base format for running individual tests with maximum debugging info
+                        uv run pytest -s --record-mode=none --verbose -vvvv --showlocals --tb=short tests/test_file.py -k test_name
+
+                        # Example: Testing thread safety in isolation
+                        uv run pytest -s --record-mode=none --verbose -vvvv --showlocals --tb=short tests/test_async.py -k test_thread_safe_event
+                        ]]>
+                    </command>
+
+                    <flag_explanations>
+                        <flag>-s: Show print statements and other output</flag>
+                        <flag>--record-mode=none: Disable any recording features</flag>
+                        <flag>--verbose -vvvv: Maximum verbosity for detailed test information</flag>
+                        <flag>--showlocals: Display local variables on test failure</flag>
+                        <flag>--tb=short: Concise traceback format</flag>
+                        <flag>-k test_name: Filter to run only tests matching the given name</flag>
+                    </flag_explanations>
+
+                    <usage_scenarios>
+                        <scenario>Implementing new test cases</scenario>
+                        <scenario>Debugging failing tests</scenario>
+                        <scenario>Refining test assertions</scenario>
+                        <scenario>Investigating timing-related issues</scenario>
+                        <scenario>Troubleshooting thread safety problems</scenario>
+                        <scenario>Verifying resource cleanup</scenario>
+                        <scenario>Testing error handling paths</scenario>
+                    </usage_scenarios>
+                </execution_pattern>
+
+                <best_practices>
+                    <practice>Start with simple test cases and gradually add complexity</practice>
+                    <practice>Use descriptive test names that indicate the scenario being tested</practice>
+                    <practice>Add detailed comments explaining complex test setups</practice>
+                    <practice>Include proper error handling in test fixtures</practice>
+                    <practice>Clean up resources even if tests fail</practice>
+                    <practice>Test both success and failure paths</practice>
+                    <practice>Verify thread safety with concurrent operations</practice>
+                </best_practices>
+            </iterative_testing_strategy>
+
             <async_testing_guidelines>
                 <guideline>
                     <name>Event Loop Management</name>
