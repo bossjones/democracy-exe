@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import json
 import os
 import pathlib
@@ -316,16 +317,22 @@ class AsyncGalleryDL:
                 # Clear thread-local storage
                 thread_context.clear()
 
-        try:
-            # Run in executor with proper error propagation
-            return await loop.run_in_executor(None, thread_worker)
-        except Exception as e:
-            logger.error(
-                "Error in executor",
-                error=str(e),
-                error_type=type(e).__name__
-            )
-            raise
+        # Create a dedicated thread pool for this operation
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            try:
+                # Run in executor with proper error propagation
+                future = loop.run_in_executor(pool, thread_worker)
+                return await future
+            except Exception as e:
+                logger.error(
+                    "Error in executor",
+                    error=str(e),
+                    error_type=type(e).__name__
+                )
+                raise
+            finally:
+                # Ensure proper cleanup
+                pool.shutdown(wait=True)
 
     async def extract_from_url(self, url: str) -> AsyncIterator[dict[str, Any]]:
         """Extract items from a URL asynchronously.

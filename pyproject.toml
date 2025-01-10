@@ -117,6 +117,7 @@ dependencies = [
     "rich>=13.9.4",
     "structlog>=24.4.0",
     "langsmith==0.1.147",
+    "psutil>=6.1.1",
 ]
 
 [project.urls]
