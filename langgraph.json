@@ -64,7 +64,7 @@
         "COPY . /deps/democracy-exe",
         "",
         "RUN --mount=type=cache,target=/root/.cache/uv \\",
-        "    uv sync --locked --no-dev --frozen"
+        "    uv sync --no-dev --frozen"
 
     ],
     "graphs": {

@@ -62,7 +62,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . /deps/democracy-exe
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --frozen
+    uv sync --no-dev --frozen
 
 ADD . /deps/democracy-exe
 
@@ -71,4 +71,3 @@ RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt
 ENV LANGSERVE_GRAPHS='{"react": "/deps/democracy-exe/democracy_exe/agentic/workflows/react/graph.py:graph"}'
 
 WORKDIR /deps/democracy-exe
-CMD bash -l

@@ -129,7 +129,7 @@ langgraph>=0.2.45
 langgraph-checkpoint==2.0.9
 langgraph-checkpoint-sqlite>=2.0.1
 langgraph-sdk>=0.1.36
-langsmith>=0.2.3
+langsmith==0.1.147
 lazy-object-proxy>=1.10.0
 levenshtein==0.26.1
 linkify-it-py==2.0.3
