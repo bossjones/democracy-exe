@@ -1497,7 +1497,6 @@ dependencies = [
     { name = "attrs" },
     { name = "babel" },
     { name = "beautifulsoup4" },
-    { name = "better-exceptions" },
     { name = "codetiming" },
     { name = "dask" },
     { name = "discord-py" },
@@ -1589,6 +1588,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "better-exceptions" },
     { name = "black" },
     { name = "bpython" },
     { name = "changelogs" },
@@ -1706,7 +1706,6 @@ requires-dist = [
     { name = "attrs", specifier = ">=24.2.0" },
     { name = "babel", specifier = ">=2.16.0" },
     { name = "beautifulsoup4", specifier = ">=4.12.3" },
-    { name = "better-exceptions", specifier = ">=0.3.3" },
     { name = "codetiming", specifier = ">=1.4.0" },
     { name = "dask", specifier = ">=2024.11.0" },
     { name = "discord-py", specifier = ">=2.4.0" },
@@ -1798,6 +1797,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "better-exceptions", specifier = ">=0.3.3" },
     { name = "black", specifier = ">=24.10.0" },
     { name = "bpython", specifier = ">=0.24" },
     { name = "changelogs", git = "https://github.com/bossjones/changelogs" },
