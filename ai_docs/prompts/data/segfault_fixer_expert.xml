@@ -1574,122 +1574,174 @@
     </functionality_check>
 
     <implementation_patterns>
-        <pattern name="thread_safe_event">
-            <description>Pattern for implementing thread-safe events with proper cleanup</description>
+        <pattern name="enhanced_thread_safety">
+            <description>Enhanced thread safety pattern with proper resource tracking and cleanup</description>
             <example>
                 <![CDATA[
-                class ThreadSafeEvent:
+                class ThreadSafeEventLoopManager:
+                    """Thread-safe event loop manager with proper cleanup."""
                     def __init__(self):
-                        self._event = None
                         self._loop = None
-                        self._closed = False
+                        self._loop_lock = threading.Lock()
+                        self._thread_id = None
                         self._cleanup_lock = asyncio.Lock()
+                        self._active_tasks: Set[asyncio.Task] = set()
 
-                    async def __aenter__(self):
-                        if not self._event:
-                            self._loop = asyncio.get_running_loop()
-                            self._event = asyncio.Event()
-                        return self
+                    async def get_loop(self) -> asyncio.AbstractEventLoop:
+                        """Get event loop with thread safety checks."""
+                        with self._loop_lock:
+                            if self._loop is None:
+                                self._loop = asyncio.new_event_loop()
+                                self._thread_id = threading.get_ident()
+                            elif self._thread_id != threading.get_ident():
+                                raise RuntimeError("Loop accessed from wrong thread")
+                            return self._loop
 
-                    async def __aexit__(self, exc_type, exc_val, exc_tb):
+                    async def track_task(self, task: asyncio.Task) -> None:
+                        """Track active tasks for cleanup."""
                         async with self._cleanup_lock:
-                            try:
-                                await self.cleanup()
-                            finally:
-                                self._closed = True
+                            self._active_tasks.add(task)
+                            task.add_done_callback(self._remove_task)
 
-                    async def cleanup(self):
-                        if self._event:
-                            self._event.set()  # Wake up any waiters
-                            self._event = None
-                        self._loop = None
+                    def _remove_task(self, task: asyncio.Task) -> None:
+                        """Remove completed task."""
+                        self._active_tasks.discard(task)
+
+                    async def cleanup(self) -> None:
+                        """Clean up resources with proper error handling."""
+                        async with self._cleanup_lock:
+                            if self._loop is not None:
+                                try:
+                                    # Cancel all tasks
+                                    tasks = list(self._active_tasks)
+                                    for task in tasks:
+                                        task.cancel()
+                                    if tasks:
+                                        await asyncio.gather(*tasks, return_exceptions=True)
+                                finally:
+                                    self._loop.close()
+                                    self._loop = None
+                                    self._thread_id = None
                 ]]>
             </example>
         </pattern>
 
-        <pattern name="safe_thread_pool">
-            <description>Pattern for safe thread pool management with proper cleanup</description>
+        <pattern name="safe_resource_lifecycle">
+            <description>Safe resource lifecycle management with proper cleanup handlers</description>
             <example>
                 <![CDATA[
-                class SafeThreadPoolExecutor:
-                    def __init__(self, max_workers=None):
-                        self._executor = ThreadPoolExecutor(max_workers=max_workers)
-                        self._shutdown = False
-                        self._lock = threading.Lock()
-
-                    async def submit(self, fn, *args, **kwargs):
-                        with self._lock:
-                            if self._shutdown:
-                                raise RuntimeError("Executor is shut down")
-                            loop = asyncio.get_running_loop()
-                            return await loop.run_in_executor(
-                                self._executor,
-                                functools.partial(fn, *args, **kwargs)
-                            )
-
-                    async def shutdown(self, wait=True):
-                        with self._lock:
-                            if not self._shutdown:
-                                self._shutdown = True
-                                self._executor.shutdown(wait=wait)
-                ]]>
-            </example>
-        </pattern>
-
-        <pattern name="sse_stream_handler">
-            <description>Pattern for safe SSE stream handling with proper cleanup</description>
-            <example>
-                <![CDATA[
-                async def safe_stream_response(graph, input_data):
-                    response = aiohttp.web.StreamResponse()
-                    response.headers['Content-Type'] = 'text/event-stream'
-                    response.headers['Cache-Control'] = 'no-cache'
-                    response.headers['Connection'] = 'keep-alive'
-
-                    try:
-                        await response.prepare(request)
-                        async for event in graph.stream(input_data):
-                            try:
-                                await response.write(
-                                    f"data: {json.dumps(event)}\n\n".encode()
-                                )
-                            except ConnectionResetError:
-                                break
-                    except Exception as e:
-                        logger.exception("Stream error")
-                        raise
-                    finally:
-                        await response.write_eof()
-                ]]>
-            </example>
-        </pattern>
-
-        <pattern name="langsmith_client_wrapper">
-            <description>Pattern for thread-safe LangSmith client operations</description>
-            <example>
-                <![CDATA[
-                class SafeLangSmithClient:
+                class SafeResourceManager:
+                    """Safe resource manager with proper cleanup."""
                     def __init__(self):
-                        self._client = Client()
-                        self._lock = asyncio.Lock()
-                        self._batch_lock = asyncio.Lock()
-                        self._closed = False
+                        self._resources: Dict[str, Any] = {}
+                        self._resource_lock = asyncio.Lock()
+                        self._cleanup_handlers: Dict[str, Callable] = {}
 
-                    async def _send_batch(self, batch):
-                        async with self._batch_lock:
-                            if self._closed:
-                                return
+                    async def register_resource(
+                        self,
+                        name: str,
+                        resource: Any,
+                        cleanup_handler: Callable
+                    ) -> None:
+                        """Register resource with cleanup handler."""
+                        async with self._resource_lock:
+                            self._resources[name] = resource
+                            self._cleanup_handlers[name] = cleanup_handler
+
+                    async def cleanup_resource(self, name: str) -> None:
+                        """Clean up specific resource."""
+                        async with self._resource_lock:
+                            if name in self._resources:
+                                try:
+                                    await self._cleanup_handlers[name](self._resources[name])
+                                finally:
+                                    del self._resources[name]
+                                    del self._cleanup_handlers[name]
+
+                    async def cleanup_all(self) -> None:
+                        """Clean up all resources."""
+                        async with self._resource_lock:
+                            for name in list(self._resources.keys()):
+                                await self.cleanup_resource(name)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="memory_safety">
+            <description>Memory-safe operation patterns with proper state management</description>
+            <example>
+                <![CDATA[
+                class MemorySafeOperation:
+                    """Memory-safe operation wrapper."""
+                    def __init__(self):
+                        self._operation_lock = asyncio.Lock()
+                        self._state = {}
+                        self._gc_trigger = 1000  # Adjust based on needs
+
+                    async def execute_safely(
+                        self,
+                        operation: Callable,
+                        *args,
+                        **kwargs
+                    ) -> Any:
+                        """Execute operation with memory safety checks."""
+                        async with self._operation_lock:
                             try:
-                                await self._client._multipart_ingest_ops(batch)
+                                result = await operation(*args, **kwargs)
+                                self._state_cleanup()
+                                return result
                             except Exception as e:
-                                logger.exception("Batch send error")
+                                logger.exception("Operation failed")
                                 raise
+                            finally:
+                                self._force_gc_if_needed()
 
-                    async def cleanup(self):
-                        async with self._lock:
-                            if not self._closed:
-                                self._closed = True
-                                # Cleanup code here
+                    def _state_cleanup(self) -> None:
+                        """Clean up state after operation."""
+                        self._state.clear()
+
+                    def _force_gc_if_needed(self) -> None:
+                        """Force garbage collection if needed."""
+                        if len(self._state) > self._gc_trigger:
+                            import gc
+                            gc.collect()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="error_boundary">
+            <description>Error boundary implementation with context preservation</description>
+            <example>
+                <![CDATA[
+                class ErrorBoundary:
+                    """Error boundary with proper context preservation."""
+                    def __init__(self):
+                        self._error_handlers: Dict[Type[Exception], Callable] = {}
+                        self._context: Dict[str, Any] = {}
+                        self._context_lock = asyncio.Lock()
+
+                    async def register_handler(
+                        self,
+                        exc_type: Type[Exception],
+                        handler: Callable
+                    ) -> None:
+                        """Register error handler."""
+                        self._error_handlers[exc_type] = handler
+
+                    async def execute_with_boundary(
+                        self,
+                        func: Callable,
+                        *args,
+                        **kwargs
+                    ) -> Any:
+                        """Execute function with error boundary."""
+                        try:
+                            return await func(*args, **kwargs)
+                        except Exception as e:
+                            for exc_type, handler in self._error_handlers.items():
+                                if isinstance(e, exc_type):
+                                    return await handler(e, self._context)
+                            raise
                 ]]>
             </example>
         </pattern>
@@ -1752,7 +1804,263 @@
                 ]]>
             </example>
         </pattern>
-    </testing_patterns>
+
+        <pattern name="AsyncGeneratorTest">
+            <description>Pattern for testing async generators and cleanup</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_async_generator():
+                    agen = async_generator_func()
+                    try:
+                        async for item in agen:
+                            assert item is not None
+                    finally:
+                        await agen.aclose()  # Proper cleanup of async generator
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="AsyncMocking">
+            <description>Pattern for mocking async functions and methods</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_with_async_mock(mocker):
+                    async def async_mock(*args, **kwargs):
+                        return "mocked"
+
+                    mocker.patch(
+                        "module.async_function",
+                        side_effect=async_mock
+                    )
+                    result = await function_under_test()
+                    assert result == "mocked"
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="AsyncContextVerification">
+            <description>Pattern for verifying async context manager behavior</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_async_context():
+                    entered = False
+                    exited = False
+
+                    class TestContext:
+                        async def __aenter__(self):
+                            nonlocal entered
+                            entered = True
+                            return self
+
+                        async def __aexit__(self, exc_type, exc_val, exc_tb):
+                            nonlocal exited
+                            exited = True
+
+                    async with TestContext():
+                        assert entered
+                        assert not exited
+                    assert exited
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="context_var_management">
+            <description>Pattern for managing context variables in multiprocessing</description>
+            <example>
+                <![CDATA[
+                import contextvars
+                from multiprocessing import Process
+
+                class SafeContextManager:
+                    def __init__(self):
+                        self._context = contextvars.copy_context()
+                        self._process_vars = {}
+
+                    def _init_process_context(self):
+                        """Initialize context in new process."""
+                        for var, value in self._process_vars.items():
+                            var.set(value)
+
+                    def run_in_process(self, func, *args, **kwargs):
+                        """Run function in new process with proper context."""
+                        self._process_vars = {
+                            var: var.get()
+                            for var in self._context.keys()
+                        }
+                        p = Process(target=self._run_with_context,
+                                  args=(func, args, kwargs))
+                        p.start()
+                        return p
+
+                    def _run_with_context(self, func, args, kwargs):
+                        """Run function with restored context."""
+                        self._init_process_context()
+                        return func(*args, **kwargs)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="thread_safe_logging">
+            <description>Pattern for thread-safe structured logging</description>
+            <example>
+                <![CDATA[
+                import structlog
+                from threading import local
+
+                class ThreadSafeLogger:
+                    _thread_local = local()
+
+                    def __init__(self):
+                        self._logger = structlog.get_logger()
+                        self._context_lock = asyncio.Lock()
+
+                    async def bind_context(self, **kwargs):
+                        """Bind context variables thread-safely."""
+                        async with self._context_lock:
+                            self._thread_local.context = {
+                                **(getattr(self._thread_local, 'context', {})),
+                                **kwargs
+                            }
+
+                    async def log(self, level, event, **kwargs):
+                        """Log with thread-local context."""
+                        context = getattr(self._thread_local, 'context', {})
+                        logger = self._logger.bind(**context)
+                        logger.log(level, event, **kwargs)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="safe_event_loop">
+            <description>Pattern for safe event loop management in worker threads</description>
+            <example>
+                <![CDATA[
+                class ThreadEventLoopManager:
+                    def __init__(self):
+                        self._loop = None
+                        self._loop_lock = threading.Lock()
+                        self._thread_id = None
+
+                    def get_loop(self):
+                        """Get or create event loop for current thread."""
+                        current_thread = threading.current_thread()
+                        if (self._thread_id is not None and
+                            self._thread_id != current_thread.ident):
+                            raise RuntimeError(
+                                "Loop accessed from wrong thread")
+
+                        with self._loop_lock:
+                            if self._loop is None:
+                                self._loop = asyncio.new_event_loop()
+                                self._thread_id = current_thread.ident
+                                asyncio.set_event_loop(self._loop)
+                            return self._loop
+
+                    async def cleanup(self):
+                        """Clean up event loop resources."""
+                        with self._loop_lock:
+                            if self._loop is not None:
+                                try:
+                                    # Cancel all tasks
+                                    tasks = asyncio.all_tasks(self._loop)
+                                    for task in tasks:
+                                        task.cancel()
+                                    # Wait for cancellation
+                                    if tasks:
+                                        await asyncio.gather(
+                                            *tasks,
+                                            return_exceptions=True
+                                        )
+                                finally:
+                                    self._loop.close()
+                                    self._loop = None
+                                    self._thread_id = None
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="event_loop_isolation">
+            <description>Pattern for testing event loop isolation</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_event_loop_isolation():
+                    manager = ThreadEventLoopManager()
+
+                    async def worker():
+                        loop = manager.get_loop()
+                        assert loop is asyncio.get_running_loop()
+                        await asyncio.sleep(0.1)
+
+                    # Run in multiple threads
+                    threads = []
+                    for _ in range(3):
+                        thread = threading.Thread(
+                            target=lambda: asyncio.run(worker())
+                        )
+                        threads.append(thread)
+                        thread.start()
+
+                    for thread in threads:
+                        thread.join()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="multiprocessing_coordination">
+            <description>Pattern for testing multiprocessing coordination</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_multiprocessing_coordination():
+                    ctx_manager = SafeContextManager()
+
+                    def worker_func():
+                        assert 'test_var' in ctx_manager._process_vars
+                        return True
+
+                    # Set context variable
+                    test_var = contextvars.ContextVar('test_var')
+                    test_var.set('test_value')
+
+                    # Run in new process
+                    process = ctx_manager.run_in_process(worker_func)
+                    process.join()
+                    assert process.exitcode == 0
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="resource_leak_detection">
+            <description>Pattern for detecting resource leaks in tests</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_resource_leaks():
+                    import psutil
+                    import os
+
+                    process = psutil.Process(os.getpid())
+                    start_fds = process.num_fds()
+                    start_threads = len(process.threads())
+
+                    # Run test operation
+                    client = SafeLangSmithClient()
+                    try:
+                        await client._send_batch({"test": "data"})
+                    finally:
+                        await client.cleanup()
+
+                    # Verify no leaks
+                    assert process.num_fds() <= start_fds
+                    assert len(process.threads()) <= start_threads
+                ]]>
+            </example>
+        </pattern>
+    </test_patterns>
 
     <diagnostic_tools>
         <tool>
@@ -2018,20 +2326,25 @@
             <usage>
                 <![CDATA[
                 class EventLoopDebugger:
+                    _thread_local = local()
+
                     def __init__(self):
-                        self.loop = asyncio.get_running_loop()
-                        self.loop.set_debug(True)
-                        self.loop.slow_callback_duration = 0.1
+                        self._logger = structlog.get_logger()
+                        self._context_lock = asyncio.Lock()
 
-                    def install_handlers(self):
-                        """Install debug handlers."""
-                        self.loop.set_exception_handler(self._exception_handler)
+                    async def bind_context(self, **kwargs):
+                        """Bind context variables thread-safely."""
+                        async with self._context_lock:
+                            self._thread_local.context = {
+                                **(getattr(self._thread_local, 'context', {})),
+                                **kwargs
+                            }
 
-                    def _exception_handler(self, loop, context):
-                        """Custom exception handler with enhanced logging."""
-                        logger.error(f"Event loop error: {context}")
-                        if 'exception' in context:
-                            logger.error(f"Exception details:", exc_info=context['exception'])
+                    async def log(self, level, event, **kwargs):
+                        """Log with thread-local context."""
+                        context = getattr(self._thread_local, 'context', {})
+                        logger = self._logger.bind(**context)
+                        logger.log(level, event, **kwargs)
                 ]]>
             </usage>
         </tool>
