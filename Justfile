@@ -1048,6 +1048,18 @@ generate-ai-docs:
 		/Users/malcolm/dev/home-assistant/core/homeassistant/util/loop.py \
 		--cxml -o ai_docs/prompts/data/home_assistant_code.xml
 
+	uv run files-to-prompt \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/__main__.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/bootstrap.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/util/thread.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/util/timeout.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/util/executor.py \
+			--cxml -o ai_docs/prompts/data/home_assistant_bootstrap_and_thread.xml
+
+	uv run files-to-prompt \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/components/profiler \
+			--cxml -o ai_docs/prompts/data/home_assistant_profiler.xml
+
 	@echo "AI documentation generation complete"
 
 # Regenerate democracy-exe ai docs

@@ -99,6 +99,15 @@ Find quotes from the langgraph_api/langraph_cli python files that are relevant t
 
 ---
 
+# use xml tags to structure claude
 @home_assistant_code.xml @segfault_fixer_expert.xml
 
 Find quotes from the home_assistant python docs and files that are relevant to fixing this Fatal Python error: Segmentation fault error. Place these in <quotes> tags. Then, based on these quotes, list all information that would help the a programer fix these issues. Place your diagnostic information in <info> tags. We will use this information to enrich segfault_fixer_expert.xml. @Web
+
+# let claude think
+Think before you write the checklist in <thinking> tags. First, think through what patterns will provide the most benifit for THIS code base. Then, think through what aspects of the pattern need to written to make our segfault_fixer_expert.xml more capable of solving our segmentation fault issue. Finally, write the personalized checklist item <checklist> tags, using your analysis.
+
+
+----
+
+Find quotes from the chat history I just sent you that is relevant to this task of creating a self improving analysis prompt. Place these in <quotes> tags. Then, based on these quotes, list all information that would help structrue a good follow up prompt. Place your diagnostic information in <info> tags. We will use this information to enrich my follow up prompt. Think before you write anything in <thinking> tags.

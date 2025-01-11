@@ -103,6 +103,83 @@
                     yield
             """
         </quote>
+        <quote source="home_assistant/block_async_io.py">
+            """Block blocking calls being done in asyncio.
+            Avoid extracting the stack unless we need to since it will have to access the linecache which can do blocking I/O and we are trying to avoid blocking calls."""
+        </quote>
+        <quote source="home_assistant/util/async_.py">
+            """Submit a callback object to a given event loop.
+            If (ident := loop.__dict__.get("_thread_id")) and ident == threading.get_ident():
+                raise RuntimeError("Cannot be called from within the event loop")"""
+        </quote>
+        <quote source="home_assistant/util/async_.py">
+            """If the final `HomeAssistant.async_block_till_done` in
+            `HomeAssistant.async_stop` has already been called, the callback
+            will never run and, `future.result()` will block forever which
+            will prevent the thread running this code from shutting down which
+            will result in a deadlock"""
+        </quote>
+        <quote source="home_assistant/block_async_io.py">
+            """@dataclass(slots=True, frozen=True)
+            class BlockingCall:
+                original_func: Callable
+                object: object
+                function: str
+                check_allowed: Callable[[dict[str, Any]], bool] | None
+                strict: bool
+                strict_core: bool
+                skip_for_tests: bool"""
+        </quote>
+        <quote source="home_assistant/util/thread.py">
+            """Shutdown that will not deadlock.
+            threading._shutdown can deadlock forever
+            remaining_threads = [
+                thread for thread in threading.enumerate()
+                if thread is not threading.main_thread()
+                and not thread.daemon
+                and thread.is_alive()
+            ]
+            timeout_per_thread = THREADING_SHUTDOWN_TIMEOUT / len(remaining_threads)"""
+        </quote>
+        <quote source="home_assistant/util/executor.py">
+            """class InterruptibleThreadPoolExecutor(ThreadPoolExecutor):
+                A ThreadPoolExecutor instance that will not deadlock on shutdown.
+                def shutdown(self, *args: Any, join_threads_or_timeout: bool = True, **kwargs: Any) -> None:
+                    Shutdown with interrupt support added.
+                    super().shutdown(wait=False, cancel_futures=True)
+                    if join_threads_or_timeout:
+                        self.join_threads_or_timeout()"""
+        </quote>
+        <quote source="home_assistant/util/executor.py">
+            """def _log_thread_running_at_shutdown(name: str, ident: int) -> None:
+                Log the stack of a thread that was still running at shutdown.
+                frames = sys._current_frames()
+                stack = frames.get(ident)
+                formatted_stack = traceback.format_stack(stack)"""
+        </quote>
+        <quote source="home_assistant/components/profiler/__init__.py">
+            """SERVICE_LOG_THREAD_FRAMES = "log_thread_frames"
+            SERVICE_LOG_EVENT_LOOP_SCHEDULED = "log_event_loop_scheduled"
+            SERVICE_SET_ASYNCIO_DEBUG = "set_asyncio_debug"
+            SERVICE_LOG_CURRENT_TASKS = "log_current_tasks" """
+        </quote>
+        <quote source="home_assistant/util/thread.py">
+            """class ThreadWithException(threading.Thread):
+                A thread class that supports raising exception in the thread from another thread.
+                def raise_exc(self, exctype: Any) -> None:
+                    Raise the given exception type in the context of this thread.
+                    assert self.ident
+                    async_raise(self.ident, exctype)"""
+        </quote>
+        <quote source="home_assistant/util/executor.py">
+            """def join_or_interrupt_threads(threads: set[Thread], timeout: float, log: bool) -> set[Thread]:
+                Attempt to join or interrupt a set of threads.
+                with contextlib.suppress(SystemError):
+                    # SystemError at this stage is usually a race condition
+                    # where the thread happens to die right before we force
+                    # it to raise the exception
+                    async_raise(thread.ident, SystemExit)"""
+        </quote>
     </quotes>
 
     <info>
@@ -154,6 +231,36 @@
             <point>Track thread pool overload conditions</point>
             <point>Verify proper task cancellation during cleanup</point>
             <point>Monitor for nested event loop creation</point>
+            <point>Use frozen dataclasses with slots for memory safety in concurrent operations</point>
+            <point>Implement strict thread ID tracking to prevent cross-thread event loop access</point>
+            <point>Avoid unnecessary stack inspection that could trigger blocking I/O</point>
+            <point>Track and prevent blocking calls in asyncio with a registry system</point>
+            <point>Implement special handling for test environments with skip_for_tests flags</point>
+            <point>Use strict mode for core components to enforce blocking call prevention</point>
+            <point>Track callback states during shutdown to prevent deadlocks</point>
+            <point>Implement proper future cleanup to prevent resource leaks</point>
+            <point>Use runtime checks to prevent callbacks from being called within their own event loop</point>
+            <point>Implement comprehensive resource tracking with proper lifecycle management</point>
+            <point>Use InterruptibleThreadPoolExecutor for deadlock-safe thread pool management</point>
+            <point>Implement timeout-based thread joining with per-thread timeout calculation</point>
+            <point>Cancel futures before shutdown to prevent hanging operations</point>
+            <point>Track and interrupt hanging threads during shutdown</point>
+            <point>Log thread stacks during shutdown for debugging</point>
+            <point>Support raising exceptions across threads safely</point>
+            <point>Handle race conditions during thread interruption</point>
+            <point>Use contextlib.suppress for safe cleanup operations</point>
+            <point>Calculate and enforce per-thread timeouts during shutdown</point>
+            <point>Handle daemon vs non-daemon threads differently during shutdown</point>
+            <point>Track thread identifiers for proper interruption</point>
+            <point>Use thread-safe logging mechanisms</point>
+            <point>Implement proper thread synchronization with locks</point>
+            <point>Monitor thread frames for memory leaks using profiler tools</point>
+            <point>Track event loop scheduled tasks for resource management</point>
+            <point>Enable asyncio debug mode for detailed monitoring</point>
+            <point>Log current tasks for comprehensive resource tracking</point>
+            <point>Implement cleanup in finally blocks consistently</point>
+            <point>Use proper exception propagation across threads</point>
+            <point>Clean up resources in reverse initialization order</point>
         </diagnostic_points>
 
         <environment_settings>
@@ -239,72 +346,83 @@
                     <step>Handle loop errors gracefully</step>
                 </solution>
             </fix>
+
+            <fix priority="high">
+                <issue>Event Loop Safety</issue>
+                <solution>
+                    <step>Implement thread ID tracking for event loop access</step>
+                    <step>Add runtime checks to prevent callbacks within their own loop</step>
+                    <step>Use frozen dataclasses with slots for memory safety</step>
+                    <step>Track and prevent blocking calls in asyncio</step>
+                    <step>Implement proper future and resource cleanup</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Thread Pool Safety</issue>
+                <solution>
+                    <step>Use InterruptibleThreadPoolExecutor instead of standard ThreadPoolExecutor</step>
+                    <step>Implement timeout-based thread joining with proper calculations</step>
+                    <step>Cancel futures before initiating shutdown sequence</step>
+                    <step>Track and interrupt hanging threads with proper logging</step>
+                    <step>Handle race conditions during thread interruption</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Thread Exception Safety</issue>
+                <solution>
+                    <step>Use ThreadWithException for controlled interruption</step>
+                    <step>Handle race conditions properly</step>
+                    <step>Implement proper exception propagation</step>
+                    <step>Use contextlib.suppress for cleanup</step>
+                    <step>Maintain proper exception context</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Resource Monitoring</issue>
+                <solution>
+                    <step>Use profiler tools to monitor thread frames</step>
+                    <step>Track event loop tasks</step>
+                    <step>Enable asyncio debug mode for monitoring</step>
+                    <step>Log resource usage</step>
+                    <step>Implement proper cleanup</step>
+                </solution>
+            </fix>
         </recommended_fixes>
 
         <implementation_guidelines>
             <guideline>
-                <name>Thread Safety</name>
+                <name>Thread Pool Management</name>
                 <description>
-                    - Use thread-local storage for thread-specific data
-                    - Implement proper locking mechanisms using asyncio.Lock()
-                    - Ensure proper resource cleanup on thread exit
-                    - Add synchronization for shared resource access
-                    - Use thread pools with proper lifecycle management
+                    - Use InterruptibleThreadPoolExecutor for safe shutdown
+                    - Implement timeout-based thread joining
+                    - Cancel futures before shutdown
+                    - Track and interrupt hanging threads
+                    - Log thread stacks during shutdown
                 </description>
             </guideline>
 
             <guideline>
-                <name>Resource Management</name>
+                <name>Exception Handling</name>
                 <description>
-                    - Implement proper context managers for resource cleanup
-                    - Use SafeFileHandler pattern for file operations
-                    - Add proper error handling and cleanup in finally blocks
-                    - Ensure proper closing of connections and resources
-                    - Implement proper cleanup in async context managers
+                    - Use ThreadWithException for controlled interruption
+                    - Handle race conditions properly
+                    - Implement proper exception propagation
+                    - Use contextlib.suppress for cleanup
+                    - Maintain exception context
                 </description>
             </guideline>
 
             <guideline>
-                <name>Memory Management</name>
+                <name>Resource Monitoring</name>
                 <description>
-                    - Monitor memory usage in background threads
-                    - Implement proper cleanup of large objects
-                    - Use memory profiling tools to identify leaks
-                    - Ensure proper cleanup of resources in __aexit__ methods
-                    - Add proper exception handling with cleanup
-                </description>
-            </guideline>
-
-            <guideline>
-                <name>Error Handling</name>
-                <description>
-                    - Add comprehensive error logging
-                    - Implement proper error propagation
-                    - Add error recovery mechanisms
-                    - Add error boundaries around thread operations
-                    - Ensure proper cleanup in error cases
-                </description>
-            </guideline>
-
-            <guideline>
-                <name>Event Loop Safety</name>
-                <description>
-                    - Move I/O operations out of event loop using run_in_executor
-                    - Add proper error boundaries around async operations
-                    - Avoid mixing blocking and non-blocking code
-                    - Use proper async context management
-                    - Implement proper coordination between different execution contexts
-                </description>
-            </guideline>
-
-            <guideline>
-                <n>Functionality Preservation</n>
-                <description>
-                    - Verify all original functionality is preserved after modifications
-                    - Document any removed functionality that needs to be restored
-                    - Report any functionality changes at the end of generation
-                    - Ensure critical functions maintain their original behavior
-                    - Track and report any API changes that affect backwards compatibility
+                    - Use profiler tools to monitor thread frames
+                    - Track event loop tasks
+                    - Enable asyncio debug mode for monitoring
+                    - Log resource usage
+                    - Implement proper cleanup
                 </description>
             </guideline>
         </implementation_guidelines>
@@ -970,10 +1088,11 @@
                             loop: asyncio.AbstractEventLoop
 
                             async def test_remember_loop(self):
-                                self.loop = asyncio.get_running_loop()
-
-                            async def test_using_loop(self):
-                                assert self.loop is asyncio.get_running_loop()
+                                """Test loop storage for shared tests."""
+                                current_loop = asyncio.get_running_loop()
+                                assert isinstance(current_loop, asyncio.AbstractEventLoop)
+                                TestAsync._loop = current_loop
+                                assert current_loop.is_running()
                         ]]>
                     </example>
                 </pattern>
@@ -1676,6 +1795,36 @@
         <point>Track thread pool overload conditions</point>
         <point>Verify proper task cancellation during cleanup</point>
         <point>Monitor for nested event loop creation</point>
+        <point>Use frozen dataclasses with slots for memory safety in concurrent operations</point>
+        <point>Implement strict thread ID tracking to prevent cross-thread event loop access</point>
+        <point>Avoid unnecessary stack inspection that could trigger blocking I/O</point>
+        <point>Track and prevent blocking calls in asyncio with a registry system</point>
+        <point>Implement special handling for test environments with skip_for_tests flags</point>
+        <point>Use strict mode for core components to enforce blocking call prevention</point>
+        <point>Track callback states during shutdown to prevent deadlocks</point>
+        <point>Implement proper future cleanup to prevent resource leaks</point>
+        <point>Use runtime checks to prevent callbacks from being called within their own event loop</point>
+        <point>Implement comprehensive resource tracking with proper lifecycle management</point>
+        <point>Use InterruptibleThreadPoolExecutor for deadlock-safe thread pool management</point>
+        <point>Implement timeout-based thread joining with per-thread timeout calculation</point>
+        <point>Cancel futures before shutdown to prevent hanging operations</point>
+        <point>Track and interrupt hanging threads during shutdown</point>
+        <point>Log thread stacks during shutdown for debugging</point>
+        <point>Support raising exceptions across threads safely</point>
+        <point>Handle race conditions during thread interruption</point>
+        <point>Use contextlib.suppress for safe cleanup operations</point>
+        <point>Calculate and enforce per-thread timeouts during shutdown</point>
+        <point>Handle daemon vs non-daemon threads differently during shutdown</point>
+        <point>Track thread identifiers for proper interruption</point>
+        <point>Use thread-safe logging mechanisms</point>
+        <point>Implement proper thread synchronization with locks</point>
+        <point>Monitor thread frames for memory leaks using profiler tools</point>
+        <point>Track event loop scheduled tasks for resource management</point>
+        <point>Enable asyncio debug mode for detailed monitoring</point>
+        <point>Log current tasks for comprehensive resource tracking</point>
+        <point>Implement cleanup in finally blocks consistently</point>
+        <point>Use proper exception propagation across threads</point>
+        <point>Clean up resources in reverse initialization order</point>
     </diagnostic_points>
 
     <diagnostic_tools>
