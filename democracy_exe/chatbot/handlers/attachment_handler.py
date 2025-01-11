@@ -114,18 +114,43 @@ class AttachmentHandler:
 
         Raises:
             aiohttp.ClientError: If there's an error downloading the image
+            RuntimeError: If image size exceeds limits
+            asyncio.TimeoutError: If download times out
         """
         try:
-            async with aiohttp.ClientSession() as session:
-                response = await session.get(url)
-                if response.status == 200:
-                    data = await response.read()
-                    return io.BytesIO(data)
-                else:
-                    logger.error(f"Failed to download image. Status: {response.status}")
-                    return None
+            # Add timeout for download
+            async with asyncio.timeout(30.0):
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as response:
+                        if response.status == 200:
+                            # Check content length before downloading
+                            content_length = response.content_length
+                            if content_length and content_length > 8 * 1024 * 1024:  # 8MB limit
+                                raise RuntimeError(f"Image size {content_length} exceeds 8MB limit")
+
+                            # Stream download with size limit
+                            data = bytearray()
+                            chunk_size = 8192  # 8KB chunks
+                            total_size = 0
+
+                            async for chunk in response.content.iter_chunked(chunk_size):
+                                total_size += len(chunk)
+                                if total_size > 8 * 1024 * 1024:  # 8MB limit
+                                    raise RuntimeError("Image download exceeds 8MB limit")
+                                data.extend(chunk)
+
+                            return io.BytesIO(data)
+                        else:
+                            logger.error("Failed to download image", status=response.status)
+                            return None
+        except TimeoutError:
+            logger.error("Image download timed out", url=url)
+            raise
         except aiohttp.ClientError as e:
-            logger.error(f"Error downloading image: {e}")
+            logger.error("Error downloading image", error=str(e), url=url)
+            raise
+        except Exception as e:
+            logger.error("Unexpected error downloading image", error=str(e), url=url)
             raise
 
     @staticmethod
@@ -139,18 +164,32 @@ class AttachmentHandler:
             A data URI representing the file content
 
         Raises:
-            ValueError: If file is not readable
+            ValueError: If file is not readable or exceeds size limits
+            RuntimeError: If file size exceeds limits
         """
         try:
             if not file.fp or not file.fp.readable():
                 raise ValueError("File is not readable")
 
+            # Check file size before reading
+            file.fp.seek(0, os.SEEK_END)
+            file_size = file.fp.tell()
+            file.fp.seek(0)
+
+            if file_size > 8 * 1024 * 1024:  # 8MB limit
+                raise RuntimeError(f"File size {file_size} exceeds 8MB limit")
+
             with BytesIO(file.fp.read()) as f:
                 file_bytes = f.read()
             base64_encoded = base64.b64encode(file_bytes).decode("ascii")
+
+            # Check encoded size
+            if len(base64_encoded) > 10 * 1024 * 1024:  # 10MB limit for base64
+                raise RuntimeError("Base64 encoded size exceeds limit")
+
             return f"data:image;base64,{base64_encoded}"
         except Exception as e:
-            logger.error(f"Error converting file to data URI: {e}")
+            logger.error("Error converting file to data URI", error=str(e))
             raise
 
     @staticmethod
@@ -165,17 +204,32 @@ class AttachmentHandler:
             A discord.File object containing the decoded data
 
         Raises:
-            ValueError: If data URI is invalid
+            ValueError: If data URI is invalid or exceeds size limits
+            RuntimeError: If decoded data exceeds size limits
         """
         try:
             if "," not in data_uri:
                 raise ValueError("Invalid data URI format")
 
+            # Check data URI size
+            if len(data_uri) > 10 * 1024 * 1024:  # 10MB limit
+                raise RuntimeError("Data URI size exceeds limit")
+
             metadata, base64_data = data_uri.split(",")
+
+            # Check base64 data size
+            if len(base64_data) > 8 * 1024 * 1024:  # 8MB limit
+                raise RuntimeError("Base64 data size exceeds limit")
+
             file_bytes = base64.b64decode(base64_data)
+
+            # Check decoded size
+            if len(file_bytes) > 8 * 1024 * 1024:  # 8MB limit
+                raise RuntimeError("Decoded file size exceeds limit")
+
             return discord.File(BytesIO(file_bytes), filename=filename, spoiler=False)
         except Exception as e:
-            logger.error(f"Error converting data URI to file: {e}")
+            logger.error("Error converting data URI to file", error=str(e))
             raise
 
     @staticmethod
@@ -213,21 +267,68 @@ class AttachmentHandler:
         Raises:
             HTTPException: If there's an error saving the attachment
             OSError: If there's an error creating directories
+            RuntimeError: If attachment size exceeds limits
+            ValueError: If file type is not allowed
         """
         try:
+            # Check attachment size
+            if attm.size > 8 * 1024 * 1024:  # 8MB limit
+                raise RuntimeError(f"Attachment size {attm.size} exceeds 8MB limit")
+
+            # Verify file type
+            allowed_types = {
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                'text/plain', 'application/json', 'text/markdown'
+            }
+
+            if attm.content_type not in allowed_types:
+                raise ValueError(f"File type {attm.content_type} not allowed. Allowed types: {allowed_types}")
+
             path = self.path_for(attm, basedir=basedir)
-            logger.debug(f"save_attachment: path -> {path}")
+            logger.debug("save_attachment: path", path=str(path))
+
+            # Check available disk space
+            try:
+                disk_usage = os.statvfs(path.parent)
+                available_space = disk_usage.f_frsize * disk_usage.f_bavail
+                if available_space < attm.size * 2:  # Require 2x space
+                    raise RuntimeError("Insufficient disk space")
+            except AttributeError:
+                # statvfs not available on Windows
+                pass
+
+            # Verify path is within basedir to prevent directory traversal
+            basedir_path = pathlib.Path(basedir).resolve()
+            file_path = path.resolve()
+            if not str(file_path).startswith(str(basedir_path)):
+                raise ValueError("Invalid file path - potential directory traversal attempt")
+
             path.parent.mkdir(parents=True, exist_ok=True)
 
-            try:
-                await attm.save(path, use_cached=True)
-                await asyncio.sleep(5)
-            except HTTPException:
-                await attm.save(path)
+            # Add timeout for save operation
+            async with asyncio.timeout(30.0):
+                try:
+                    await attm.save(path, use_cached=True)
+                    await asyncio.sleep(5)
+                except HTTPException:
+                    await attm.save(path)
 
-            # await logger.complete()
+                # Verify saved file
+                if not path.exists():
+                    raise RuntimeError("File was not saved successfully")
+                if path.stat().st_size != attm.size:
+                    path.unlink()  # Delete corrupted file
+                    raise RuntimeError("Saved file size does not match attachment size")
+
+        except TimeoutError:
+            logger.error("Attachment save timed out", path=str(path))
+            if path.exists():
+                path.unlink()  # Cleanup partial file
+            raise
         except Exception as e:
-            logger.error(f"Error saving attachment: {e}")
+            logger.error("Error saving attachment", error=str(e), path=str(path))
+            if 'path' in locals() and path.exists():
+                path.unlink()  # Cleanup on error
             raise
 
     async def handle_save_attachment_locally(self, attm_data_dict: dict[str, Any], dir_root: str) -> str:
@@ -243,10 +344,15 @@ class AttachmentHandler:
         Raises:
             ValueError: If attachment data is invalid
             HTTPException: If there's an error saving the attachment
+            RuntimeError: If attachment size exceeds limits
         """
         try:
             if not all(key in attm_data_dict for key in ["id", "filename", "attachment_obj"]):
                 raise ValueError("Invalid attachment data dictionary")
+
+            # Check attachment size
+            if attm_data_dict.get("size", 0) > 8 * 1024 * 1024:  # 8MB limit
+                raise RuntimeError(f"Attachment size {attm_data_dict['size']} exceeds 8MB limit")
 
             fname = f"{dir_root}/orig_{attm_data_dict['id']}_{attm_data_dict['filename']}"
             rich.print(f"Saving to ... {fname}")

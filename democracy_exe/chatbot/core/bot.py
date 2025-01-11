@@ -134,7 +134,24 @@ class DemocracyBot(commands.Bot):
             intents: Optional custom intents. Defaults to standard intents configuration.
             *args: Additional positional arguments passed to commands.Bot
             **kwargs: Additional keyword arguments passed to commands.Bot
+
+        Raises:
+            ValueError: If configuration values are invalid
+            RuntimeError: If initialization fails
         """
+        # Validate configuration
+        if not aiosettings.prefix:
+            raise ValueError("Bot prefix not configured")
+        if not aiosettings.discord_client_id:
+            raise ValueError("Discord client ID not configured")
+
+        # Set resource limits
+        self.max_message_size = aiosettings.max_message_size or 8 * 1024 * 1024  # 8MB
+        self.max_attachment_size = aiosettings.max_attachment_size or 8 * 1024 * 1024  # 8MB
+        self.max_concurrent_tasks = aiosettings.max_concurrent_tasks or 100
+        self.task_timeout = aiosettings.task_timeout or 300  # 5 minutes
+        self.max_retries = aiosettings.max_retries or 3
+
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
 
         # Set up default intents if not provided
@@ -167,7 +184,6 @@ class DemocracyBot(commands.Bot):
         )
 
         # Initialize session and stats
-        # self.session: aiohttp.ClientSession = aiohttp.ClientSession()
         self.command_stats: Counter = Counter()
         self.socket_stats: Counter = Counter()
         self.graph: CompiledStateGraph = memgraph
@@ -188,16 +204,22 @@ class DemocracyBot(commands.Bot):
         self.resumes: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
         self.identifies: defaultdict[int, list[datetime.datetime]] = defaultdict(list)
 
-        self.spam_control = commands.CooldownMapping.from_cooldown(10, 12.0, commands.BucketType.user)
+        # Configure rate limiting
+        self.spam_control = commands.CooldownMapping.from_cooldown(
+            rate=aiosettings.rate_limit_rate or 10,
+            per=aiosettings.rate_limit_per or 12.0,
+            type=commands.BucketType.user
+        )
 
         # A counter to auto-ban frequent spammers
         # Triggering the rate limit 5 times in a row will auto-ban the user from the bot.
         self._auto_spam_count = Counter()
+        self._spam_ban_threshold = aiosettings.spam_ban_threshold or 5
 
         self.channel_list = [int(x) for x in CHANNEL_ID.split(",")]
-        self.queue: asyncio.Queue = asyncio.Queue()
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=aiosettings.max_queue_size or 1000)
         self.tasks: list[Any] = []
-        self.num_workers = 3
+        self.num_workers = min(aiosettings.num_workers or 3, 10)  # Max 10 workers
 
         self.total_sleep_time = 0
 
@@ -206,6 +228,10 @@ class DemocracyBot(commands.Bot):
         self.job_queue: dict[Any, Any] = {}
         self.client_id: int | str = aiosettings.discord_client_id
         self.enable_ai = aiosettings.enable_ai
+
+        # Task tracking
+        self._active_tasks: set[asyncio.Task] = set()
+        self._task_lock = asyncio.Lock()
 
     async def get_context(self, origin: discord.Interaction | Message, /, *, cls=Context) -> Context:
         """Retrieve the context for a Discord interaction or message.
@@ -216,7 +242,33 @@ class DemocracyBot(commands.Bot):
 
         Returns:
             The context object retrieved for the provided origin
+
+        Raises:
+            RuntimeError: If message size exceeds limits
+            ValueError: If message content is invalid
         """
+        # Add size checks for message content
+        if isinstance(origin, Message):
+            content_size = len(origin.content.encode('utf-8'))
+            if content_size > self.max_message_size:
+                logger.error("Message size exceeds limit",
+                           size=content_size,
+                           limit=self.max_message_size)
+                raise RuntimeError(f"Message size {content_size} exceeds limit {self.max_message_size}")
+
+            # Validate message content
+            if not origin.content or not origin.content.strip():
+                raise ValueError("Empty message content")
+
+            # Check attachments
+            if origin.attachments:
+                total_attachment_size = sum(a.size for a in origin.attachments)
+                if total_attachment_size > self.max_attachment_size:
+                    logger.error("Total attachment size exceeds limit",
+                               size=total_attachment_size,
+                               limit=self.max_attachment_size)
+                    raise RuntimeError(f"Total attachment size {total_attachment_size} exceeds limit {self.max_attachment_size}")
+
         ctx = await super().get_context(origin, cls=cls)
         ctx.prefix = self._command_prefix
         return ctx
@@ -227,28 +279,111 @@ class DemocracyBot(commands.Bot):
         This method is called to perform asynchronous setup tasks for the bot.
         It initializes the aiohttp session, sets up guild prefixes, retrieves
         bot application information, and loads extensions.
+
+        Raises:
+            RuntimeError: If initialization fails
+            TimeoutError: If setup tasks timeout
         """
-        logger.debug("Starting setup_hook initialization")
-        self.session: aiohttp.ClientSession = aiohttp.ClientSession()
-        self.prefixes: list[str] = [aiosettings.prefix]
+        try:
+            # Add timeout for setup tasks
+            async with asyncio.timeout(30.0):
+                # Initialize bot application info
+                self.bot_app_info = await self.application_info()
+                self.owner_id = self.bot_app_info.owner.id
 
-        self.version = democracy_exe.__version__
-        self.guild_data = {}
-        self.intents.members = True
-        self.intents.message_content = True
+                # Load extensions with retry logic
+                for extension in aiosettings.initial_extensions:
+                    for attempt in range(self.max_retries):
+                        try:
+                            await self.load_extension(extension)
+                            break
+                        except Exception as e:
+                            if attempt == self.max_retries - 1:
+                                logger.error("Failed to load extension",
+                                           extension=extension,
+                                           error=str(e))
+                                raise RuntimeError(f"Failed to load extension {extension} after {self.max_retries} attempts")
+                            await asyncio.sleep(1)
 
-        logger.debug("Retrieving bot application info")
-        app_info = await self.application_info()
-        self.bot_app_info = cast(AppInfo, app_info)
-        if hasattr(self.bot_app_info, "owner") and self.bot_app_info.owner:
-            self.owner_id = self.bot_app_info.owner.id
+                # Initialize invite link
+                app = await self.application_info()
+                self.invite = discord.utils.oauth_url(
+                    app.id,
+                    permissions=discord.Permissions(administrator=True)
+                )
 
-        # Load extensions will be moved to a separate utility function
-        logger.info("Beginning extension loading process")
-        await self._load_extensions()
+        except TimeoutError:
+            logger.error("Setup hook timed out")
+            raise
+        except Exception as e:
+            logger.error("Setup hook failed", error=str(e))
+            raise RuntimeError("Failed to initialize bot") from e
 
-        logger.info("Completed setup_hook initialization")
-        # await logger.complete()
+    async def add_task(self, coro: Coroutine) -> None:
+        """Add a task to the bot's task list with proper tracking.
+
+        Args:
+            coro: The coroutine to create a task from
+
+        Raises:
+            RuntimeError: If max concurrent tasks limit is reached
+        """
+        async with self._task_lock:
+            # Clean up completed tasks
+            self._active_tasks = {task for task in self._active_tasks if not task.done()}
+
+            # Check task limit
+            if len(self._active_tasks) >= self.max_concurrent_tasks:
+                logger.error("Max concurrent tasks limit reached",
+                           active_tasks=len(self._active_tasks),
+                           limit=self.max_concurrent_tasks)
+                raise RuntimeError(f"Max concurrent tasks limit {self.max_concurrent_tasks} reached")
+
+            # Create and add new task
+            task = asyncio.create_task(coro)
+            self._active_tasks.add(task)
+
+            # Add done callback to remove task from set
+            task.add_done_callback(self._active_tasks.discard)
+
+    async def cleanup(self) -> None:
+        """Clean up bot resources before shutdown.
+
+        This method ensures proper cleanup of all resources including tasks,
+        connections, and handlers.
+
+        Raises:
+            TimeoutError: If cleanup tasks timeout
+        """
+        try:
+            # Add timeout for cleanup
+            async with asyncio.timeout(30.0):
+                # Cancel all active tasks
+                async with self._task_lock:
+                    for task in self._active_tasks:
+                        task.cancel()
+
+                    if self._active_tasks:
+                        await asyncio.gather(*self._active_tasks, return_exceptions=True)
+
+                    self._active_tasks.clear()
+
+                # Close Redis pool if exists
+                if self.pool:
+                    await self.pool.disconnect()
+
+                # Clean up handlers
+                if hasattr(self.message_handler, 'cleanup'):
+                    await self.message_handler.cleanup()
+                if hasattr(self.attachment_handler, 'cleanup'):
+                    await self.attachment_handler.cleanup()
+
+        except TimeoutError:
+            logger.error("Cleanup timed out")
+            raise
+        except Exception as e:
+            logger.error("Cleanup failed", error=str(e))
+            raise
 
     async def on_command_error(self, ctx: commands.Context[commands.Bot], error: commands.CommandError) -> None:
         """Handle errors raised during command invocation.

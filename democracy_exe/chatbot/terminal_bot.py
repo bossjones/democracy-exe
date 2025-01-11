@@ -69,7 +69,13 @@ class ThreadSafeTerminalBot:
             frame: Current stack frame
         """
         if self._loop is not None:
-            self._loop.call_soon_threadsafe(self._initiate_shutdown)
+            self._loop.call_soon_threadsafe(self._schedule_shutdown)
+
+    def _schedule_shutdown(self) -> None:
+        """Schedule the shutdown coroutine on the event loop."""
+        if self._state != BotState.SHUTTING_DOWN:
+            self._state = BotState.SHUTTING_DOWN
+            asyncio.create_task(self.cleanup())
 
     async def _initiate_shutdown(self) -> None:
         """Initiate graceful shutdown sequence."""
@@ -124,19 +130,33 @@ class ThreadSafeTerminalBot:
         if not self._closed:
             async with self._cleanup_lock:
                 try:
-                    # Cancel all pending tasks
+                    # Set state to shutting down first to prevent new tasks
+                    self._state = BotState.SHUTTING_DOWN
+
+                    # Cancel all pending tasks with timeout
                     for task in self._tasks:
                         if not task.done():
                             task.cancel()
+                            try:
+                                await asyncio.wait_for(task, timeout=5.0)
+                            except TimeoutError:
+                                logger.error("Task cancellation timed out", task=task)
 
-                    # Wait for tasks to complete
+                    # Wait for tasks to complete with timeout
                     with suppress(asyncio.CancelledError):
                         pending = [t for t in self._tasks if not t.done()]
                         if pending:
-                            await asyncio.gather(*pending, return_exceptions=True)
+                            try:
+                                await asyncio.wait_for(
+                                    asyncio.gather(*pending, return_exceptions=True),
+                                    timeout=10.0
+                                )
+                            except TimeoutError:
+                                logger.error("Task cleanup timed out")
 
                     # Shutdown thread pool
                     self._executor.shutdown(wait=True)
+                    await asyncio.sleep(0)  # Yield control to event loop
 
                     # Clear event loop reference
                     if self._loop is not None:
@@ -257,13 +277,23 @@ def stream_terminal_bot(
 
     Raises:
         Exception: If an error occurs during streaming
+        RuntimeError: If response size exceeds limits
     """
     try:
+        response_size = 0
+        max_response_size = 1024 * 1024  # 1MB limit
+
         # Run the graph until the first interruption
-        for event in graph.stream(user_input, thread, stream_mode="values"):
-            logger.debug("Processing event", event=event)
-            chunk = event['messages'][-1]
-            logger.debug("Processing chunk", chunk=chunk, type=type(chunk))
+        for stream_event in graph.stream(user_input, thread, stream_mode="values"):
+            logger.debug("Processing stream data", data=stream_event)
+            chunk = stream_event['messages'][-1]
+            logger.debug("Processing chunk", chunk=chunk, chunk_type=type(chunk))
+
+            # Check response size
+            if hasattr(chunk, 'content'):
+                response_size += len(chunk.content.encode('utf-8'))
+                if response_size > max_response_size:
+                    raise RuntimeError(f"Response size {response_size} exceeds limit {max_response_size}")
 
             chunk.pretty_print()
 
@@ -273,14 +303,23 @@ def stream_terminal_bot(
 
             # Check approval
             if user_approval.lower() in ("yes", "y"):
-                # If approved, continue the graph execution
+                # If approved, continue the graph execution with size limits
                 for event in graph.stream(None, thread, stream_mode="values"):
-                    event['messages'][-1].pretty_print()
+                    chunk = event['messages'][-1]
+                    if hasattr(chunk, 'content'):
+                        response_size += len(chunk.content.encode('utf-8'))
+                        if response_size > max_response_size:
+                            raise RuntimeError(f"Response size {response_size} exceeds limit {max_response_size}")
+                    chunk.pretty_print()
             else:
                 print("Operation cancelled by user.")
     except Exception as e:
         logger.exception("Error in stream processing", error=str(e))
         raise
+    finally:
+        # Force garbage collection of large responses
+        import gc
+        gc.collect()
 
 
 def invoke_terminal_bot(
