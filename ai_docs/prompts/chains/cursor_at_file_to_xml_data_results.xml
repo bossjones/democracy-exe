@@ -614,11 +614,11 @@
         </identified_issues>
         <recommendations>
             <recommendation>
-                <description>Add input length validation and limits for string operations</description>
+                <description>Add input validation for format string operations</description>
                 <priority>high</priority>
             </recommendation>
             <recommendation>
-                <description>Implement proper Unicode encoding/decoding error handling</description>
+                <description>Implement string size limits and efficient concatenation</description>
                 <priority>medium</priority>
             </recommendation>
         </recommendations>
@@ -723,27 +723,49 @@
         <identified_issues>
             <issue>
                 <type>Resource Management</type>
-                <description>Timer resources not properly cleaned up in async context could lead to memory leaks</description>
-                <line_numbers>1-143</line_numbers>
+                <description>Timer objects not properly cleaned up between tests</description>
+                <line_numbers>12-19, 20-28, 29-37</line_numbers>
                 <diagnostic_point>resource_cleanup</diagnostic_point>
                 <severity>medium</severity>
             </issue>
             <issue>
-                <type>Task Cancellation</type>
-                <description>Timer tasks not properly cancelled during cleanup could lead to dangling tasks</description>
-                <line_numbers>1-143</line_numbers>
-                <diagnostic_point>task_safety</diagnostic_point>
+                <type>State Management</type>
+                <description>Timer collection state not properly reset between tests</description>
+                <line_numbers>38-46, 47-58</line_numbers>
+                <diagnostic_point>state_cleanup</diagnostic_point>
                 <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Error Handling</type>
+                <description>Timer error cases not comprehensively tested</description>
+                <line_numbers>66-70</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+            <issue>
+                <type>Time Safety</type>
+                <description>Time mocking could lead to inconsistent test behavior</description>
+                <line_numbers>12-37</line_numbers>
+                <diagnostic_point>time_safety</diagnostic_point>
+                <severity>low</severity>
             </issue>
         </identified_issues>
         <recommendations>
             <recommendation>
-                <description>Implement proper async cleanup for timer resources</description>
-                <priority>high</priority>
+                <description>Add proper cleanup of timer objects between tests</description>
+                <priority>medium</priority>
             </recommendation>
             <recommendation>
-                <description>Add proper task cancellation in cleanup routines</description>
+                <description>Implement comprehensive timer collection state cleanup</description>
                 <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add more comprehensive error case testing</description>
+                <priority>low</priority>
+            </recommendation>
+            <recommendation>
+                <description>Improve time mocking consistency in tests</description>
+                <priority>low</priority>
             </recommendation>
         </recommendations>
     </file_analysis>
@@ -892,119 +914,1256 @@
         </recommendations>
     </file_analysis>
 
+    <file_analysis>
+        <source_file>democracy_exe/models/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Import Safety</type>
+                <description>Module imports without proper error handling could lead to import-time crashes</description>
+                <line_numbers>1-17</line_numbers>
+                <diagnostic_point>import_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper error handling for module imports</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/shell/__init__.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Shell Command Safety</type>
+                <description>Shell command execution without proper sanitization could lead to command injection and memory corruption</description>
+                <line_numbers>1-326</line_numbers>
+                <diagnostic_point>command_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Process Management</type>
+                <description>Subprocess handling without proper cleanup could lead to zombie processes and resource leaks</description>
+                <line_numbers>1-326</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper command sanitization and validation</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper subprocess cleanup and signal handling</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/services/twitter_service.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>API Connection Safety</type>
+                <description>Twitter API connections not properly managed in async context could lead to resource leaks</description>
+                <line_numbers>1-87</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Rate Limit Management</type>
+                <description>Insufficient rate limit handling could cause API timeouts</description>
+                <line_numbers>1-87</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper API connection management</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add rate limit handling</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/services/base_service.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>Base service class lacking proper async cleanup methods could lead to resource leaks in derived services</description>
+                <line_numbers>1-31</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Error Propagation</type>
+                <description>Insufficient error handling patterns could lead to unhandled exceptions in service implementations</description>
+                <line_numbers>1-31</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper async cleanup methods in base service class</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement comprehensive error handling patterns</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/services/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>None</type>
+                <description>Empty file with no immediate segfault risks</description>
+                <line_numbers>1</line_numbers>
+                <diagnostic_point>code_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>No immediate safety recommendations needed</description>
+                <priority>low</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Import Safety</type>
+                <description>Module imports without proper error handling could lead to import-time crashes</description>
+                <line_numbers>1-17</line_numbers>
+                <diagnostic_point>import_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper error handling for module imports</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/loggers/__init__.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Logger Resource Safety</type>
+                <description>Logger setup without proper handler cleanup could lead to memory leaks and duplicate handlers</description>
+                <line_numbers>1-33</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>File Handle Management</type>
+                <description>Log file handles not properly managed in async context</description>
+                <line_numbers>1-33</line_numbers>
+                <diagnostic_point>file_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add cleanup handlers for logger resources</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement async file handle management</description>
+                <priority>high</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/vectorstores/chroma_input_model.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Management</type>
+                <description>Vector operations without proper size limits could cause memory exhaustion</description>
+                <line_numbers>1-128</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Resource Cleanup</type>
+                <description>ChromaDB connections not properly managed in async context</description>
+                <line_numbers>1-128</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement vector size limits and batch processing</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper async context managers for ChromaDB connections</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/vectorstores/pinecone_input_model.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Connection Safety</type>
+                <description>Pinecone API connections not properly managed could lead to resource leaks</description>
+                <line_numbers>1-113</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Memory Management</type>
+                <description>Vector operations without proper batching could cause memory pressure</description>
+                <line_numbers>1-113</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper connection lifecycle management</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add batch processing for vector operations</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/vectorstores/pgvector_input_model.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Database Connection Safety</type>
+                <description>PostgreSQL connections not properly managed in async context could lead to connection leaks</description>
+                <line_numbers>1-115</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Transaction Safety</type>
+                <description>Database transactions without proper error handling could leave connections in inconsistent states</description>
+                <line_numbers>1-115</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper async connection management</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive transaction error handling</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/vectorstores/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Import Safety</type>
+                <description>Module imports without proper error handling could lead to import-time crashes</description>
+                <line_numbers>1-8</line_numbers>
+                <diagnostic_point>import_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper error handling for module imports</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/models/cmds/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Command Registration Safety</type>
+                <description>Command registration without proper validation could lead to runtime errors</description>
+                <line_numbers>1-21</line_numbers>
+                <diagnostic_point>type_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add command validation during registration</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/factories/guild_factory.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Guild object creation without proper validation could lead to memory issues with large inputs</description>
+                <line_numbers>1-43</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>Factory methods without proper cleanup could lead to resource leaks</description>
+                <line_numbers>1-43</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add input validation and size limits for guild creation</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement resource cleanup</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/factories/cmd_factory.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Command Safety</type>
+                <description>Command creation without proper validation could lead to runtime errors</description>
+                <line_numbers>1-28</line_numbers>
+                <diagnostic_point>type_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>State Management</type>
+                <description>Factory state not properly isolated could cause race conditions</description>
+                <line_numbers>1-28</line_numbers>
+                <diagnostic_point>state_isolation</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add comprehensive command validation</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper state isolation in factory</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/factories/__init__.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Factory Registration Safety</type>
+                <description>Factory registration without proper validation could lead to runtime errors</description>
+                <line_numbers>1-41</line_numbers>
+                <diagnostic_point>type_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>Factory initialization without proper cleanup could lead to resource leaks</description>
+                <line_numbers>1-41</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add factory registration validation</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper cleanup in factory initialization</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/exceptions/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Exception Safety</type>
+                <description>Custom exceptions without proper memory management could lead to memory leaks during error propagation</description>
+                <line_numbers>1-41</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper memory management in custom exceptions</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/clients/aio_gallery_dl.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>Test fixtures not properly cleaning up gallery-dl resources in async context</description>
+                <line_numbers>1-684</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Concurrent Test Safety</type>
+                <description>Thread safety tests could lead to deadlocks or resource leaks if not properly managed</description>
+                <line_numbers>493-599</line_numbers>
+                <diagnostic_point>concurrency_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Memory Management</type>
+                <description>Large file downloads in tests without proper cleanup could cause memory pressure</description>
+                <line_numbers>155-184</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper async cleanup in test fixtures using try/finally blocks</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper synchronization and cleanup for concurrent subprocess tests</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement size limits and cleanup for download tests</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/test_logsetup.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Logger Resource Safety</type>
+                <description>Multiple logger configurations in tests could lead to handler accumulation if cleanup fails</description>
+                <line_numbers>129-153</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Management</type>
+                <description>Log capture fixtures without size limits could cause memory pressure with large log volumes</description>
+                <line_numbers>82-91</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Processor Chain Safety</type>
+                <description>Custom log processors without proper error handling could propagate exceptions</description>
+                <line_numbers>507-575</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement comprehensive logger cleanup in fixtures</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add log capture size limits and rotation</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add error boundaries in custom log processors</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/test_discord_bot.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>File System Safety</type>
+                <description>Test fixtures manipulating file permissions could leave files in inconsistent states if tests fail</description>
+                <line_numbers>115-143</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Directory Management</type>
+                <description>Temporary directory creation and cleanup not properly handled in async context</description>
+                <line_numbers>30-56</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Error Handling</type>
+                <description>Insufficient error handling in extension loading could lead to resource leaks</description>
+                <line_numbers>57-92</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper cleanup in file permission tests using try/finally</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add async cleanup for temporary directories</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive error handling for extension loading</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/test_shell.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Process Safety</type>
+                <description>Subprocess execution in tests without proper resource cleanup could lead to zombie processes</description>
+                <line_numbers>53-64, 157-168</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Concurrency Safety</type>
+                <description>Concurrent subprocess tests could lead to race conditions and resource leaks</description>
+                <line_numbers>169-198</line_numbers>
+                <diagnostic_point>concurrency_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>File Handle Safety</type>
+                <description>Temporary file handling in tests without proper cleanup in error cases</description>
+                <line_numbers>35-52</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper subprocess cleanup using try/finally blocks</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper synchronization and cleanup for concurrent subprocess tests</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive file handle cleanup in fixtures</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/test_cli.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Event Loop Safety</type>
+                <description>Custom AsyncCliRunner using event loop executor without proper cleanup could lead to loop leaks</description>
+                <line_numbers>34-87</line_numbers>
+                <diagnostic_point>event_loop_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>Isolated filesystem context in async tests not properly cleaned up in all error paths</description>
+                <line_numbers>68-75</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Async State Management</type>
+                <description>Bot command tests not properly cleaning up mocked async resources</description>
+                <line_numbers>161-183</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper event loop cleanup in AsyncCliRunner</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive cleanup for isolated filesystem tests</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper async resource cleanup in bot command tests</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/test_async_typer.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Event Loop Safety</type>
+                <description>Multiple async test functions creating event loops without proper cleanup between tests</description>
+                <line_numbers>34-87, 202-236</line_numbers>
+                <diagnostic_point>event_loop_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>AsyncTyperImproved fixture not properly cleaning up resources in error cases</description>
+                <line_numbers>24-31</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Mock Safety</type>
+                <description>Mock objects in decorator tests not properly cleaned up after use</description>
+                <line_numbers>164-201</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Remove class-level event loop storage and use fixture instead</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive cleanup for thread pools and events in error cases</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper task cancellation cleanup in gather tests</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper resource cleanup in all error paths</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/unittests/ai/test_base.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>State Management</type>
+                <description>AgentNode tests not properly handling deep state objects that could cause memory issues</description>
+                <line_numbers>18-34</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>MutatingAgent test not properly cleaning up mutated state objects</description>
+                <line_numbers>77-104</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Context tests not handling potential deep recursion in state objects</description>
+                <line_numbers>53-76</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add state size limits and validation in AgentNode tests</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper cleanup of mutated state objects</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add recursion depth limits for context object handling</description>
+                <priority>low</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/unittests/utils/test_base.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Dict merge tests handling potentially large nested dictionaries without size limits</description>
+                <line_numbers>133-144</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>System module mocking not properly cleaned up in whoami/callersname tests</description>
+                <line_numbers>43-76</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Filter tests handling potentially large data structures without size validation</description>
+                <line_numbers>115-132</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add size limits and validation for dict merge operations</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper cleanup of mocked system modules</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add size validation for filter test inputs</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/test_aiodbx.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>SafeFileHandler tests not properly handling cleanup in all error paths</description>
+                <line_numbers>234-252, 583-613</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Thread Safety</type>
+                <description>Concurrent file operations in SafeFileHandler tests could lead to race conditions</description>
+                <line_numbers>544-582</line_numbers>
+                <diagnostic_point>thread_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Memory Management</type>
+                <description>Chunked upload tests not properly handling memory cleanup for large files</description>
+                <line_numbers>441-489</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Event Loop Safety</type>
+                <description>Event loop usage in file handler tests could lead to loop leaks</description>
+                <line_numbers>671-688</line_numbers>
+                <diagnostic_point>event_loop_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add comprehensive cleanup handling in SafeFileHandler error paths</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper synchronization for concurrent file operations</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper memory cleanup in chunked upload tests</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Ensure proper event loop cleanup in file handler tests</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/unittests/utils/test_timer.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>Timer objects not properly cleaned up between tests</description>
+                <line_numbers>12-19, 20-28, 29-37</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>State Management</type>
+                <description>Timer collection state not properly reset between tests</description>
+                <line_numbers>38-46, 47-58</line_numbers>
+                <diagnostic_point>state_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Error Handling</type>
+                <description>Timer error cases not comprehensively tested</description>
+                <line_numbers>66-70</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+            <issue>
+                <type>Time Safety</type>
+                <description>Time mocking could lead to inconsistent test behavior</description>
+                <line_numbers>12-37</line_numbers>
+                <diagnostic_point>time_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper cleanup of timer objects between tests</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement comprehensive timer collection state cleanup</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add more comprehensive error case testing</description>
+                <priority>low</priority>
+            </recommendation>
+            <recommendation>
+                <description>Improve time mocking consistency in tests</description>
+                <priority>low</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/unittests/utils/test_vidops.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>Video file handles not properly closed in async tests</description>
+                <line_numbers>47-55, 56-64, 65-72</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Video processing tests not handling large file scenarios</description>
+                <line_numbers>73-80, 81-88</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Future Management</type>
+                <description>Async tests returning Future objects without proper cleanup</description>
+                <line_numbers>47-88</line_numbers>
+                <diagnostic_point>task_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Error Handling</type>
+                <description>Video processing error cases not comprehensively tested</description>
+                <line_numbers>40-46</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper video file handle cleanup in async tests</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement memory bounds for video processing tests</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper Future object cleanup in async tests</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive error case testing for video processing</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>tests/unittests/utils/test_utils.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Event Loop Safety</type>
+                <description>Event loop creation and cleanup not properly handled in tests</description>
+                <line_numbers>28-39, 92-101</line_numbers>
+                <diagnostic_point>event_loop_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>Environment variable modifications not properly cleaned up</description>
+                <line_numbers>53-62</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Deduplication tests not handling large iterables</description>
+                <line_numbers>125-130</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+            <issue>
+                <type>Error Handling</type>
+                <description>Coroutine error cases not comprehensively tested</description>
+                <line_numbers>40-52</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper event loop cleanup in tests</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add environment variable cleanup in test fixtures</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add size limits for iterable deduplication tests</description>
+                <priority>low</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive coroutine error testing</description>
+                <priority>low</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
     <summary>
         <critical_recommendations>
-            <main_py>
-                <item>Implement proper event loop management with signal handlers</item>
-                <item>Add structured cleanup patterns</item>
-            </main_py>
-            <llm_manager_py>
-                <item>Add async context managers for LLM resources</item>
-                <item>Implement thread-safe access patterns</item>
-            </llm_manager_py>
-            <debugger_py>
-                <item>Add proper error handling for object inspection</item>
-                <item>Implement resource cleanup for highlighters</item>
-            </debugger_py>
-            <cli_py>
-                <item>Replace signal handler with async-safe version using asyncio.get_running_loop().add_signal_handler()</item>
-                <item>Implement proper async cleanup patterns for bot resources</item>
-                <item>Add synchronization for shared APP state</item>
-            </cli_py>
-            <base_py>
-                <item>Add safety checks for stack frame access</item>
-                <item>Implement size/depth limits for recursive operations</item>
-            </base_py>
-            <asynctyper_py>
-                <item>Add proper event loop lifecycle management</item>
-                <item>Implement coroutine cleanup patterns</item>
-            </asynctyper_py>
-            <aio_settings_py>
-                <item>Implement thread-safe settings access</item>
-                <item>Add secure memory handling for secrets</item>
-                <item>Improve URL construction error handling</item>
-            </aio_settings_py>
-            <version_py>
-                <item>No critical recommendations</item>
-            </version_py>
-            <main_py>
-                <item>Implement centralized logger configuration with cleanup</item>
-                <item>Add proper signal handling around main()</item>
-            </main_py>
-            <init_py>
-                <item>Centralize logger configuration management</item>
-            </init_py>
-            <file_functions_py>
-                <item>Convert to async file operations using aiofiles</item>
-                <item>Add proper async context managers</item>
-            </file_functions_py>
-            <aiodbx_py>
-                <item>Implement async context managers for API connections</item>
-                <item>Add comprehensive error handling</item>
-            </aiodbx_py>
-            <imgops_py>
-                <item>Add memory bounds checking for image operations</item>
-                <item>Implement proper image resource cleanup</item>
-            </imgops_py>
-            <async_py>
-                <item>Implement safe task cancellation patterns</item>
-                <item>Add event loop safety checks</item>
-            </async_py>
-            <dropbox_py>
-                <item>Implement proper client lifecycle management</item>
-                <item>Add chunked upload handling</item>
-            </dropbox_py>
-            <events_py>
-                <item>Add error boundaries for event handlers</item>
-                <item>Implement event queue size limits</item>
-            </events_py>
-            <imitools_py>
-                <item>Add memory bounds checking for image operations</item>
-                <item>Implement proper resource cleanup</item>
-            </imitools_py>
-            <globalfunctions_py>
-                <item>Add synchronization for global state</item>
-                <item>Implement stack safety checks</item>
-            </globalfunctions_py>
-            <chat_formatting_py>
-                <item>Add string length validation and limits</item>
-                <item>Implement Unicode safety checks</item>
-            </chat_formatting_py>
-            <io_py>
-                <item>Convert to consistent async I/O patterns</item>
-                <item>Add buffer safety checks</item>
-            </io_py>
-            <misc_py>
+            <graph_py>
+                <item>Implement state synchronization for graph operations</item>
+                <item>Add memory bounds for graph nodes</item>
+                <item>Add resource cleanup in workflows</item>
+            </graph_py>
+            <utils_py>
                 <item>Add input validation and size limits</item>
-                <item>Implement type safety checks</item>
-            </misc_py>
-            <unpickler_py>
-                <item>Implement safe deserialization patterns</item>
-                <item>Add size limits for pickle operations</item>
-            </unpickler_py>
-            <timer_py>
-                <item>Implement proper async cleanup for timers</item>
-                <item>Add task cancellation handling</item>
-            </timer_py>
-            <base_context_py>
-                <item>Add comprehensive error handling</item>
-                <item>Implement state isolation</item>
-            </base_context_py>
-            <introspect_py>
-                <item>Add guards for object introspection</item>
                 <item>Implement type checking</item>
-            </introspect_py>
-            <formatutil_py>
-                <item>Add format string validation</item>
-                <item>Implement string size limits</item>
-            </formatutil_py>
-            <dummy_cmd_py>
-                <item>Add state synchronization for APP instance</item>
-                <item>Add error boundaries for async commands</item>
-            </dummy_cmd_py>
-            <subcommands_init_py>
+            </utils_py>
+            <schemas_py>
+                <item>Add schema validation size limits</item>
+                <item>Implement error handling</item>
+            </schemas_py>
+            <event_server_py>
+                <item>Implement event loop cleanup</item>
+                <item>Add event queue limits</item>
+                <item>Add resource cleanup</item>
+            </event_server_py>
+            <constants_py>
                 <item>No critical recommendations</item>
-            </subcommands_init_py>
+            </constants_py>
+            <agentic_init_py>
+                <item>Add import error handling</item>
+            </agentic_init_py>
         </critical_recommendations>
     </summary>
+
+    <implementation_patterns>
+        <pattern_category name="async_resource_cleanup">
+            <pattern>
+                <name>Event Loop Cleanup</name>
+                <description>Pattern for proper event loop cleanup in async tests</description>
+                <code_example>
+                    @pytest.fixture
+                    async def event_loop():
+                        loop = asyncio.new_event_loop()
+                        yield loop
+                        pending = asyncio.all_tasks(loop)
+                        for task in pending:
+                            task.cancel()
+                        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                        loop.close()
+                </code_example>
+                <applicable_files>
+                    <file>test_async_typer.py</file>
+                    <file>test_aiodbx.py</file>
+                    <file>test_utils.py</file>
+                </applicable_files>
+            </pattern>
+            <pattern>
+                <name>Safe File Handle Management</name>
+                <description>Pattern for safe file handle cleanup in async tests</description>
+                <code_example>
+                    @pytest.fixture
+                    async def test_file():
+                        file = await aiofiles.open('test.txt', 'w')
+                        try:
+                            yield file
+                        finally:
+                            await file.close()
+                            if os.path.exists(file.name):
+                                os.unlink(file.name)
+                </code_example>
+                <applicable_files>
+                    <file>test_file_operations.py</file>
+                    <file>test_aiodbx.py</file>
+                </applicable_files>
+            </pattern>
+        </pattern_category>
+
+        <pattern_category name="memory_safety">
+            <pattern>
+                <name>Large File Testing</name>
+                <description>Pattern for safely testing large file operations</description>
+                <code_example>
+                    @pytest.mark.parametrize('file_size', [
+                        1024,  # 1KB
+                        1024*1024,  # 1MB
+                        pytest.param(1024*1024*1024, marks=pytest.mark.large)  # 1GB
+                    ])
+                    async def test_large_file_handling(file_size):
+                        with tempfile.NamedTemporaryFile() as f:
+                            f.truncate(file_size)
+                            await process_file(f.name)
+                </code_example>
+                <applicable_files>
+                    <file>test_file_operations.py</file>
+                    <file>test_vidops.py</file>
+                </applicable_files>
+            </pattern>
+        </pattern_category>
+
+        <pattern_category name="error_handling">
+            <pattern>
+                <name>Resource Cleanup on Error</name>
+                <description>Pattern for ensuring resource cleanup during test failures</description>
+                <code_example>
+                    @pytest.fixture
+                    async def managed_resource():
+                        resource = await create_resource()
+                        try:
+                            yield resource
+                        finally:
+                            await cleanup_resource(resource)
+
+                    async def cleanup_resource(resource):
+                        try:
+                            await resource.close()
+                        except Exception as e:
+                            logger.error(f"Failed to cleanup resource: {e}")
+                            raise
+                </code_example>
+                <applicable_files>
+                    <file>test_aiodbx.py</file>
+                    <file>test_vidops.py</file>
+                    <file>test_file_operations.py</file>
+                </applicable_files>
+            </pattern>
+        </pattern_category>
+
+        <pattern_category name="concurrency_safety">
+            <pattern>
+                <name>Thread-Safe Resource Access</name>
+                <description>Pattern for thread-safe resource access in tests</description>
+                <code_example>
+                    class ThreadSafeResource:
+                        def __init__(self):
+                            self._lock = asyncio.Lock()
+                            self._resource = None
+
+                        async def __aenter__(self):
+                            async with self._lock:
+                                if not self._resource:
+                                    self._resource = await create_resource()
+                                return self._resource
+
+                        async def __aexit__(self, exc_type, exc, tb):
+                            async with self._lock:
+                                if self._resource:
+                                    await self._resource.close()
+                                    self._resource = None
+                </code_example>
+                <applicable_files>
+                    <file>test_aiodbx.py</file>
+                    <file>test_file_operations.py</file>
+                </applicable_files>
+            </pattern>
+        </pattern_category>
+    </implementation_patterns>
+
+    <relationship_mappings>
+        <dependency_group name="async_testing">
+            <dependency>
+                <source>test_async_typer.py</source>
+                <target>test_utils.py</target>
+                <relationship>Shares event loop management patterns</relationship>
+                <shared_patterns>
+                    <pattern>Event Loop Cleanup</pattern>
+                    <pattern>Async Resource Management</pattern>
+                </shared_patterns>
+            </dependency>
+            <dependency>
+                <source>test_aiodbx.py</source>
+                <target>test_file_operations.py</target>
+                <relationship>Shares file handle management patterns</relationship>
+                <shared_patterns>
+                    <pattern>Safe File Handle Management</pattern>
+                    <pattern>Thread-Safe Resource Access</pattern>
+                </shared_patterns>
+            </dependency>
+        </dependency_group>
+
+        <dependency_group name="resource_management">
+            <dependency>
+                <source>test_vidops.py</source>
+                <target>test_file_operations.py</target>
+                <relationship>Shares large file handling patterns</relationship>
+                <shared_patterns>
+                    <pattern>Large File Testing</pattern>
+                    <pattern>Resource Cleanup on Error</pattern>
+                </shared_patterns>
+            </dependency>
+            <dependency>
+                <source>test_timer.py</source>
+                <target>test_utils.py</target>
+                <relationship>Shares resource lifecycle management</relationship>
+                <shared_patterns>
+                    <pattern>Resource Cleanup</pattern>
+                    <pattern>State Management</pattern>
+                </shared_patterns>
+            </dependency>
+        </dependency_group>
+
+        <dependency_group name="error_handling">
+            <dependency>
+                <source>test_aiodbx.py</source>
+                <target>test_vidops.py</target>
+                <relationship>Shares error handling patterns</relationship>
+                <shared_patterns>
+                    <pattern>Resource Cleanup on Error</pattern>
+                    <pattern>Exception Safety</pattern>
+                </shared_patterns>
+            </dependency>
+        </dependency_group>
+    </relationship_mappings>
+
+    <validation_framework>
+        <validation_category name="resource_cleanup">
+            <validation_check>
+                <name>Event Loop Cleanup Validation</name>
+                <description>Validates proper cleanup of event loops in async tests</description>
+                <validation_steps>
+                    <step>Verify no pending tasks after test completion</step>
+                    <step>Confirm event loop is closed</step>
+                    <step>Check for resource warnings</step>
+                </validation_steps>
+                <applicable_files>
+                    <file>test_async_typer.py</file>
+                    <file>test_utils.py</file>
+                </applicable_files>
+            </validation_check>
+            <validation_check>
+                <name>File Handle Cleanup Validation</name>
+                <description>Validates proper cleanup of file handles</description>
+                <validation_steps>
+                    <step>Verify all files are closed after tests</step>
+                    <step>Check for leaked file descriptors</step>
+                    <step>Confirm temporary files are removed</step>
+                </validation_steps>
+                <applicable_files>
+                    <file>test_file_operations.py</file>
+                    <file>test_aiodbx.py</file>
+                </applicable_files>
+            </validation_check>
+        </validation_category>
+
+        <validation_category name="memory_safety">
+            <validation_check>
+                <name>Large File Operation Validation</name>
+                <description>Validates memory usage during large file operations</description>
+                <validation_steps>
+                    <step>Monitor memory usage during large file tests</step>
+                    <step>Verify proper cleanup after large file operations</step>
+                    <step>Check for memory leaks</step>
+                </validation_steps>
+                <applicable_files>
+                    <file>test_vidops.py</file>
+                    <file>test_file_operations.py</file>
+                </applicable_files>
+            </validation_check>
+        </validation_category>
+
+        <validation_category name="concurrency_safety">
+            <validation_check>
+                <name>Thread Safety Validation</name>
+                <description>Validates thread-safe resource access</description>
+                <validation_steps>
+                    <step>Verify no race conditions in concurrent tests</step>
+                    <step>Check for proper lock usage</step>
+                    <step>Confirm resource state consistency</step>
+                </validation_steps>
+                <applicable_files>
+                    <file>test_aiodbx.py</file>
+                    <file>test_file_operations.py</file>
+                </applicable_files>
+            </validation_check>
+        </validation_category>
+    </validation_framework>
 </segfault_analysis>
