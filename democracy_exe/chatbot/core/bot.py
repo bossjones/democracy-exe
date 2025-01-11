@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import gc
 
 from collections import Counter, defaultdict
 from collections.abc import AsyncIterator, Callable, Coroutine, Iterable
@@ -49,6 +50,7 @@ from democracy_exe.agentic.workflows.react.graph import graph as memgraph
 from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
 from democracy_exe.chatbot.handlers.message_handler import MessageHandler
+from democracy_exe.chatbot.utils.extension_manager import get_extension_load_order, load_extension_with_retry
 from democracy_exe.chatbot.utils.guild_utils import preload_guild_data
 from democracy_exe.chatbot.utils.message_utils import format_inbound_message
 from democracy_exe.constants import CHANNEL_ID
@@ -283,6 +285,7 @@ class DemocracyBot(commands.Bot):
         Raises:
             RuntimeError: If initialization fails
             TimeoutError: If setup tasks timeout
+            ValueError: If extension dependencies are not met
         """
         try:
             # Add timeout for setup tasks
@@ -291,19 +294,10 @@ class DemocracyBot(commands.Bot):
                 self.bot_app_info = await self.application_info()
                 self.owner_id = self.bot_app_info.owner.id
 
-                # Load extensions with retry logic
-                for extension in aiosettings.initial_extensions:
-                    for attempt in range(self.max_retries):
-                        try:
-                            await self.load_extension(extension)
-                            break
-                        except Exception as e:
-                            if attempt == self.max_retries - 1:
-                                logger.error("Failed to load extension",
-                                           extension=extension,
-                                           error=str(e))
-                                raise RuntimeError(f"Failed to load extension {extension} after {self.max_retries} attempts")
-                            await asyncio.sleep(1)
+                # Load extensions in dependency order
+                extension_order = get_extension_load_order(aiosettings.initial_extensions)
+                for extension in extension_order:
+                    await load_extension_with_retry(self, extension, self.max_retries)
 
                 # Initialize invite link
                 app = await self.application_info()
@@ -339,12 +333,37 @@ class DemocracyBot(commands.Bot):
                            limit=self.max_concurrent_tasks)
                 raise RuntimeError(f"Max concurrent tasks limit {self.max_concurrent_tasks} reached")
 
-            # Create and add new task
-            task = asyncio.create_task(coro)
+            # Create and add new task with timeout
+            async def wrapped_coro() -> None:
+                try:
+                    async with asyncio.timeout(self.task_timeout):
+                        await coro
+                except TimeoutError:
+                    logger.error("Task timed out", timeout=self.task_timeout)
+                    raise
+                except Exception as e:
+                    logger.error("Task failed", error=str(e))
+                    raise
+                finally:
+                    # Force cleanup of task resources
+                    gc.collect()
+
+            task = asyncio.create_task(wrapped_coro())
             self._active_tasks.add(task)
 
-            # Add done callback to remove task from set
-            task.add_done_callback(self._active_tasks.discard)
+            # Add done callback to remove task from set and log completion
+            def on_task_done(t: asyncio.Task) -> None:
+                self._active_tasks.discard(t)
+                try:
+                    exc = t.exception()
+                    if exc:
+                        logger.error("Task failed with exception",
+                                   task=t,
+                                   error=str(exc))
+                except asyncio.CancelledError:
+                    logger.info("Task was cancelled", task=t)
+
+            task.add_done_callback(on_task_done)
 
     async def cleanup(self) -> None:
         """Clean up bot resources before shutdown.
@@ -358,25 +377,54 @@ class DemocracyBot(commands.Bot):
         try:
             # Add timeout for cleanup
             async with asyncio.timeout(30.0):
-                # Cancel all active tasks
+                # Cancel all active tasks with individual timeouts
                 async with self._task_lock:
                     for task in self._active_tasks:
-                        task.cancel()
+                        if not task.done():
+                            task.cancel()
+                            try:
+                                await asyncio.wait_for(task, timeout=5.0)
+                            except TimeoutError:
+                                logger.error("Task cancellation timed out", task=task)
+                            except Exception as e:
+                                logger.error("Task cancellation failed",
+                                           task=task,
+                                           error=str(e))
 
+                    # Wait for all tasks with timeout
                     if self._active_tasks:
-                        await asyncio.gather(*self._active_tasks, return_exceptions=True)
+                        try:
+                            await asyncio.wait_for(
+                                asyncio.gather(*self._active_tasks, return_exceptions=True),
+                                timeout=10.0
+                            )
+                        except TimeoutError:
+                            logger.error("Task cleanup timed out")
 
                     self._active_tasks.clear()
 
                 # Close Redis pool if exists
                 if self.pool:
-                    await self.pool.disconnect()
+                    try:
+                        async with asyncio.timeout(5.0):
+                            await self.pool.disconnect()
+                    except TimeoutError:
+                        logger.error("Redis pool disconnect timed out")
+                    except Exception as e:
+                        logger.error("Redis pool disconnect failed", error=str(e))
 
-                # Clean up handlers
-                if hasattr(self.message_handler, 'cleanup'):
-                    await self.message_handler.cleanup()
-                if hasattr(self.attachment_handler, 'cleanup'):
-                    await self.attachment_handler.cleanup()
+                # Clean up handlers in sequence
+                for handler_name in ['message_handler', 'attachment_handler']:
+                    handler = getattr(self, handler_name, None)
+                    if handler and hasattr(handler, 'cleanup'):
+                        try:
+                            async with asyncio.timeout(5.0):
+                                await handler.cleanup()
+                        except TimeoutError:
+                            logger.error(f"{handler_name} cleanup timed out")
+                        except Exception as e:
+                            logger.error(f"{handler_name} cleanup failed",
+                                       error=str(e))
 
         except TimeoutError:
             logger.error("Cleanup timed out")
@@ -384,6 +432,9 @@ class DemocracyBot(commands.Bot):
         except Exception as e:
             logger.error("Cleanup failed", error=str(e))
             raise
+        finally:
+            # Force cleanup of any remaining resources
+            gc.collect()
 
     async def on_command_error(self, ctx: commands.Context[commands.Bot], error: commands.CommandError) -> None:
         """Handle errors raised during command invocation.
@@ -715,7 +766,7 @@ class DemocracyBot(commands.Bot):
         This method loads all extensions from the cogs directory.
         It uses the extension_utils module to discover and load extensions.
         """
-        from democracy_exe.chatbot.utils.extension_utils import extensions, load_extensions
+        from democracy_exe.chatbot.utils.extension_manager import extensions, load_extensions
 
         logger.debug("Looking for extensions in cogs directory")
         extensions_found = list(extensions())

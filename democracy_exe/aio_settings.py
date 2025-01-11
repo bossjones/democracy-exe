@@ -498,6 +498,13 @@ class AioSettings(BaseSettings):
 
     dev_mode: bool = Field(env="DEV_MODE", description="enable dev mode", default=False)
 
+    # Task execution settings
+    task_timeout: int = Field(
+        env="TASK_TIMEOUT",
+        description="Default timeout for tasks in seconds",
+        default=300  # 5 minutes
+    )
+
     llm_temperature: float = 0.0
 
     vision_model: str = "gpt-4o"
@@ -882,6 +889,56 @@ class AioSettings(BaseSettings):
 
     thirdparty_lib_loglevel: str = "INFO"
     log_level: int = logging.DEBUG
+
+    # Message size limits
+    max_message_size: int = Field(
+        env="MAX_MESSAGE_SIZE",
+        description="Maximum size of a message in bytes",
+        default=8 * 1024 * 1024  # 8MB
+    )
+    max_attachment_size: int = Field(
+        env="MAX_ATTACHMENT_SIZE",
+        description="Maximum size of an attachment in bytes",
+        default=8 * 1024 * 1024  # 8MB
+    )
+    max_concurrent_tasks: int = Field(
+        env="MAX_CONCURRENT_TASKS",
+        description="Maximum number of concurrent tasks",
+        default=100
+    )
+
+    # Rate limiting settings
+    rate_limit_rate: int = Field(
+        env="RATE_LIMIT_RATE",
+        description="Number of commands allowed per time period",
+        default=10
+    )
+    rate_limit_per: float = Field(
+        env="RATE_LIMIT_PER",
+        description="Time period in seconds for rate limiting",
+        default=12.0
+    )
+
+    # Spam control settings
+    spam_ban_threshold: int = Field(
+        env="SPAM_BAN_THRESHOLD",
+        description="Number of rate limit triggers before auto-ban",
+        default=5
+    )
+
+    # Worker settings
+    num_workers: int = Field(
+        env="NUM_WORKERS",
+        description="Number of worker threads (max 10)",
+        default=3
+    )
+
+    # Queue settings
+    max_queue_size: int = Field(
+        env="MAX_QUEUE_SIZE",
+        description="Maximum size of the task queue",
+        default=1000
+    )
 
     @model_validator(mode="before")
     @classmethod
