@@ -345,6 +345,553 @@
         </recommendations>
     </file_analysis>
 
+    <file_analysis>
+        <source_file>democracy_exe/utils/file_functions.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Async File Operations</type>
+                <description>Mixed usage of sync and async file operations could lead to blocking I/O and potential deadlocks</description>
+                <line_numbers>1-1277</line_numbers>
+                <diagnostic_point>async_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Resource Management</type>
+                <description>File handles not properly managed in async context, risking resource leaks</description>
+                <line_numbers>1-1277</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Convert all file operations to use aiofiles for async I/O</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper async context managers for file operations</description>
+                <priority>high</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/aiodbx.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Connection Management</type>
+                <description>Dropbox API connections not properly managed in async context, potential for connection leaks</description>
+                <line_numbers>1-1124</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Error Handling</type>
+                <description>Insufficient error handling for API calls could lead to unhandled exceptions and resource leaks</description>
+                <line_numbers>1-1124</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper async context managers for Dropbox API connections</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add comprehensive error handling with proper cleanup</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/imgops.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Management</type>
+                <description>Image operations without proper memory bounds checking could lead to buffer overflows</description>
+                <line_numbers>1-979</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Resource Cleanup</type>
+                <description>Image file handles and buffers not properly cleaned up in all code paths</description>
+                <line_numbers>1-979</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add memory bounds checking for all image operations</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper cleanup of image resources using context managers</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/async_.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Task Management</type>
+                <description>Unsafe task cancellation and cleanup could lead to resource leaks and deadlocks</description>
+                <line_numbers>1-798</line_numbers>
+                <diagnostic_point>task_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Event Loop Safety</type>
+                <description>Direct event loop manipulation without proper safety checks</description>
+                <line_numbers>1-798</line_numbers>
+                <diagnostic_point>event_loop_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement safe task cancellation with proper cleanup</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add event loop lifecycle checks and proper error handling</description>
+                <priority>high</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/dropbox_.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>Dropbox client connections not properly managed in synchronous context, potential for connection leaks</description>
+                <line_numbers>1-663</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Large file uploads without chunking or memory bounds could cause memory pressure</description>
+                <line_numbers>1-663</line_numbers>
+                <diagnostic_point>memory_management</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement context managers for Dropbox client lifecycle</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add chunked upload handling for large files</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/events.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Event Handler Safety</type>
+                <description>Event handlers without proper error boundaries could propagate exceptions and cause crashes</description>
+                <line_numbers>1-463</line_numbers>
+                <diagnostic_point>error_handling</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Memory Management</type>
+                <description>Event queue growth without bounds could lead to memory exhaustion</description>
+                <line_numbers>1-463</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper error boundaries around event handlers</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement event queue size limits and overflow handling</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/imitools.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Image manipulation operations without proper bounds checking could cause buffer overflows</description>
+                <line_numbers>1-797</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Resource Cleanup</type>
+                <description>Image file handles and memory buffers not consistently cleaned up</description>
+                <line_numbers>1-797</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add memory bounds checking for all image operations</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper cleanup of image resources using context managers</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/globalfunctions.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Global State Safety</type>
+                <description>Global function state without proper synchronization could lead to race conditions</description>
+                <line_numbers>1-402</line_numbers>
+                <diagnostic_point>state_isolation</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Recursive operations without depth limits could cause stack overflow</description>
+                <line_numbers>1-402</line_numbers>
+                <diagnostic_point>stack_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper synchronization for global state access</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement recursion depth limits and stack safety checks</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/chat_formatting.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Safety</type>
+                <description>String manipulation operations without proper length checks could cause memory issues with large inputs</description>
+                <line_numbers>1-647</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Unicode Safety</type>
+                <description>Unicode string operations without proper encoding/decoding safety could lead to buffer overflows</description>
+                <line_numbers>1-647</line_numbers>
+                <diagnostic_point>string_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add input length validation and limits for string operations</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper Unicode encoding/decoding error handling</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/io.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>File Handle Safety</type>
+                <description>Mixed sync/async file operations without proper resource management could cause handle leaks</description>
+                <line_numbers>1-445</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Buffer Management</type>
+                <description>Buffer operations without proper size checks could lead to overflows</description>
+                <line_numbers>1-445</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Convert to consistent async I/O using aiofiles</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add buffer size limits and overflow checks</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/misc.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Management</type>
+                <description>Utility functions without proper memory bounds could cause issues with large inputs</description>
+                <line_numbers>1-423</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Type Safety</type>
+                <description>Dynamic type operations without proper checks could lead to crashes</description>
+                <line_numbers>1-423</line_numbers>
+                <diagnostic_point>type_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add input validation and size limits for utility functions</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper type checking and error handling</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/unpickler.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Deserialization Safety</type>
+                <description>Unsafe pickle operations could lead to arbitrary code execution and memory corruption</description>
+                <line_numbers>1-496</line_numbers>
+                <diagnostic_point>code_execution</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Deserialization of untrusted data without size limits could cause memory exhaustion</description>
+                <line_numbers>1-496</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement safe deserialization with strict type checking</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add size limits and validation for pickle operations</description>
+                <priority>high</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/timer.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Resource Management</type>
+                <description>Timer resources not properly cleaned up in async context could lead to memory leaks</description>
+                <line_numbers>1-143</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Task Cancellation</type>
+                <description>Timer tasks not properly cancelled during cleanup could lead to dangling tasks</description>
+                <line_numbers>1-143</line_numbers>
+                <diagnostic_point>task_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Implement proper async cleanup for timer resources</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Add proper task cancellation in cleanup routines</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/base_context.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Context Safety</type>
+                <description>Context manager implementations without proper error handling could lead to resource leaks</description>
+                <line_numbers>1-349</line_numbers>
+                <diagnostic_point>resource_cleanup</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>State Management</type>
+                <description>Shared state in context managers without proper isolation could cause race conditions</description>
+                <line_numbers>1-349</line_numbers>
+                <diagnostic_point>state_isolation</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add comprehensive error handling in context managers</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement proper state isolation mechanisms</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/introspect.py</source_file>
+        <risk_level>high</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Memory Safety</type>
+                <description>Direct object introspection without proper guards could cause segfaults</description>
+                <line_numbers>1-77</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>high</severity>
+            </issue>
+            <issue>
+                <type>Type Safety</type>
+                <description>Dynamic attribute access without type checking could lead to crashes</description>
+                <line_numbers>1-77</line_numbers>
+                <diagnostic_point>type_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper guards and error handling for object introspection</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement type checking for dynamic attribute access</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/utils/formatutil.py</source_file>
+        <risk_level>medium</risk_level>
+        <identified_issues>
+            <issue>
+                <type>String Safety</type>
+                <description>Format string operations without proper validation could lead to memory issues</description>
+                <line_numbers>1-169</line_numbers>
+                <diagnostic_point>string_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+            <issue>
+                <type>Memory Management</type>
+                <description>String concatenation without bounds checking could cause memory exhaustion</description>
+                <line_numbers>1-169</line_numbers>
+                <diagnostic_point>memory_safety</diagnostic_point>
+                <severity>medium</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add input validation for format string operations</description>
+                <priority>high</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement string size limits and efficient concatenation</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/subcommands/dummy_cmd.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>Command State Safety</type>
+                <description>Shared APP instance without proper synchronization could lead to race conditions in concurrent command execution</description>
+                <line_numbers>1-31</line_numbers>
+                <diagnostic_point>state_isolation</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+            <issue>
+                <type>Async Safety</type>
+                <description>Async command implementation without proper error boundaries could lead to unhandled coroutine errors</description>
+                <line_numbers>1-31</line_numbers>
+                <diagnostic_point>coroutine_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>Add proper synchronization for shared APP state</description>
+                <priority>medium</priority>
+            </recommendation>
+            <recommendation>
+                <description>Implement error boundaries for async commands</description>
+                <priority>medium</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
+    <file_analysis>
+        <source_file>democracy_exe/subcommands/__init__.py</source_file>
+        <risk_level>low</risk_level>
+        <identified_issues>
+            <issue>
+                <type>None</type>
+                <description>Empty file with no immediate segfault risks</description>
+                <line_numbers>1</line_numbers>
+                <diagnostic_point>code_safety</diagnostic_point>
+                <severity>low</severity>
+            </issue>
+        </identified_issues>
+        <recommendations>
+            <recommendation>
+                <description>No immediate safety recommendations needed</description>
+                <priority>low</priority>
+            </recommendation>
+        </recommendations>
+    </file_analysis>
+
     <summary>
         <critical_recommendations>
             <main_py>
@@ -387,6 +934,77 @@
             <init_py>
                 <item>Centralize logger configuration management</item>
             </init_py>
+            <file_functions_py>
+                <item>Convert to async file operations using aiofiles</item>
+                <item>Add proper async context managers</item>
+            </file_functions_py>
+            <aiodbx_py>
+                <item>Implement async context managers for API connections</item>
+                <item>Add comprehensive error handling</item>
+            </aiodbx_py>
+            <imgops_py>
+                <item>Add memory bounds checking for image operations</item>
+                <item>Implement proper image resource cleanup</item>
+            </imgops_py>
+            <async_py>
+                <item>Implement safe task cancellation patterns</item>
+                <item>Add event loop safety checks</item>
+            </async_py>
+            <dropbox_py>
+                <item>Implement proper client lifecycle management</item>
+                <item>Add chunked upload handling</item>
+            </dropbox_py>
+            <events_py>
+                <item>Add error boundaries for event handlers</item>
+                <item>Implement event queue size limits</item>
+            </events_py>
+            <imitools_py>
+                <item>Add memory bounds checking for image operations</item>
+                <item>Implement proper resource cleanup</item>
+            </imitools_py>
+            <globalfunctions_py>
+                <item>Add synchronization for global state</item>
+                <item>Implement stack safety checks</item>
+            </globalfunctions_py>
+            <chat_formatting_py>
+                <item>Add string length validation and limits</item>
+                <item>Implement Unicode safety checks</item>
+            </chat_formatting_py>
+            <io_py>
+                <item>Convert to consistent async I/O patterns</item>
+                <item>Add buffer safety checks</item>
+            </io_py>
+            <misc_py>
+                <item>Add input validation and size limits</item>
+                <item>Implement type safety checks</item>
+            </misc_py>
+            <unpickler_py>
+                <item>Implement safe deserialization patterns</item>
+                <item>Add size limits for pickle operations</item>
+            </unpickler_py>
+            <timer_py>
+                <item>Implement proper async cleanup for timers</item>
+                <item>Add task cancellation handling</item>
+            </timer_py>
+            <base_context_py>
+                <item>Add comprehensive error handling</item>
+                <item>Implement state isolation</item>
+            </base_context_py>
+            <introspect_py>
+                <item>Add guards for object introspection</item>
+                <item>Implement type checking</item>
+            </introspect_py>
+            <formatutil_py>
+                <item>Add format string validation</item>
+                <item>Implement string size limits</item>
+            </formatutil_py>
+            <dummy_cmd_py>
+                <item>Add state synchronization for APP instance</item>
+                <item>Add error boundaries for async commands</item>
+            </dummy_cmd_py>
+            <subcommands_init_py>
+                <item>No critical recommendations</item>
+            </subcommands_init_py>
         </critical_recommendations>
     </summary>
 </segfault_analysis>
