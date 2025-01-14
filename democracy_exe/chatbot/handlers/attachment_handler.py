@@ -270,6 +270,7 @@ class AttachmentHandler:
             RuntimeError: If attachment size exceeds limits
             ValueError: If file type is not allowed
         """
+        path = None
         try:
             # Check attachment size
             if attm.size > 8 * 1024 * 1024:  # 8MB limit
@@ -308,26 +309,23 @@ class AttachmentHandler:
             # Add timeout for save operation
             async with asyncio.timeout(30.0):
                 try:
-                    await attm.save(path, use_cached=True)
-                    await asyncio.sleep(5)
+                    await attm.save(str(path), use_cached=True)
+                    await asyncio.sleep(0.1)  # Small delay to ensure file is written
                 except HTTPException:
-                    await attm.save(path)
+                    await attm.save(str(path))
 
                 # Verify saved file
                 if not path.exists():
                     raise RuntimeError("File was not saved successfully")
-                if path.stat().st_size != attm.size:
-                    path.unlink()  # Delete corrupted file
-                    raise RuntimeError("Saved file size does not match attachment size")
 
-        except TimeoutError:
-            logger.error("Attachment save timed out", path=str(path))
-            if path.exists():
-                path.unlink()  # Cleanup partial file
-            raise
+                actual_size = path.stat().st_size
+                if actual_size != attm.size:
+                    path.unlink()  # Delete corrupted file
+                    raise RuntimeError(f"Saved file size ({actual_size}) does not match attachment size ({attm.size})")
+
         except Exception as e:
-            logger.error("Error saving attachment", error=str(e), path=str(path))
-            if 'path' in locals() and path.exists():
+            logger.error("Error saving attachment", error=str(e), path=str(path) if path else None)
+            if path and path.exists():
                 path.unlink()  # Cleanup on error
             raise
 

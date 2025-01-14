@@ -17,6 +17,7 @@ import aiohttp
 import discord
 import structlog
 
+from aioresponses import aioresponses
 from PIL import Image
 
 import pytest
@@ -138,51 +139,41 @@ async def test_file_to_local_data_dict(attachment_handler: AttachmentHandler, te
 
 
 @pytest.mark.asyncio
-async def test_download_image(attachment_handler: AttachmentHandler, mocker: MockerFixture) -> None:
+async def test_download_image(attachment_handler: AttachmentHandler) -> None:
     """Test image download functionality.
 
     Args:
         attachment_handler: The handler instance to test
-        mocker: Pytest mocker fixture
     """
-    # Mock aiohttp response
-    mock_response = mocker.Mock()
-    mock_response.status = 200
-    mock_response.content_length = 1024
-    mock_response.content.iter_chunked.return_value = [b"test data"]
+    test_url = "https://example.com/test.jpg"
+    test_data = b"test data"
 
-    mock_session = mocker.AsyncMock()
-    mock_session.get.return_value.__aenter__.return_value = mock_response
+    with aioresponses() as m:
+        m.get(test_url, status=200, headers={"Content-Length": str(len(test_data))}, body=test_data)
 
-    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
+        result = await attachment_handler.download_image(test_url)
 
-    result = await attachment_handler.download_image("https://example.com/test.jpg")
-
-    assert result is not None
-    assert isinstance(result, io.BytesIO)
-    assert result.getvalue() == b"test data"
+        assert result is not None
+        assert isinstance(result, io.BytesIO)
+        assert result.getvalue() == test_data
 
 
 @pytest.mark.asyncio
-async def test_download_image_size_limit(attachment_handler: AttachmentHandler, mocker: MockerFixture) -> None:
+async def test_download_image_size_limit(attachment_handler: AttachmentHandler) -> None:
     """Test image download size limits.
 
     Args:
         attachment_handler: The handler instance to test
-        mocker: Pytest mocker fixture
     """
-    # Mock aiohttp response with large content length
-    mock_response = mocker.Mock()
-    mock_response.status = 200
-    mock_response.content_length = 10 * 1024 * 1024  # 10MB
+    test_url = "https://example.com/test.jpg"
+    test_data = b"test data"
+    large_size = 10 * 1024 * 1024  # 10MB
 
-    mock_session = mocker.AsyncMock()
-    mock_session.get.return_value.__aenter__.return_value = mock_response
+    with aioresponses() as m:
+        m.get(test_url, status=200, headers={"Content-Length": str(large_size)}, body=test_data)
 
-    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
-
-    with pytest.raises(RuntimeError, match="Image size .* exceeds 8MB limit"):
-        await attachment_handler.download_image("https://example.com/test.jpg")
+        with pytest.raises(RuntimeError, match="Image size .* exceeds 8MB limit"):
+            await attachment_handler.download_image(test_url)
 
 
 @pytest.mark.asyncio
@@ -198,16 +189,19 @@ async def test_save_attachment(
     """
 
     # Mock save method
-    async def mock_save(path: pathlib.Path, use_cached: bool = True) -> None:
-        path.write_text("test content")
+    async def mock_save(path: str, use_cached: bool = True) -> None:
+        pathlib.Path(path).write_text("test content")
+        await asyncio.sleep(0.1)  # Simulate file write delay
 
     mock_attachment.save = mock_save
+    mock_attachment.size = len("test content")  # Set correct size
 
     await attachment_handler.save_attachment(mock_attachment, temp_dir)
 
     saved_path = pathlib.Path(temp_dir) / "test.txt"
     assert saved_path.exists()
     assert saved_path.read_text() == "test content"
+    assert saved_path.stat().st_size == mock_attachment.size
 
 
 @pytest.mark.asyncio
@@ -274,13 +268,14 @@ async def test_save_attachment_verify_saved_file(
     """
 
     # Mock save method to create file with wrong size
-    async def mock_save(path: pathlib.Path, use_cached: bool = True) -> None:
-        path.write_text("wrong size content")
+    async def mock_save(path: str, use_cached: bool = True) -> None:
+        pathlib.Path(path).write_text("wrong size content")
+        await asyncio.sleep(0.1)  # Simulate file write delay
 
     mock_attachment.save = mock_save
     mock_attachment.size = 5  # Different from actual content size
 
-    with pytest.raises(RuntimeError, match="Saved file size does not match attachment size"):
+    with pytest.raises(RuntimeError, match="Saved file size .* does not match attachment size"):
         await attachment_handler.save_attachment(mock_attachment, temp_dir)
 
     # Verify file was cleaned up
@@ -304,8 +299,10 @@ async def test_handle_save_attachment_locally(
     # Mock save method
     async def mock_save(path: str, use_cached: bool = True) -> None:
         pathlib.Path(path).write_text("test content")
+        await asyncio.sleep(0.1)  # Simulate file write delay
 
     mock_attachment.save = mock_save
+    mock_attachment.size = len("test content")  # Set correct size
 
     result = await attachment_handler.handle_save_attachment_locally(attm_data, temp_dir)
 
