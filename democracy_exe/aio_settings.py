@@ -3,6 +3,7 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportConstantRedefinition=true
 
 """Settings for the Discord bot and AI components.
 
@@ -65,6 +66,8 @@ import rich
 from pydantic import Field, Json, PostgresDsn, RedisDsn, SecretStr, field_serializer, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
+from typing_extensions import Self, TypedDict
+from yarl import URL
 
 
 def democracy_user_agent() -> str:
@@ -81,93 +84,6 @@ TIMEZONE = timezone(timedelta(hours=-5), name='America/New_York')
 _TOKENS_PER_TILE = 170
 _TILE_SIZE = 512
 
-
-class SettingsError(Exception):
-    """Base exception for all settings-related errors."""
-
-    def __init__(self, message: str, context: dict[str, Any] | None = None) -> None:
-        """Initialize the settings error.
-
-        Args:
-            message: The error message
-            context: Additional context about the error
-        """
-        self.context = context or {}
-        super().__init__(message)
-
-
-class ValidationError(SettingsError):
-    """Raised when settings validation fails."""
-
-    def __init__(self, message: str, field_name: str, invalid_value: Any, context: dict[str, Any] | None = None) -> None:
-        """Initialize the validation error.
-
-        Args:
-            message: The error message
-            field_name: Name of the field that failed validation
-            invalid_value: The value that failed validation
-            context: Additional context about the error
-        """
-        self.field_name = field_name
-        self.invalid_value = invalid_value
-        super().__init__(
-            f"{message} (field: {field_name}, value: {invalid_value})",
-            context
-        )
-
-
-class ModelConfigError(SettingsError):
-    """Raised when there are issues with model configuration."""
-
-    def __init__(self, message: str, model_name: str, context: dict[str, Any] | None = None) -> None:
-        """Initialize the model configuration error.
-
-        Args:
-            message: The error message
-            model_name: Name of the model with configuration issues
-            context: Additional context about the error
-        """
-        self.model_name = model_name
-        super().__init__(
-            f"{message} (model: {model_name})",
-            context
-        )
-
-
-class SecurityError(SettingsError):
-    """Raised when there are security-related issues with settings."""
-
-    def __init__(self, message: str, setting_name: str, context: dict[str, Any] | None = None) -> None:
-        """Initialize the security error.
-
-        Args:
-            message: The error message
-            setting_name: Name of the setting with security issues
-            context: Additional context about the error
-        """
-        self.setting_name = setting_name
-        super().__init__(
-            f"Security error with setting '{setting_name}': {message}",
-            context
-        )
-
-
-class ConfigurationError(SettingsError):
-    """Raised when there are issues with the overall configuration."""
-
-    def __init__(self, message: str, config_section: str, context: dict[str, Any] | None = None) -> None:
-        """Initialize the configuration error.
-
-        Args:
-            message: The error message
-            config_section: Section of configuration with issues
-            context: Additional context about the error
-        """
-        self.config_section = config_section
-        super().__init__(
-            f"Configuration error in section '{config_section}': {message}",
-            context
-        )
 
 
 # Older model configurations
@@ -409,6 +325,94 @@ EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
     "text-embedding-3-large": 1024
 }
 
+class SettingsError(Exception):
+    """Base exception for all settings-related errors."""
+
+    def __init__(self, message: str, context: dict[str, Any] | None = None) -> None:
+        """Initialize the settings error.
+
+        Args:
+            message: The error message
+            context: Additional context about the error
+        """
+        self.context = context or {}
+        super().__init__(message)
+
+
+class ValidationError(SettingsError):
+    """Raised when settings validation fails."""
+
+    def __init__(self, message: str, field_name: str, invalid_value: Any, context: dict[str, Any] | None = None) -> None:
+        """Initialize the validation error.
+
+        Args:
+            message: The error message
+            field_name: Name of the field that failed validation
+            invalid_value: The value that failed validation
+            context: Additional context about the error
+        """
+        self.field_name = field_name
+        self.invalid_value = invalid_value
+        super().__init__(
+            f"{message} (field: {field_name}, value: {invalid_value})",
+            context
+        )
+
+
+class ModelConfigError(SettingsError):
+    """Raised when there are issues with model configuration."""
+
+    def __init__(self, message: str, model_name: str, context: dict[str, Any] | None = None) -> None:
+        """Initialize the model configuration error.
+
+        Args:
+            message: The error message
+            model_name: Name of the model with configuration issues
+            context: Additional context about the error
+        """
+        self.model_name = model_name
+        super().__init__(
+            f"{message} (model: {model_name})",
+            context
+        )
+
+
+class SecurityError(SettingsError):
+    """Raised when there are security-related issues with settings."""
+
+    def __init__(self, message: str, setting_name: str, context: dict[str, Any] | None = None) -> None:
+        """Initialize the security error.
+
+        Args:
+            message: The error message
+            setting_name: Name of the setting with security issues
+            context: Additional context about the error
+        """
+        self.setting_name = setting_name
+        super().__init__(
+            f"Security error with setting '{setting_name}': {message}",
+            context
+        )
+
+
+class ConfigurationError(SettingsError):
+    """Raised when there are issues with the overall configuration."""
+
+    def __init__(self, message: str, config_section: str, context: dict[str, Any] | None = None) -> None:
+        """Initialize the configuration error.
+
+        Args:
+            message: The error message
+            config_section: Section of configuration with issues
+            context: Additional context about the error
+        """
+        self.config_section = config_section
+        super().__init__(
+            f"Configuration error in section '{config_section}': {message}",
+            context
+        )
+
+
 
 def normalize_settings_path(file_path: str) -> str:
     """Normalize file paths with tilde expansion.
@@ -562,9 +566,8 @@ class AioSettings(BaseSettings):
         default=1,
         description="Enable better exception formatting"
     )
-    pythonasynciodebug: int = Field(
-        default=1,
-        description="Enable asyncio debug mode"
+    pythonasynciodebug: bool = Field(
+        env="PYTHONASYNCIODEBUG", description="enable or disable asyncio debugging", default=0
     )
 
     # Bot settings
@@ -733,6 +736,7 @@ class AioSettings(BaseSettings):
         default=True,
         description="Enable Redis integration"
     )
+    redis_url: URL | str | None = None
 
     # PostgreSQL settings
     postgres_host: str = Field(
@@ -818,8 +822,9 @@ class AioSettings(BaseSettings):
         description="Enable Python debug mode"
     )
     pythondevmode: bool = Field(
-        default=False,
-        description="Enable Python development mode"
+        env="PYTHONDEVMODE",
+        description="The Python Development Mode introduces additional runtime checks that are too expensive to be enabled by default. It should not be more verbose than the default if the code is correct; new warnings are only emitted when an issue is detected.",
+        default=0,
     )
     local_test_debug: bool = Field(
         default=False,
@@ -1023,9 +1028,9 @@ class AioSettings(BaseSettings):
     )
 
     langchain_debug_logs: bool = Field(
-        default=False,
-        description="Enable LangChain debug logging"
+        env="LANGCHAIN_DEBUG_LOGS", description="enable or disable langchain debug logs", default=0
     )
+
 
     langchain_hub_api_key: SecretStr = Field(
         default=SecretStr(""),
@@ -1083,11 +1088,8 @@ class AioSettings(BaseSettings):
         description="debug tests stuff written by aider",
         default=False
     )
-    debug_langgraph_studio: bool = Field(
-        env="DEBUG_LANGGRAPH_STUDIO",
-        description="enable langgraph studio debug",
-        default=False
-    )
+    debug_langgraph_studio: bool = Field(env="DEBUG_LANGGRAPH_STUDIO", description="enable langgraph studio debug", default=False)
+
     python_fault_handler: bool = Field(
         env="PYTHONFAULTHANDLER",
         description="enable fault handler",
@@ -1110,31 +1112,31 @@ class AioSettings(BaseSettings):
         default="vim"
     )
 
-    tweetpik_api_key: SecretStr = Field(
-        env="TWEETPIK_API_KEY",
-        description="TweetPik API key",
-        default=SecretStr("")
-    )
-    tweetpik_authorization: SecretStr = Field(
-        env="TWEETPIK_AUTHORIZATION",
-        description="TweetPik authorization",
-        default=SecretStr("")
-    )
-    tweetpik_bucket_id: str = Field(
-        env="TWEETPIK_BUCKET_ID",
-        description="TweetPik bucket ID",
-        default="323251495115948625"
-    )
-    tweetpik_theme: str = Field(
-        env="TWEETPIK_THEME",
-        description="Theme for tweet screenshots",
-        default="dim"
-    )
-    tweetpik_dimension: str = Field(
-        env="TWEETPIK_DIMENSION",
-        description="Dimension for tweet screenshots",
-        default="instagramFeed"
-    )
+    # tweetpik_api_key: SecretStr = Field(
+    #     env="TWEETPIK_API_KEY",
+    #     description="TweetPik API key",
+    #     default=SecretStr("")
+    # )
+    # tweetpik_authorization: SecretStr = Field(
+    #     env="TWEETPIK_AUTHORIZATION",
+    #     description="TweetPik authorization",
+    #     default=SecretStr("")
+    # )
+    # tweetpik_bucket_id: str = Field(
+    #     env="TWEETPIK_BUCKET_ID",
+    #     description="TweetPik bucket ID",
+    #     default="323251495115948625"
+    # )
+    # tweetpik_theme: str = Field(
+    #     env="TWEETPIK_THEME",
+    #     description="Theme for tweet screenshots",
+    #     default="dim"
+    # )
+    # tweetpik_dimension: str = Field(
+    #     env="TWEETPIK_DIMENSION",
+    #     description="Dimension for tweet screenshots",
+    #     default="instagramFeed"
+    # )
 
     tool_allowlist: list[str] = ["tavily_search", "magic_function"]
     extension_allowlist: list[str] = ["democracy_exe.chatbot.cogs.twitter"]
@@ -1436,6 +1438,62 @@ class AioSettings(BaseSettings):
 
     vector_store_type: Literal["pgvector", "chroma", "pinecone", "sklearn"] = "pgvector"
 
+
+
+
+    @model_validator(mode="before")
+    @classmethod
+    def pre_update(cls, values: dict[str, Any]) -> dict[str, Any]:
+        llm_model_name = values.get("llm_model_name")
+        llm_embedding_model_name = values.get("llm_embedding_model_name")
+        # print(f"llm_model_name: {llm_model_name}")
+        # print(f"llm_embedding_model_name: {llm_embedding_model_name}")
+        if llm_model_name:
+            values["max_tokens"] = MODEL_CONFIG[llm_model_name]["max_tokens"]
+            values["max_output_tokens"] = MODEL_CONFIG[llm_model_name]["max_output_tokens"]
+            values["prompt_cost_per_token"] = MODEL_CONFIG[llm_model_name]["prompt_cost_per_token"]
+            values["completion_cost_per_token"] = MODEL_CONFIG[llm_model_name]["completion_cost_per_token"]
+            if llm_embedding_model_name:
+                values["embedding_max_tokens"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+                values["embedding_model_dimensions"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+        else:
+            llm_model_name = "gpt-4o-mini"
+            llm_embedding_model_name = "text-embedding-3-large"
+            # print(f"setting default llm_model_name: {llm_model_name}")
+            # print(f"setting default llm_embedding_model_name: {llm_embedding_model_name}")
+            values["max_tokens"] = MODEL_CONFIG[llm_model_name]["max_tokens"]
+            values["max_output_tokens"] = MODEL_CONFIG[llm_model_name]["max_output_tokens"]
+            values["prompt_cost_per_token"] = MODEL_CONFIG[llm_model_name]["prompt_cost_per_token"]
+            values["completion_cost_per_token"] = MODEL_CONFIG[llm_model_name]["completion_cost_per_token"]
+            values["embedding_max_tokens"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+            values["embedding_model_dimensions"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+
+        return values
+
+    @model_validator(mode="after")
+    def post_root(self) -> Self:
+        redis_path = f"/{self.redis_base}" if self.redis_base is not None else ""
+        redis_pass = self.redis_pass if self.redis_pass is not None else None
+        redis_user = self.redis_user if self.redis_user is not None else None
+        if redis_pass is None and redis_user is None:
+            self.redis_url = URL.build(
+                scheme="redis",
+                host=self.redis_host,
+                port=self.redis_port,
+                path=redis_path,
+            )
+        else:
+            self.redis_url = URL.build(
+                scheme="redis",
+                host=self.redis_host,
+                port=self.redis_port,
+                path=redis_path,
+                user=redis_user,
+                password=redis_pass.get_secret_value(),
+            )
+
+        return self
+
     @field_validator("monitor_port")
     @classmethod
     def validate_port(cls, v: int, info: Any) -> int:
@@ -1543,24 +1601,24 @@ class AioSettings(BaseSettings):
             )
         return v
 
-    @property
-    def redis_url(self) -> RedisDsn:
-        """Get Redis URL.
+    # @property
+    # def redis_url(self) -> RedisDsn:
+    #     """Get Redis URL.
 
-        Constructs a Redis URL from the configured host, port, and authentication settings.
-        Handles both plain text and SecretStr password types.
+    #     Constructs a Redis URL from the configured host, port, and authentication settings.
+    #     Handles both plain text and SecretStr password types.
 
-        Returns:
-            RedisDsn: Redis URL with proper authentication if configured
-        """
-        auth = ""
-        if self.redis_user and self.redis_pass:
-            pass_value = self.redis_pass
-            if isinstance(pass_value, SecretStr):
-                pass_value = pass_value.get_secret_value()
-            auth = f"{self.redis_user}:{pass_value}@"
-        base = f"/{self.redis_base}" if self.redis_base is not None else ""
-        return RedisDsn(f"redis://{auth}{self.redis_host}:{self.redis_port}{base}")
+    #     Returns:
+    #         RedisDsn: Redis URL with proper authentication if configured
+    #     """
+    #     auth = ""
+    #     if self.redis_user and self.redis_pass:
+    #         pass_value = self.redis_pass
+    #         if isinstance(pass_value, SecretStr):
+    #             pass_value = pass_value.get_secret_value()
+    #         auth = f"{self.redis_user}:{pass_value}@"
+    #     base = f"/{self.redis_base}" if self.redis_base is not None else ""
+    #     return RedisDsn(f"redis://{auth}{self.redis_host}:{self.redis_port}{base}")
 
     @property
     def postgres_url(self) -> str:
