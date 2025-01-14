@@ -2293,5 +2293,77 @@ democracy-exe/
       ]]>
     </example>
   </pydantic_standards>
+
+  <import_and_directive_patterns>
+    <standard>Add appropriate pyright directives based on module dependencies:</standard>
+    <rules>
+      <rule>
+        <condition>Files using Discord.py</condition>
+        <directives>
+          <![CDATA[
+          # pylint: disable=no-member
+          # pyright: reportAttributeAccessIssue=false
+          ]]>
+        </directives>
+        <explanation>Required because Discord.py uses dynamic attribute access patterns that confuse static type checkers</explanation>
+      </rule>
+      <rule>
+        <condition>Files using Pydantic</condition>
+        <directives>
+          <![CDATA[
+          # pylint: disable=no-name-in-module
+          # pylint: disable=no-member
+          # pyright: reportInvalidTypeForm=false
+          # pyright: reportUndefinedVariable=false
+          ]]>
+        </directives>
+        <explanation>Required because Pydantic uses dynamic code generation and attribute access that confuse static type checkers</explanation>
+      </rule>
+      <rule>
+        <condition>Files using both Discord.py and Pydantic</condition>
+        <directives>
+          <![CDATA[
+          # pylint: disable=no-name-in-module
+          # pylint: disable=no-member
+          # pyright: reportInvalidTypeForm=false
+          # pyright: reportUndefinedVariable=false
+          # pyright: reportAttributeAccessIssue=false
+          ]]>
+        </directives>
+        <explanation>Combines directives needed for both libraries to handle all dynamic patterns</explanation>
+      </rule>
+    </rules>
+    <best_practices>
+      <practice>Place directives at the top of the file before any imports</practice>
+      <practice>Keep existing linter directives when adding new ones</practice>
+      <practice>Add directives on their own lines, not inline with code</practice>
+      <practice>Include explanatory comments when adding complex directive combinations</practice>
+    </best_practices>
+    <example>
+      <![CDATA[
+      # Example for a file using both Discord.py and Pydantic
+
+      # pylint: disable=no-name-in-module
+      # pylint: disable=no-member
+      # pyright: reportInvalidTypeForm=false
+      # pyright: reportUndefinedVariable=false
+      # pyright: reportAttributeAccessIssue=false
+
+      from __future__ import annotations
+
+      import asyncio
+      from typing import Optional
+
+      import discord
+      from discord.ext import commands
+      from pydantic import BaseModel, Field
+
+      class MySettings(BaseModel):
+          """Example settings class."""
+          guild_id: int = Field(..., description="Discord guild ID")
+          prefix: str = Field("!", description="Command prefix")
+      ]]>
+    </example>
+  </import_and_directive_patterns>
 </python_standards>
 </cursorrules>
