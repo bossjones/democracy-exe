@@ -1037,6 +1037,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/bot_logger/__init__.py" = ["SIM105", "S110"]
 "democracy_exe/bot_logger/logsetup.py" = ["SIM105", "S110", "RUF005"]
 "generate_prompt.py" = ["SIM105", "S110", "RUF005", "S607"]
+"democracy_exe/chatbot/utils/resource_manager.py" = ["SIM105", "S110", "RUF005"]
 
 
 # ===========================[ ISORT ]========================

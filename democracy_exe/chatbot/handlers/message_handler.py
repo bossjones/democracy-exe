@@ -1,37 +1,28 @@
-# pyright: reportAttributeAccessIssue=false
-
-"""Message processing and LangGraph integration.
-
-This module contains functionality for processing Discord messages and integrating
-with LangGraph for AI responses.
-"""
+"""Message handler for processing Discord messages."""
 from __future__ import annotations
 
 import asyncio
+import io
 import re
 
-from typing import Any, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import aiohttp
 import discord
 import structlog
 
-from discord import DMChannel, Message, TextChannel, Thread
-from discord.abc import Messageable
-from discord.member import Member
-from discord.user import User
-from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph  # type: ignore
+from PIL import Image
+
+from democracy_exe.aio_settings import aiosettings
+from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
+from democracy_exe.chatbot.utils.resource_manager import ResourceLimits, ResourceManager
+from democracy_exe.constants import MAX_BYTES_UPLOAD_DISCORD, MAX_FILE_UPLOAD_IMAGES_IMGUR
 
 
 logger = structlog.get_logger(__name__)
-from PIL import Image
-
-from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
-from democracy_exe.chatbot.utils.message_utils import format_inbound_message, get_session_id, prepare_agent_input
-
 
 class MessageHandler:
-    """Handler for processing Discord messages and integrating with LangGraph."""
+    """Handles processing of Discord messages."""
 
     def __init__(self, bot: Any) -> None:
         """Initialize the message handler.
@@ -41,277 +32,148 @@ class MessageHandler:
         """
         self.bot = bot
         self.attachment_handler = AttachmentHandler()
-        self._download_semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
-        self._max_total_size = 50 * 1024 * 1024  # 50MB total limit
+        self._download_semaphore = asyncio.Semaphore(
+            getattr(aiosettings, "max_concurrent_downloads", 5)
+        )
+        limits = ResourceLimits(
+            max_memory_mb=getattr(aiosettings, "max_memory_mb", 512),
+            max_tasks=getattr(aiosettings, "max_tasks", 100),
+            max_response_size_mb=getattr(aiosettings, "max_response_size_mb", 1),
+            max_buffer_size_kb=getattr(aiosettings, "max_buffer_size_kb", 64),
+            task_timeout_seconds=getattr(aiosettings, "task_timeout_seconds", 30.0)
+        )
+        self._resource_manager = ResourceManager(limits)
+        self._max_total_size = MAX_BYTES_UPLOAD_DISCORD
+        self._max_image_size = MAX_FILE_UPLOAD_IMAGES_IMGUR
 
     async def check_for_attachments(self, message: discord.Message) -> str:
-        """Check and process message attachments.
+        """Check message for attachments and process them.
 
         Args:
-            message: The Discord message
+            message: Discord message to check
 
         Returns:
-            The processed message content
+            str: Message content or processed image URL
 
         Raises:
-            ValueError: If attachment processing fails
-            RuntimeError: If attachment size exceeds limits
+            RuntimeError: If attachment size exceeds limit
         """
+        task = asyncio.current_task()
+        if task:
+            self._resource_manager.track_task(task)
+
         try:
-            content = cast(str, message.content)
-            attachments = cast(list[discord.Attachment], message.attachments)
+            attachments = message.attachments
+            content = message.content
+            total_size = sum(a.size for a in attachments)
 
-            # Track total size of all attachments
-            total_size = 0
-            for attachment in attachments:
-                total_size += attachment.size
-                if total_size > self._max_total_size:
-                    logger.error("Attachment size limit exceeded", total_size=total_size, limit=self._max_total_size)
-                    raise RuntimeError(f"Total attachment size {total_size} exceeds {self._max_total_size} limit")
+            if total_size > self._max_total_size:
+                raise RuntimeError(f"Total attachment size {total_size} exceeds {self._max_total_size} limit")
 
-            # Handle Tenor GIFs with size limit
-            if "https://tenor.com/view/" in content:
-                if len(content) > 2048:  # Discord message limit
-                    raise ValueError("Message content exceeds Discord limit")
-                return await self._handle_tenor_gif(message, content)
+            # Check for image URLs in content
+            image_pattern = r'https?://[^\s<\"]+?\.(?:png|jpg|jpeg|gif|webp)'
+            image_urls = re.findall(image_pattern, content)
 
-            # Handle image URLs with validation and concurrency limit
-            image_pattern = r"https?://[^\s<>\"]+?\.(?:png|jpg|jpeg|gif|webp)"
-            if re.search(image_pattern, content):
-                urls = re.findall(image_pattern, content)
-                if len(urls) > 5:  # Limit number of image URLs
-                    logger.error("Too many image URLs", count=len(urls), limit=5)
-                    raise ValueError("Too many image URLs in message")
+            if image_urls:
+                return await self.handle_url_image(image_urls[0])
 
-                async with self._download_semaphore:
-                    return await self._handle_url_image(urls[0])
-
-            # Handle Discord attachments with limits
             if attachments:
-                if len(attachments) > 5:  # Limit number of attachments
-                    raise ValueError("Too many attachments in message")
-
-                async with self._download_semaphore:
-                    return await self._handle_attachment_image(message)
+                return await self.handle_attachment_image(attachments[0])
 
             return content
-        except (RuntimeError, ValueError) as e:
-            # Re-raise specific errors we want to handle
-            raise
-        except Exception as e:
-            logger.error("Error checking attachments", error=str(e))
-            return cast(str, message.content) or ""
+
         finally:
-            # Force cleanup of any large objects
-            import gc
-            gc.collect()
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
 
     async def stream_bot_response(
         self,
-        graph: CompiledStateGraph,
+        graph: Any,
         input_data: dict[str, Any]
     ) -> str:
-        """Stream responses from the bot's LangGraph.
+        """Stream bot response from LangGraph.
 
         Args:
-            graph: The compiled state graph
+            graph: LangGraph instance
             input_data: Input data for the graph
 
         Returns:
-            The bot's response
+            str: Final response
 
         Raises:
-            ValueError: If response generation fails
-            RuntimeError: If response size exceeds limits or times out
+            RuntimeError: If response exceeds size limit or times out
         """
+        task = asyncio.current_task()
+        if task:
+            self._resource_manager.track_task(task)
+
         try:
-            # Add timeout for graph processing
-            async with asyncio.timeout(30.0):
-                # Ensure we await the response if it's a coroutine
-                response = await graph.ainvoke(input_data) if hasattr(graph, 'ainvoke') else graph.invoke(input_data)
+            timeout = getattr(aiosettings, "task_timeout_seconds", 30.0)
+            max_size = getattr(aiosettings, "max_response_size_mb", 2) * 1024 * 1024
 
-            if isinstance(response, dict) and "messages" in response:
-                messages = response.get("messages", [])
-                combined_content = "".join(
-                    msg.content for msg in messages
-                    if hasattr(msg, 'content')
-                )
+            response = await graph.ainvoke(input_data) if hasattr(graph, 'ainvoke') else graph.invoke(input_data)
 
-                # Check response size
-                if len(combined_content.encode('utf-8')) > 2000:  # Discord limit
-                    logger.error("Response exceeds size limit", size=len(combined_content.encode('utf-8')), limit=2000)
-                    raise RuntimeError("Response exceeds Discord message size limit")
+            if not response or 'messages' not in response:
+                raise RuntimeError("No response generated")
 
-                return combined_content
+            messages = response['messages']
+            combined_content = ''.join(str(m) for m in messages)
+            response_size = len(combined_content.encode('utf-8'))
 
-            logger.error("Invalid response format", response=response)
-            raise ValueError("No response generated")
+            if response_size > max_size:
+                raise RuntimeError("Response exceeds Discord message size limit")
+
+            return combined_content
+
         except TimeoutError:
-            logger.error("Response generation timed out", timeout=30.0)
             raise RuntimeError("Response generation timed out")
+
         except Exception as e:
-            logger.error("Error streaming bot response", error=str(e))
+            logger.exception("Error generating response", error=str(e))
             raise
 
-    async def _get_thread(self, message: discord.Message) -> Thread | DMChannel:
-        """Get or create a thread for the message.
+        finally:
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
+
+    async def handle_url_image(self, url: str) -> str:
+        """Handle image from URL.
 
         Args:
-            message: The Discord message
+            url: Image URL
 
         Returns:
-            The thread or DM channel for the message
+            str: Processed image URL
 
         Raises:
-            ValueError: If thread creation fails
+            RuntimeError: If image size exceeds limit
         """
-        try:
-            channel = cast(Union[TextChannel, DMChannel], message.channel)
-            if isinstance(channel, DMChannel):
-                return channel
-
-            if not isinstance(channel, TextChannel):
-                raise ValueError(f"Unsupported channel type: {type(channel)}")
-
-            thread = await channel.create_thread(
-                name="Response",
-                message=message,
-            )
-            return thread
-        except Exception as e:
-            logger.error(f"Error getting thread: {e}")
-            raise
-
-    def _format_inbound_message(self, message: Message) -> HumanMessage:
-        """Format a Discord message into a HumanMessage.
-
-        Args:
-            message: The Discord message to format
-
-        Returns:
-            Formatted HumanMessage
-        """
-        return format_inbound_message(message)
-
-    def get_session_id(self, message: Message | Thread) -> str:
-        """Generate a session ID for the given message.
-
-        Args:
-            message: The message or thread
-
-        Returns:
-            The generated session ID
-        """
-        return get_session_id(message)
-
-    def prepare_agent_input(
-        self,
-        message: Message | Thread,
-        user_real_name: str,
-        surface_info: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Prepare the agent input from the incoming Discord message.
-
-        Args:
-            message: The Discord message containing the user input
-            user_real_name: The real name of the user who sent the message
-            surface_info: The surface information related to the message
-
-        Returns:
-            The input dictionary to be sent to the agent
-
-        Raises:
-            ValueError: If message processing fails
-        """
-        return prepare_agent_input(message, user_real_name, surface_info)
-
-    async def _handle_tenor_gif(self, message: discord.Message, content: str) -> str:
-        """Handle Tenor GIF URLs in messages.
-
-        Args:
-            message: The Discord message
-            content: The message content
-
-        Returns:
-            Updated message content with GIF description
-        """
-        try:
-            start_index = content.index("https://tenor.com/view/")
-            end_index = content.find(" ", start_index)
-            tenor_url = content[start_index:] if end_index == -1 else content[start_index:end_index]
-
-            parts = tenor_url.split("/")
-            words = parts[-1].split("-")[:-1]
-            sentence = " ".join(words)
-
-            author = cast(Union[Member, User], message.author)
-            return f"{content} [{author.display_name} posts an animated {sentence}]".replace(tenor_url, "")
-        except Exception as e:
-            logger.error(f"Error processing Tenor GIF: {e}")
-            return content
-
-    async def _handle_url_image(self, url: str) -> str:
-        """Handle image URLs in messages.
-
-        Args:
-            url: The image URL
-
-        Returns:
-            The original URL
-
-        Raises:
-            ValueError: If image processing fails
-            RuntimeError: If image size exceeds limits
-        """
-        try:
-            logger.info("Processing image URL", url=url)
-
-            # Add timeout for image download
-            async with asyncio.timeout(10.0):
-                response = await self.attachment_handler.download_image(url)
-
+        async with self._download_semaphore:
+            response = await self.attachment_handler.download_image(url)
             if response:
-                # Check image size before processing
-                if len(response.getvalue()) > 8 * 1024 * 1024:  # 8MB limit
-                    raise RuntimeError("Image size exceeds 8MB limit")
+                size = len(response.getvalue())
+                if size > self._max_image_size:
+                    raise RuntimeError(f"Image size {size} exceeds {self._max_image_size} limit")
+                return url
 
-                image = Image.open(response).convert("RGB")
-                # Add size limits for image dimensions
-                if image.size[0] * image.size[1] > 4096 * 4096:
-                    raise RuntimeError("Image dimensions too large")
-
-            return url
-        except TimeoutError:
-            logger.error("Image download timed out", url=url)
-            raise RuntimeError("Image download timed out")
-        except Exception as e:
-            logger.error("Error processing image URL", error=str(e), url=url)
-            return url
-
-    async def _handle_attachment_image(self, message: discord.Message) -> str:
-        """Handle image attachments in messages.
+    async def handle_attachment_image(self, attachment: discord.Attachment) -> str:
+        """Handle Discord attachment image.
 
         Args:
-            message: The Discord message with attachments
+            attachment: Discord attachment
 
         Returns:
-            The message content
+            str: Processed image URL
+
+        Raises:
+            RuntimeError: If image size exceeds limit
         """
-        try:
-            attachments = cast(list[discord.Attachment], message.attachments)
-            if not attachments:
-                return cast(str, message.content) or ""
+        if attachment.size > self._max_image_size:
+            raise RuntimeError(f"Image size {attachment.size} exceeds {self._max_image_size} limit")
 
-            attachment = attachments[0]
-            if not attachment.content_type or not attachment.content_type.startswith("image/"):
-                return cast(str, message.content) or ""
-
+        async with self._download_semaphore:
             response = await self.attachment_handler.download_image(attachment.url)
             if response:
-                image = Image.open(response).convert("RGB")
-                # Process image if needed
-
-            return cast(str, message.content) or ""
-        except Exception as e:
-            logger.error(f"Error processing attachment: {e}")
-            return cast(str, message.content) or ""
+                return attachment.url

@@ -1,365 +1,237 @@
+"""Terminal bot implementation for the chatbot."""
 from __future__ import annotations
 
 import asyncio
 import signal
 import sys
 import threading
-import weakref
 
-from collections.abc import AsyncGenerator, Generator
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import suppress
-from typing import Annotated, Any, Dict, List, Optional, TypedDict, Union, cast
+from collections.abc import AsyncGenerator
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import structlog
 
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langchain_core.runnables import RunnableConfig
-from langgraph.graph.state import CompiledStateGraph
-from rich import print as rprint
-
-from democracy_exe.agentic import _utils as agentic_utils
-from democracy_exe.agentic.workflows.react.graph import graph as memgraph
 from democracy_exe.aio_settings import aiosettings
+from democracy_exe.chatbot.utils.resource_manager import ResourceLimits, ResourceManager
 
 
 logger = structlog.get_logger(__name__)
 
 
-class BotState:
-    """Enumeration of possible bot states."""
-
-    INITIALIZING = "initializing"
-    RUNNING = "running"
-    SHUTTING_DOWN = "shutting_down"
-    CLOSED = "closed"
-
-
-class TerminalBotState(TypedDict):
-    """Type definition for terminal bot state."""
-
-    messages: list[BaseMessage]
-    response: str | None
-
-
-class ThreadSafeTerminalBot:
-    """Thread-safe terminal bot implementation with proper resource management."""
+class TerminalBot:
+    """Terminal bot implementation."""
 
     def __init__(self) -> None:
-        """Initialize the terminal bot with thread safety mechanisms."""
-        self._lock = asyncio.Lock()
-        self._cleanup_lock = asyncio.Lock()
-        self._closed = False
-        self._sem = asyncio.Semaphore(1)
-        self._state = BotState.INITIALIZING
-        self._executor = ThreadPoolExecutor(max_workers=1)
-        self._tasks: weakref.WeakSet = weakref.WeakSet()
-        self._loop: asyncio.AbstractEventLoop | None = None
+        """Initialize the terminal bot."""
+        # Get resource limits from settings or use defaults
+        limits = ResourceLimits(
+            max_memory_mb=getattr(aiosettings, "max_memory_mb", 512),
+            max_tasks=getattr(aiosettings, "max_tasks", 100),
+            max_response_size_mb=getattr(aiosettings, "max_response_size_mb", 1),
+            max_buffer_size_kb=getattr(aiosettings, "max_buffer_size_kb", 64),
+            task_timeout_seconds=getattr(aiosettings, "task_timeout_seconds", 30)
+        )
+        self._resource_manager = ResourceManager(limits=limits)
+        self._shutdown_event = asyncio.Event()
+        self._tasks: set[asyncio.Task] = set()
+        self._setup_signal_handlers()
 
-        # Set up signal handlers
+    def _setup_signal_handlers(self) -> None:
+        """Set up signal handlers for graceful shutdown."""
         for sig in (signal.SIGTERM, signal.SIGINT):
-            signal.signal(sig, self._signal_handler)
+            signal.signal(sig, self._handle_signal)
 
-    def _signal_handler(self, signum: int, frame: Any) -> None:
-        """Handle system signals for graceful shutdown.
+    def _handle_signal(self, signum: int, frame: Any) -> None:
+        """Handle shutdown signals.
 
         Args:
             signum: Signal number
             frame: Current stack frame
         """
-        if self._loop is not None:
-            self._loop.call_soon_threadsafe(self._schedule_shutdown)
+        logger.info("Received shutdown signal", signal=signum)
+        if not self._shutdown_event.is_set():
+            self._shutdown_event.set()
 
-    def _schedule_shutdown(self) -> None:
-        """Schedule the shutdown coroutine on the event loop."""
-        if self._state != BotState.SHUTTING_DOWN:
-            self._state = BotState.SHUTTING_DOWN
-            asyncio.create_task(self.cleanup())
-
-    async def _initiate_shutdown(self) -> None:
-        """Initiate graceful shutdown sequence."""
-        if self._state != BotState.SHUTTING_DOWN:
-            self._state = BotState.SHUTTING_DOWN
-            await self.cleanup()
-
-    def _get_loop(self) -> asyncio.AbstractEventLoop:
-        """Get the event loop for the current context.
-
-        Returns:
-            The event loop to use
-
-        Raises:
-            RuntimeError: If called from wrong thread
-        """
+    async def _cleanup(self) -> None:
+        """Clean up resources before shutdown."""
         try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        return loop
+            await self._resource_manager.force_cleanup()
+            for task in self._tasks:
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await asyncio.wait_for(task, timeout=1.0)
+                    except (TimeoutError, asyncio.CancelledError):
+                        pass
+        except Exception as e:
+            logger.error("Error during cleanup", error=str(e))
 
-    async def __aenter__(self) -> ThreadSafeTerminalBot:
-        """Enter the async context.
+    async def stream_terminal_bot(
+        self,
+        prompt: str,
+        stream_handler: Any | None = None,
+        **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """Stream bot responses in the terminal.
 
-        Returns:
-            ThreadSafeTerminalBot: The bot instance
+        Args:
+            prompt: User input prompt
+            stream_handler: Optional stream handler
+            **kwargs: Additional keyword arguments
+
+        Yields:
+            Bot response chunks
 
         Raises:
-            RuntimeError: If bot is already closed
+            RuntimeError: If memory limit is exceeded or task limit is reached
+            ValueError: If no response is generated
         """
-        if self._closed:
-            raise RuntimeError("Bot is closed")
+        # Check memory usage
+        if not await self._resource_manager.check_memory():
+            raise RuntimeError("Memory limit exceeded")
 
-        self._loop = self._get_loop()
-        self._state = BotState.RUNNING
+        # Create and track task
+        task = asyncio.current_task()
+        if task:
+            await self._resource_manager.track_task(task)
+            self._tasks.add(task)
+
+        try:
+            buffer = []
+            buffer_size = 0
+            max_buffer = self._resource_manager.limits.max_buffer_size_kb * 1024
+
+            async for chunk in self._stream_response(prompt, stream_handler, **kwargs):
+                # Track memory for chunk
+                chunk_size = len(chunk.encode('utf-8'))
+                await self._resource_manager.track_memory(chunk_size)
+
+                # Manage buffer
+                buffer.append(chunk)
+                buffer_size += chunk_size
+
+                # Flush buffer if needed
+                if buffer_size >= max_buffer:
+                    combined = ''.join(buffer)
+                    buffer = []
+                    buffer_size = 0
+                    yield combined
+
+                # Release memory for processed chunk
+                await self._resource_manager.release_memory(chunk_size)
+
+            # Yield remaining buffer
+            if buffer:
+                yield ''.join(buffer)
+
+        except Exception as e:
+            logger.error("Error streaming response", error=str(e))
+            raise
+        finally:
+            if task and task in self._tasks:
+                self._tasks.remove(task)
+
+    async def _stream_response(
+        self,
+        prompt: str,
+        stream_handler: Any | None,
+        **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """Internal method to stream responses.
+
+        Args:
+            prompt: User input prompt
+            stream_handler: Optional stream handler
+            **kwargs: Additional keyword arguments
+
+        Yields:
+            Response chunks
+        """
+        if stream_handler:
+            async for chunk in stream_handler(prompt, **kwargs):
+                yield chunk
+        else:
+            yield prompt
+
+    async def invoke_terminal_bot(
+        self,
+        prompt: str,
+        **kwargs: Any
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """Invoke the terminal bot with a prompt.
+
+        Args:
+            prompt: User input prompt
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            Tuple of final answer and intermediate steps
+
+        Raises:
+            RuntimeError: If memory limit is exceeded or task limit is reached
+            ValueError: If no response is generated
+        """
+        # Check memory usage
+        if not await self._resource_manager.check_memory():
+            raise RuntimeError("Memory limit exceeded")
+
+        # Create and track task
+        task = asyncio.current_task()
+        if task:
+            await self._resource_manager.track_task(task)
+            self._tasks.add(task)
+
+        try:
+            response_chunks = []
+            total_size = 0
+            max_size = self._resource_manager.limits.max_response_size_mb * 1024 * 1024
+
+            async for chunk in self.stream_terminal_bot(prompt, **kwargs):
+                chunk_size = len(chunk.encode('utf-8'))
+                total_size += chunk_size
+
+                if total_size > max_size:
+                    raise RuntimeError(f"Response size exceeds limit of {max_size} bytes")
+
+                response_chunks.append(chunk)
+
+            response = ''.join(response_chunks)
+            if not response:
+                raise ValueError("No response generated")
+
+            return response, []  # Empty list for intermediate steps
+
+        except Exception as e:
+            logger.error("Error invoking bot", error=str(e))
+            raise
+        finally:
+            if task and task in self._tasks:
+                self._tasks.remove(task)
+
+    async def start(self) -> None:
+        """Start the terminal bot."""
+        try:
+            logger.info("Starting terminal bot")
+            await self._shutdown_event.wait()
+        except Exception as e:
+            logger.error("Error in terminal bot", error=str(e))
+        finally:
+            await self._cleanup()
+
+    async def __aenter__(self) -> TerminalBot:
+        """Enter async context.
+
+        Returns:
+            TerminalBot: This instance
+        """
         return self
 
-    async def __aexit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: Any | None) -> None:
-        """Exit the async context with proper cleanup.
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit async context.
 
         Args:
             exc_type: Exception type if an error occurred
             exc_val: Exception value if an error occurred
             exc_tb: Exception traceback if an error occurred
         """
-        await self._initiate_shutdown()
-
-    async def cleanup(self) -> None:
-        """Clean up resources safely."""
-        if not self._closed:
-            async with self._cleanup_lock:
-                try:
-                    # Set state to shutting down first to prevent new tasks
-                    self._state = BotState.SHUTTING_DOWN
-
-                    # Cancel all pending tasks with timeout
-                    for task in self._tasks:
-                        if not task.done():
-                            task.cancel()
-                            try:
-                                await asyncio.wait_for(task, timeout=5.0)
-                            except TimeoutError:
-                                logger.error("Task cancellation timed out", task=task)
-
-                    # Wait for tasks to complete with timeout
-                    with suppress(asyncio.CancelledError):
-                        pending = [t for t in self._tasks if not t.done()]
-                        if pending:
-                            try:
-                                await asyncio.wait_for(
-                                    asyncio.gather(*pending, return_exceptions=True),
-                                    timeout=10.0
-                                )
-                            except TimeoutError:
-                                logger.error("Task cleanup timed out")
-
-                    # Shutdown thread pool
-                    self._executor.shutdown(wait=True)
-                    await asyncio.sleep(0)  # Yield control to event loop
-
-                    # Clear event loop reference
-                    if self._loop is not None:
-                        self._loop = None
-
-                finally:
-                    self._closed = True
-                    self._state = BotState.CLOSED
-
-    async def process_message(
-        self,
-        graph: CompiledStateGraph,
-        message: str,
-        config: RunnableConfig
-    ) -> None:
-        """Process a user message safely.
-
-        Args:
-            graph: The graph to process the message with
-            message: The user's message
-            config: Configuration for processing
-
-        Raises:
-            RuntimeError: If bot is not in running state
-        """
-        if self._state != BotState.RUNNING:
-            raise RuntimeError(f"Bot is in {self._state} state")
-
-        async with self._sem:
-            try:
-                human_message = HumanMessage(content=message)
-                user_input_dict: dict[str, list[BaseMessage]] = {"messages": [human_message]}
-                stream_terminal_bot(graph, user_input_dict, config)
-            except Exception as e:
-                logger.exception("Error processing message", error=str(e))
-                raise
-
-
-class FlushingStderr:
-    """A class to handle flushing stderr output."""
-
-    def write(self, message: str) -> None:
-        """Write and flush a message to stderr.
-
-        Args:
-            message: The message to write to stderr
-        """
-        sys.stderr.write(message)
-        sys.stderr.flush()
-
-
-async def go_terminal_bot(graph: CompiledStateGraph = memgraph) -> None:
-    """Main function to run the LangGraph Chatbot in the terminal.
-
-    This function handles user input and processes it through the AI pipeline.
-    It ensures proper cleanup of resources and handles errors gracefully.
-
-    Args:
-        graph: The compiled state graph to use for processing messages
-    """
-    logger.info("Starting the DemocracyExeAI Chatbot")
-    rprint("[bold green]Welcome to the DemocracyExeAI Chatbot! Type 'quit' to exit.[/bold green]")
-    logger.info("Welcome to the DemocracyExeAI Chatbot! Type 'quit' to exit.")
-
-    config: RunnableConfig = {"configurable": {"thread_id": "1", "user_id": "1"}}
-
-    try:
-        async with ThreadSafeTerminalBot() as bot:
-            while True:
-                try:
-                    user_input = await asyncio.to_thread(input, "You: ")
-
-                    if user_input.lower() == 'quit':
-                        rprint("[bold red]Goodbye![/bold red]")
-                        logger.info("Goodbye!")
-                        break
-
-                    await bot.process_message(graph, user_input, config)
-                except asyncio.CancelledError:
-                    logger.info("Bot operation cancelled")
-                    break
-                except Exception as e:
-                    logger.exception("Error in main bot loop", error=str(e))
-                    continue
-    except Exception as e:
-        logger.exception("Fatal error in bot", error=str(e))
-        raise
-    finally:
-        # Ensure event loop is cleaned up
-        try:
-            loop = asyncio.get_running_loop()
-            tasks = [t for t in asyncio.all_tasks(loop) if t is not asyncio.current_task()]
-            for task in tasks:
-                task.cancel()
-            with suppress(asyncio.CancelledError):
-                await asyncio.gather(*tasks, return_exceptions=True)
-            loop.stop()
-        except Exception as e:
-            logger.exception("Error cleaning up event loop", error=str(e))
-
-
-def stream_terminal_bot(
-    graph: CompiledStateGraph = memgraph,
-    user_input: dict[str, list[BaseMessage]] | None = None,
-    thread: RunnableConfig | None = None,
-    interruptable: bool = False
-) -> None:
-    """Stream the LangGraph Chatbot in the terminal.
-
-    This function processes user input through the graph and streams the responses.
-    It handles interruptions and user approval for tool calls.
-
-    Args:
-        graph: The compiled state graph to use for processing messages
-        user_input: Dictionary containing user messages
-        thread: Thread configuration dictionary
-        interruptable: Whether the stream can be interrupted for user approval
-
-    Raises:
-        Exception: If an error occurs during streaming
-        RuntimeError: If response size exceeds limits
-    """
-    try:
-        response_size = 0
-        max_response_size = 1024 * 1024  # 1MB limit
-
-        # Run the graph until the first interruption
-        for stream_event in graph.stream(user_input, thread, stream_mode="values"):
-            logger.debug("Processing stream data", data=stream_event)
-            chunk = stream_event['messages'][-1]
-            logger.debug("Processing chunk", chunk=chunk, chunk_type=type(chunk))
-
-            # Check response size
-            if hasattr(chunk, 'content'):
-                response_size += len(chunk.content.encode('utf-8'))
-                if response_size > max_response_size:
-                    raise RuntimeError(f"Response size {response_size} exceeds limit {max_response_size}")
-
-            chunk.pretty_print()
-
-        if interruptable:
-            # Get user feedback
-            user_approval = input("Do you want to call the tool? (yes[y]/no[n]): ")
-
-            # Check approval
-            if user_approval.lower() in ("yes", "y"):
-                # If approved, continue the graph execution with size limits
-                for event in graph.stream(None, thread, stream_mode="values"):
-                    chunk = event['messages'][-1]
-                    if hasattr(chunk, 'content'):
-                        response_size += len(chunk.content.encode('utf-8'))
-                        if response_size > max_response_size:
-                            raise RuntimeError(f"Response size {response_size} exceeds limit {max_response_size}")
-                    chunk.pretty_print()
-            else:
-                print("Operation cancelled by user.")
-    except Exception as e:
-        logger.exception("Error in stream processing", error=str(e))
-        raise
-    finally:
-        # Force garbage collection of large responses
-        import gc
-        gc.collect()
-
-
-def invoke_terminal_bot(
-    graph: CompiledStateGraph = memgraph,
-    user_input: dict[str, list[BaseMessage]] | None = None,
-    thread: RunnableConfig | None = None
-) -> str | None:
-    """Invoke the LangGraph Chatbot in the terminal.
-
-    This function processes a single message through the graph and returns the response.
-
-    Args:
-        graph: The compiled state graph to use for processing messages
-        user_input: Dictionary containing user messages
-        thread: Thread configuration dictionary
-
-    Returns:
-        The AI response message as a string, or None if no response
-
-    Raises:
-        Exception: If an error occurs during processing
-    """
-    try:
-        messages = graph.invoke(user_input, thread)
-        for m in messages['messages']:
-            m.pretty_print()
-        response = cast(str, messages['response'])
-        rprint(f"[bold blue]AI:[/bold blue] {response}")
-        logger.info("AI response", response=response)
-        return response
-    except Exception as e:
-        logger.exception("Error invoking bot", error=str(e))
-        raise
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(go_terminal_bot())
-    except KeyboardInterrupt:
-        logger.info("Bot terminated by user")
-    except Exception as e:
-        logger.exception("Bot terminated with error", error=str(e))
-        sys.exit(1)
+        await self._cleanup()
