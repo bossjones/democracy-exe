@@ -1,8 +1,10 @@
-# pylint: disable=no-value-for-parameter
-# pyright: reportMissingTypeStubs=false
 # pylint: disable=no-member
+# pylint: disable=no-name-in-module
 # pylint: disable=no-value-for-parameter
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 
 """democracy_exe.cli
 

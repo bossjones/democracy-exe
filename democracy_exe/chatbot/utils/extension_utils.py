@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import logging
+import os
 import pathlib
 import sys
 import traceback
@@ -15,6 +16,8 @@ import structlog
 
 from discord.ext import commands
 
+
+HERE = os.path.dirname(os.path.dirname(__file__))
 
 logger = structlog.get_logger(__name__)
 

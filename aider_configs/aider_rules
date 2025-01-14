@@ -799,7 +799,7 @@
     </security_standards>
 
     <pydantic_standards>
-      <standard>When using pydantic, pydantic_settings, or any code that uses get_secret_value(), add the following linter directives while preserving any existing linter directives (pylint, pyright, mypy, etc.) already present in the file:
+      <standard>When using pydantic, pydantic_settings, or any code that uses get_secret_value(), add the following linter directives while preserving any existing linter directives/comments (pylint, pyright, mypy, etc.) already present in the file:
           ```python
           # pylint: disable=no-name-in-module
           # pylint: disable=no-member
@@ -813,7 +813,7 @@
           - reportInvalidTypeForm: Handles pydantic's type validation patterns
           - reportUndefinedVariable: Manages pydantic's dynamic variable creation
 
-          Note: These directives should be added alongside any existing linter directives, not replace them.
+          Note: These directives should be added alongside any existing linter directives, not replace them!!!!
       </explanation>
       <example>
         <![CDATA[
