@@ -1272,9 +1272,24 @@ docker-build-langraph:
 docker-run-langraph:
 	docker run -it --entrypoint=/bin/bash democracy-langraph -l
 
+# Update cursorrules.xml and aider_rules
 update-rules:
 	@echo "🚀 Updating cursorrules"
 	cp -a cursorrules.xml .cursorrules
 	@echo "🚀 Updating aider_rules"
 	cp -a cursorrules.xml aider_configs/aider_rules
 	git add .cursorrules aider_configs/aider_rules cursorrules.xml
+
+# Find all special imports
+find-all-special-imports:
+	rg -t py '^\s*(from|import)\s+(discord|pydantic|pydantic_settings|dpytest)' democracy_exe/ tests
+
+# Add lint comments to files in democracy_exe and tests
+add-lint-comments-dry-run:
+	./scripts/add_lint_comments.py --dir democracy_exe --dry-run
+	./scripts/add_lint_comments.py --dir tests --dry-run
+
+# Add lint comments to files in democracy_exe and tests
+add-lint-comments:
+	./scripts/add_lint_comments.py --dir democracy_exe
+	./scripts/add_lint_comments.py --dir tests
