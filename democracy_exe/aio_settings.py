@@ -32,6 +32,7 @@ from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from rich.console import Console
 
 from democracy_exe import __version__
 
@@ -1076,3 +1077,11 @@ class AioSettings(BaseSettings):
 
 # Global settings instance
 aiosettings = AioSettings()
+
+def get_rich_console() -> Console:
+    """Get a Rich console instance for formatted output.
+
+    Returns:
+        Console: A configured Rich console instance for formatted terminal output
+    """
+    return Console()
