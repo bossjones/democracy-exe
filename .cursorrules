@@ -564,6 +564,225 @@
         - VCRRequest (when using pytest-recording)
       </standard>
     </test_imports>
+
+    <settings_management>
+      <standard>Use Pydantic's BaseSettings for all configuration classes.</standard>
+      <standard>Include comprehensive docstrings with examples for all settings classes.</standard>
+      <standard>Group settings logically with clear section comments.</standard>
+      <standard>Add descriptions to all Field definitions.</standard>
+      <standard>Use SecretStr for sensitive data like passwords and tokens.</standard>
+      <standard>Include proper type hints for all settings.</standard>
+      <standard>Add field validators for critical settings.</standard>
+      <standard>Use model validators for interdependent settings.</standard>
+      <standard>Provide property methods for derived settings.</standard>
+      <standard>Include configuration examples in docstrings.</standard>
+      <standard>Add proper error messages for validation failures.</standard>
+      <standard>Use SettingsConfigDict for environment configuration.</standard>
+      <standard>Handle sensitive data properly in string representations.</standard>
+      <standard>Add pyright directives on their own lines, not inline with code.</standard>
+      <standard>Use proper type casting for SecretStr values.</standard>
+      <example>
+        <![CDATA[
+        class AppSettings(BaseSettings):
+            """Application settings with environment variable support.
+
+            This class manages all configuration settings for the application,
+            supporting environment variable overrides and validation.
+
+            Key Features:
+                - Environment variable configuration with prefix APP_CONFIG_
+                - Automatic validation of settings
+                - Secure handling of sensitive data
+                - Comprehensive error messages
+
+            Example:
+                ```python
+                settings = AppSettings()
+
+                # Access settings
+                api_key = settings.api_key
+
+                # Override from environment:
+                # export APP_CONFIG_API_KEY=your-key
+                ```
+            """
+            model_config = SettingsConfigDict(
+                env_prefix="APP_CONFIG_",
+                env_file=(".env", ".envrc"),
+                env_file_encoding="utf-8",
+                extra="allow",
+                arbitrary_types_allowed=True,
+            )
+
+            # API settings
+            api_key: SecretStr = Field(
+                default=SecretStr(""),
+                description="API key for external service"
+            )
+            api_url: str = Field(
+                default="https://api.example.com",
+                description="Base URL for API"
+            )
+
+            @field_validator("api_url")
+            def validate_api_url(cls, v: str) -> str:
+                """Validate API URL format.
+
+                Args:
+                    v: URL to validate
+
+                Returns:
+                    str: Validated URL
+
+                Raises:
+                    ValueError: If URL is invalid
+                """
+                if not v.startswith(("http://", "https://")):
+                    raise ValueError("API URL must start with http:// or https://")
+                return v
+
+            @property
+            def auth_header(self) -> dict[str, str]:
+                """Get authentication header.
+
+                Returns:
+                    dict[str, str]: Header with authentication
+                """
+                # pyright: reportAttributeAccessIssue=false
+                return {"Authorization": f"Bearer {self.api_key.get_secret_value()}"}
+        ]]>
+      </example>
+    </settings_management>
+
+    <pydantic_best_practices>
+      <standard>Always use the latest Pydantic v2 features and patterns.</standard>
+      <standard>Use Field with descriptions for all fields.</standard>
+      <standard>Implement proper validators using @field_validator and @model_validator.</standard>
+      <standard>Use SecretStr for sensitive data with proper type handling.</standard>
+      <standard>Add proper error messages in validators.</standard>
+      <standard>Use computed fields (@computed_field) for derived values when appropriate.</standard>
+      <standard>Implement proper JSON serialization methods if needed.</standard>
+      <standard>Use proper type annotations with Optional and Union when needed.</standard>
+      <standard>Add examples in docstrings showing usage patterns.</standard>
+      <standard>Use SettingsConfigDict for configuration classes.</standard>
+      <standard>Handle sensitive data properly in string representations.</standard>
+      <standard>Use model_config for class-level configuration.</standard>
+      <standard>Implement proper validation error handling.</standard>
+      <standard>Use frozen models when immutability is needed.</standard>
+      <example>
+        <![CDATA[
+        from pydantic import BaseModel, Field, SecretStr, field_validator, computed_field
+        from typing import Optional
+
+        class UserCredentials(BaseModel):
+            """User credentials with secure password handling.
+
+            Example:
+                ```python
+                creds = UserCredentials(
+                    username="user",
+                    password="secret"
+                )
+                ```
+            """
+            username: str = Field(
+                min_length=3,
+                description="Username for authentication"
+            )
+            password: SecretStr = Field(
+                description="User password"
+            )
+            role: Optional[str] = Field(
+                default=None,
+                description="Optional user role"
+            )
+
+            @field_validator("username")
+            def validate_username(cls, v: str) -> str:
+                """Validate username format.
+
+                Args:
+                    v: Username to validate
+
+                Returns:
+                    str: Validated username
+
+                Raises:
+                    ValueError: If username is invalid
+                """
+                if not v.isalnum():
+                    raise ValueError("Username must be alphanumeric")
+                return v
+
+            @computed_field
+            @property
+            def is_admin(self) -> bool:
+                """Check if user is admin.
+
+                Returns:
+                    bool: True if user has admin role
+                """
+                return self.role == "admin"
+
+            def __str__(self) -> str:
+                """Get string representation with hidden password."""
+                return f"UserCredentials(username={self.username}, password=****)"
+        ]]>
+      </example>
+    </pydantic_best_practices>
+
+    <error_handling_standards>
+      <standard>Use proper error types for different validation scenarios.</standard>
+      <standard>Include detailed error messages with context.</standard>
+      <standard>Handle sensitive data properly in error messages.</standard>
+      <standard>Use proper error boundaries in validation code.</standard>
+      <standard>Add proper error recovery mechanisms.</standard>
+      <standard>Include examples of error handling in docstrings.</standard>
+      <example>
+        <![CDATA[
+        from pydantic import ValidationError
+
+        try:
+            settings = AppSettings()
+        except ValidationError as e:
+            logger.error(
+                "Settings validation failed",
+                error_details=e.errors(),
+                # Exclude sensitive fields from error details
+                settings={k: v for k, v in e.model_dump().items()
+                         if not isinstance(v, SecretStr)}
+            )
+            raise ConfigurationError("Application configuration failed") from e
+        ]]>
+      </example>
+    </error_handling_standards>
+
+    <security_standards>
+      <standard>Use SecretStr for all sensitive data.</standard>
+      <standard>Never log sensitive values.</standard>
+      <standard>Properly handle sensitive data in error messages.</standard>
+      <standard>Use proper type casting for SecretStr values.</standard>
+      <standard>Add proper access controls to sensitive settings.</standard>
+      <standard>Implement proper data masking in string representations.</standard>
+      <example>
+        <![CDATA[
+        class ApiConfig(BaseModel):
+            """API configuration with secure credential handling."""
+            api_key: SecretStr = Field(
+                description="API key (sensitive)"
+            )
+
+            def __str__(self) -> str:
+                """Get string representation with masked key."""
+                return "ApiConfig(api_key=****)"
+
+            def get_headers(self) -> dict[str, str]:
+                """Get API headers with proper key handling."""
+                # pyright: reportAttributeAccessIssue=false
+                return {"Authorization": f"Bearer {self.api_key.get_secret_value()}"}
+        ]]>
+      </example>
+    </security_standards>
   </configuration_standards>
 
   <testing_practices>
@@ -1764,5 +1983,215 @@ democracy-exe/
       </example>
     </test_state_management>
   </discord_testing_standards>
+
+  <change_management_standards>
+    <reflection_process>
+        <standard>Before making significant changes to any file, perform a structured reflection:</standard>
+        <steps>
+            <step>
+                <name>Change Analysis</name>
+                <description>Document and justify all proposed changes</description>
+                <checklist>
+                    - What specific changes are being made?
+                    - Why are these changes necessary?
+                    - What existing patterns might be affected?
+                    - How do changes impact the overall codebase?
+                </checklist>
+            </step>
+            <step>
+                <name>Impact Assessment</name>
+                <description>Evaluate the impact of changes on functionality and knowledge</description>
+                <checklist>
+                    - Does this improve code quality or understanding?
+                    - Are valuable implementation details being removed?
+                    - Are important patterns being broken?
+                    - Is the validation framework affected?
+                </checklist>
+            </step>
+            <step>
+                <name>Knowledge Preservation</name>
+                <description>Identify and preserve valuable existing code</description>
+                <checklist>
+                    - What existing functionality must be maintained?
+                    - Which validation rules are critical?
+                    - What error handling patterns should be kept?
+                    - Which configuration options are essential?
+                </checklist>
+            </step>
+            <step>
+                <name>Recovery Planning</name>
+                <description>Plan for restoring valuable patterns if needed</description>
+                <checklist>
+                    - What specific code needs to be restored?
+                    - How to integrate with current changes?
+                    - What validation is needed?
+                    - How to verify functionality?
+                </checklist>
+            </step>
+        </steps>
+        <example>
+            <![CDATA[
+            <reflection>
+                <change_analysis>
+                    Proposed changes:
+                    1. Adding new validation rules
+                    2. Updating error messages
+                    3. Modifying configuration structure
+
+                    Justification:
+                    - Improves error handling
+                    - Enhances user feedback
+                    - Better organization
+                </change_analysis>
+
+                <impact_assessment>
+                    Benefits:
+                    - More robust validation
+                    - Clearer error messages
+
+                    Risks:
+                    - Might affect existing error handling
+                    - Could break configuration parsing
+                </impact_assessment>
+
+                <preservation_needs>
+                    Must preserve:
+                    - Existing validation logic
+                    - Error recovery mechanisms
+                    - Configuration flexibility
+                </preservation_needs>
+
+                <recovery_plan>
+                    If issues arise:
+                    1. Restore original validation
+                    2. Merge with new features
+                    3. Verify all test cases
+                </recovery_plan>
+            </reflection>
+            ]]>
+        </example>
+    </reflection_process>
+
+    <change_validation>
+        <standard>For each significant change, validate against these criteria:</standard>
+        <criteria>
+            <criterion>
+                <name>Functionality Preservation</name>
+                <description>Ensure all existing functionality remains intact</description>
+                <checks>
+                    - All public methods maintain their contracts
+                    - Error handling remains comprehensive
+                    - Configuration options are preserved
+                    - Backward compatibility is maintained
+                </checks>
+            </criterion>
+            <criterion>
+                <name>Knowledge Retention</name>
+                <description>Preserve valuable implementation knowledge</description>
+                <checks>
+                    - Complex algorithms are documented
+                    - Business logic is preserved
+                    - Edge cases are handled
+                    - Performance optimizations remain
+                </checks>
+            </criterion>
+            <criterion>
+                <name>Pattern Preservation</name>
+                <description>Maintain important code patterns</description>
+                <checks>
+                    - Design patterns are respected
+                    - Error handling patterns continue
+                    - Validation patterns are consistent
+                    - Configuration patterns are maintained
+                </checks>
+            </criterion>
+        </criteria>
+        <example>
+            <![CDATA[
+            <change_validation>
+                <functionality_check>
+                    - Verified all public methods
+                    - Tested error scenarios
+                    - Validated configuration
+                </functionality_check>
+
+                <knowledge_check>
+                    - Documentation updated
+                    - Complex logic preserved
+                    - Edge cases covered
+                </knowledge_check>
+
+                <pattern_check>
+                    - Design patterns intact
+                    - Error handling consistent
+                    - Validation framework stable
+                </pattern_check>
+            </change_validation>
+            ]]>
+        </example>
+    </change_validation>
+
+    <prevention_strategy>
+        <standard>Implement these practices to prevent accidental knowledge loss:</standard>
+        <practices>
+            <practice>
+                <name>Pre-Change Documentation</name>
+                <description>Document existing functionality before changes</description>
+                <steps>
+                    - Map current functionality
+                    - Identify critical patterns
+                    - Document edge cases
+                    - List configuration options
+                </steps>
+            </practice>
+            <practice>
+                <name>Change Impact Analysis</name>
+                <description>Analyze potential impacts before implementation</description>
+                <steps>
+                    - Review dependent code
+                    - Check test coverage
+                    - Evaluate configuration impact
+                    - Assess error handling
+                </steps>
+            </practice>
+            <practice>
+                <name>Incremental Validation</name>
+                <description>Validate changes incrementally</description>
+                <steps>
+                    - Test each change separately
+                    - Verify pattern preservation
+                    - Check error handling
+                    - Validate configuration
+                </steps>
+            </practice>
+        </practices>
+        <example>
+            <![CDATA[
+            <prevention_strategy>
+                <documentation>
+                    Current state:
+                    - Key functions: X, Y, Z
+                    - Critical patterns: A, B, C
+                    - Edge cases: 1, 2, 3
+                </documentation>
+
+                <impact_analysis>
+                    Changes affect:
+                    - Module dependencies
+                    - Error handling
+                    - Configuration options
+                </impact_analysis>
+
+                <validation_plan>
+                    Steps:
+                    1. Unit test changes
+                    2. Verify patterns
+                    3. Test edge cases
+                </validation_plan>
+            </prevention_strategy>
+            ]]>
+        </example>
+    </prevention_strategy>
+</change_management_standards>
 </python_standards>
 </cursorrules>
