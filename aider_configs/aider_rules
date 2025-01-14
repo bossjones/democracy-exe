@@ -2228,15 +2228,17 @@ democracy-exe/
   </change_management_standards>
 
   <pydantic_standards>
-    <standard>When using pydantic or pydantic_settings in a file, add the following linter directives while preserving any existing linter directives (pylint, pyright, mypy, etc.) already present in the file:
+    <standard>When using pydantic, pydantic_settings, or any code that uses get_secret_value(), add the following linter directives while preserving any existing linter directives (pylint, pyright, mypy, etc.) already present in the file:
         ```python
         # pylint: disable=no-name-in-module
+        # pylint: disable=no-member
         # pyright: reportInvalidTypeForm=false
         # pyright: reportUndefinedVariable=false
         ```
     </standard>
     <explanation>These directives are necessary because:
         - no-name-in-module: Prevents false positives with pydantic's dynamic imports
+        - no-member: Prevents false positives with dynamic attributes like get_secret_value
         - reportInvalidTypeForm: Handles pydantic's type validation patterns
         - reportUndefinedVariable: Manages pydantic's dynamic variable creation
 
@@ -2250,6 +2252,7 @@ democracy-exe/
 
       # Add pydantic-specific directives
       # pylint: disable=no-name-in-module
+      # pylint: disable=no-member
       # pyright: reportInvalidTypeForm=false
       # pyright: reportUndefinedVariable=false
 

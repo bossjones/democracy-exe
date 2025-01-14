@@ -123,40 +123,148 @@ class ConfigurationError(SettingsError):
         )
 
 
-# Model configurations with token limits and pricing
-_OLDER_MODEL_CONFIG = {
+# Older model configurations
+_OLDER_MODEL_CONFIG: dict[str, dict[str, int | float]] = {
+    "gpt-4": {
+        "max_tokens": 8192,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00003,
+        "completion_cost_per_token": 0.00006
+    },
     "gpt-4-0613": {
         "max_tokens": 8192,
         "max_output_tokens": 4096,
         "prompt_cost_per_token": 0.00003,
-        "completion_cost_per_token": 0.00006,
+        "completion_cost_per_token": 0.00006
     },
+    "gpt-4-32k": {
+        "max_tokens": 32768,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00006,
+        "completion_cost_per_token": 0.00012
+    },
+    "gpt-3.5-turbo": {
+        "max_tokens": 4096,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000001,
+        "completion_cost_per_token": 0.000002
+    },
+    "gpt-3.5-turbo-16k": {
+        "max_tokens": 16384,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000003,
+        "completion_cost_per_token": 0.000004
+    }
 }
 
-_NEWER_MODEL_CONFIG = {
-    "gpt-4o-mini-2024-07-18": {
-        "max_tokens": 900,
-        "max_output_tokens": 16384,
-        "prompt_cost_per_token": 0.000000150,
-        "completion_cost_per_token": 0.00000060,
+# SOURCE: https://github.com/JuliusHenke/autopentest/blob/ca822f723a356ec974d2dff332c2d92389a4c5e3/src/text_embeddings.py#L19
+# https://platform.openai.com/docs/guides/embeddings/embedding-models
+_OLDER_EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {
+    "text-embedding-ada-002": {
+        "max_tokens": 8191,
+        "prompt_cost_per_token": 0.0000001,
+        "completion_cost_per_token": 0.0
+    }
+}
+
+# Model configurations
+_NEWER_MODEL_CONFIG: dict[str, dict[str, int | float]] = {
+    "gpt-4-turbo-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003
+    },
+    "gpt-4-vision-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003
     },
     "claude-3-opus-20240229": {
         "max_tokens": 2048,
         "max_output_tokens": 16384,
-        "prompt_cost_per_token": 0.0000025,
-        "completion_cost_per_token": 0.00001,
+        "prompt_cost_per_token": 0.000015,
+        "completion_cost_per_token": 0.000007
     },
+    "claude-3-sonnet-20240229": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.000003,
+        "completion_cost_per_token": 0.0000015
+    },
+    "claude-3-haiku-20240307": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.000001
+    },
+    "gpt-4o": {
+        "max_tokens": 128000,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003
+    },
+    "gpt-4o-mini-2024-07-18": {
+        "max_tokens": 900,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.000005,
+        "completion_cost_per_token": 0.000015
+    }
 }
 
-MODEL_CONFIG = {}
-MODEL_CONFIG.update(_OLDER_MODEL_CONFIG)
-MODEL_CONFIG.update(_NEWER_MODEL_CONFIG)
+# SOURCE: https://github.com/JuliusHenke/autopentest/blob/ca822f723a356ec974d2dff332c2d92389a4c5e3/src/text_embeddings.py#L19
+# https://platform.openai.com/docs/guides/embeddings/embedding-models
+_NEWER_EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {
+    "text-embedding-3-small": {
+        "max_tokens": 8191,
+        "prompt_cost_per_token": 0.00000002,
+        "completion_cost_per_token": 0.0
+    },
+    "text-embedding-3-large": {
+        "max_tokens": 8191,
+        "prompt_cost_per_token": 0.00000013,
+        "completion_cost_per_token": 0.0
+    }
+}
+
+# Model aliases for easier reference
+MODEL_POINT: dict[str, str] = {
+    "gpt4": "gpt-4",
+    "gpt4-32k": "gpt-4-32k",
+    "gpt4-turbo": "gpt-4-turbo-preview",
+    "gpt4-vision": "gpt-4-vision-preview",
+    "gpt35": "gpt-3.5-turbo",
+    "gpt35-16k": "gpt-3.5-turbo-16k",
+    "claude3-opus": "claude-3-opus-20240229",
+    "claude3-sonnet": "claude-3-sonnet-20240229",
+    "claude3-haiku": "claude-3-haiku-20240307",
+    "gpt4o": "gpt-4o",
+    "gpt4o-mini": "gpt-4o-mini-2024-07-18",
+    "gpt4o-latest": "gpt-4o-2024-08-06"
+}
+
+# Combine configurations
+MODEL_CONFIG: dict[str, dict[str, int | float]] = {**_OLDER_MODEL_CONFIG, **_NEWER_MODEL_CONFIG}
+
+# Combine embedding configurations
+EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {**_OLDER_EMBEDDING_CONFIG, **_NEWER_EMBEDDING_CONFIG}
+
+# Add aliased configurations
+_MODEL_POINT_CONFIG = {
+    alias: MODEL_CONFIG[target]
+    for alias, target in MODEL_POINT.items()
+}
+MODEL_CONFIG.update(_MODEL_POINT_CONFIG)
+
+# Update MODEL_ZOO to include embeddings
+MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys()) | set(EMBEDDING_CONFIG.keys())
 
 # Embedding model dimensions for different models
-EMBEDDING_MODEL_DIMENSIONS_DATA = {
+EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
     "text-embedding-ada-002": 1536,
-    "text-embedding-3-small": 512,
-    "text-embedding-3-large": 1024,
+    "text-embedding-3-small": 1536,
+    "text-embedding-3-large": 1024
 }
 
 TIMEZONE = timezone(timedelta(hours=8), name='Asia/Kuala_Lumpur')
@@ -222,24 +330,79 @@ class AioSettings(BaseSettings):
         env_file_encoding="utf-8",
         extra="allow",
         arbitrary_types_allowed=True,
+        json_schema_extra={
+            "properties": {
+                "llm_retriever_type": {
+                    "type": "string",
+                    "default": "vector_store",
+                    "description": "Type of retriever to use",
+                }
+            }
+        },
     )
 
     # Monitor settings
     monitor_host: str = Field(
         default="localhost",
-        description="Host for the monitoring server"
+        description="Host for monitoring server"
     )
     monitor_port: int = Field(
         default=50102,
-        description="Port for the monitoring server"
+        description="Port for monitoring server"
     )
-    debug_langchain: bool = Field(
-        default=True,
+
+    # Debug settings
+    debug_langchain: bool | None = Field(
+        default=False,
         description="Enable LangChain debug logging"
     )
+
+    # Audit settings
     audit_log_send_channel: str = Field(
         default="",
-        description="Channel ID for sending audit logs"
+        description="Channel ID for audit log messages"
+    )
+
+    # OpenCommit settings
+    oco_openai_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="OpenAI API key for OpenCommit"
+    )
+    oco_tokens_max_input: int = Field(
+        default=4096,
+        description="Maximum input tokens for OpenCommit"
+    )
+    oco_tokens_max_output: int = Field(
+        default=500,
+        description="Maximum output tokens for OpenCommit"
+    )
+    oco_model: str = Field(
+        default="gpt-4o",
+        description="Model to use for OpenCommit"
+    )
+    oco_language: str = Field(
+        default="en",
+        description="Language for OpenCommit messages"
+    )
+    oco_prompt_module: str = Field(
+        default="conventional-commit",
+        description="Prompt module for OpenCommit"
+    )
+    oco_ai_provider: str = Field(
+        default="openai",
+        description="AI provider for OpenCommit"
+    )
+
+    # OpenAI specific settings
+    openai_embeddings_model: str = Field(
+        default="text-embedding-3-large",
+        description="OpenAI model for embeddings"
+    )
+
+    # LLM retriever settings
+    llm_retriever_type: str = Field(
+        default="vector_store",
+        description="Type of retriever to use"
     )
 
     # Development settings
@@ -247,8 +410,16 @@ class AioSettings(BaseSettings):
         default=False,
         description="Enable development mode for additional debugging and error handling"
     )
+    better_exceptions: int = Field(
+        default=1,
+        description="Enable better exception formatting"
+    )
+    pythonasynciodebug: int = Field(
+        default=1,
+        description="Enable asyncio debug mode"
+    )
 
-    # Bot settings with enhanced descriptions
+    # Bot settings
     prefix: str = Field(
         default="?",
         description="Command prefix for the Discord bot"
@@ -302,40 +473,6 @@ class AioSettings(BaseSettings):
         description="Number of worker threads"
     )
 
-    # Debug settings with descriptions
-    better_exceptions: int = Field(
-        default=1,
-        description="Enable better exception formatting"
-    )
-    pythonasynciodebug: int = Field(
-        default=1,
-        description="Enable asyncio debug mode"
-    )
-    globals_try_patchmatch: bool = Field(
-        default=True,
-        description="Try patch matching in global scope"
-    )
-    globals_always_use_cpu: bool = Field(
-        default=False,
-        description="Force CPU usage for operations"
-    )
-    globals_internet_available: bool = Field(
-        default=True,
-        description="Whether internet access is available"
-    )
-    globals_full_precision: bool = Field(
-        default=False,
-        description="Use full precision for calculations"
-    )
-    globals_ckpt_convert: bool = Field(
-        default=False,
-        description="Convert checkpoints"
-    )
-    globals_log_tokenization: bool = Field(
-        default=False,
-        description="Log tokenization details"
-    )
-
     # Resource management settings
     max_memory_mb: int = Field(
         default=512,
@@ -358,34 +495,10 @@ class AioSettings(BaseSettings):
         description="Task timeout in seconds"
     )
 
-    # LLM settings with validation
+    # LLM settings
     llm_model_name: str = Field(
-        default="gpt-4o-mini",
+        default="gpt-4o-mini-2024-07-18",
         description="Name of the LLM model to use"
-    )
-    llm_embedding_model_name: str = Field(
-        default="text-embedding-3-large",
-        description="Name of the embedding model to use"
-    )
-    llm_api_key: str = Field(
-        default="",
-        description="API key for LLM service"
-    )
-    llm_api_base: str = Field(
-        default="",
-        description="Base URL for LLM API"
-    )
-    llm_api_version: str = Field(
-        default="",
-        description="API version for LLM service"
-    )
-    llm_api_type: str = Field(
-        default="",
-        description="Type of LLM API"
-    )
-    llm_deployment_name: str = Field(
-        default="",
-        description="Deployment name for LLM service"
     )
     llm_temperature: float = Field(
         default=0.7,
@@ -411,25 +524,23 @@ class AioSettings(BaseSettings):
         default_factory=list,
         description="Stop sequences for LLM"
     )
-    llm_timeout: int = Field(
-        default=60,
-        description="Timeout for LLM requests in seconds"
-    )
+
+    # LLM retry settings
     llm_max_retries: int = Field(
         default=3,
-        description="Maximum number of retry attempts"
+        description="Maximum number of retry attempts for LLM calls"
     )
     llm_retry_delay: int = Field(
         default=1,
         description="Initial retry delay in seconds"
     )
-    llm_retry_multiplier: float = Field(
-        default=2.0,
-        description="Multiplier for retry delay"
-    )
     llm_retry_max_delay: int = Field(
         default=60,
         description="Maximum retry delay in seconds"
+    )
+    llm_retry_multiplier: float = Field(
+        default=2.0,
+        description="Multiplier for retry delay"
     )
     llm_retry_codes: list[int] = Field(
         default_factory=list,
@@ -439,10 +550,6 @@ class AioSettings(BaseSettings):
         default_factory=list,
         description="HTTP methods to retry"
     )
-    llm_retry_statuses: list[int] = Field(
-        default_factory=list,
-        description="HTTP status codes to retry"
-    )
     llm_retry_backoff: bool = Field(
         default=True,
         description="Use exponential backoff for retries"
@@ -450,80 +557,6 @@ class AioSettings(BaseSettings):
     llm_retry_jitter: bool = Field(
         default=True,
         description="Add jitter to retry delays"
-    )
-    llm_retry_raise_for_status: bool = Field(
-        default=True,
-        description="Raise exceptions for HTTP errors"
-    )
-    llm_retry_respect_retry_after: bool = Field(
-        default=True,
-        description="Respect Retry-After headers"
-    )
-    llm_retry_forcelist: list[int] = Field(
-        default_factory=list,
-        description="Force retry on these status codes"
-    )
-    llm_retry_allowed_methods: list[str] = Field(
-        default_factory=list,
-        description="HTTP methods allowed for retry"
-    )
-    llm_retry_connect: int = Field(
-        default=3,
-        description="Maximum retries for connection errors"
-    )
-    llm_retry_read: int = Field(
-        default=3,
-        description="Maximum retries for read errors"
-    )
-    llm_retry_redirect: int = Field(
-        default=3,
-        description="Maximum retries for redirects"
-    )
-    llm_retry_status: int = Field(
-        default=3,
-        description="Maximum retries for status errors"
-    )
-    llm_retry_other: int = Field(
-        default=3,
-        description="Maximum retries for other errors"
-    )
-    llm_retry_backoff_factor: float = Field(
-        default=0.3,
-        description="Backoff factor for retries"
-    )
-    llm_retry_raise_on_redirect: bool = Field(
-        default=True,
-        description="Raise on redirect"
-    )
-    llm_retry_raise_on_status: bool = Field(
-        default=True,
-        description="Raise on status"
-    )
-    llm_retry_history: bool = Field(
-        default=True,
-        description="Keep retry history"
-    )
-    llm_retry_respect_retry_after_header: bool = Field(
-        default=True,
-        description="Respect Retry-After header"
-    )
-    llm_retry_incremental_backoff: bool = Field(
-        default=True,
-        description="Use incremental backoff"
-    )
-    llm_streaming: bool = Field(
-        default=False,
-        description="Enable streaming responses"
-    )
-
-    # Embedding settings
-    embedding_max_tokens: int = Field(
-        default=1024,
-        description="Maximum tokens for embeddings"
-    )
-    embedding_model_dimensions: int = Field(
-        default=1024,
-        description="Dimensions of embedding vectors"
     )
 
     # Redis settings
@@ -600,53 +633,165 @@ class AioSettings(BaseSettings):
         description="QA retriever configuration"
     )
 
-    # Summarization settings
-    summ_default_chain: str = Field(
-        default="stuff",
-        description="Default summarization chain type"
+    # Global settings
+    globals_try_patchmatch: bool = Field(
+        default=True,
+        description="Try patch matching in global scope"
     )
-    summ_token_splitter: int = Field(
-        default=4000,
-        description="Token limit for text splitting"
+    globals_always_use_cpu: bool = Field(
+        default=False,
+        description="Force CPU usage for operations"
     )
-    summ_token_overlap: int = Field(
-        default=500,
-        description="Token overlap for text splitting"
+    globals_internet_available: bool = Field(
+        default=True,
+        description="Whether internet access is available"
+    )
+    globals_full_precision: bool = Field(
+        default=False,
+        description="Use full precision for calculations"
+    )
+    globals_ckpt_convert: bool = Field(
+        default=False,
+        description="Convert checkpoints"
+    )
+    globals_log_tokenization: bool = Field(
+        default=False,
+        description="Log tokenization details"
     )
 
-    @property
-    def redis_url(self) -> RedisDsn:
-        """Get Redis URL.
+    # Additional debug settings
+    debug_langchain: bool = Field(
+        default=True,
+        description="Enable LangChain debug logging"
+    )
+    python_debug: bool = Field(
+        default=False,
+        description="Enable Python debug mode"
+    )
+    pythondevmode: bool = Field(
+        default=False,
+        description="Enable Python development mode"
+    )
+    local_test_debug: bool = Field(
+        default=False,
+        description="Enable local test debugging"
+    )
+    local_test_enable_evals: bool = Field(
+        default=False,
+        description="Enable evaluation tests locally"
+    )
+    http_client_debug_enabled: bool = Field(
+        default=False,
+        description="Enable HTTP client debugging"
+    )
 
-        Constructs a Redis URL from the configured host, port, and authentication settings.
-        Handles both plain text and SecretStr password types.
+    # LLM streaming settings
+    llm_streaming: bool = Field(
+        default=False,
+        description="Whether to use streaming responses from LLM"
+    )
 
-        Returns:
-            RedisDsn: Redis URL with proper authentication if configured
-        """
-        auth = ""
-        if self.redis_user and self.redis_pass:
-            # pyright: reportAttributeAccessIssue=false
-            pass_value = self.redis_pass
-            if isinstance(pass_value, SecretStr):
-                pass_value = pass_value.get_secret_value()
-            auth = f"{self.redis_user}:{pass_value}@"
-        base = f"/{self.redis_base}" if self.redis_base is not None else ""
-        return RedisDsn(f"redis://{auth}{self.redis_host}:{self.redis_port}{base}")
+    # Feature flags
+    rag_answer_accuracy_feature_flag: bool = Field(
+        default=False,
+        description="Enable RAG answer accuracy evaluation"
+    )
+    rag_answer_v_reference_feature_flag: bool = Field(
+        default=False,
+        description="Enable RAG answer vs reference comparison"
+    )
+    compare_models_feature_flag: bool = Field(
+        default=False,
+        description="Enable model comparison feature"
+    )
+    helpfulness_evaluation_feature_flag: bool = Field(
+        default=False,
+        description="Enable helpfulness evaluation"
+    )
+    document_relevance_feature_flag: bool = Field(
+        default=False,
+        description="Enable document relevance evaluation"
+    )
 
-    @property
-    def postgres_url(self) -> PostgresDsn:
-        """Get PostgreSQL URL.
+    # Discord settings
+    discord_server_id: int = Field(
+        default=1234567890,
+        description="Discord server ID"
+    )
 
-        Constructs a PostgreSQL URL from the configured settings including
-        host, port, database, and authentication information.
+    # Model configurations
+    MODEL_CONFIG: dict[str, dict[str, int | float]] = {**_OLDER_MODEL_CONFIG, **_NEWER_MODEL_CONFIG}
+    MODEL_POINT: dict[str, str] = {
+        "gpt4": "gpt-4",
+        "gpt4-32k": "gpt-4-32k",
+        "gpt35": "gpt-3.5-turbo",
+        "gpt35-16k": "gpt-3.5-turbo-16k",
+        "gpt4-turbo": "gpt-4-turbo-preview",
+        "gpt4-vision": "gpt-4-vision-preview",
+        "claude3-opus": "claude-3-opus-20240229",
+        "claude3-sonnet": "claude-3-sonnet-20240229",
+        "claude3-haiku": "claude-3-haiku-20240307",
+        "gpt4o": "gpt-4o",
+        "gpt4o-mini": "gpt-4o-mini-2024-07-18"
+    }
+    MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys())
+    EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {**_OLDER_EMBEDDING_CONFIG, **_NEWER_EMBEDDING_CONFIG}
+    EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
+        "text-embedding-ada-002": 1536,
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 1024
+    }
 
-        Returns:
-            PostgresDsn: PostgreSQL URL with proper authentication
-        """
-        return PostgresDsn(
-            f"postgresql+{self.postgres_driver}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}"
-        )
+    # LLM Provider settings
+    llm_provider: str = Field(
+        default="openai",
+        description="The LLM provider to use (openai, anthropic, etc.)"
+    )
+    llm_document_loader_type: str = Field(
+        default="pymupdf",
+        description="The document loader type to use"
+    )
+    llm_embedding_model_type: str = Field(
+        default="text-embedding-3-large",
+        description="The embedding model type to use"
+    )
+
+    # Vector store settings
+    enable_chroma: bool = Field(
+        default=False,
+        description="Enable Chroma vector store"
+    )
+
+    # Feature flags
+    rag_answer_hallucination_feature_flag: bool = Field(
+        default=False,
+        description="Enable RAG answer hallucination detection"
+    )
+
+    enable_sentry: bool = Field(
+        default=False,
+        description="Enable Sentry error tracking"
+    )
+
+    rag_doc_relevance_feature_flag: bool = Field(
+        default=False,
+        description="Enable RAG document relevance evaluation"
+    )
+
+    llm_vectorstore_type: str = Field(
+        default="pgvector",
+        description="The vector store type to use"
+    )
+
+    experimental_redis_memory: bool = Field(
+        default=False,
+        description="Enable experimental Redis memory features"
+    )
+
+    rag_doc_relevance_and_hallucination_feature_flag: bool = Field(
+        default=False,
+        description="Enable RAG document relevance and hallucination detection"
+    )
 
     @field_validator("monitor_port")
     def validate_port(cls, v: int, info: Any) -> int:
@@ -693,82 +838,6 @@ class AioSettings(BaseSettings):
                 context={"valid_range": "0.0-2.0"}
             )
         return v
-
-    @field_validator("llm_model_name")
-    def validate_model_name(cls, v: str, info: Any) -> str:
-        """Validate model name exists in configuration.
-
-        Args:
-            v: Model name to validate
-            info: Validation context
-
-        Returns:
-            str: Validated model name
-
-        Raises:
-            ModelConfigError: If model name is invalid
-        """
-        if v not in _OLDER_MODEL_CONFIG and v not in _NEWER_MODEL_CONFIG:
-            raise ModelConfigError(
-                "Invalid model name",
-                model_name=v,
-                context={
-                    "available_models": list(_OLDER_MODEL_CONFIG.keys()) + list(_NEWER_MODEL_CONFIG.keys())
-                }
-            )
-        return v
-
-    @model_validator(mode="before")
-    @classmethod
-    def pre_update(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Update token limits, costs, and embedding dimensions based on model selection.
-
-        This validator runs before other validations and updates various settings based on
-        the selected models' configurations. It handles both LLM and embedding model settings.
-
-        Args:
-            values: Values to validate and update
-
-        Returns:
-            dict[str, Any]: Updated values
-
-        Raises:
-            ModelConfigError: If model configuration is invalid or missing required settings
-        """
-        llm_model_name = values.get("llm_model_name")
-        llm_embedding_model_name = values.get("llm_embedding_model_name")
-
-        # Validate and update LLM model settings
-        if llm_model_name:
-            if llm_model_name not in MODEL_CONFIG:
-                raise ModelConfigError(
-                    "Invalid model name",
-                    model_name=llm_model_name,
-                    context={
-                        "available_models": list(MODEL_CONFIG.keys())
-                    }
-                )
-
-            config = MODEL_CONFIG[llm_model_name]
-            values["llm_max_tokens"] = config["max_tokens"]
-            values["llm_max_output_tokens"] = config["max_output_tokens"]
-            values["prompt_cost_per_token"] = config["prompt_cost_per_token"]
-            values["completion_cost_per_token"] = config["completion_cost_per_token"]
-
-        # Validate and update embedding model settings
-        if llm_embedding_model_name:
-            if llm_embedding_model_name not in EMBEDDING_MODEL_DIMENSIONS_DATA:
-                raise ModelConfigError(
-                    "Invalid embedding model name",
-                    model_name=llm_embedding_model_name,
-                    context={
-                        "available_models": list(EMBEDDING_MODEL_DIMENSIONS_DATA.keys())
-                    }
-                )
-
-            values["embedding_model_dimensions"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
-
-        return values
 
     @field_validator("redis_pass")
     def validate_redis_password(cls, v: SecretStr | None, info: Any) -> SecretStr | None:
@@ -828,25 +897,100 @@ class AioSettings(BaseSettings):
             )
         return v
 
-    def _build_redis_url(self) -> str:
-        """Build Redis URL from components.
+    @property
+    def redis_url(self) -> RedisDsn:
+        """Get Redis URL.
+
+        Constructs a Redis URL from the configured host, port, and authentication settings.
+        Handles both plain text and SecretStr password types.
 
         Returns:
-            str: Constructed Redis URL
+            RedisDsn: Redis URL with proper authentication if configured
+        """
+        auth = ""
+        if self.redis_user and self.redis_pass:
+            # pyright: reportAttributeAccessIssue=false
+            pass_value = self.redis_pass
+            if isinstance(pass_value, SecretStr):
+                pass_value = pass_value.get_secret_value()
+            auth = f"{self.redis_user}:{pass_value}@"
+        base = f"/{self.redis_base}" if self.redis_base is not None else ""
+        return RedisDsn(f"redis://{auth}{self.redis_host}:{self.redis_port}{base}")
+
+    @property
+    def postgres_url(self) -> str:
+        """Get the PostgreSQL URL.
+
+        Returns:
+            str: The PostgreSQL URL
+        """
+        return f"postgresql+psycopg://{self.postgres_user}:{self.postgres_pass.get_secret_value()}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_models(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Validate and update model configurations.
+
+        This validator runs before other validations and updates various settings based on
+        the selected models' configurations. It handles both LLM and embedding model settings.
+
+        Args:
+            values: Values to validate and update
+
+        Returns:
+            dict[str, Any]: Updated values
 
         Raises:
-            ConfigurationError: If Redis configuration is invalid
+            ModelConfigError: If model configuration is invalid or missing required settings
         """
-        try:
-            # pyright: reportAttributeAccessIssue=false
-            password = f":{self.redis_pass.get_secret_value()}@" if self.redis_pass else ""
-            return f"redis://{password}{self.redis_host}:{self.redis_port}/{self.redis_db}"
-        except Exception as e:
-            raise ConfigurationError(
-                f"Failed to construct Redis URL: {e!s}",
-                config_section="redis",
-                context={"host": self.redis_host, "port": self.redis_port}
+        llm_model_name = values.get("llm_model_name")
+        llm_embedding_model_name = values.get("llm_embedding_model_name")
+        openai_embeddings_model = values.get("openai_embeddings_model")
+
+        # Validate LLM model settings
+        if llm_model_name:
+            if llm_model_name not in MODEL_CONFIG:
+                raise ModelConfigError(
+                    "Invalid model name",
+                    model_name=llm_model_name,
+                    context={
+                        "available_models": list(MODEL_CONFIG.keys())
+                    }
+                )
+
+            config = MODEL_CONFIG[llm_model_name]
+            values["llm_max_tokens"] = config["max_tokens"]
+            values["llm_max_output_tokens"] = config["max_output_tokens"]
+            values["prompt_cost_per_token"] = config["prompt_cost_per_token"]
+            values["completion_cost_per_token"] = config["completion_cost_per_token"]
+
+        # Validate embedding models
+        for model_name in [llm_embedding_model_name, openai_embeddings_model]:
+            if model_name and model_name not in EMBEDDING_CONFIG:
+                raise ModelConfigError(
+                    "Invalid embedding model name",
+                    model_name=model_name,
+                    context={
+                        "available_models": list(EMBEDDING_CONFIG.keys())
+                    }
+                )
+
+        # Update embedding dimensions
+        if llm_embedding_model_name:
+            values["embedding_model_dimensions"] = EMBEDDING_MODEL_DIMENSIONS_DATA[llm_embedding_model_name]
+
+        # Validate OpenCommit settings
+        oco_model = values.get("oco_model")
+        if oco_model and oco_model not in MODEL_CONFIG:
+            raise ModelConfigError(
+                "Invalid OCO model name",
+                model_name=oco_model,
+                context={
+                    "available_models": list(MODEL_CONFIG.keys())
+                }
             )
+
+        return values
 
 # Global settings instance
 aiosettings = AioSettings()

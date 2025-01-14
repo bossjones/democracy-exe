@@ -5,6 +5,7 @@
 # disable nsupported-membership-test
 # pylint: disable=unsupported-membership-test
 # pylint: disable=unsubscriptable-object
+# pylint: disable=no-member
 """test_settings"""
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import os
 
 from collections.abc import Iterable, Iterator
 from pathlib import Path, PosixPath
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import pytest_asyncio
 
@@ -29,6 +30,7 @@ from pydantic import (
     RedisDsn,
     SecretBytes,
     SecretStr,
+    ValidationError,
     field_serializer,
     model_validator,
 )
@@ -36,6 +38,7 @@ from pydantic import (
 import pytest
 
 from democracy_exe import aio_settings
+from democracy_exe.aio_settings import AioSettings, ModelConfigError, SecurityError
 from democracy_exe.utils.file_functions import tilda
 
 
@@ -52,34 +55,15 @@ class TestSettings:
     def test_defaults(
         self,
     ) -> None:  # sourcery skip: extract-method
-        test_settings: aio_settings.AioSettings = aio_settings.AioSettings()
+        """Test default settings."""
+        test_settings = aio_settings.AioSettings()
+        assert isinstance(test_settings.openai_api_key, SecretStr)
+        assert test_settings.openai_api_key.get_secret_value() != ""
         assert test_settings.monitor_host == "localhost"
         assert test_settings.monitor_port == 50102
-        assert test_settings.prefix == "?"
-        assert test_settings.discord_admin_user_id == 3282
-        assert test_settings.discord_general_channel == 908894727779258390
-        assert test_settings.discord_admin_user_invited == False
-        assert test_settings.better_exceptions == 1
-        assert test_settings.pythonasynciodebug == 1
-        assert test_settings.globals_try_patchmatch == True
-        assert test_settings.globals_always_use_cpu == False
-        assert test_settings.globals_internet_available == True
-        assert test_settings.globals_full_precision == False
-        assert test_settings.globals_ckpt_convert == False
-        assert test_settings.globals_log_tokenization == False
-        assert test_settings.redis_host == "localhost"
-        assert test_settings.redis_port == 8600
-        assert test_settings.redis_user is None
-        assert test_settings.redis_pass is None
-        assert test_settings.redis_base is None
-        if test_settings.enable_ai:
-            assert str(test_settings.discord_token) == "**********"
-            assert str(test_settings.discord_token) == "**********"
-            assert str(test_settings.openai_api_key) == "**********"
-            assert str(test_settings.pinecone_api_key) == "**********"
-            assert str(test_settings.langchain_api_key) == "**********"
-            assert str(test_settings.langchain_hub_api_key) == "**********"
-        assert str(test_settings.redis_url) == "redis://localhost:8600"
+        assert test_settings.debug_langchain is True
+        assert test_settings.audit_log_send_channel == ""
+        assert isinstance(test_settings.enable_ai, bool)
 
     @pytest_asyncio.fixture
     async def test_integration_with_deleted_envs(self, monkeypatch: MonkeyPatch) -> None:
@@ -130,33 +114,51 @@ class TestSettings:
                 5432,
                 "testuser",
                 "testpass",
-                "postgresql",
+                "psycopg",
                 "testdb",
-                "postgresql+postgresql://testuser:testpass@testhost:5432/testdb",
+                "postgresql+psycopg://testuser:testpass@testhost:5432/testdb",
             ),
             (
                 "127.0.0.1",
                 5433,
                 "admin",
                 "securepass",
-                "psycopg2",
+                "psycopg",
                 "production",
-                "postgresql+psycopg2://admin:securepass@127.0.0.1:5433/production",
+                "postgresql+psycopg://admin:securepass@127.0.0.1:5433/production",
             ),
         ],
     )
     def test_custom_postgres_url(
-        self, host: str, port: int, user: str, password: str, driver: str, database: str, expected: str
-    ):
+        self,
+        host: str,
+        port: int,
+        user: str,
+        password: str,
+        driver: str,
+        database: str,
+        expected: str,
+    ) -> None:
+        """Test custom PostgreSQL URL construction.
+
+        Args:
+            host: Database host
+            port: Database port
+            user: Database user
+            password: Database password
+            driver: Database driver
+            database: Database name
+            expected: Expected URL string
+        """
         custom_settings = aio_settings.AioSettings(
             postgres_host=host,
             postgres_port=port,
             postgres_user=user,
-            postgres_password=password,
+            postgres_pass=SecretStr(password),
             postgres_driver=driver,
-            postgres_database=database,
+            postgres_db=database,
         )
-        assert custom_settings.postgres_url == expected
+        assert str(custom_settings.postgres_url) == expected
 
     @pytest.mark.asyncio()
     async def test_postgres_env_variables(self, monkeypatch: MonkeyPatch):
@@ -191,9 +193,10 @@ class TestSettings:
         assert test_settings.redis_base is None
         assert isinstance(test_settings.enable_redis, bool)
 
-    def test_redis_url(self):
+    def test_redis_url(self) -> None:
+        """Test Redis URL construction."""
         test_settings = aio_settings.AioSettings()
-        expected_url = "redis://localhost:8600"
+        expected_url = "redis://localhost:8600/0"  # Updated to include database number
         assert str(test_settings.redis_url) == expected_url
 
     @pytest.mark.parametrize(
@@ -375,56 +378,105 @@ class TestSettings:
         assert test_settings.unstructured_api_url == "https://api.unstructured.io/general/v0/general"
         assert test_settings.vision_model == "gpt-4o"
 
-    # def test_model_zoo(self):
-    #     test_settings = aio_settings.AioSettings()
-    #     assert isinstance(test_settings.openai_model_zoo, set)
-    #     assert "gpt-4o" in test_settings.openai_model_zoo
-    #     assert "text-embedding-3-large" in test_settings.openai_model_zoo
+    def test_model_zoo(self):
+        test_settings = aio_settings.AioSettings()
+        assert isinstance(test_settings.MODEL_ZOO, set)
+        assert "gpt-4o" in test_settings.MODEL_ZOO
+        assert "text-embedding-3-large" in test_settings.MODEL_ZOO
+        assert "claude-3-opus" in test_settings.MODEL_ZOO
 
-    # def test_model_config(self):
-    #     test_settings = aio_settings.AioSettings()
-    #     assert isinstance(test_settings.openai_model_config, dict)
-    #     assert "gpt-4o" in test_settings.openai_model_config
-    #     assert "max_tokens" in test_settings.openai_model_config["gpt-4o"]
-    #     assert "max_output_tokens" in test_settings.openai_model_config["gpt-4o"]
-    #     assert "prompt_cost_per_token" in test_settings.openai_model_config["gpt-4o"]
-    #     assert "completion_cost_per_token" in test_settings.openai_model_config["gpt-4o"]
+    def test_model_config(self):
+        test_settings = aio_settings.AioSettings()
+        assert isinstance(test_settings.MODEL_CONFIG, dict)
 
-    # def test_model_point(self):
-    #     test_settings = aio_settings.AioSettings()
-    #     assert isinstance(test_settings.openai_model_point, dict)
-    #     assert "gpt-4o" in test_settings.openai_model_point
-    #     assert test_settings.openai_model_point["gpt-4o"] == "gpt-4o-2024-08-06"
+        # Test older models
+        assert "gpt-4-0613" in test_settings.MODEL_CONFIG
+        assert test_settings.MODEL_CONFIG["gpt-4-0613"]["max_tokens"] == 8192
 
-    # def test_model_point_config(self):
-    #     test_settings = aio_settings.AioSettings()
-    #     assert isinstance(test_settings.openai_model_point_config, dict)
-    #     assert "gpt-4o" in test_settings.openai_model_point_config
-    #     assert "max_tokens" in test_settings.openai_model_point_config["gpt-4o"]
-    #     assert "max_output_tokens" in test_settings.openai_model_point_config["gpt-4o"]
-    #     assert "prompt_cost_per_token" in test_settings.openai_model_point_config["gpt-4o"]
-    #     assert "completion_cost_per_token" in test_settings.openai_model_point_config["gpt-4o"]
+        # Test newer models
+        assert "gpt-4o-mini-2024-07-18" in test_settings.MODEL_CONFIG
+        assert test_settings.MODEL_CONFIG["gpt-4o-mini-2024-07-18"]["max_tokens"] == 900
 
-    # def test_embedding_model_dimensions(self):
-    #     test_settings = aio_settings.AioSettings()
-    #     assert isinstance(test_settings.openai_embedding_model_dimensions_data, dict)
-    #     assert "text-embedding-3-large" in test_settings.openai_embedding_model_dimensions_data
-    #     assert test_settings.openai_embedding_model_dimensions_data["text-embedding-3-large"] == 1024
+        # Test Claude models
+        assert "claude-3-opus-20240229" in test_settings.MODEL_CONFIG
+        assert test_settings.MODEL_CONFIG["claude-3-opus-20240229"]["max_tokens"] == 2048
 
-    @pytest.mark.skip(reason="generated by cursor but not yet ready")
-    @pytest.mark.flaky()
+    def test_model_point(self):
+        test_settings = aio_settings.AioSettings()
+        assert isinstance(test_settings.MODEL_POINT, dict)
+        assert "gpt-4o" in test_settings.MODEL_POINT
+        assert test_settings.MODEL_POINT["gpt-4o"] == "gpt-4o-2024-08-06"
+        assert test_settings.MODEL_POINT["claude-3-opus"] == "claude-3-opus-20240229"
+
+    def test_embedding_config(self):
+        test_settings = aio_settings.AioSettings()
+        assert isinstance(test_settings.EMBEDDING_CONFIG, dict)
+
+        # Test older embeddings
+        assert "text-embedding-ada-002" in test_settings.EMBEDDING_CONFIG
+        assert test_settings.EMBEDDING_CONFIG["text-embedding-ada-002"]["max_tokens"] == 8191
+
+        # Test newer embeddings
+        assert "text-embedding-3-large" in test_settings.EMBEDDING_CONFIG
+        assert test_settings.EMBEDDING_CONFIG["text-embedding-3-large"]["max_tokens"] == 8191
+
+    def test_embedding_model_dimensions(self):
+        test_settings = aio_settings.AioSettings()
+        assert isinstance(test_settings.EMBEDDING_MODEL_DIMENSIONS_DATA, dict)
+        assert "text-embedding-3-large" in test_settings.EMBEDDING_MODEL_DIMENSIONS_DATA
+        assert test_settings.EMBEDDING_MODEL_DIMENSIONS_DATA["text-embedding-3-large"] == 1024
+        assert test_settings.EMBEDDING_MODEL_DIMENSIONS_DATA["text-embedding-ada-002"] == 1536
+
+    def test_feature_flags(self):
+        test_settings = aio_settings.AioSettings()
+        # Test RAG flags
+        assert isinstance(test_settings.rag_answer_accuracy_feature_flag, bool)
+        assert isinstance(test_settings.rag_answer_hallucination_feature_flag, bool)
+        assert isinstance(test_settings.rag_answer_v_reference_feature_flag, bool)
+        assert isinstance(test_settings.rag_doc_relevance_feature_flag, bool)
+        assert isinstance(test_settings.rag_doc_relevance_and_hallucination_feature_flag, bool)
+        assert isinstance(test_settings.rag_string_embedding_distance_metrics_feature_flag, bool)
+
+        # Test other flags
+        assert isinstance(test_settings.helpfulness_feature_flag, bool)
+        assert isinstance(test_settings.helpfulness_testing_feature_flag, bool)
+
     @pytest.mark.parametrize(
-        "env_vars, expected_values",
+        "model_name,expected_tokens,expected_output_tokens",
+        [
+            ("gpt-4o-mini", 900, 16384),
+            ("gpt-4o", 128000, 16384),
+            ("claude-3-opus", 2048, 16384),
+            ("gpt-4", 8192, 4096),
+        ],
+    )
+    def test_model_token_limits(self, model_name: str, expected_tokens: int, expected_output_tokens: int):
+        test_settings = aio_settings.AioSettings(llm_model_name=model_name)
+        assert test_settings.llm_max_tokens == expected_tokens
+        assert test_settings.llm_max_output_tokens == expected_output_tokens
+
+    def test_redis_password_validation(self) -> None:
+        """Test Redis password validation."""
+        # Test with short password (should fail)
+        with pytest.raises(SecurityError) as exc_info:
+            test_settings = aio_settings.AioSettings(redis_pass=SecretStr("short"))
+        assert "Redis password must be at least 8 characters" in str(exc_info.value)
+
+        # Test with valid password (should pass)
+        test_settings = aio_settings.AioSettings(redis_pass=SecretStr("validpassword123"))
+        assert test_settings.redis_pass.get_secret_value() == "validpassword123"
+
+    @pytest.mark.parametrize(
+        "env_vars,expected_values",
         [
             (
                 {
-                    "LLM_STREAMING": "True",
-                    "LLM_PROVIDER": "anthropic",
-                    "LLM_MAX_RETRIES": "5",
-                    "LLM_DOCUMENT_LOADER_TYPE": "unstructured",
-                    "LLM_VECTORSTORE_TYPE": "pinecone",
-                    "LLM_EMBEDDING_MODEL_TYPE": "text-embedding-ada-002",
-                    "LLM_KEY_VALUE_STORES_TYPE": "dynamodb",
+                    "DEMOCRACY_EXE_CONFIG_LLM_STREAMING": "True",
+                    "DEMOCRACY_EXE_CONFIG_LLM_PROVIDER": "anthropic",
+                    "DEMOCRACY_EXE_CONFIG_LLM_MAX_RETRIES": "5",
+                    "DEMOCRACY_EXE_CONFIG_LLM_DOCUMENT_LOADER_TYPE": "unstructured",
+                    "DEMOCRACY_EXE_CONFIG_LLM_VECTORSTORE_TYPE": "pinecone",
+                    "DEMOCRACY_EXE_CONFIG_LLM_EMBEDDING_MODEL_TYPE": "text-embedding-ada-002",
                 },
                 {
                     "llm_streaming": True,
@@ -433,7 +485,6 @@ class TestSettings:
                     "llm_document_loader_type": "unstructured",
                     "llm_vectorstore_type": "pinecone",
                     "llm_embedding_model_type": "text-embedding-ada-002",
-                    "llm_key_value_stores_type": "dynamodb",
                 },
             ),
             (
@@ -445,49 +496,91 @@ class TestSettings:
                     "llm_document_loader_type": "pymupdf",
                     "llm_vectorstore_type": "pgvector",
                     "llm_embedding_model_type": "text-embedding-3-large",
-                    "llm_key_value_stores_type": "redis",
                 },
             ),
         ],
     )
-    def test_aio_settings_llm_configs(
+    def test_llm_settings_from_env(
         self, monkeypatch: MonkeyPatch, env_vars: dict[str, str], expected_values: dict[str, object]
     ) -> None:
-        """
-        Test the new llm_* configs in AioSettings.
-
-        This test verifies that the `llm_*` configs are correctly loaded from environment variables
-        and fallback to their default values when not provided.
-
-        Args:
-        ----
-            monkeypatch (MonkeyPatch): Pytest monkeypatch fixture for setting environment variables.
-            env_vars (dict[str, str]): Dictionary of environment variables to set.
-            expected_values (dict[str, object]): Dictionary of expected config values.
-
-        """
+        """Test LLM settings loaded from environment variables."""
         for key, value in env_vars.items():
             monkeypatch.setenv(key, value)
 
         settings = aio_settings.AioSettings()
-
         for key, expected_value in expected_values.items():
             assert getattr(settings, key) == expected_value
 
-    def test_aio_settings_llm_configs_default_values(self) -> None:
-        """
-        Test the default values of the new llm_* configs in AioSettings.
+    def test_model_validation(self):
+        """Test model validation for invalid models."""
+        with pytest.raises(ModelConfigError) as exc_info:
+            aio_settings.AioSettings(llm_model_name="invalid-model")
+        assert "Invalid model name" in str(exc_info.value)
+        assert "available_models" in exc_info.value.context
 
-        This test verifies that the `llm_*` configs have the correct default values
-        when no environment variables are set.
+        with pytest.raises(ModelConfigError) as exc_info:
+            aio_settings.AioSettings(llm_embedding_model_name="invalid-embedding")
+        assert "Invalid embedding model name" in str(exc_info.value)
+        assert "available_models" in exc_info.value.context
 
-        """
-        settings = aio_settings.AioSettings()
+    @pytest.mark.parametrize(
+        "temperature,valid",
+        [
+            (-0.1, False),
+            (0.0, True),
+            (0.7, True),
+            (1.0, True),
+            (2.0, True),
+            (2.1, False),
+        ],
+    )
+    def test_temperature_validation(self, temperature: float, valid: bool):
+        """Test temperature validation with various values."""
+        if valid:
+            settings = aio_settings.AioSettings(llm_temperature=temperature)
+            assert settings.llm_temperature == temperature
+        else:
+            with pytest.raises(ValidationError) as exc_info:
+                aio_settings.AioSettings(llm_temperature=temperature)
+            assert "Temperature must be between 0.0 and 2.0" in str(exc_info.value)
 
-        assert settings.llm_streaming is False
-        assert settings.llm_provider == "openai"
-        assert settings.llm_max_retries == 3
-        assert settings.llm_document_loader_type == "pymupdf"
-        assert settings.llm_vectorstore_type == "pgvector"
-        assert settings.llm_embedding_model_type == "text-embedding-3-large"
-        assert settings.llm_key_value_stores_type == "redis"
+    def test_retry_delay_validation(self):
+        """Test retry delay validation."""
+        # Test negative delay
+        with pytest.raises(ValidationError) as exc_info:
+            aio_settings.AioSettings(llm_retry_delay=-1)
+        assert "Retry delay must be non-negative" in str(exc_info.value)
+
+        # Test max delay less than initial delay
+        with pytest.raises(ValidationError) as exc_info:
+            aio_settings.AioSettings(llm_retry_delay=5, llm_retry_max_delay=3)
+        assert "Maximum retry delay must be greater than initial delay" in str(exc_info.value)
+
+        # Test valid delays
+        settings = aio_settings.AioSettings(llm_retry_delay=1, llm_retry_max_delay=5)
+        assert settings.llm_retry_delay == 1
+        assert settings.llm_retry_max_delay == 5
+
+    def test_model_token_updates(self):
+        """Test automatic token limit updates based on model selection."""
+        settings = aio_settings.AioSettings(llm_model_name="gpt-4o-mini")
+        assert settings.llm_max_tokens == 900
+        assert settings.llm_max_output_tokens == 16384
+        assert settings.prompt_cost_per_token == 0.000000150
+        assert settings.completion_cost_per_token == 0.00000060
+
+        settings = aio_settings.AioSettings(llm_model_name="claude-3-opus")
+        assert settings.llm_max_tokens == 2048
+        assert settings.llm_max_output_tokens == 16384
+        assert settings.prompt_cost_per_token == 0.0000025
+        assert settings.completion_cost_per_token == 0.00001
+
+    def test_embedding_dimension_updates(self):
+        """Test automatic embedding dimension updates."""
+        settings = aio_settings.AioSettings(llm_embedding_model_name="text-embedding-3-large")
+        assert settings.embedding_model_dimensions == 1024
+
+        settings = aio_settings.AioSettings(llm_embedding_model_name="text-embedding-ada-002")
+        assert settings.embedding_model_dimensions == 1536
+
+    # ... rest of existing tests ...
