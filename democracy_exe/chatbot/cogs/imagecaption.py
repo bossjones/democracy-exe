@@ -6,7 +6,6 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
 
 """Image captioning cog for Discord bot.
 

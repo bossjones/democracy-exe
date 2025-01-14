@@ -6,11 +6,7 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
 # pyright: reportUninitializedInstanceVariable=false
-# pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportInvalidTypeForm=false
 
 """Autocrop cog for Discord bot.
 
