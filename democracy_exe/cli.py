@@ -1,3 +1,9 @@
+# pylint: disable=no-value-for-parameter
+# pyright: reportMissingTypeStubs=false
+# pylint: disable=no-member
+# pylint: disable=no-value-for-parameter
+# pyright: reportAttributeAccessIssue=false
+
 """democracy_exe.cli
 
 This module implements the command-line interface for the democracy_exe application.
@@ -154,6 +160,40 @@ def load_commands(directory: str = "subcommands") -> None:
                 logger.debug(f"Adding subcommand: {filename[:-7]}")
                 APP.add_typer(module.APP, name=filename[:-7])
 
+
+async def aload_commands(directory: str = "subcommands") -> None:
+    """
+    Asynchronously load subcommands from the specified directory.
+
+    This function asynchronously loads subcommands from the specified directory and adds them to the main Typer app.
+    It iterates over the files in the directory, imports the modules that end with "_cmd.py", and adds
+    their Typer app to the main app if they have one.
+
+    Args:
+        directory (str, optional): The directory to load subcommands from. Defaults to "subcommands".
+
+    Returns:
+        None
+    """
+    script_dir = Path(__file__).parent
+    subcommands_dir = script_dir / directory
+
+    logger.debug(f"Loading subcommands from {subcommands_dir}")
+
+    async with asyncer.create_task_group() as tg:
+        for filename in os.listdir(subcommands_dir):
+            logger.debug(f"Filename: {filename}")
+            if filename.endswith("_cmd.py"):
+                module_name = f'{__name__.split(".")[0]}.{directory}.{filename[:-3]}'
+                logger.debug(f"Loading subcommand: {module_name}")
+
+                async def _load_module(module_name: str, cmd_name: str) -> None:
+                    module = import_module(module_name)
+                    if hasattr(module, "APP"):
+                        logger.debug(f"Adding subcommand: {cmd_name}")
+                        APP.add_typer(module.APP, name=cmd_name)
+
+                tg.start_soon(_load_module, module_name, filename[:-7])
 
 
 APP = AsyncTyperImproved()
