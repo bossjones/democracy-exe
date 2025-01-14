@@ -5,19 +5,47 @@
 
 """Settings for the Discord bot and AI components.
 
-This module contains the settings for the Discord bot and AI components,
-using Pydantic for validation and environment variable configuration.
+This module manages configuration settings with comprehensive validation,
+error handling, and security checks. It uses Pydantic for validation
+and supports environment variable configuration.
 
-Key Features:
-- Environment variable configuration with prefix DEMOCRACY_EXE_CONFIG_
-- Automatic model token limit updates based on model selection
-- Comprehensive retry configuration for LLM calls
-- Integrated Redis and PostgreSQL support
-- QA and summarization configuration
+Implementation Details:
+    - Configuration Management: Uses Pydantic with custom validators
+    - Error Handling: Hierarchical error classes for different scenarios
+    - Security: Comprehensive security validation for sensitive fields
+    - Model Configuration: Token limits and pricing for different models
+    - Resource Management: Memory, task, and buffer size limits
+    - Database Integration: Redis and PostgreSQL configuration
+    - Environment Variables: Prefix DEMOCRACY_EXE_CONFIG_
 
-Example:
+Missing or Needs Improvement:
+    - Comprehensive test coverage for all validators
+    - Migration path for configuration updates
+    - Default value documentation
+    - Configuration versioning system
+    - Environment variable documentation
+    - Configuration backup and restore
+    - Secret rotation mechanisms
+    - Configuration audit logging
+    - Dynamic reconfiguration support
+    - Configuration schema versioning
+
+Security Notes:
+    - Sensitive values use SecretStr
+    - Password validation rules enforced
+    - URL validation for database connections
+    - Token validation for API keys
+    - Rate limit configuration validation
+
+Usage:
+    Load settings from environment:
     ```python
-    settings = AioSettings()
+    from democracy_exe.aio_settings import aiosettings
+
+    # Access settings
+    model_name = aiosettings.llm_model_name
+    max_tokens = aiosettings.llm_max_tokens
+
     # Override from environment:
     # export DEMOCRACY_EXE_CONFIG_LLM_MODEL_NAME=gpt-4-0613
     ```

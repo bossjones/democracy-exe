@@ -1,4 +1,40 @@
-"""Asynchronous wrapper around gallery-dl."""
+"""Asynchronous gallery-dl client for downloading media.
+
+This module provides an asynchronous interface to gallery-dl for downloading
+media from various sources. It includes configuration management, error handling,
+and testing support.
+
+Implementation Details:
+    - Configuration Management: Supports custom and file-based configs
+    - Error Handling: Basic error capture with dev mode support
+    - Testing: Test mode for automated testing without user interaction
+    - Resource Management: Basic file and network resource handling
+    - Logging: Structured logging with context capture
+
+Missing or Needs Improvement:
+    - Comprehensive error handling patterns
+    - Resource cleanup mechanisms
+    - Retry logic for failed downloads
+    - Progress tracking and reporting
+    - Rate limiting implementation
+    - Download resumption support
+    - Parallel download optimization
+    - Memory usage optimization
+    - Bandwidth management
+    - Download verification
+
+Technical Notes:
+    - Uses asyncio for asynchronous operations
+    - Supports custom configuration via dictionary or file
+    - Handles file system operations safely
+    - Provides test mode for automated testing
+    - Integrates with structured logging
+"""
+
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 from __future__ import annotations
 
 import asyncio
@@ -30,12 +66,29 @@ logger = structlog.get_logger(__name__)
 T = TypeVar("T")
 R = TypeVar("R")
 
-# pylint: disable=no-name-in-module
-# pyright: reportInvalidTypeForm=false
-# pyright: reportUndefinedVariable=false
-
 class HttpConfig(BaseModel):
-    """Configuration for HTTP downloader settings."""
+    """Configuration for HTTP downloader settings.
+
+    This class manages HTTP-specific configuration settings for the downloader,
+    including timeouts, retries, and verification settings. It uses Pydantic
+    for validation and type checking.
+
+    Attributes:
+        timeout: Connection timeout in seconds
+        verify: SSL certificate verification setting
+        retry: Number of download retries
+        headers: Custom HTTP headers
+
+    Example:
+        ```python
+        config = HttpConfig(
+            timeout=30,
+            verify=True,
+            retry=3,
+            headers={"User-Agent": "Custom/1.0"}
+        )
+        ```
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     adjust_extensions: bool = Field(True, alias="adjust-extensions")
@@ -200,19 +253,48 @@ class GalleryDLConfig(BaseModel):
 
 
 class AsyncGalleryDL:
-    """Asynchronous wrapper around gallery-dl.
+    """Asynchronous wrapper for gallery-dl media downloader.
 
-    This class provides an async interface to gallery-dl operations,
-    running them in a thread pool to avoid blocking the event loop.
+    This class provides an asynchronous interface to gallery-dl for downloading
+    media from various sources. It handles configuration, error handling,
+    and resource management.
 
-    Attributes:
-        config: Gallery-dl configuration dictionary
-        loop: Optional asyncio event loop
+    Features:
+        - Asynchronous download operations
+        - Custom configuration support
+        - File metadata handling
+        - Error handling with dev mode support
+        - Test mode for automated testing
+        - Structured logging integration
+
+    Error Handling:
+        - Captures and logs download errors
+        - Supports dev mode debugging
+        - Test mode for automated testing
+        - Resource cleanup on errors
+
+    Resource Management:
+        - File handle management
+        - Network connection handling
+        - Memory usage control
+        - Temporary file cleanup
 
     Example:
-        >>> async with AsyncGalleryDL() as client:
-        ...     async for item in client.extract_from_url("https://example.com"):
-        ...         print(item)
+        ```python
+        async with AsyncGalleryDL(config={"your": "config"}) as client:
+            # Download from URL
+            await client.download("https://example.com/image.jpg")
+
+            # Download with custom options
+            await client.download(
+                "https://example.com/gallery",
+                write_info_json=True
+            )
+        ```
+
+    Note:
+        In test mode, interactive features and debugger are disabled
+        for automated testing.
     """
 
     def __init__(

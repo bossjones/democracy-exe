@@ -6,6 +6,21 @@
 """Core DemocracyBot implementation.
 
 This module contains the main DemocracyBot class and its core functionality.
+
+Notes:
+    Important implementation details:
+    - Resource management: Uses ResourceManager for memory and task limits
+    - Extension loading: Follows dependency order with retries
+    - Message handling: Includes size validation and memory checks
+    - Error handling: Comprehensive error capture and logging
+    - Cleanup: Proper resource cleanup with timeouts
+    - Rate limiting: Configurable rate limits with spam protection
+
+Missing or needs improvement:
+    - More detailed error handling patterns
+    - Enhanced validation frameworks
+    - Comprehensive test coverage
+    - Additional documentation
 """
 from __future__ import annotations
 
@@ -101,11 +116,30 @@ def _prefix_callable(bot: DemocracyBot, msg: discord.Message) -> list[str]:
         base.extend(bot.prefixes.get(msg.guild.id, ["?", "!"]))  # pyright: ignore[reportAttributeAccessIssue]
     return base
 
+def get_extensions() -> list[str]:
+    """Get list of available extensions.
+
+    Returns:
+        list[str]: List of extension module paths
+    """
+    from democracy_exe.chatbot.utils.extension_manager import extensions
+    return list(extensions())
+
 class DemocracyBot(commands.Bot):
     """Discord bot for handling democratic interactions and AI processing.
 
     This bot integrates with various AI models and processing pipelines to handle
-    user interactions in a democratic context.
+    user interactions in a democratic context. It includes comprehensive resource
+    management, error handling, and cleanup procedures.
+
+    Key Features:
+        - Resource monitoring and limits
+        - Dependency-based extension loading
+        - Message size validation
+        - Memory usage tracking
+        - Task timeout management
+        - Rate limiting and spam protection
+        - Proper resource cleanup
 
     Attributes:
         session: aiohttp ClientSession for making HTTP requests
