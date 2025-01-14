@@ -12,9 +12,9 @@ import pathlib
 import sys
 import uuid
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from pathlib import Path
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, cast
 
 import aiofiles
 import aiohttp
@@ -27,28 +27,70 @@ from discord import Attachment, Client, File, Guild, Member, Message, Permission
 from discord.ext import commands
 from logging_tree import printout
 
-
-logger = structlog.get_logger(__name__)
-
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.bot_logger import generate_tree, get_lm_from_tree
 from democracy_exe.models.loggers import LoggerModel
 from democracy_exe.utils import async_, shell
 
 
-def extensions() -> list[str]:
-    """Get list of extension paths.
+logger = structlog.get_logger(__name__)
+# def extensions() -> list[str]:
+#     """Get list of extension paths.
 
-    Returns:
-        List of extension paths as strings
+#     Returns:
+#         List of extension paths as strings
+#     """
+#     cogs_dir = Path(__file__).parent.parent / "cogs"
+#     if not cogs_dir.exists():
+#         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
+#     return [
+#         f"chatbot.cogs.{f.stem}"
+#         for f in cogs_dir.glob("**/*.py")
+#         if not f.name.startswith("_") and f.name != "__init__.py"
+#     ]
+
+def extensions() -> Iterable[str]:
+    """Yield extension module paths.
+
+    This function searches for Python files in the 'cogs' directory relative to the current file's directory.
+    It constructs the module path for each file and yields it.
+
+    Yields:
+        The module path for each Python file in the 'cogs' directory
+
+    Raises:
+        FileNotFoundError: If cogs directory doesn't exist
     """
-    cogs_dir = Path(__file__).parent.parent / "cogs"
+    alt_cogs_dir = Path(__file__).parent.parent / "cogs"
+    cogs_dir = Path(__file__) / "cogs"
+    print(f"cogs_dir: {cogs_dir}")
+    print(f"alt_cogs_dir: {alt_cogs_dir}")
+    logger.error(f"Cogs directory: {cogs_dir}")
     if not cogs_dir.exists():
         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
-    return [
-        f"chatbot.cogs.{f.stem}"
-        for f in cogs_dir.glob("**/*.py")
-        if not f.name.startswith("_") and f.name != "__init__.py"
-    ]
+
+    for file in cogs_dir.rglob("*.py"):
+        logger.error(f"file: {file}")
+        logger.error(f"file.name: {file.name}")
+        logger.error(f"aiosettings.extension_allowlist: {aiosettings.extension_allowlist}")
+        module_name = file.name.replace(".py", "")
+        logger.error(f"module_name: {module_name}")
+        logger.error(f"file.name != '__init__.py': {file.name != '__init__.py'}")
+        logger.error(f"module_name in aiosettings.extension_allowlist: {module_name in aiosettings.extension_allowlist}")
+        is_allowed = any(module_name in item for item in aiosettings.extension_allowlist)
+        logger.error(f"is_allowed: {is_allowed}")
+        if file.name != "__init__.py" and is_allowed:
+            # Get path relative to the module root
+            base_module_dir = Path(__file__).parent.parent
+
+            # relative_path = file.relative_to(pathlib.Path(HERE))
+            relative_path = file.relative_to(base_module_dir)
+            logger.error(f"Relative path: {relative_path}")
+            extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+            logger.error(f"Extension path: {extension_path}")
+            logger.debug(f"Found extension file: {file}")
+            logger.debug(f"Converting to module path: {extension_path}")
+            yield extension_path
 
 async def aio_extensions() -> list[str]:
     """Get list of extension paths asynchronously.

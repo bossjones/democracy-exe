@@ -1,7 +1,9 @@
+# pylint: disable=no-member
 # pylint: disable=no-name-in-module
 # pyright: reportInvalidTypeForm=false
 # pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
+# pylint: disable=possibly-used-before-assignment
 
 """Core DemocracyBot implementation.
 
@@ -274,6 +276,11 @@ class DemocracyBot(commands.Bot):
         self.client_id: int | str = aiosettings.discord_client_id
         self.enable_ai = aiosettings.enable_ai
 
+        self.session = aiohttp.ClientSession()
+        self.prefixes: list[str] = [aiosettings.prefix]
+        self.version = democracy_exe.__version__
+
+
     async def get_context(self, origin: discord.Interaction | Message, /, *, cls=Context) -> Context:
         """Retrieve the context for a Discord interaction or message.
 
@@ -333,8 +340,16 @@ class DemocracyBot(commands.Bot):
             # Add timeout for setup tasks
             async with asyncio.timeout(30.0):
                 # Initialize bot application info
+                self.intents.members = True
+                self.intents.message_content = True
                 self.bot_app_info = await self.application_info()
-                self.owner_id = self.bot_app_info.owner.id
+
+
+                if hasattr(self.bot_app_info, "owner") and self.bot_app_info.owner:
+                    self.owner_id = self.bot_app_info.owner.id
+
+
+                # self.owner_id = self.bot_app_info.owner.id
 
                 # Load extensions in dependency order
                 extension_order = get_extension_load_order(aiosettings.initial_extensions)
@@ -797,10 +812,11 @@ class DemocracyBot(commands.Bot):
         This method loads all extensions from the cogs directory.
         It uses the extension_utils module to discover and load extensions.
         """
-        from democracy_exe.chatbot.utils.extension_manager import extensions, load_extensions
+        from democracy_exe.chatbot.utils.discord_utils import extensions
+        from democracy_exe.chatbot.utils.extension_manager import load_extensions
 
         logger.debug("Looking for extensions in cogs directory")
-        extensions_found = list(get_extensions())
+        extensions_found = list(extensions())
         logger.info(f"Found extensions: {extensions_found}")
 
         try:

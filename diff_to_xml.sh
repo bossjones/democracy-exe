@@ -36,6 +36,7 @@ process_item() {
 
 # Use find to recursively process all files and directories within democracy_exe
 find ./democracy_exe -type f -print0 | while IFS= read -r -d '' item; do
+    echo "running process_item on $item"
     process_item "$item"
 done
 
