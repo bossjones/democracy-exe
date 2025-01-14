@@ -1,6 +1,10 @@
 """democracy_exe.factories.cmd_factory."""
 
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
 # pylint: disable=no-value-for-parameter
+
 from __future__ import annotations
 
 from dataclasses import dataclass

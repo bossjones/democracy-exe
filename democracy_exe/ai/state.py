@@ -1,3 +1,7 @@
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, TypedDict

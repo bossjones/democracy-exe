@@ -3,6 +3,9 @@
 # pylint: disable=no-value-for-parameter
 # pyright: reportAttributeAccessIssue=false
 # pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
 from __future__ import annotations
 
 import asyncio

@@ -1,3 +1,6 @@
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
 # pyright: reportMissingTypeStubs=false
 # pylint: disable=no-member
 # pylint: disable=no-value-for-parameter

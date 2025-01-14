@@ -30,6 +30,10 @@ logger = structlog.get_logger(__name__)
 T = TypeVar("T")
 R = TypeVar("R")
 
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 class HttpConfig(BaseModel):
     """Configuration for HTTP downloader settings."""
     model_config = ConfigDict(populate_by_name=True)

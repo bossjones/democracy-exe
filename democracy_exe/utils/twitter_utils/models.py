@@ -13,6 +13,11 @@ from pydantic._internal import _utils
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
 
 
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
+
 class TweetDict(TypedDict, total=False):
     """Type hints for tweet dictionary representation."""
 

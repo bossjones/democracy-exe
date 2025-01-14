@@ -783,6 +783,39 @@
         ]]>
       </example>
     </security_standards>
+
+    <pydantic_standards>
+      <standard>When using pydantic or pydantic_settings in a file, add the following linter directives at the top of the file:
+          ```python
+          # pylint: disable=no-name-in-module
+          # pyright: reportInvalidTypeForm=false
+          # pyright: reportUndefinedVariable=false
+          ```
+      </standard>
+      <explanation>These directives are necessary because:
+          - no-name-in-module: Prevents false positives with pydantic's dynamic imports
+          - reportInvalidTypeForm: Handles pydantic's type validation patterns
+          - reportUndefinedVariable: Manages pydantic's dynamic variable creation
+      </explanation>
+      <example>
+        <![CDATA[
+        # pylint: disable=no-name-in-module
+        # pyright: reportInvalidTypeForm=false
+        # pyright: reportUndefinedVariable=false
+
+        from pydantic import BaseModel, Field
+        from pydantic_settings import BaseSettings, SettingsConfigDict
+
+        class MySettings(BaseSettings):
+            """Application settings."""
+            model_config = SettingsConfigDict(
+                env_prefix="APP_",
+                env_file=".env",
+                extra="allow"
+            )
+        ]]>
+      </example>
+    </pydantic_standards>
   </configuration_standards>
 
   <testing_practices>
@@ -2192,6 +2225,46 @@ democracy-exe/
             ]]>
         </example>
     </prevention_strategy>
-</change_management_standards>
+  </change_management_standards>
+
+  <pydantic_standards>
+    <standard>When using pydantic or pydantic_settings in a file, add the following linter directives while preserving any existing linter directives (pylint, pyright, mypy, etc.) already present in the file:
+        ```python
+        # pylint: disable=no-name-in-module
+        # pyright: reportInvalidTypeForm=false
+        # pyright: reportUndefinedVariable=false
+        ```
+    </standard>
+    <explanation>These directives are necessary because:
+        - no-name-in-module: Prevents false positives with pydantic's dynamic imports
+        - reportInvalidTypeForm: Handles pydantic's type validation patterns
+        - reportUndefinedVariable: Manages pydantic's dynamic variable creation
+
+        Note: These directives should be added alongside any existing linter directives, not replace them.
+    </explanation>
+    <example>
+      <![CDATA[
+      # Existing linter directives remain untouched
+      # pylint: disable=too-many-arguments
+      # pyright: reportPrivateUsage=false
+
+      # Add pydantic-specific directives
+      # pylint: disable=no-name-in-module
+      # pyright: reportInvalidTypeForm=false
+      # pyright: reportUndefinedVariable=false
+
+      from pydantic import BaseModel, Field
+      from pydantic_settings import BaseSettings, SettingsConfigDict
+
+      class MySettings(BaseSettings):
+          """Application settings."""
+          model_config = SettingsConfigDict(
+              env_prefix="APP_",
+              env_file=".env",
+              extra="allow"
+          )
+      ]]>
+    </example>
+  </pydantic_standards>
 </python_standards>
 </cursorrules>

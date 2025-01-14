@@ -30,6 +30,10 @@ from pydantic import SecretStr
 from democracy_exe.aio_settings import aiosettings
 
 
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 async def aio_path_exists(path: str | pathlib.Path) -> bool:
     """Async wrapper for path existence check.
 

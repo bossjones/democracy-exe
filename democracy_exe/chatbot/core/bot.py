@@ -1,3 +1,6 @@
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
 
 """Core DemocracyBot implementation.

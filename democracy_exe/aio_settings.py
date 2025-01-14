@@ -1,3 +1,7 @@
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 """Settings for the Discord bot and AI components.
 
 This module contains the settings for the Discord bot and AI components,

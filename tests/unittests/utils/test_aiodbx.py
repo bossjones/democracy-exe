@@ -1,5 +1,6 @@
 """Tests for democracy_exe.utils.aiodbx."""
 
+# pylint: disable=no-name-in-module
 # pylint: disable=no-member
 # pylint: disable=no-value-for-parameter
 # pylint: disable=unused-import

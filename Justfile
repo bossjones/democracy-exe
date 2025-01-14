@@ -456,8 +456,12 @@ uv_typecheck:
 uv_typecheck_pyright:
 	rm pyright.log || true
 	touch pyright.log
-	{{UV_RUN}} pyright --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
+	{{UV_RUN}} pyright --verbose --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
 	cat pyright.log
+
+typecheck-pydantic:
+	#!/bin/bash
+	grep -rl --exclude="*.pyc" --exclude="*requirements.txt" -e "pydantic" -e "pydantic_settings" democracy_exe tests | {{UV_RUN}} pyright --verbose --threads {{num_cpus()}} -p pyproject.toml -
 
 # Verify types using Pyright, ignoring external packages
 typecheck: uv_typecheck_pyright

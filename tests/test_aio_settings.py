@@ -1,3 +1,7 @@
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 # disable nsupported-membership-test
 # pylint: disable=unsupported-membership-test
 # pylint: disable=unsubscriptable-object
