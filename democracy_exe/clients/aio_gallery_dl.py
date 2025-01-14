@@ -220,22 +220,29 @@ class AsyncGalleryDL:
         write_metadata: bool = False,
         no_mtime: bool = False,
         config_file: str | None = None,
+        test_mode: bool = False,
     ) -> None:
         """Initialize AsyncGalleryDL.
 
         Args:
-            config: Gallery-dl configuration dictionary
-            loop: Optional asyncio event loop to use
+            config: Optional gallery-dl configuration
+            loop: Optional event loop
             verbose: Enable verbose output
-            write_info_json: Write info JSON files
+            write_info_json: Write info.json files
             write_metadata: Write metadata files
             no_mtime: Don't set file modification times
-            config_file: Path to gallery-dl config file (default: ~/.gallery-dl.conf)
-
-        Example:
-            >>> client = AsyncGalleryDL({"your": "config"})
+            config_file: Path to config file
+            test_mode: Enable test mode (disables interactive features)
         """
+        self.loop = loop or asyncio.get_event_loop()
         self.config = config or {}
+        self.verbose = verbose
+        self.write_info_json = write_info_json
+        self.write_metadata = write_metadata
+        self.no_mtime = no_mtime
+        self.config_file = config_file
+        self.test_mode = test_mode
+
         logger.debug(f"Using self.config: {self.config}")
 
         if verbose:
@@ -246,7 +253,6 @@ class AsyncGalleryDL:
             self.config["write-metadata"] = True
         if no_mtime:
             self.config["no-mtime"] = True
-        self.loop = loop or asyncio.get_event_loop()
 
         # Load config file if specified
         if config_file:
@@ -411,8 +417,9 @@ class AsyncGalleryDL:
             print(f"exc_type: {exc_type}")
             print(f"exc_value: {exc_value}")
             traceback.print_tb(exc_traceback)
-            # await logger.complete()
-            if aiosettings.dev_mode:
+
+            # Only launch debugger if in dev mode and not in test mode
+            if aiosettings.dev_mode and not self.test_mode:
                 bpdb.pm()
 
             logger.error("Error in gallery-dl download")

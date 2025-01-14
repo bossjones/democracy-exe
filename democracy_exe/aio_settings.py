@@ -44,6 +44,7 @@ class AioSettings(BaseModel):
         max_response_size_mb: Maximum response size in MB
         max_buffer_size_kb: Maximum buffer size in KB
         task_timeout_seconds: Task timeout in seconds
+        dev_mode: Enable development mode for additional debugging and error handling
         llm_model_name: Name of the LLM model to use
         llm_embedding_model_name: Name of the embedding model to use
         llm_api_key: API key for LLM service
@@ -90,6 +91,12 @@ class AioSettings(BaseModel):
     monitor_port: int = Field(default=50102)
     debug_langchain: bool = Field(default=True)
     audit_log_send_channel: str = Field(default="")
+
+    # Development settings
+    dev_mode: bool = Field(
+        default=False,
+        description="Enable development mode for additional debugging and error handling"
+    )
 
     # Bot settings
     prefix: str = Field(default="?")
