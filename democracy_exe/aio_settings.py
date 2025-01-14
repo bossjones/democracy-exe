@@ -2,6 +2,7 @@
 # pylint: disable=no-member
 # pyright: reportInvalidTypeForm=false
 # pyright: reportUndefinedVariable=false
+# pyright: reportAttributeAccessIssue=false
 
 """Settings for the Discord bot and AI components.
 
@@ -904,8 +905,85 @@ class AioSettings(BaseSettings):
         description="The embedding model to use"
     )
 
+    # LangChain Integration Settings
+    langchain_endpoint: str = Field(
+        env="LANGCHAIN_ENDPOINT",
+        description="langchain endpoint",
+        default="https://api.smith.langchain.com"
+    )
+    langchain_hub_api_url: str = Field(
+        env="LANGCHAIN_HUB_API_URL",
+        description="langchain hub api url for langsmith",
+        default="https://api.hub.langchain.com",
+    )
+    langchain_project: str = Field(
+        env="LANGCHAIN_PROJECT",
+        description="langsmith project name",
+        default="democracy_exe"
+    )
+
+    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="Tavily API key", default="")
+    brave_search_api_key: SecretStr = Field(env="BRAVE_SEARCH_API_KEY", description="Brave Search API key", default="")
+    unstructured_api_key: SecretStr = Field(env="UNSTRUCTURED_API_KEY", description="unstructured api key", default="")
+    unstructured_api_url: str = Field(
+        env="UNSTRUCTURED_API_URL",
+        description="unstructured api url",
+        default="https://api.unstructured.io/general/v0/general",
+    )
+
+    debug_aider: bool = Field(env="DEBUG_AIDER", description="debug tests stuff written by aider", default=False)
+    debug_langgraph_studio: bool = Field(env="DEBUG_LANGGRAPH_STUDIO", description="enable langgraph studio debug", default=False)
+    python_fault_handler: bool = Field(env="PYTHONFAULTHANDLER", description="enable fault handler", default=False)
+
+    editor: str = Field(env="EDITOR", description="EDITOR", default="vim")
+    visual: str = Field(env="VISUAL", description="VISUAL", default="vim")
+    git_editor: str = Field(env="GIT_EDITOR", description="GIT_EDITOR", default="vim")
+
+    tweetpik_api_key: SecretStr = Field(env="TWEETPIK_API_KEY", description="TweetPik API key", default="")
+    tweetpik_authorization: SecretStr = Field(env="TWEETPIK_AUTHORIZATION", description="TweetPik authorization", default="")
+    tweetpik_bucket_id: str = Field(env="TWEETPIK_BUCKET_ID", description="TweetPik bucket ID", default="323251495115948625")
+    tweetpik_theme: str = Field(env="TWEETPIK_THEME", description="Theme for tweet screenshots", default="dim")
+    tweetpik_dimension: str = Field(env="TWEETPIK_DIMENSION", description="Dimension for tweet screenshots", default="instagramFeed")
+
+    tool_allowlist: list[str] = ["tavily_search", "magic_function"]
+    extension_allowlist: list[str] = ["democracy_exe.chatbot.cogs.twitter"]
+    tavily_search_max_results: int = 3
+
+    agent_type: Literal["plan_and_execute", "basic", "advanced", "adaptive_rag"] = Field(
+        env="AGENT_TYPE", description="Type of agent to use", default="adaptive_rag"
+    )
+
+    llm_memory_type: str = Field(env="LLM_MEMORY_TYPE", description="Type of memory to use", default="memorysaver")
+    llm_memory_enabled: bool = Field(env="LLM_MEMORY_ENABLED", description="Enable memory", default=True)
+    llm_human_loop_enabled: bool = Field(env="LLM_HUMAN_LOOP_ENABLED", description="Enable human loop", default=False)
+
+    text_chunk_size: int = 2000
+    text_chunk_overlap: int = 200
+    text_splitter: Json[dict[str, Any]] = "{}"  # custom splitter settings
+
+    qa_completion_llm: Json[dict[str, Any]] = """{
+        "_type": "openai-chat",
+        "model_name": "gpt-4o-mini",
+        "temperature": 0,
+        "max_tokens": 1000,
+        "verbose": true
+    }"""
+    qa_followup_llm: Json[dict[str, Any]] = """{
+        "_type": "openai-chat",
+        "model_name": "gpt-4o-mini",
+        "temperature": 0,
+        "max_tokens": 200,
+        "verbose": true
+    }"""
+    summarize_llm: Json[dict[str, Any]] = """{
+        "_type": "openai-chat",
+        "model_name": "gpt-4o",
+        "temperature": 0,
+        "max_tokens": 2000
+    }"""
+
     @field_validator("monitor_port")
-    def validate_port(cls, v: int, info: Any) -> int:
+    def validate_port(cls, v: int, info: Any) -> int: # ruff: noqa: N805
         """Validate port number is in valid range.
 
         Args:
@@ -965,7 +1043,6 @@ class AioSettings(BaseSettings):
             SecurityError: If password is invalid
         """
         if v is not None:
-            # pyright: reportAttributeAccessIssue=false
             password = v.get_secret_value()
             if len(password) < 8:
                 raise SecurityError(
@@ -1020,7 +1097,6 @@ class AioSettings(BaseSettings):
         """
         auth = ""
         if self.redis_user and self.redis_pass:
-            # pyright: reportAttributeAccessIssue=false
             pass_value = self.redis_pass
             if isinstance(pass_value, SecretStr):
                 pass_value = pass_value.get_secret_value()
@@ -1103,8 +1179,6 @@ class AioSettings(BaseSettings):
 
         return values
 
-# Global settings instance
-aiosettings = AioSettings()
 
 def get_rich_console() -> Console:
     """Get a Rich console instance for formatted output.
@@ -1113,3 +1187,6 @@ def get_rich_console() -> Console:
         Console: A configured Rich console instance for formatted terminal output
     """
     return Console()
+
+# Global settings instance
+aiosettings = AioSettings()

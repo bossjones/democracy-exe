@@ -49,6 +49,54 @@ if TYPE_CHECKING:
 IS_RUNNING_ON_GITHUB_ACTIONS = bool(os.environ.get("GITHUB_ACTOR"))
 
 
+class TestMoreSettings:
+    """Test settings configuration."""
+
+    def test_api_key_defaults(self) -> None:
+        """Test API key default values."""
+        settings = AioSettings()
+
+        # Check SecretStr fields
+        assert isinstance(settings.tavily_api_key, SecretStr)
+        assert settings.tavily_api_key.get_secret_value() == ""
+
+        assert isinstance(settings.brave_search_api_key, SecretStr)
+        assert settings.brave_search_api_key.get_secret_value() == ""
+
+        assert isinstance(settings.unstructured_api_key, SecretStr)
+        assert settings.unstructured_api_key.get_secret_value() == ""
+
+        # Check URL field
+        assert settings.unstructured_api_url == "https://api.unstructured.io/general/v0/general"
+
+    def test_langchain_integration_settings(self) -> None:
+        """Test LangChain integration settings."""
+        settings = AioSettings()
+
+        # Check default values
+        assert settings.langchain_endpoint == "https://api.smith.langchain.com"
+        assert settings.langchain_hub_api_url == "https://api.hub.langchain.com"
+        assert settings.langchain_project == "democracy_exe"
+
+    def test_langchain_integration_env_override(self, monkeypatch: MonkeyPatch) -> None:
+        """Test environment variable override for LangChain integration settings.
+
+        Args:
+            monkeypatch: Pytest fixture for modifying environment
+        """
+        # Set environment variables
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_LANGCHAIN_ENDPOINT", "https://custom.langchain.com")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_LANGCHAIN_HUB_API_URL", "https://custom.hub.langchain.com")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_LANGCHAIN_PROJECT", "custom_project")
+
+        settings = AioSettings()
+
+        # Verify environment overrides
+        assert settings.langchain_endpoint == "https://custom.langchain.com"
+        assert settings.langchain_hub_api_url == "https://custom.hub.langchain.com"
+        assert settings.langchain_project == "custom_project"
+
+
 # TODO: Make sure os,environ unsets values while running tests
 @pytest.mark.unittest()
 class TestSettings:
@@ -592,5 +640,179 @@ class TestSettings:
 
         settings = aio_settings.AioSettings(llm_embedding_model_name="text-embedding-ada-002")
         assert settings.embedding_model_dimensions == 1536
+
+    def test_debug_settings(self) -> None:
+        """Test debug and development settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check debug settings
+        assert isinstance(settings.debug_aider, bool)
+        assert settings.debug_aider is False
+
+        assert isinstance(settings.debug_langgraph_studio, bool)
+        assert settings.debug_langgraph_studio is False
+
+        assert isinstance(settings.python_fault_handler, bool)
+        assert settings.python_fault_handler is False
+
+    def test_debug_settings_env_override(self, monkeypatch: MonkeyPatch) -> None:
+        """Test environment variable override for debug settings.
+
+        Args:
+            monkeypatch: Pytest fixture for modifying environment
+        """
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DEBUG_AIDER", "true")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_DEBUG_LANGGRAPH_STUDIO", "true")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_PYTHONFAULTHANDLER", "true")
+
+        settings = aio_settings.AioSettings()
+        assert settings.debug_aider is True
+        assert settings.debug_langgraph_studio is True
+        assert settings.python_fault_handler is True
+
+    def test_editor_settings(self) -> None:
+        """Test editor settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check editor settings
+        assert settings.editor == "vim"
+        assert settings.visual == "vim"
+        assert settings.git_editor == "vim"
+
+    def test_editor_settings_env_override(self, monkeypatch: MonkeyPatch) -> None:
+        """Test environment variable override for editor settings.
+
+        Args:
+            monkeypatch: Pytest fixture for modifying environment
+        """
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_EDITOR", "nvim")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_VISUAL", "nvim")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_GIT_EDITOR", "nvim")
+
+        settings = aio_settings.AioSettings()
+        assert settings.editor == "nvim"
+        assert settings.visual == "nvim"
+        assert settings.git_editor == "nvim"
+
+    def test_tweetpik_settings(self) -> None:
+        """Test TweetPik settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check TweetPik settings
+        assert isinstance(settings.tweetpik_api_key, SecretStr)
+        assert settings.tweetpik_api_key.get_secret_value() == ""
+
+        assert isinstance(settings.tweetpik_authorization, SecretStr)
+        assert settings.tweetpik_authorization.get_secret_value() == ""
+
+        assert settings.tweetpik_bucket_id == "323251495115948625"
+        assert settings.tweetpik_theme == "dim"
+        assert settings.tweetpik_dimension == "instagramFeed"
+
+    def test_tweetpik_settings_env_override(self, monkeypatch: MonkeyPatch) -> None:
+        """Test environment variable override for TweetPik settings.
+
+        Args:
+            monkeypatch: Pytest fixture for modifying environment
+        """
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_TWEETPIK_API_KEY", "test-api-key")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_TWEETPIK_AUTHORIZATION", "test-auth")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_TWEETPIK_BUCKET_ID", "test-bucket")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_TWEETPIK_THEME", "light")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_TWEETPIK_DIMENSION", "custom")
+
+        settings = aio_settings.AioSettings()
+        assert settings.tweetpik_api_key.get_secret_value() == "test-api-key"
+        assert settings.tweetpik_authorization.get_secret_value() == "test-auth"
+        assert settings.tweetpik_bucket_id == "test-bucket"
+        assert settings.tweetpik_theme == "light"
+        assert settings.tweetpik_dimension == "custom"
+
+    def test_tool_settings(self) -> None:
+        """Test tool settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check tool settings
+        assert isinstance(settings.tool_allowlist, list)
+        assert "tavily_search" in settings.tool_allowlist
+        assert "magic_function" in settings.tool_allowlist
+
+        assert isinstance(settings.extension_allowlist, list)
+        assert "democracy_exe.chatbot.cogs.twitter" in settings.extension_allowlist
+
+        assert settings.tavily_search_max_results == 3
+
+    def test_agent_settings(self) -> None:
+        """Test agent settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check agent settings
+        assert settings.agent_type == "adaptive_rag"
+        assert settings.agent_type in ["plan_and_execute", "basic", "advanced", "adaptive_rag"]
+
+    # def test_agent_settings_env_override(self, monkeypatch: MonkeyPatch) -> None:
+    #     """Test environment variable override for agent settings.
+
+    #     Args:
+    #         monkeypatch: Pytest fixture for modifying environment
+    #     """
+    #     monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_AGENT_TYPE", "basic")
+    #     settings = aio_settings.AioSettings()
+    #     assert settings.agent_type == "basic"
+
+    # def test_memory_settings(self) -> None:
+    #     """Test memory settings."""
+    #     settings = aio_settings.AioSettings()
+
+    #     # Check memory settings
+    #     assert settings.llm_memory_type == "memorysaver"
+    #     assert settings.llm_memory_enabled is True
+    #     assert settings.llm_human_loop_enabled is False
+
+    def test_memory_settings_env_override(self, monkeypatch: MonkeyPatch) -> None:
+        """Test environment variable override for memory settings.
+
+        Args:
+            monkeypatch: Pytest fixture for modifying environment
+        """
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_LLM_MEMORY_TYPE", "custom")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_LLM_MEMORY_ENABLED", "false")
+        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_LLM_HUMAN_LOOP_ENABLED", "true")
+
+        settings = aio_settings.AioSettings()
+        assert settings.llm_memory_type == "custom"
+        assert settings.llm_memory_enabled is False
+        assert settings.llm_human_loop_enabled is True
+
+    def test_text_processing_settings(self) -> None:
+        """Test text processing settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check text processing settings
+        assert settings.text_chunk_size == 2000
+        assert settings.text_chunk_overlap == 200
+        assert settings.text_splitter == "{}"
+
+    def test_qa_settings(self) -> None:
+        """Test QA and summarization settings."""
+        settings = aio_settings.AioSettings()
+
+        # Check QA settings
+        assert isinstance(settings.qa_completion_llm, dict)
+        assert settings.qa_completion_llm["_type"] == "openai-chat"
+        assert settings.qa_completion_llm["model_name"] == "gpt-4o-mini"
+        assert settings.qa_completion_llm["temperature"] == 0
+        assert settings.qa_completion_llm["max_tokens"] == 1000
+        assert settings.qa_completion_llm["verbose"] is True
+
+        assert isinstance(settings.qa_followup_llm, dict)
+        assert settings.qa_followup_llm["_type"] == "openai-chat"
+        assert settings.qa_followup_llm["model_name"] == "gpt-4o-mini"
+        assert settings.qa_followup_llm["max_tokens"] == 200
+
+        assert isinstance(settings.summarize_llm, dict)
+        assert settings.summarize_llm["_type"] == "openai-chat"
+        assert settings.summarize_llm["model_name"] == "gpt-4o"
+        assert settings.summarize_llm["max_tokens"] == 2000
 
     # ... rest of existing tests ...

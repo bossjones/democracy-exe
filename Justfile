@@ -1156,6 +1156,9 @@ test-logsetup:
 test-fix:
 	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
 
+test-aio-settings:
+	uv run pytest -s --verbose --showlocals --tb=short tests/test_aio_settings.py
+
 # Generate langgraph dockerfile for studio
 generate-langgraph-dockerfile-studio:
 	#!/bin/bash
@@ -1265,3 +1268,10 @@ docker-build-langraph:
 # Run docker image for debugging
 docker-run-langraph:
 	docker run -it --entrypoint=/bin/bash democracy-langraph -l
+
+update-rules:
+	@echo "🚀 Updating cursorrules"
+	cp -a cursorrules.xml .cursorrules
+	@echo "🚀 Updating aider_rules"
+	cp -a cursorrules.xml aider_configs/aider_rules
+	git add .cursorrules aider_configs/aider_rules cursorrules.xml
