@@ -456,7 +456,7 @@ uv_typecheck:
 uv_typecheck_pyright:
 	rm pyright.log || true
 	touch pyright.log
-	{{UV_RUN}} pyright --verbose --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
+	{{UV_RUN}} pyright --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
 	cat pyright.log
 
 typecheck-pydantic:
@@ -1064,6 +1064,8 @@ generate-ai-docs:
 			/Users/malcolm/dev/home-assistant/core/homeassistant/components/profiler \
 			--cxml -o ai_docs/prompts/data/home_assistant_profiler.xml
 
+	@echo "🔥🔥 Rendering: democracy_exe main branch with tests"
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe-main/democracy_exe /Users/malcolm/dev/bossjones/democracy-exe-main/tests --cxml -o ai_docs/prompts/data/democracy_exe_main_branch_with_tests.xml
 	@echo "AI documentation generation complete"
 
 # Regenerate democracy-exe ai docs
@@ -1283,6 +1285,11 @@ update-rules:
 # Find all special imports
 find-all-special-imports:
 	rg -t py '^\s*(from|import)\s+(discord|pydantic|pydantic_settings|dpytest)' democracy_exe/ tests
+
+# Find all unittest.mock imports and usage
+find-all-mock-imports:
+	rg -t py '^\s*(from|import)\s+unittest\.mock|^\s*from\s+unittest\s+import\s+.*mock'
+
 
 # Add lint comments to files in democracy_exe and tests
 add-lint-comments-dry-run:

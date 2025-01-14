@@ -557,3 +557,8 @@ democracy_exe/vendored/react-agent
 democracy_exe/vendored/cerebro-bot
 democracy_exe/vendored/langchain-academy/
 democracy_exe/vendored/dpytest
+
+ai_docs/gitdiffs/
+diffs.xml
+diffs/
+feature-still-looking.diff

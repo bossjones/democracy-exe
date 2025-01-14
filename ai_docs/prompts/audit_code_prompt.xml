@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<audit_code_prompt>
+    <system>
+        This prompt guides the analysis of code differences between branches and assesses potential segmentation fault risks, with a focus on concurrent operations. The analysis is performed iteratively and results are structured for optimal processing by Claude 3.5 Sonnet.
+
+        <directory_mappings>
+            <current_branch>
+                <code_dir>democracy_exe/</code_dir>
+                <test_dir>tests/</test_dir>
+            </current_branch>
+            <main_branch>
+                <code_dir>ai_docs/for_claude/Users/malcolm/dev/bossjones/democracy-exe-main/democracy_exe/</code_dir>
+                <test_dir>ai_docs/for_claude/Users/malcolm/dev/bossjones/democracy-exe-main/tests/</test_dir>
+            </main_branch>
+        </directory_mappings>
+
+        <branch_info>
+            <current_branch>
+                <description>Working branch with current code changes</description>
+                <format>Python source files</format>
+            </current_branch>
+            <main_branch>
+                <description>XML representations of main branch code</description>
+                <format>XML encoded Python source</format>
+                <location>ai_docs/for_claude/</location>
+            </main_branch>
+        </branch_info>
+    </system>
+
+    <context>
+        The task involves comparing code between the current working branch and XML-encoded main branch files. The current branch code is in democracy_exe/ and tests/ directories, while the main branch XML versions are in ai_docs/for_claude/. The analysis focuses on identifying potential segfault risks from concurrency-related code, integrating with segfault_fixer_expert.xml for detailed safety analysis.
+
+        <comparison_rules>
+            <rule>Compare Python source in current branch against XML-encoded versions in main</rule>
+            <rule>Extract Python code content from XML when comparing</rule>
+            <rule>Maintain directory structure mapping during analysis</rule>
+            <rule>Consider XML encoding artifacts when analyzing differences</rule>
+        </comparison_rules>
+    </context>
+
+    <instructions>
+        1. Follow the analysis chain in sequence
+        2. Document all differences in structured XML format
+        3. Extract relevant quotes from code differences
+        4. Analyze quotes for segfault risks
+        5. Generate diagnostic information
+        6. Preserve context between analysis steps
+        7. Integrate with segfault risk analysis
+        8. Maintain clear audit trail of changes
+    </instructions>
+
+    <analysis_chain>
+        <step name="branch_comparison">
+            <description>Compare code between main branch and current branch</description>
+            <actions>
+                <action>Identify all modified files</action>
+                <action>Extract file-level changes</action>
+                <action>Document change metadata</action>
+            </actions>
+            <output_format>
+                <file_differences>
+                    <file path="relative/path/to/file">
+                        <change_type>modified|added|deleted</change_type>
+                        <modification_time>ISO-8601 timestamp</modification_time>
+                        <diff_blocks>
+                            <block id="unique_id">
+                                <original_lines start="1" end="10">Original code</original_lines>
+                                <modified_lines start="1" end="12">Modified code</modified_lines>
+                                <change_type>modification|addition|deletion</change_type>
+                            </block>
+                        </diff_blocks>
+                    </file>
+                </file_differences>
+            </output_format>
+        </step>
+
+        <step name="difference_analysis">
+            <description>Analyze and document code differences in structured format</description>
+            <actions>
+                <action>Parse each diff block</action>
+                <action>Identify change patterns</action>
+                <action>Document change context</action>
+            </actions>
+            <output_format>
+                <difference_analysis>
+                    <file path="relative/path/to/file">
+                        <analysis_blocks>
+                            <block id="unique_id">
+                                <change_description>Detailed description of changes</change_description>
+                                <change_pattern>Pattern classification</change_pattern>
+                                <affected_components>List of affected components</affected_components>
+                                <change_context>Surrounding code context</change_context>
+                            </block>
+                        </analysis_blocks>
+                    </file>
+                </difference_analysis>
+            </output_format>
+        </step>
+
+        <step name="concurrency_analysis">
+            <description>Identify and analyze concurrency-related changes</description>
+            <actions>
+                <action>Extract concurrency patterns</action>
+                <action>Analyze thread safety</action>
+                <action>Document potential risks</action>
+            </actions>
+            <focus_areas>
+                <area>Threading operations</area>
+                <area>Asyncio usage</area>
+                <area>Multiprocessing code</area>
+                <area>Shared resource access</area>
+                <area>Lock usage</area>
+                <area>Event loops</area>
+            </focus_areas>
+            <output_format>
+                <concurrency_analysis>
+                    <file path="relative/path/to/file">
+                        <concurrent_blocks>
+                            <block id="unique_id">
+                                <pattern_type>thread|async|multiprocess</pattern_type>
+                                <safety_analysis>Thread safety assessment</safety_analysis>
+                                <risk_factors>List of risk factors</risk_factors>
+                                <recommendation>Safety recommendations</recommendation>
+                            </block>
+                        </concurrent_blocks>
+                    </file>
+                </concurrency_analysis>
+            </output_format>
+        </step>
+
+        <step name="segfault_risk_analysis">
+            <description>Analyze potential segmentation fault risks</description>
+            <actions>
+                <action>Apply segfault_fixer_expert.xml criteria</action>
+                <action>Rate code blocks for risk</action>
+                <action>Document risk factors</action>
+            </actions>
+            <risk_ratings>
+                <rating value="high">
+                    <criteria>
+                        <criterion>Unsafe thread interactions</criterion>
+                        <criterion>Unprotected shared resource access</criterion>
+                        <criterion>Missing synchronization</criterion>
+                        <criterion>Nested event loops</criterion>
+                    </criteria>
+                </rating>
+                <rating value="medium">
+                    <criteria>
+                        <criterion>Complex lock patterns</criterion>
+                        <criterion>Resource cleanup issues</criterion>
+                        <criterion>Error handling gaps</criterion>
+                    </criteria>
+                </rating>
+                <rating value="low">
+                    <criteria>
+                        <criterion>Minor synchronization issues</criterion>
+                        <criterion>Documentation gaps</criterion>
+                        <criterion>Non-critical patterns</criterion>
+                    </criteria>
+                </rating>
+            </risk_ratings>
+            <output_format>
+                <risk_analysis>
+                    <file path="relative/path/to/file">
+                        <risk_blocks>
+                            <block id="unique_id">
+                                <risk_rating>high|medium|low</risk_rating>
+                                <risk_factors>
+                                    <factor>Description of risk factor</factor>
+                                </risk_factors>
+                                <mitigation_suggestions>
+                                    <suggestion>Mitigation recommendation</suggestion>
+                                </mitigation_suggestions>
+                                <code_context>Relevant code snippet</code_context>
+                            </block>
+                        </risk_blocks>
+                    </file>
+                </risk_analysis>
+            </output_format>
+        </step>
+
+        <step name="quote_extraction">
+            <description>Extract and analyze relevant quotes from code differences</description>
+            <actions>
+                <action>Identify significant code changes</action>
+                <action>Extract contextual quotes</action>
+                <action>Categorize quotes by risk type</action>
+            </actions>
+            <output_format>
+                <quotes>
+                    <quote source="file_path">
+                        <content>Extracted code quote</content>
+                        <context>Surrounding code context</context>
+                        <risk_category>thread_safety|resource_management|error_handling</risk_category>
+                        <relevance>Why this quote is significant for analysis</relevance>
+                    </quote>
+                </quotes>
+            </output_format>
+        </step>
+
+        <step name="diagnostic_analysis">
+            <description>Generate diagnostic information from quotes and analysis</description>
+            <actions>
+                <action>Analyze quote patterns</action>
+                <action>Identify risk indicators</action>
+                <action>Generate diagnostic points</action>
+            </actions>
+            <output_format>
+                <info>
+                    <diagnostic_points>
+                        <point>Identified diagnostic point</point>
+                        <evidence>Supporting quotes and analysis</evidence>
+                        <risk_level>high|medium|low</risk_level>
+                        <impact>Potential impact of the issue</impact>
+                    </diagnostic_points>
+                    <risk_patterns>
+                        <pattern>
+                            <name>Pattern name</name>
+                            <description>Pattern description</description>
+                            <occurrences>
+                                <occurrence>
+                                    <file>File path</file>
+                                    <quote_ref>Reference to quote</quote_ref>
+                                </occurrence>
+                            </occurrences>
+                        </pattern>
+                    </risk_patterns>
+                    <mitigation_recommendations>
+                        <recommendation>
+                            <description>Mitigation description</description>
+                            <priority>high|medium|low</priority>
+                            <affected_quotes>
+                                <quote_ref>Reference to affected quote</quote_ref>
+                            </affected_quotes>
+                        </recommendation>
+                    </mitigation_recommendations>
+                </info>
+            </output_format>
+        </step>
+    </analysis_chain>
+
+    <output_requirements>
+        <differences_xml>
+            <schema>
+                <root_element name="code_audit">
+                    <child_element name="file_differences"/>
+                    <child_element name="difference_analysis"/>
+                    <child_element name="quotes"/>
+                    <child_element name="info"/>
+                    <child_element name="concurrency_analysis"/>
+                    <child_element name="risk_analysis"/>
+                </root_element>
+            </schema>
+            <validation_rules>
+                <rule>All file paths must be relative to workspace root</rule>
+                <rule>All block IDs must be unique</rule>
+                <rule>All timestamps in ISO-8601 format</rule>
+                <rule>All code snippets must preserve indentation</rule>
+            </validation_rules>
+        </differences_xml>
+    </output_requirements>
+
+    <integration_points>
+        <segfault_fixer_expert>
+            <input_format>
+                <code_blocks>
+                    <block>
+                        <id>Unique identifier</id>
+                        <content>Code content</content>
+                        <context>Surrounding context</context>
+                    </block>
+                </code_blocks>
+            </input_format>
+            <output_format>
+                <analysis_results>
+                    <block>
+                        <id>Block identifier</id>
+                        <risk_rating>Risk assessment</risk_rating>
+                        <recommendations>Safety recommendations</recommendations>
+                    </block>
+                </analysis_results>
+            </output_format>
+        </segfault_fixer_expert>
+    </integration_points>
+
+    <error_handling>
+        <scenarios>
+            <scenario name="missing_file">
+                <action>Document in differences.xml with error tag</action>
+                <continue>true</continue>
+            </scenario>
+            <scenario name="parse_error">
+                <action>Document error context and continue with next file</action>
+                <continue>true</continue>
+            </scenario>
+            <scenario name="invalid_diff">
+                <action>Log error and skip problematic section</action>
+                <continue>true</continue>
+            </scenario>
+        </scenarios>
+    </error_handling>
+
+    <example_usage>
+        <analysis_sequence>
+            <step1>
+                <input>Main branch and feature branch paths</input>
+                <action>Compare files between branches</action>
+                <output>
+                    <file_differences>
+                        <file path="src/concurrent/worker.py">
+                            <change_type>modified</change_type>
+                            <diff_blocks>
+                                <block id="worker_1">
+                                    <original_lines>Original threading code</original_lines>
+                                    <modified_lines>Modified threading code</modified_lines>
+                                </block>
+                            </diff_blocks>
+                        </file>
+                    </file_differences>
+                </output>
+            </step1>
+            <step2>
+                <input>File differences from step 1</input>
+                <action>Analyze concurrent patterns</action>
+                <output>
+                    <concurrency_analysis>
+                        <file path="src/concurrent/worker.py">
+                            <concurrent_blocks>
+                                <block id="worker_1">
+                                    <pattern_type>thread</pattern_type>
+                                    <safety_analysis>Unsafe thread synchronization</safety_analysis>
+                                    <risk_factors>
+                                        <factor>Missing lock acquisition</factor>
+                                    </risk_factors>
+                                </block>
+                            </concurrent_blocks>
+                        </file>
+                    </concurrency_analysis>
+                </output>
+            </step2>
+            <step3>
+                <input>Concurrency analysis from step 2</input>
+                <action>Apply segfault risk analysis</action>
+                <output>
+                    <risk_analysis>
+                        <file path="src/concurrent/worker.py">
+                            <risk_blocks>
+                                <block id="worker_1">
+                                    <risk_rating>high</risk_rating>
+                                    <risk_factors>
+                                        <factor>Potential race condition in thread synchronization</factor>
+                                    </risk_factors>
+                                    <mitigation_suggestions>
+                                        <suggestion>Add proper lock acquisition around shared resource access</suggestion>
+                                    </mitigation_suggestions>
+                                </block>
+                            </risk_blocks>
+                        </file>
+                    </risk_analysis>
+                </output>
+            </step3>
+            <step4>
+                <input>Code differences and analysis</input>
+                <action>Extract relevant quotes</action>
+                <output>
+                    <quotes>
+                        <quote source="src/concurrent/worker.py">
+                            <content>
+                                async def process_task(self):
+                                    self.task_queue.put(task)  # Missing lock
+                                    await self.process_queue()
+                            </content>
+                            <context>Worker class task processing</context>
+                            <risk_category>thread_safety</risk_category>
+                            <relevance>Shows unsafe queue access pattern</relevance>
+                        </quote>
+                    </quotes>
+                </output>
+            </step4>
+            <step5>
+                <input>Extracted quotes and analysis</input>
+                <action>Generate diagnostic information</action>
+                <output>
+                    <info>
+                        <diagnostic_points>
+                            <point>Unsafe queue access in worker thread</point>
+                            <evidence>Quote shows direct queue access without synchronization</evidence>
+                            <risk_level>high</risk_level>
+                            <impact>Potential race condition leading to segfault</impact>
+                        </diagnostic_points>
+                        <risk_patterns>
+                            <pattern>
+                                <name>Unsynchronized Queue Access</name>
+                                <description>Queue operations without proper locking</description>
+                                <occurrences>
+                                    <occurrence>
+                                        <file>src/concurrent/worker.py</file>
+                                        <quote_ref>worker_1</quote_ref>
+                                    </occurrence>
+                                </occurrences>
+                            </pattern>
+                        </risk_patterns>
+                        <mitigation_recommendations>
+                            <recommendation>
+                                <description>Add asyncio.Lock for queue access</description>
+                                <priority>high</priority>
+                                <affected_quotes>
+                                    <quote_ref>worker_1</quote_ref>
+                                </affected_quotes>
+                            </recommendation>
+                        </mitigation_recommendations>
+                    </info>
+                </output>
+            </step5>
+        </analysis_sequence>
+    </example_usage>
+
+    <validation_steps>
+        <step>Verify all file paths are valid</step>
+        <step>Ensure all block IDs are unique</step>
+        <step>Validate XML schema compliance</step>
+        <step>Check completeness of analysis chain</step>
+        <step>Verify risk rating assignments</step>
+    </validation_steps>
+
+    <style_preferences>
+        <xml_formatting>
+            <indentation>4 spaces</indentation>
+            <line_breaks>Unix style (LF)</line_breaks>
+            <encoding>UTF-8</encoding>
+        </xml_formatting>
+        <documentation>
+            <code_comments>Preserve all existing comments</code_comments>
+            <context_notes>Include relevant context in analysis</context_notes>
+        </documentation>
+    </style_preferences>
+</audit_code_prompt>

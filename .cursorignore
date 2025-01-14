@@ -374,3 +374,8 @@ notebooks/travel2.sqlite
 !democracy_exe/vendored/langgraph
 !democracy_exe/vendored/langchain-academy/
 !democracy_exe/vendored/dpytest
+
+ai_docs/gitdiffs/
+diffs.xml
+diffs/
+feature-still-looking.diff
