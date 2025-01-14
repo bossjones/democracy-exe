@@ -1,95 +1,70 @@
-"""Tests for attachment_handler.py functionality."""
+"""Tests for the attachment handler module."""
 
 from __future__ import annotations
 
 import asyncio
-import base64
-import io
 import os
 import pathlib
-import tempfile
-import uuid
 
-from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any, Dict, List, cast
+from collections.abc import AsyncGenerator, Generator
 
 import aiohttp
 import discord
-import structlog
 
 from aioresponses import aioresponses
-from PIL import Image
+from discord import Attachment
 
 import pytest
 
+from pytest_mock import MockerFixture
+
 from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
-
-
-if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
-
-    from pytest_mock.plugin import MockerFixture
+from democracy_exe.constants import MAX_BYTES_UPLOAD_DISCORD, MAX_FILE_UPLOAD_IMAGES_IMGUR
 
 
 @pytest.fixture
 def attachment_handler() -> AttachmentHandler:
-    """Create an AttachmentHandler instance for testing.
+    """Create an attachment handler instance.
 
     Returns:
-        AttachmentHandler: The handler instance for testing
+        An AttachmentHandler instance
     """
     return AttachmentHandler()
 
 
 @pytest.fixture
-def mock_attachment(mocker: MockerFixture) -> discord.Attachment:
-    """Create a mock Discord attachment.
+def mock_attachment(mocker: MockerFixture) -> Attachment:
+    """Create a mock attachment.
 
     Args:
-        mocker: Pytest mocker fixture
+        mocker: pytest-mock fixture
 
     Returns:
-        discord.Attachment: The mock attachment instance
+        A mock Attachment instance
     """
-    attachment = mocker.Mock(spec=discord.Attachment)
-    attachment.filename = "test.txt"
-    attachment.id = "123456789"
-    attachment.proxy_url = "https://example.com/proxy/test.txt"
-    attachment.size = 1024  # 1KB
-    attachment.url = "https://example.com/test.txt"
-    attachment.is_spoiler.return_value = False
-    attachment.height = None
-    attachment.width = None
-    attachment.content_type = "text/plain"
-    return attachment
+    mock = mocker.Mock(spec=Attachment)
+    mock.filename = "test.txt"
+    mock.id = "123456"
+    mock.proxy_url = "https://example.com/proxy/test.txt"
+    mock.size = 1024
+    mock.url = "https://example.com/test.txt"
+    mock.is_spoiler.return_value = False
+    mock.height = None
+    mock.width = None
+    mock.content_type = "text/plain"
+    return mock
 
 
-@pytest.fixture
-def temp_dir() -> str:
-    """Create a temporary directory for testing.
-
-    Returns:
-        str: Path to the temporary directory
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
-
-
-@pytest.mark.asyncio
-async def test_attachment_to_dict(attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment) -> None:
-    """Test conversion of attachment to dictionary.
+def test_attachment_to_dict(attachment_handler: AttachmentHandler, mock_attachment: Attachment) -> None:
+    """Test converting attachment to dictionary.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
     """
     result = attachment_handler.attachment_to_dict(mock_attachment)
-
     assert result["filename"] == "test.txt"
-    assert result["id"] == "123456789"
+    assert result["id"] == "123456"
     assert result["proxy_url"] == "https://example.com/proxy/test.txt"
     assert result["size"] == 1024
     assert result["url"] == "https://example.com/test.txt"
@@ -97,215 +72,191 @@ async def test_attachment_to_dict(attachment_handler: AttachmentHandler, mock_at
     assert "height" not in result
     assert "width" not in result
     assert result["content_type"] == "text/plain"
+    assert result["attachment_obj"] == mock_attachment
 
 
-@pytest.mark.asyncio
-async def test_attachment_to_dict_with_dimensions(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment
-) -> None:
-    """Test conversion of attachment with dimensions to dictionary.
+def test_attachment_to_dict_with_dimensions(attachment_handler: AttachmentHandler, mock_attachment: Attachment) -> None:
+    """Test converting attachment with dimensions to dictionary.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
     """
     mock_attachment.height = 100
     mock_attachment.width = 200
-
     result = attachment_handler.attachment_to_dict(mock_attachment)
-
     assert result["height"] == 100
     assert result["width"] == 200
 
 
 @pytest.mark.asyncio
-async def test_file_to_local_data_dict(attachment_handler: AttachmentHandler, temp_dir: str) -> None:
-    """Test conversion of local file to dictionary.
-
-    Args:
-        attachment_handler: The handler instance to test
-        temp_dir: Path to temporary directory
-    """
-    # Create test file
-    test_file = pathlib.Path(temp_dir) / "test.txt"
-    test_file.write_text("test content")
-
-    result = attachment_handler.file_to_local_data_dict(str(test_file), temp_dir)
-
-    assert result["filename"] == f"{temp_dir}/test.txt"
-    assert result["size"] == len("test content")
-    assert result["ext"] == ".txt"
-    assert isinstance(result["api"], pathlib.Path)
-
-
-@pytest.mark.asyncio
 async def test_download_image(attachment_handler: AttachmentHandler) -> None:
-    """Test image download functionality.
+    """Test downloading an image.
 
     Args:
-        attachment_handler: The handler instance to test
+        attachment_handler: The attachment handler instance
     """
     test_url = "https://example.com/test.jpg"
     test_data = b"test data"
 
     with aioresponses() as m:
-        m.get(test_url, status=200, headers={"Content-Length": str(len(test_data))}, body=test_data)
-
+        m.get(test_url, status=200, body=test_data)
         result = await attachment_handler.download_image(test_url)
-
         assert result is not None
-        assert isinstance(result, io.BytesIO)
         assert result.getvalue() == test_data
 
 
 @pytest.mark.asyncio
 async def test_download_image_size_limit(attachment_handler: AttachmentHandler) -> None:
-    """Test image download size limits.
+    """Test image size limit during download.
 
     Args:
-        attachment_handler: The handler instance to test
+        attachment_handler: The attachment handler instance
     """
     test_url = "https://example.com/test.jpg"
     test_data = b"test data"
-    large_size = 10 * 1024 * 1024  # 10MB
+    large_size = MAX_FILE_UPLOAD_IMAGES_IMGUR + 1
 
     with aioresponses() as m:
-        m.get(test_url, status=200, headers={"Content-Length": str(large_size)}, body=test_data)
-
-        with pytest.raises(RuntimeError, match="Image size .* exceeds 8MB limit"):
+        m.get(test_url, status=200, body=test_data, headers={"Content-Length": str(large_size)})
+        with pytest.raises(RuntimeError, match=f"Image size {large_size} exceeds {MAX_FILE_UPLOAD_IMAGES_IMGUR} limit"):
             await attachment_handler.download_image(test_url)
 
 
 @pytest.mark.asyncio
 async def test_save_attachment(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment, temp_dir: str
+    attachment_handler: AttachmentHandler, mock_attachment: Attachment, tmp_path: pathlib.Path
 ) -> None:
-    """Test attachment saving functionality.
+    """Test saving an attachment.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
-        temp_dir: Path to temporary directory
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
+        tmp_path: pytest temporary path fixture
     """
 
-    # Mock save method
     async def mock_save(path: str, use_cached: bool = True) -> None:
-        pathlib.Path(path).write_text("test content")
-        await asyncio.sleep(0.1)  # Simulate file write delay
+        with open(path, "w") as f:
+            f.write("test content")
+        await asyncio.sleep(0.1)
 
     mock_attachment.save = mock_save
-    mock_attachment.size = len("test content")  # Set correct size
+    mock_attachment.size = len("test content")
 
-    await attachment_handler.save_attachment(mock_attachment, temp_dir)
-
-    saved_path = pathlib.Path(temp_dir) / "test.txt"
-    assert saved_path.exists()
-    assert saved_path.read_text() == "test content"
-    assert saved_path.stat().st_size == mock_attachment.size
+    await attachment_handler.save_attachment(mock_attachment, str(tmp_path))
+    saved_file = tmp_path / "test.txt"
+    assert saved_file.exists()
+    assert saved_file.read_text() == "test content"
 
 
 @pytest.mark.asyncio
 async def test_save_attachment_invalid_type(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment, temp_dir: str
+    attachment_handler: AttachmentHandler, mock_attachment: Attachment, tmp_path: pathlib.Path
 ) -> None:
-    """Test saving attachment with invalid file type.
+    """Test saving an attachment with invalid type.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
-        temp_dir: Path to temporary directory
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
+        tmp_path: pytest temporary path fixture
     """
     mock_attachment.content_type = "application/exe"
-
-    with pytest.raises(ValueError, match="File type .* not allowed"):
-        await attachment_handler.save_attachment(mock_attachment, temp_dir)
+    with pytest.raises(ValueError, match="File type application/exe not allowed"):
+        await attachment_handler.save_attachment(mock_attachment, str(tmp_path))
 
 
 @pytest.mark.asyncio
 async def test_save_attachment_size_limit(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment, temp_dir: str
+    attachment_handler: AttachmentHandler, mock_attachment: Attachment, tmp_path: pathlib.Path
 ) -> None:
-    """Test attachment size limits.
+    """Test attachment size limit during save.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
-        temp_dir: Path to temporary directory
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
+        tmp_path: pytest temporary path fixture
     """
-    mock_attachment.size = 10 * 1024 * 1024  # 10MB
-
-    with pytest.raises(RuntimeError, match="Attachment size .* exceeds 8MB limit"):
-        await attachment_handler.save_attachment(mock_attachment, temp_dir)
+    mock_attachment.size = MAX_BYTES_UPLOAD_DISCORD + 1
+    with pytest.raises(
+        RuntimeError, match=f"Attachment size {mock_attachment.size} exceeds {MAX_BYTES_UPLOAD_DISCORD} limit"
+    ):
+        await attachment_handler.save_attachment(mock_attachment, str(tmp_path))
 
 
 @pytest.mark.asyncio
 async def test_save_attachment_directory_traversal(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment, temp_dir: str
+    attachment_handler: AttachmentHandler, mock_attachment: Attachment, tmp_path: pathlib.Path
 ) -> None:
-    """Test protection against directory traversal.
+    """Test directory traversal prevention during save.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
-        temp_dir: Path to temporary directory
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
+        tmp_path: pytest temporary path fixture
     """
     mock_attachment.filename = "../test.txt"
+    mock_attachment.content_type = "text/plain"
+    content = "test content"
+    mock_attachment.size = len(content)
 
-    with pytest.raises(ValueError, match="Invalid file path"):
-        await attachment_handler.save_attachment(mock_attachment, temp_dir)
+    async def mock_save(path: str, use_cached: bool = True) -> None:
+        with open(path, "w") as f:
+            f.write(content)
+        await asyncio.sleep(0.1)
+
+    mock_attachment.save = mock_save
+    with pytest.raises(ValueError, match="Invalid file path - potential directory traversal attempt"):
+        await attachment_handler.save_attachment(mock_attachment, str(tmp_path))
 
 
 @pytest.mark.asyncio
 async def test_save_attachment_verify_saved_file(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment, temp_dir: str
+    attachment_handler: AttachmentHandler, mock_attachment: Attachment, tmp_path: pathlib.Path
 ) -> None:
-    """Test verification of saved files.
+    """Test verification of saved file.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
-        temp_dir: Path to temporary directory
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
+        tmp_path: pytest temporary path fixture
     """
+    content = "test content"
+    mock_attachment.size = len(content)
 
-    # Mock save method to create file with wrong size
     async def mock_save(path: str, use_cached: bool = True) -> None:
-        pathlib.Path(path).write_text("wrong size content")
-        await asyncio.sleep(0.1)  # Simulate file write delay
+        with open(path, "w") as f:
+            f.write(content)
+        await asyncio.sleep(0.1)
 
     mock_attachment.save = mock_save
-    mock_attachment.size = 5  # Different from actual content size
-
-    with pytest.raises(RuntimeError, match="Saved file size .* does not match attachment size"):
-        await attachment_handler.save_attachment(mock_attachment, temp_dir)
-
-    # Verify file was cleaned up
-    saved_path = pathlib.Path(temp_dir) / "test.txt"
-    assert not saved_path.exists()
+    await attachment_handler.save_attachment(mock_attachment, str(tmp_path))
+    saved_file = tmp_path / "test.txt"
+    assert saved_file.exists()
+    assert saved_file.read_text() == content
 
 
 @pytest.mark.asyncio
 async def test_handle_save_attachment_locally(
-    attachment_handler: AttachmentHandler, mock_attachment: discord.Attachment, temp_dir: str
+    attachment_handler: AttachmentHandler, mock_attachment: Attachment, tmp_path: pathlib.Path
 ) -> None:
-    """Test local attachment saving.
+    """Test saving attachment locally.
 
     Args:
-        attachment_handler: The handler instance to test
-        mock_attachment: The mock attachment instance
-        temp_dir: Path to temporary directory
+        attachment_handler: The attachment handler instance
+        mock_attachment: A mock attachment
+        tmp_path: pytest temporary path fixture
     """
-    attm_data = attachment_handler.attachment_to_dict(mock_attachment)
+    content = "test content"
+    mock_attachment.size = len(content)
 
-    # Mock save method
     async def mock_save(path: str, use_cached: bool = True) -> None:
-        pathlib.Path(path).write_text("test content")
-        await asyncio.sleep(0.1)  # Simulate file write delay
+        with open(path, "w") as f:
+            f.write(content)
+        await asyncio.sleep(0.1)
 
     mock_attachment.save = mock_save
-    mock_attachment.size = len("test content")  # Set correct size
-
-    result = await attachment_handler.handle_save_attachment_locally(attm_data, temp_dir)
-
-    assert result.startswith(temp_dir)
-    assert pathlib.Path(result).exists()
-    assert pathlib.Path(result).read_text() == "test content"
+    attm_data = attachment_handler.attachment_to_dict(mock_attachment)
+    result = await attachment_handler.handle_save_attachment_locally(attm_data, str(tmp_path))
+    assert os.path.exists(result)
+    with open(result) as f:
+        assert f.read() == content

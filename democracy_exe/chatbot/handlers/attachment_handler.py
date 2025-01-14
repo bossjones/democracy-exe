@@ -1,4 +1,3 @@
-# pyright: reportAttributeAccessIssue=false
 """Attachment handling functionality.
 
 This module contains functionality for handling Discord attachments,
@@ -22,14 +21,34 @@ import rich
 import structlog
 
 from discord import Attachment, File, HTTPException, Message
+from PIL import Image
+
+from democracy_exe.aio_settings import aiosettings
+from democracy_exe.chatbot.utils.resource_manager import ResourceLimits, ResourceManager
+from democracy_exe.constants import MAX_BYTES_UPLOAD_DISCORD, MAX_FILE_UPLOAD_IMAGES_IMGUR
 
 
 logger = structlog.get_logger(__name__)
-from PIL import Image
 
 
 class AttachmentHandler:
     """Handles processing and saving of Discord attachments."""
+
+    def __init__(self) -> None:
+        """Initialize the attachment handler."""
+        self._download_semaphore = asyncio.Semaphore(
+            getattr(aiosettings, "max_concurrent_downloads", 5)
+        )
+        limits = ResourceLimits(
+            max_memory_mb=getattr(aiosettings, "max_memory_mb", 512),
+            max_tasks=getattr(aiosettings, "max_tasks", 100),
+            max_response_size_mb=getattr(aiosettings, "max_response_size_mb", 1),
+            max_buffer_size_kb=getattr(aiosettings, "max_buffer_size_kb", 64),
+            task_timeout_seconds=getattr(aiosettings, "task_timeout_seconds", 30.0)
+        )
+        self._resource_manager = ResourceManager(limits)
+        self._max_total_size = MAX_BYTES_UPLOAD_DISCORD
+        self._max_image_size = MAX_FILE_UPLOAD_IMAGES_IMGUR
 
     @staticmethod
     def attachment_to_dict(attm: Attachment) -> dict[str, Any]:
@@ -69,41 +88,10 @@ class AttachmentHandler:
             return result
 
         except Exception as e:
-            logger.error(f"Error converting attachment to dict: {e}")
+            logger.error("Error converting attachment to dict", error=str(e))
             raise ValueError(f"Failed to convert attachment to dict: {e}") from e
 
-    @staticmethod
-    def file_to_local_data_dict(fname: str, dir_root: str) -> dict[str, Any]:
-        """Convert a file to a dictionary with metadata.
-
-        Args:
-            fname: The name of the file to be converted
-            dir_root: The root directory where the file is located
-
-        Returns:
-            A dictionary containing metadata about the file
-
-        Raises:
-            FileNotFoundError: If the file does not exist
-            OSError: If there's an error accessing file stats
-        """
-        try:
-            file_api = pathlib.Path(fname)
-            if not file_api.exists():
-                raise FileNotFoundError(f"File not found: {fname}")
-
-            return {
-                "filename": f"{dir_root}/{file_api.stem}{file_api.suffix}",
-                "size": file_api.stat().st_size,
-                "ext": f"{file_api.suffix}",
-                "api": file_api,
-            }
-        except Exception as e:
-            logger.error(f"Error creating file metadata dict: {e}")
-            raise
-
-    @staticmethod
-    async def download_image(url: str) -> BytesIO | None:
+    async def download_image(self, url: str) -> BytesIO | None:
         """Download an image from a given URL asynchronously.
 
         Args:
@@ -117,145 +105,60 @@ class AttachmentHandler:
             RuntimeError: If image size exceeds limits
             asyncio.TimeoutError: If download times out
         """
+        task = asyncio.current_task()
+        if task:
+            self._resource_manager.track_task(task)
+
         try:
+            timeout = self._resource_manager.limits.task_timeout_seconds
+            max_size = self._max_image_size
+
             # Add timeout for download
-            async with asyncio.timeout(30.0):
+            async with asyncio.timeout(timeout):
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as response:
                         if response.status == 200:
                             # Check content length before downloading
                             content_length = response.content_length
-                            if content_length and content_length > 8 * 1024 * 1024:  # 8MB limit
-                                raise RuntimeError(f"Image size {content_length} exceeds 8MB limit")
+                            if content_length and content_length > max_size:
+                                raise RuntimeError(f"Image size {content_length} exceeds {max_size} limit")
 
                             # Stream download with size limit
                             data = bytearray()
-                            chunk_size = 8192  # 8KB chunks
+                            chunk_size = self._resource_manager.limits.max_buffer_size_kb * 1024
                             total_size = 0
 
                             async for chunk in response.content.iter_chunked(chunk_size):
                                 total_size += len(chunk)
-                                if total_size > 8 * 1024 * 1024:  # 8MB limit
-                                    raise RuntimeError("Image download exceeds 8MB limit")
+                                if total_size > max_size:
+                                    raise RuntimeError(f"Image download exceeds {max_size} limit")
+
+                                # Track memory for chunk
+                                self._resource_manager.track_memory(len(chunk))
                                 data.extend(chunk)
+                                self._resource_manager.release_memory(len(chunk))
 
                             return io.BytesIO(data)
                         else:
                             logger.error("Failed to download image", status=response.status)
                             return None
+
         except TimeoutError:
             logger.error("Image download timed out", url=url)
-            raise
+            raise RuntimeError(f"Image download timed out after {timeout} seconds")
+
         except aiohttp.ClientError as e:
             logger.error("Error downloading image", error=str(e), url=url)
             raise
+
         except Exception as e:
             logger.error("Unexpected error downloading image", error=str(e), url=url)
             raise
 
-    @staticmethod
-    async def file_to_data_uri(file: File) -> str:
-        """Convert a discord.File object to a data URI.
-
-        Args:
-            file: The discord.File object to be converted
-
-        Returns:
-            A data URI representing the file content
-
-        Raises:
-            ValueError: If file is not readable or exceeds size limits
-            RuntimeError: If file size exceeds limits
-        """
-        try:
-            if not file.fp or not file.fp.readable():
-                raise ValueError("File is not readable")
-
-            # Check file size before reading
-            file.fp.seek(0, os.SEEK_END)
-            file_size = file.fp.tell()
-            file.fp.seek(0)
-
-            if file_size > 8 * 1024 * 1024:  # 8MB limit
-                raise RuntimeError(f"File size {file_size} exceeds 8MB limit")
-
-            with BytesIO(file.fp.read()) as f:
-                file_bytes = f.read()
-            base64_encoded = base64.b64encode(file_bytes).decode("ascii")
-
-            # Check encoded size
-            if len(base64_encoded) > 10 * 1024 * 1024:  # 10MB limit for base64
-                raise RuntimeError("Base64 encoded size exceeds limit")
-
-            return f"data:image;base64,{base64_encoded}"
-        except Exception as e:
-            logger.error("Error converting file to data URI", error=str(e))
-            raise
-
-    @staticmethod
-    async def data_uri_to_file(data_uri: str, filename: str) -> File:
-        """Convert a data URI to a discord.File object.
-
-        Args:
-            data_uri: The data URI to be converted
-            filename: The name of the file to be created
-
-        Returns:
-            A discord.File object containing the decoded data
-
-        Raises:
-            ValueError: If data URI is invalid or exceeds size limits
-            RuntimeError: If decoded data exceeds size limits
-        """
-        try:
-            if "," not in data_uri:
-                raise ValueError("Invalid data URI format")
-
-            # Check data URI size
-            if len(data_uri) > 10 * 1024 * 1024:  # 10MB limit
-                raise RuntimeError("Data URI size exceeds limit")
-
-            metadata, base64_data = data_uri.split(",")
-
-            # Check base64 data size
-            if len(base64_data) > 8 * 1024 * 1024:  # 8MB limit
-                raise RuntimeError("Base64 data size exceeds limit")
-
-            file_bytes = base64.b64decode(base64_data)
-
-            # Check decoded size
-            if len(file_bytes) > 8 * 1024 * 1024:  # 8MB limit
-                raise RuntimeError("Decoded file size exceeds limit")
-
-            return discord.File(BytesIO(file_bytes), filename=filename, spoiler=False)
-        except Exception as e:
-            logger.error("Error converting data URI to file", error=str(e))
-            raise
-
-    @staticmethod
-    def path_for(attm: Attachment, basedir: str = "./") -> pathlib.Path:
-        """Generate a pathlib.Path object for an attachment.
-
-        Args:
-            attm: The attachment for which the path is generated
-            basedir: The base directory path. Default is current directory
-
-        Returns:
-            A pathlib.Path object representing the path for the attachment file
-
-        Raises:
-            ValueError: If attachment filename is invalid
-        """
-        try:
-            if not attm.filename:
-                raise ValueError("Attachment has no filename")
-
-            p = pathlib.Path(basedir).resolve() / str(attm.filename)
-            logger.debug(f"path_for: p -> {p}")
-            return p
-        except Exception as e:
-            logger.error(f"Error generating path for attachment: {e}")
-            raise
+        finally:
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
 
     async def save_attachment(self, attm: Attachment, basedir: str = "./") -> None:
         """Save a Discord attachment to a specified directory.
@@ -268,13 +171,20 @@ class AttachmentHandler:
             HTTPException: If there's an error saving the attachment
             OSError: If there's an error creating directories
             RuntimeError: If attachment size exceeds limits
-            ValueError: If file type is not allowed
+            ValueError: If file type is not allowed or path is unsafe
         """
+        task = asyncio.current_task()
+        if task:
+            self._resource_manager.track_task(task)
+
         path = None
         try:
             # Check attachment size
-            if attm.size > 8 * 1024 * 1024:  # 8MB limit
-                raise RuntimeError(f"Attachment size {attm.size} exceeds 8MB limit")
+            if attm.size > self._max_total_size:
+                raise RuntimeError(f"Attachment size {attm.size} exceeds {self._max_total_size} limit")
+
+            # Track memory for attachment
+            self._resource_manager.track_memory(attm.size)
 
             # Verify file type
             allowed_types = {
@@ -285,6 +195,7 @@ class AttachmentHandler:
             if attm.content_type not in allowed_types:
                 raise ValueError(f"File type {attm.content_type} not allowed. Allowed types: {allowed_types}")
 
+            # Get safe path (this will raise ValueError for directory traversal)
             path = self.path_for(attm, basedir=basedir)
             logger.debug("save_attachment: path", path=str(path))
 
@@ -298,16 +209,11 @@ class AttachmentHandler:
                 # statvfs not available on Windows
                 pass
 
-            # Verify path is within basedir to prevent directory traversal
-            basedir_path = pathlib.Path(basedir).resolve()
-            file_path = path.resolve()
-            if not str(file_path).startswith(str(basedir_path)):
-                raise ValueError("Invalid file path - potential directory traversal attempt")
-
             path.parent.mkdir(parents=True, exist_ok=True)
 
             # Add timeout for save operation
-            async with asyncio.timeout(30.0):
+            timeout = self._resource_manager.limits.task_timeout_seconds
+            async with asyncio.timeout(timeout):
                 try:
                     await attm.save(str(path), use_cached=True)
                     await asyncio.sleep(0.1)  # Small delay to ensure file is written
@@ -329,6 +235,43 @@ class AttachmentHandler:
                 path.unlink()  # Cleanup on error
             raise
 
+        finally:
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
+            # Release memory for attachment
+            self._resource_manager.release_memory(attm.size)
+
+    def path_for(self, attm: Attachment, basedir: str = "./") -> pathlib.Path:
+        """Generate a safe path for saving an attachment.
+
+        Args:
+            attm: The attachment to generate a path for
+            basedir: The base directory path
+
+        Returns:
+            A Path object representing the safe file path
+
+        Raises:
+            ValueError: If the file path would result in directory traversal
+        """
+        # Check for directory traversal in original filename
+        if ".." in attm.filename or attm.filename.startswith("/"):
+            raise ValueError("Invalid file path - potential directory traversal attempt")
+
+        # Clean filename to prevent directory traversal
+        safe_filename = pathlib.Path(attm.filename).name
+        base_path = pathlib.Path(basedir).resolve()
+        file_path = (base_path / safe_filename).resolve()
+
+        # Double-check that the resolved path is within the base directory
+        try:
+            file_path.relative_to(base_path)
+        except ValueError:
+            raise ValueError("Invalid file path - potential directory traversal attempt")
+
+        return file_path
+
     async def handle_save_attachment_locally(self, attm_data_dict: dict[str, Any], dir_root: str) -> str:
         """Save a Discord attachment locally.
 
@@ -344,24 +287,43 @@ class AttachmentHandler:
             HTTPException: If there's an error saving the attachment
             RuntimeError: If attachment size exceeds limits
         """
+        task = asyncio.current_task()
+        if task:
+            self._resource_manager.track_task(task)
+
         try:
             if not all(key in attm_data_dict for key in ["id", "filename", "attachment_obj"]):
                 raise ValueError("Invalid attachment data dictionary")
 
             # Check attachment size
-            if attm_data_dict.get("size", 0) > 8 * 1024 * 1024:  # 8MB limit
-                raise RuntimeError(f"Attachment size {attm_data_dict['size']} exceeds 8MB limit")
+            if attm_data_dict.get("size", 0) > self._max_total_size:
+                raise RuntimeError(f"Attachment size {attm_data_dict['size']} exceeds {self._max_total_size} limit")
+
+            # Track memory for attachment
+            size = attm_data_dict.get("size", 0)
+            self._resource_manager.track_memory(size)
 
             fname = f"{dir_root}/orig_{attm_data_dict['id']}_{attm_data_dict['filename']}"
-            rich.print(f"Saving to ... {fname}")
+            logger.debug("Saving attachment locally", path=fname)
 
-            await attm_data_dict["attachment_obj"].save(fname, use_cached=True)
-            await asyncio.sleep(1)
+            timeout = self._resource_manager.limits.task_timeout_seconds
+            async with asyncio.timeout(timeout):
+                await attm_data_dict["attachment_obj"].save(fname, use_cached=True)
+                await asyncio.sleep(0.1)  # Small delay to ensure file is written
+
             return fname
 
         except Exception as e:
-            logger.error(f"Error saving attachment locally: {e}")
+            logger.error("Error saving attachment locally", error=str(e))
             raise
+
+        finally:
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
+            # Release memory for attachment
+            size = attm_data_dict.get("size", 0)
+            self._resource_manager.release_memory(size)
 
     def get_attachments(
         self, message: Message

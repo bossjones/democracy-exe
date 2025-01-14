@@ -53,6 +53,7 @@ from democracy_exe.chatbot.handlers.message_handler import MessageHandler
 from democracy_exe.chatbot.utils.extension_manager import get_extension_load_order, load_extension_with_retry
 from democracy_exe.chatbot.utils.guild_utils import preload_guild_data
 from democracy_exe.chatbot.utils.message_utils import format_inbound_message
+from democracy_exe.chatbot.utils.resource_manager import ResourceLimits, ResourceManager
 from democracy_exe.constants import CHANNEL_ID
 from democracy_exe.utils.bot_context import Context
 
@@ -116,6 +117,7 @@ class DemocracyBot(commands.Bot):
         owner_id: Bot owner's Discord ID
         invite: Bot invite link
         uptime: Bot start time
+        resource_manager: Manager for system resources and limits
     """
     user: discord.ClientUser
     old_tree_error = Callable[[discord.Interaction, discord.app_commands.AppCommandError], Coroutine[Any, Any, None]]
@@ -147,12 +149,16 @@ class DemocracyBot(commands.Bot):
         if not aiosettings.discord_client_id:
             raise ValueError("Discord client ID not configured")
 
-        # Set resource limits
-        self.max_message_size = aiosettings.max_message_size or 8 * 1024 * 1024  # 8MB
-        self.max_attachment_size = aiosettings.max_attachment_size or 8 * 1024 * 1024  # 8MB
-        self.max_concurrent_tasks = aiosettings.max_concurrent_tasks or 100
-        self.task_timeout = aiosettings.task_timeout or 300  # 5 minutes
-        self.max_retries = aiosettings.max_retries or 3
+        # Initialize resource manager with limits
+        self.resource_manager = ResourceManager(
+            ResourceLimits(
+                max_memory_mb=getattr(aiosettings, "max_memory_mb", 512),
+                max_tasks=getattr(aiosettings, "max_tasks", 100),
+                max_response_size_mb=getattr(aiosettings, "max_response_size_mb", 8),
+                max_buffer_size_kb=getattr(aiosettings, "max_buffer_size_kb", 64),
+                task_timeout_seconds=getattr(aiosettings, "task_timeout_seconds", 300)
+            )
+        )
 
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
 
@@ -190,7 +196,7 @@ class DemocracyBot(commands.Bot):
         self.socket_stats: Counter = Counter()
         self.graph: CompiledStateGraph = memgraph
 
-        # Initialize handlers
+        # Initialize handlers with resource manager
         self.message_handler = MessageHandler(self)
         self.attachment_handler = AttachmentHandler()
 
@@ -208,20 +214,20 @@ class DemocracyBot(commands.Bot):
 
         # Configure rate limiting
         self.spam_control = commands.CooldownMapping.from_cooldown(
-            rate=aiosettings.rate_limit_rate or 10,
-            per=aiosettings.rate_limit_per or 12.0,
+            rate=getattr(aiosettings, "rate_limit_rate", 10),
+            per=getattr(aiosettings, "rate_limit_per", 12.0),
             type=commands.BucketType.user
         )
 
         # A counter to auto-ban frequent spammers
         # Triggering the rate limit 5 times in a row will auto-ban the user from the bot.
         self._auto_spam_count = Counter()
-        self._spam_ban_threshold = aiosettings.spam_ban_threshold or 5
+        self._spam_ban_threshold = getattr(aiosettings, "spam_ban_threshold", 5)
 
         self.channel_list = [int(x) for x in CHANNEL_ID.split(",")]
-        self.queue: asyncio.Queue = asyncio.Queue(maxsize=aiosettings.max_queue_size or 1000)
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=getattr(aiosettings, "max_queue_size", 1000))
         self.tasks: list[Any] = []
-        self.num_workers = min(aiosettings.num_workers or 3, 10)  # Max 10 workers
+        self.num_workers = min(getattr(aiosettings, "num_workers", 3), 10)  # Max 10 workers
 
         self.total_sleep_time = 0
 
@@ -230,10 +236,6 @@ class DemocracyBot(commands.Bot):
         self.job_queue: dict[Any, Any] = {}
         self.client_id: int | str = aiosettings.discord_client_id
         self.enable_ai = aiosettings.enable_ai
-
-        # Task tracking
-        self._active_tasks: set[asyncio.Task] = set()
-        self._task_lock = asyncio.Lock()
 
     async def get_context(self, origin: discord.Interaction | Message, /, *, cls=Context) -> Context:
         """Retrieve the context for a Discord interaction or message.
@@ -249,14 +251,17 @@ class DemocracyBot(commands.Bot):
             RuntimeError: If message size exceeds limits
             ValueError: If message content is invalid
         """
+        # Check memory usage before processing
+        self.resource_manager.check_memory()
+
         # Add size checks for message content
         if isinstance(origin, Message):
             content_size = len(origin.content.encode('utf-8'))
-            if content_size > self.max_message_size:
+            if content_size > self.resource_manager.limits.max_response_size_mb * 1024 * 1024:
                 logger.error("Message size exceeds limit",
                            size=content_size,
-                           limit=self.max_message_size)
-                raise RuntimeError(f"Message size {content_size} exceeds limit {self.max_message_size}")
+                           limit=self.resource_manager.limits.max_response_size_mb * 1024 * 1024)
+                raise RuntimeError(f"Message size {content_size} exceeds limit {self.resource_manager.limits.max_response_size_mb * 1024 * 1024}")
 
             # Validate message content
             if not origin.content or not origin.content.strip():
@@ -265,11 +270,11 @@ class DemocracyBot(commands.Bot):
             # Check attachments
             if origin.attachments:
                 total_attachment_size = sum(a.size for a in origin.attachments)
-                if total_attachment_size > self.max_attachment_size:
+                if total_attachment_size > self.resource_manager.limits.max_response_size_mb * 1024 * 1024:
                     logger.error("Total attachment size exceeds limit",
                                size=total_attachment_size,
-                               limit=self.max_attachment_size)
-                    raise RuntimeError(f"Total attachment size {total_attachment_size} exceeds limit {self.max_attachment_size}")
+                               limit=self.resource_manager.limits.max_response_size_mb * 1024 * 1024)
+                    raise RuntimeError(f"Total attachment size {total_attachment_size} exceeds limit {self.resource_manager.limits.max_response_size_mb * 1024 * 1024}")
 
         ctx = await super().get_context(origin, cls=cls)
         ctx.prefix = self._command_prefix
@@ -322,48 +327,50 @@ class DemocracyBot(commands.Bot):
         Raises:
             RuntimeError: If max concurrent tasks limit is reached
         """
-        async with self._task_lock:
-            # Clean up completed tasks
-            self._active_tasks = {task for task in self._active_tasks if not task.done()}
+        # Track task in resource manager
+        task_id = id(coro)
+        self.resource_manager.track_task(task_id)
 
-            # Check task limit
-            if len(self._active_tasks) >= self.max_concurrent_tasks:
-                logger.error("Max concurrent tasks limit reached",
-                           active_tasks=len(self._active_tasks),
-                           limit=self.max_concurrent_tasks)
-                raise RuntimeError(f"Max concurrent tasks limit {self.max_concurrent_tasks} reached")
-
+        try:
             # Create and add new task with timeout
             async def wrapped_coro() -> None:
                 try:
-                    async with asyncio.timeout(self.task_timeout):
+                    async with asyncio.timeout(self.resource_manager.limits.task_timeout_seconds):
                         await coro
                 except TimeoutError:
-                    logger.error("Task timed out", timeout=self.task_timeout)
+                    logger.error("Task timed out",
+                               task_id=task_id,
+                               timeout=self.resource_manager.limits.task_timeout_seconds)
                     raise
                 except Exception as e:
-                    logger.error("Task failed", error=str(e))
+                    logger.error("Task failed",
+                               task_id=task_id,
+                               error=str(e))
                     raise
                 finally:
-                    # Force cleanup of task resources
+                    # Release task resources
+                    self.resource_manager.cleanup_tasks([task_id])
                     gc.collect()
 
             task = asyncio.create_task(wrapped_coro())
-            self._active_tasks.add(task)
 
-            # Add done callback to remove task from set and log completion
+            # Add done callback to log completion
             def on_task_done(t: asyncio.Task) -> None:
-                self._active_tasks.discard(t)
                 try:
                     exc = t.exception()
                     if exc:
                         logger.error("Task failed with exception",
-                                   task=t,
+                                   task_id=task_id,
                                    error=str(exc))
                 except asyncio.CancelledError:
-                    logger.info("Task was cancelled", task=t)
+                    logger.info("Task was cancelled", task_id=task_id)
 
             task.add_done_callback(on_task_done)
+
+        except Exception as e:
+            # Clean up task tracking on error
+            self.resource_manager.cleanup_tasks([task_id])
+            raise
 
     async def cleanup(self) -> None:
         """Clean up bot resources before shutdown.
@@ -377,31 +384,8 @@ class DemocracyBot(commands.Bot):
         try:
             # Add timeout for cleanup
             async with asyncio.timeout(30.0):
-                # Cancel all active tasks with individual timeouts
-                async with self._task_lock:
-                    for task in self._active_tasks:
-                        if not task.done():
-                            task.cancel()
-                            try:
-                                await asyncio.wait_for(task, timeout=5.0)
-                            except TimeoutError:
-                                logger.error("Task cancellation timed out", task=task)
-                            except Exception as e:
-                                logger.error("Task cancellation failed",
-                                           task=task,
-                                           error=str(e))
-
-                    # Wait for all tasks with timeout
-                    if self._active_tasks:
-                        try:
-                            await asyncio.wait_for(
-                                asyncio.gather(*self._active_tasks, return_exceptions=True),
-                                timeout=10.0
-                            )
-                        except TimeoutError:
-                            logger.error("Task cleanup timed out")
-
-                    self._active_tasks.clear()
+                # Force cleanup of all resources
+                await self.resource_manager.force_cleanup()
 
                 # Close Redis pool if exists
                 if self.pool:
@@ -474,15 +458,25 @@ class DemocracyBot(commands.Bot):
 
         """
         one_week_ago = discord.utils.utcnow() - datetime.timedelta(days=7)
-        for shard_id, dates in self.identifies.items():
-            to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
-            for index in reversed(to_remove):
-                del dates[index]
 
-        for shard_id, dates in self.resumes.items():
+        # Clear identifies data
+        for shard_id, dates in list(self.identifies.items()):
             to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
             for index in reversed(to_remove):
                 del dates[index]
+            if not dates:
+                del self.identifies[shard_id]
+
+        # Clear resumes data
+        for shard_id, dates in list(self.resumes.items()):
+            to_remove = [index for index, dt in enumerate(dates) if dt < one_week_ago]
+            for index in reversed(to_remove):
+                del dates[index]
+            if not dates:
+                del self.resumes[shard_id]
+
+        # Force garbage collection after clearing data
+        gc.collect()
 
     async def before_identify_hook(self, shard_id: int, *, initial: bool) -> None:  # type: ignore
         """
