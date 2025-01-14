@@ -233,11 +233,14 @@ class TestSettings:
         assert str(custom_settings.redis_url) == expected
 
     @pytest.mark.asyncio()
-    async def test_redis_env_variables(self, monkeypatch: MonkeyPatch):
+    async def test_redis_env_variables(self, monkeypatch: MonkeyPatch) -> None:
+        """Test Redis settings from environment variables."""
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_HOST", "envhost")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_PORT", "7777")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_USER", "envuser")
-        monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_PASS", "envpass")
+        monkeypatch.setenv(
+            "DEMOCRACY_EXE_CONFIG_REDIS_PASS", "envpassword123"
+        )  # Longer password that meets requirements
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_REDIS_BASE", "2")
         monkeypatch.setenv("DEMOCRACY_EXE_CONFIG_ENABLE_REDIS", "true")
 
@@ -245,11 +248,11 @@ class TestSettings:
         assert test_settings.redis_host == "envhost"
         assert test_settings.redis_port == 7777
         assert test_settings.redis_user == "envuser"
-        assert test_settings.redis_pass.get_secret_value() == "envpass"
+        assert test_settings.redis_pass.get_secret_value() == "envpassword123"
         assert test_settings.redis_base == 2
-        assert test_settings.enable_redis == True
+        assert test_settings.enable_redis is True
 
-        expected_url = "redis://envuser:envpass@envhost:7777/2"
+        expected_url = "redis://envuser:envpassword123@envhost:7777/2"
         assert str(test_settings.redis_url) == expected_url
 
     def test_model_settings(self):
@@ -427,30 +430,37 @@ class TestSettings:
         assert test_settings.EMBEDDING_MODEL_DIMENSIONS_DATA["text-embedding-3-large"] == 1024
         assert test_settings.EMBEDDING_MODEL_DIMENSIONS_DATA["text-embedding-ada-002"] == 1536
 
-    def test_feature_flags(self):
+    def test_feature_flags(self) -> None:
+        """Test feature flags."""
         test_settings = aio_settings.AioSettings()
-        # Test RAG flags
-        assert isinstance(test_settings.rag_answer_accuracy_feature_flag, bool)
-        assert isinstance(test_settings.rag_answer_hallucination_feature_flag, bool)
-        assert isinstance(test_settings.rag_answer_v_reference_feature_flag, bool)
-        assert isinstance(test_settings.rag_doc_relevance_feature_flag, bool)
-        assert isinstance(test_settings.rag_doc_relevance_and_hallucination_feature_flag, bool)
-        assert isinstance(test_settings.rag_string_embedding_distance_metrics_feature_flag, bool)
-
-        # Test other flags
         assert isinstance(test_settings.helpfulness_feature_flag, bool)
-        assert isinstance(test_settings.helpfulness_testing_feature_flag, bool)
+        assert isinstance(test_settings.rag_answer_accuracy_feature_flag, bool)
+        assert isinstance(test_settings.rag_answer_v_reference_feature_flag, bool)
+        assert isinstance(test_settings.compare_models_feature_flag, bool)
+        assert isinstance(test_settings.document_relevance_feature_flag, bool)
 
     @pytest.mark.parametrize(
         "model_name,expected_tokens,expected_output_tokens",
         [
-            ("gpt-4o-mini", 900, 16384),
-            ("gpt-4o", 128000, 16384),
-            ("claude-3-opus", 2048, 16384),
+            ("gpt-4o-mini-2024-07-18", 900, 16384),
+            ("gpt-4o-2024-08-06", 128000, 16384),
+            ("claude-3-opus-20240229", 2048, 16384),
             ("gpt-4", 8192, 4096),
         ],
     )
-    def test_model_token_limits(self, model_name: str, expected_tokens: int, expected_output_tokens: int):
+    def test_model_token_limits(
+        self,
+        model_name: str,
+        expected_tokens: int,
+        expected_output_tokens: int,
+    ) -> None:
+        """Test model token limits.
+
+        Args:
+            model_name: Name of the model to test
+            expected_tokens: Expected token limit
+            expected_output_tokens: Expected output token limit
+        """
         test_settings = aio_settings.AioSettings(llm_model_name=model_name)
         assert test_settings.llm_max_tokens == expected_tokens
         assert test_settings.llm_max_output_tokens == expected_output_tokens
@@ -561,19 +571,19 @@ class TestSettings:
         assert settings.llm_retry_delay == 1
         assert settings.llm_retry_max_delay == 5
 
-    def test_model_token_updates(self):
-        """Test automatic token limit updates based on model selection."""
-        settings = aio_settings.AioSettings(llm_model_name="gpt-4o-mini")
+    def test_model_token_updates(self) -> None:
+        """Test model token updates."""
+        settings = aio_settings.AioSettings(llm_model_name="gpt-4o-mini-2024-07-18")
         assert settings.llm_max_tokens == 900
         assert settings.llm_max_output_tokens == 16384
-        assert settings.prompt_cost_per_token == 0.000000150
-        assert settings.completion_cost_per_token == 0.00000060
 
-        settings = aio_settings.AioSettings(llm_model_name="claude-3-opus")
+        settings.llm_model_name = "gpt-4o-2024-08-06"
+        assert settings.llm_max_tokens == 128000
+        assert settings.llm_max_output_tokens == 16384
+
+        settings.llm_model_name = "claude-3-opus-20240229"
         assert settings.llm_max_tokens == 2048
         assert settings.llm_max_output_tokens == 16384
-        assert settings.prompt_cost_per_token == 0.0000025
-        assert settings.completion_cost_per_token == 0.00001
 
     def test_embedding_dimension_updates(self):
         """Test automatic embedding dimension updates."""

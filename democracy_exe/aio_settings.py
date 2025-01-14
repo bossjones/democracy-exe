@@ -211,6 +211,12 @@ _NEWER_MODEL_CONFIG: dict[str, dict[str, int | float]] = {
         "max_output_tokens": 16384,
         "prompt_cost_per_token": 0.000005,
         "completion_cost_per_token": 0.000015
+    },
+    "gpt-4o-2024-08-06": {
+        "max_tokens": 128000,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003
     }
 }
 
@@ -240,9 +246,8 @@ MODEL_POINT: dict[str, str] = {
     "claude3-opus": "claude-3-opus-20240229",
     "claude3-sonnet": "claude-3-sonnet-20240229",
     "claude3-haiku": "claude-3-haiku-20240307",
-    "gpt4o": "gpt-4o",
-    "gpt4o-mini": "gpt-4o-mini-2024-07-18",
-    "gpt4o-latest": "gpt-4o-2024-08-06"
+    "gpt4o": "gpt-4o-2024-08-06",
+    "gpt4o-mini": "gpt-4o-mini-2024-07-18"
 }
 
 # Combine configurations
@@ -258,8 +263,8 @@ _MODEL_POINT_CONFIG = {
 }
 MODEL_CONFIG.update(_MODEL_POINT_CONFIG)
 
-# Update MODEL_ZOO to include embeddings
-MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys()) | set(EMBEDDING_CONFIG.keys())
+# Create model zoo for validation
+MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys()) | set(EMBEDDING_CONFIG.keys()) | {"text-embedding-3-small", "text-embedding-3-large"}
 
 # Embedding model dimensions for different models
 EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
@@ -498,11 +503,11 @@ class AioSettings(BaseSettings):
 
     # LLM settings
     llm_model_name: str = Field(
-        default="gpt-4o-mini-2024-07-18",
-        description="Name of the LLM model to use"
+        default="gpt-4o-mini",
+        description="The chat model to use"
     )
     llm_temperature: float = Field(
-        default=0.7,
+        default=0.0,
         description="Temperature for LLM sampling"
     )
     llm_max_tokens: int = Field(
@@ -713,6 +718,14 @@ class AioSettings(BaseSettings):
         default=False,
         description="Enable document relevance evaluation"
     )
+    helpfulness_feature_flag: bool = Field(
+        default=False,
+        description="Enable helpfulness evaluation"
+    )
+    helpfulness_testing_feature_flag: bool = Field(
+        default=False,
+        description="Enable helpfulness testing feature"
+    )
 
     # Discord settings
     discord_server_id: int = Field(
@@ -732,7 +745,7 @@ class AioSettings(BaseSettings):
         "claude3-opus": "claude-3-opus-20240229",
         "claude3-sonnet": "claude-3-sonnet-20240229",
         "claude3-haiku": "claude-3-haiku-20240307",
-        "gpt4o": "gpt-4o",
+        "gpt4o": "gpt-4o-2024-08-06",
         "gpt4o-mini": "gpt-4o-mini-2024-07-18"
     }
     MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys())
@@ -792,6 +805,74 @@ class AioSettings(BaseSettings):
     rag_doc_relevance_and_hallucination_feature_flag: bool = Field(
         default=False,
         description="Enable RAG document relevance and hallucination detection"
+    )
+
+    # OpenAI settings
+    openai_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="OpenAI API key"
+    )
+
+    # Feature flags
+    rag_string_embedding_distance_metrics_feature_flag: bool = Field(
+        default=False,
+        description="Enable RAG string embedding distance metrics"
+    )
+
+    pinecone_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="Pinecone API key"
+    )
+    cohere_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="Cohere API key"
+    )
+    anthropic_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="Anthropic API key"
+    )
+
+    chat_history_buffer: int = Field(
+        default=10,
+        description="Number of messages to keep in chat history"
+    )
+
+    chat_model: str = Field(
+        default="gpt-4o-mini",
+        description="The chat model to use"
+    )
+
+    eval_max_concurrency: int = Field(
+        default=4,
+        description="Maximum number of concurrent evaluation tasks"
+    )
+
+    groq_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="API key for Groq"
+    )
+
+    langchain_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="API key for LangChain"
+    )
+
+    langchain_debug_logs: bool = Field(
+        default=False,
+        description="Enable LangChain debug logging"
+    )
+
+    langchain_hub_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        description="API key for LangChain Hub"
+    )
+    langchain_tracing_v2: bool = Field(
+        default=False,
+        description="Enable LangChain tracing v2"
+    )
+    llm_embedding_model_name: str = Field(
+        default="text-embedding-3-large",
+        description="The embedding model to use"
     )
 
     @field_validator("monitor_port")
@@ -925,7 +1006,7 @@ class AioSettings(BaseSettings):
         Returns:
             str: The PostgreSQL URL
         """
-        return f"postgresql+psycopg://{self.postgres_user}:{self.postgres_pass.get_secret_value()}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        return f"postgresql+{self.postgres_driver}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}"
 
     @model_validator(mode="before")
     @classmethod
