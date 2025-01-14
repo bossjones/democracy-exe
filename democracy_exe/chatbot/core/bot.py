@@ -763,7 +763,7 @@ class DemocracyBot(commands.Bot):
         from democracy_exe.chatbot.utils.extension_manager import extensions, load_extensions
 
         logger.debug("Looking for extensions in cogs directory")
-        extensions_found = list(extensions())
+        extensions_found = list(get_extensions())
         logger.info(f"Found extensions: {extensions_found}")
 
         try:
@@ -963,7 +963,7 @@ class DemocracyBot(commands.Bot):
             # Check if the bot is mentioned in the message
             if self.user.mentioned_in(message):
                 # Get or create a thread for this conversation
-                thread = await self.message_handler._get_thread(message)
+                thread = await self.message_handler.get_thread(message)
                 if thread is None:
                     return
 
@@ -1145,7 +1145,7 @@ class DemocracyBot(commands.Bot):
             return
 
         # Get or create a thread for this conversation using the message handler
-        thread = await self.message_handler._get_thread(message)
+        thread = await self.message_handler.get_thread(message)
         # Exit if thread creation/retrieval failed
         if thread is None:
             return

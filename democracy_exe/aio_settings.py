@@ -7,7 +7,18 @@ from __future__ import annotations
 
 from typing import Optional
 
+import rich.console
+
 from pydantic import BaseModel, Field, SecretStr
+
+
+def get_rich_console() -> rich.console.Console:
+    """Get a Rich console instance.
+
+    Returns:
+        rich.console.Console: Configured console instance
+    """
+    return rich.console.Console()
 
 
 class AioSettings(BaseModel):

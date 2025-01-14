@@ -1,12 +1,16 @@
 """Terminal bot implementation for the chatbot."""
 from __future__ import annotations
 
+
+__all__ = ['ThreadSafeTerminalBot', 'stream_terminal_bot', 'invoke_terminal_bot', 'go_terminal_bot']
+
 import asyncio
 import signal
 import sys
 import threading
 
 from collections.abc import AsyncGenerator
+from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import structlog
@@ -15,11 +19,17 @@ from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.utils.resource_manager import ResourceLimits, ResourceManager
 
 
+class BotState(Enum):
+    """Enumeration of possible bot states."""
+    RUNNING = auto()
+    CLOSED = auto()
+
+
 logger = structlog.get_logger(__name__)
 
 
-class TerminalBot:
-    """Terminal bot implementation."""
+class ThreadSafeTerminalBot:
+    """Thread-safe terminal bot implementation."""
 
     def __init__(self) -> None:
         """Initialize the terminal bot."""
@@ -34,6 +44,7 @@ class TerminalBot:
         self._resource_manager = ResourceManager(limits=limits)
         self._shutdown_event = asyncio.Event()
         self._tasks: set[asyncio.Task] = set()
+        self._state = BotState.CLOSED
         self._setup_signal_handlers()
 
     def _setup_signal_handlers(self) -> None:
@@ -208,22 +219,34 @@ class TerminalBot:
             if task and task in self._tasks:
                 self._tasks.remove(task)
 
+    @property
+    def state(self) -> BotState:
+        """Get the current bot state.
+
+        Returns:
+            BotState: Current state of the bot
+        """
+        return self._state
+
     async def start(self) -> None:
         """Start the terminal bot."""
         try:
             logger.info("Starting terminal bot")
+            self._state = BotState.RUNNING
             await self._shutdown_event.wait()
         except Exception as e:
             logger.error("Error in terminal bot", error=str(e))
         finally:
+            self._state = BotState.CLOSED
             await self._cleanup()
 
-    async def __aenter__(self) -> TerminalBot:
+    async def __aenter__(self) -> ThreadSafeTerminalBot:
         """Enter async context.
 
         Returns:
-            TerminalBot: This instance
+            ThreadSafeTerminalBot: This instance
         """
+        self._state = BotState.RUNNING
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -234,4 +257,62 @@ class TerminalBot:
             exc_val: Exception value if an error occurred
             exc_tb: Exception traceback if an error occurred
         """
+        self._state = BotState.CLOSED
         await self._cleanup()
+
+
+async def stream_terminal_bot(
+    graph: Any,
+    user_input: dict[str, Any],
+    stream_handler: Any | None = None
+) -> AsyncGenerator[str, None]:
+    """Stream bot responses in the terminal.
+
+    Args:
+        graph: The graph to use for processing
+        user_input: User input dictionary
+        stream_handler: Optional stream handler
+
+    Yields:
+        Bot response chunks
+
+    Raises:
+        RuntimeError: If memory limit is exceeded or task limit is reached
+        ValueError: If no response is generated
+    """
+    bot = ThreadSafeTerminalBot()
+    async with bot:
+        async for chunk in bot.stream_terminal_bot(str(user_input), stream_handler):
+            yield chunk
+
+
+async def invoke_terminal_bot(
+    graph: Any,
+    user_input: dict[str, Any],
+    handler: Any | None = None
+) -> str:
+    """Invoke the terminal bot with input.
+
+    Args:
+        graph: The graph to use for processing
+        user_input: User input dictionary
+        handler: Optional message handler
+
+    Returns:
+        Bot response
+
+    Raises:
+        RuntimeError: If memory limit is exceeded or task limit is reached
+        ValueError: If no response is generated
+    """
+    bot = ThreadSafeTerminalBot()
+    async with bot:
+        response, _ = await bot.invoke_terminal_bot(str(user_input))
+        return response
+
+
+async def go_terminal_bot() -> None:
+    """Start the terminal bot and run until shutdown."""
+    bot = ThreadSafeTerminalBot()
+    async with bot:
+        await bot.start()

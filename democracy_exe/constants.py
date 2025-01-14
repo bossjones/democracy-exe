@@ -44,6 +44,11 @@ MAX_FILE_UPLOAD_IMAGES_IMGUR = 20000000
 MAX_FILE_UPLOAD_VIDEO_IMGUR = 200000000
 MAX_RUNTIME_VIDEO_IMGUR = 20  # seconds
 
+# Twitter download commands
+DL_SAFE_TWITTER_COMMAND = "gallery-dl --no-mtime {dl_uri}"
+DL_TWITTER_THREAD_COMMAND = "gallery-dl --no-mtime --filter thread {dl_uri}"
+DL_TWITTER_CARD_COMMAND = "gallery-dl --no-mtime --filter card {dl_uri}"
+
 # Bot settings
 SECONDS_DELAY_RECEIVING_MSG = 3  # give a delay for the bot to respond so it can catch multiple messages
 MAX_THREAD_MESSAGES = 200

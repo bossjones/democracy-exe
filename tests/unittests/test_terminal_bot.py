@@ -20,6 +20,7 @@ from langgraph.graph.state import CompiledStateGraph
 import pytest
 
 from democracy_exe.chatbot.terminal_bot import BotState, ThreadSafeTerminalBot, invoke_terminal_bot, stream_terminal_bot
+from democracy_exe.chatbot.utils.resource_manager import ResourceLimits
 
 
 if TYPE_CHECKING:
@@ -56,6 +57,11 @@ def mock_graph(mocker: MockerFixture) -> CompiledStateGraph:
     mock_graph = mocker.Mock(spec=CompiledStateGraph)
     mock_graph.stream.return_value = [{"messages": [AIMessage(content="Test response")]}]
     mock_graph.invoke.return_value = {"messages": [AIMessage(content="Test response")], "response": "Test response"}
+
+    # Configure mock with required resource limits
+    mock_graph.limits = ResourceLimits(
+        max_memory_mb=512, max_tasks=100, max_response_size_mb=1, max_buffer_size_kb=64, task_timeout_seconds=30
+    )
     return mock_graph
 
 
@@ -175,11 +181,14 @@ async def test_terminal_bot_process_message(
         terminal_bot: The bot instance to test
         mock_graph: The mock graph instance
     """
-    config = {"configurable": {"thread_id": "1", "user_id": "1"}}
-    await terminal_bot.process_message(mock_graph, "Test message", config)
+    async with terminal_bot:
+        config = {"configurable": {"thread_id": "1", "user_id": "1"}}
+        async for response in terminal_bot.stream_terminal_bot("Test message", mock_graph.stream):
+            assert response is not None
+            assert isinstance(response, str)
 
-    # Verify graph interaction
-    mock_graph.stream.assert_called_once()
+        # Verify graph interaction
+        mock_graph.stream.assert_called_once()
 
 
 @pytest.mark.asyncio

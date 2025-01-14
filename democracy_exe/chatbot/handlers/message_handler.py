@@ -177,3 +177,38 @@ class MessageHandler:
             response = await self.attachment_handler.download_image(attachment.url)
             if response:
                 return attachment.url
+
+    async def get_thread(self, message: discord.Message) -> discord.Thread | discord.DMChannel:
+        """Get or create a thread for a message.
+
+        Args:
+            message: The Discord message
+
+        Returns:
+            The thread or DM channel for the conversation
+
+        Raises:
+            RuntimeError: If thread creation fails
+        """
+        try:
+            # For DM channels, return the channel directly
+            if isinstance(message.channel, discord.DMChannel):
+                return message.channel
+
+            # For text channels, create or get thread
+            if isinstance(message.channel, discord.TextChannel):
+                thread_name = f"Chat with {message.author.name}"
+
+                # Try to create a new thread
+                try:
+                    thread = await message.create_thread(name=thread_name)
+                    return thread
+                except discord.HTTPException as e:
+                    logger.error("Failed to create thread", error=str(e))
+                    raise RuntimeError("Failed to create thread") from e
+
+            return message.channel
+
+        except Exception as e:
+            logger.error("Error getting/creating thread", error=str(e))
+            raise RuntimeError("Failed to get/create thread") from e

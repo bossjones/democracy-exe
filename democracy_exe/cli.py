@@ -63,7 +63,7 @@ import democracy_exe
 from democracy_exe.aio_settings import aiosettings, get_rich_console
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
 from democracy_exe.chatbot.discord_bot import DemocracyBot
-from democracy_exe.chatbot.terminal_bot import go_terminal_bot
+from democracy_exe.chatbot.terminal_bot import ThreadSafeTerminalBot, go_terminal_bot
 from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
 from democracy_exe.utils.base import print_line_seperator

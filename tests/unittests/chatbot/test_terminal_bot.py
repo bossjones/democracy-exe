@@ -13,7 +13,7 @@ import structlog
 
 import pytest
 
-from democracy_exe.chatbot.terminal_bot import TerminalBot
+from democracy_exe.chatbot.terminal_bot import ThreadSafeTerminalBot
 from democracy_exe.chatbot.utils.resource_manager import ResourceLimits
 
 
@@ -27,17 +27,17 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def terminal_bot() -> TerminalBot:
+def terminal_bot() -> ThreadSafeTerminalBot:
     """Create test terminal bot.
 
     Returns:
-        TerminalBot: Test terminal bot instance
+        ThreadSafeTerminalBot: Test terminal bot instance
     """
-    return TerminalBot()
+    return ThreadSafeTerminalBot()
 
 
 @pytest.mark.asyncio
-async def test_terminal_bot_initialization(terminal_bot: TerminalBot) -> None:
+async def test_terminal_bot_initialization(terminal_bot: ThreadSafeTerminalBot) -> None:
     """Test terminal bot initialization.
 
     Args:
@@ -49,7 +49,7 @@ async def test_terminal_bot_initialization(terminal_bot: TerminalBot) -> None:
 
 
 @pytest.mark.asyncio
-async def test_signal_handling(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_signal_handling(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test signal handling.
 
     Args:
@@ -67,7 +67,7 @@ async def test_signal_handling(terminal_bot: TerminalBot, mocker: MockerFixture)
 
 
 @pytest.mark.asyncio
-async def test_cleanup(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_cleanup(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test resource cleanup.
 
     Args:
@@ -90,7 +90,7 @@ async def test_cleanup(terminal_bot: TerminalBot, mocker: MockerFixture) -> None
 
 
 @pytest.mark.asyncio
-async def test_stream_terminal_bot(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_stream_terminal_bot(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test streaming bot responses.
 
     Args:
@@ -117,7 +117,7 @@ async def test_stream_terminal_bot(terminal_bot: TerminalBot, mocker: MockerFixt
 
 
 @pytest.mark.asyncio
-async def test_stream_terminal_bot_memory_limit(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_stream_terminal_bot_memory_limit(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test streaming with memory limit exceeded.
 
     Args:
@@ -134,7 +134,7 @@ async def test_stream_terminal_bot_memory_limit(terminal_bot: TerminalBot, mocke
 
 
 @pytest.mark.asyncio
-async def test_invoke_terminal_bot(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_invoke_terminal_bot(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test invoking bot.
 
     Args:
@@ -156,7 +156,7 @@ async def test_invoke_terminal_bot(terminal_bot: TerminalBot, mocker: MockerFixt
 
 
 @pytest.mark.asyncio
-async def test_invoke_terminal_bot_size_limit(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_invoke_terminal_bot_size_limit(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test invoking bot with response size limit.
 
     Args:
@@ -175,7 +175,7 @@ async def test_invoke_terminal_bot_size_limit(terminal_bot: TerminalBot, mocker:
 
 
 @pytest.mark.asyncio
-async def test_start_and_shutdown(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_start_and_shutdown(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test bot startup and shutdown.
 
     Args:
@@ -197,7 +197,7 @@ async def test_start_and_shutdown(terminal_bot: TerminalBot, mocker: MockerFixtu
 
 
 @pytest.mark.asyncio
-async def test_context_manager(terminal_bot: TerminalBot, mocker: MockerFixture) -> None:
+async def test_context_manager(terminal_bot: ThreadSafeTerminalBot, mocker: MockerFixture) -> None:
     """Test async context manager.
 
     Args:
