@@ -54,16 +54,32 @@ Usage:
 from __future__ import annotations
 
 import enum
+import os
 import pathlib
 
 from datetime import timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, field_validator, model_validator
+import rich
+
+from pydantic import Field, Json, PostgresDsn, RedisDsn, SecretStr, field_serializer, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
 
-from democracy_exe import __version__
+
+def democracy_user_agent() -> str:
+    """Get a common user agent"""
+    return "democracy-exe/0.0.1"
+
+
+# Get rid of warning
+# USER_AGENT environment variable not set, consider setting it to identify your requests.
+# os.environ["USER_AGENT"] = democracy_user_agent()
+
+TIMEZONE = timezone(timedelta(hours=-5), name='America/New_York')
+
+_TOKENS_PER_TILE = 170
+_TILE_SIZE = 512
 
 
 class SettingsError(Exception):
@@ -156,35 +172,47 @@ class ConfigurationError(SettingsError):
 
 # Older model configurations
 _OLDER_MODEL_CONFIG: dict[str, dict[str, int | float]] = {
-    "gpt-4": {
-        "max_tokens": 8192,
-        "max_output_tokens": 4096,
-        "prompt_cost_per_token": 0.00003,
-        "completion_cost_per_token": 0.00006
-    },
     "gpt-4-0613": {
         "max_tokens": 8192,
         "max_output_tokens": 4096,
         "prompt_cost_per_token": 0.00003,
-        "completion_cost_per_token": 0.00006
+        "completion_cost_per_token": 0.00006,
     },
-    "gpt-4-32k": {
+    "gpt-4-32k-0314": {
         "max_tokens": 32768,
         "max_output_tokens": 4096,
         "prompt_cost_per_token": 0.00006,
-        "completion_cost_per_token": 0.00012
+        "completion_cost_per_token": 0.00012,
     },
-    "gpt-3.5-turbo": {
+    "gpt-4-32k-0613": {
+        "max_tokens": 32768,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00006,
+        "completion_cost_per_token": 0.00012,
+    },
+    "gpt-3.5-turbo-0301": {
         "max_tokens": 4096,
         "max_output_tokens": 4096,
-        "prompt_cost_per_token": 0.000001,
-        "completion_cost_per_token": 0.000002
+        "prompt_cost_per_token": 0.0000015,
+        "completion_cost_per_token": 0.000002,
     },
-    "gpt-3.5-turbo-16k": {
+    "gpt-3.5-turbo-0613": {
+        "max_tokens": 4096,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000015,
+        "completion_cost_per_token": 0.000002,
+    },
+    "gpt-3.5-turbo-16k-0613": {
         "max_tokens": 16384,
         "max_output_tokens": 4096,
         "prompt_cost_per_token": 0.000003,
-        "completion_cost_per_token": 0.000004
+        "completion_cost_per_token": 0.000004,
+    },
+    "gpt-3.5-turbo-instruct": {
+        "max_tokens": 4096,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000015,
+        "completion_cost_per_token": 0.000002,
     }
 }
 
@@ -200,53 +228,113 @@ _OLDER_EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {
 
 # Model configurations
 _NEWER_MODEL_CONFIG: dict[str, dict[str, int | float]] = {
-    "gpt-4-turbo-preview": {
-        "max_tokens": 128000,
-        "max_output_tokens": 4096,
-        "prompt_cost_per_token": 0.00001,
-        "completion_cost_per_token": 0.00003
-    },
-    "gpt-4-vision-preview": {
-        "max_tokens": 128000,
-        "max_output_tokens": 4096,
-        "prompt_cost_per_token": 0.00001,
-        "completion_cost_per_token": 0.00003
+    "claude-3-5-sonnet-20240620": {
+        "max_tokens": 2048,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
     },
     "claude-3-opus-20240229": {
         "max_tokens": 2048,
         "max_output_tokens": 16384,
-        "prompt_cost_per_token": 0.000015,
-        "completion_cost_per_token": 0.000007
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
     },
     "claude-3-sonnet-20240229": {
         "max_tokens": 2048,
         "max_output_tokens": 16384,
-        "prompt_cost_per_token": 0.000003,
-        "completion_cost_per_token": 0.0000015
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
     },
     "claude-3-haiku-20240307": {
         "max_tokens": 2048,
         "max_output_tokens": 16384,
         "prompt_cost_per_token": 0.0000025,
-        "completion_cost_per_token": 0.000001
-    },
-    "gpt-4o": {
-        "max_tokens": 128000,
-        "max_output_tokens": 16384,
-        "prompt_cost_per_token": 0.00001,
-        "completion_cost_per_token": 0.00003
-    },
-    "gpt-4o-mini-2024-07-18": {
-        "max_tokens": 900,
-        "max_output_tokens": 16384,
-        "prompt_cost_per_token": 0.000005,
-        "completion_cost_per_token": 0.000015
+        "completion_cost_per_token": 0.00001,
     },
     "gpt-4o-2024-08-06": {
         "max_tokens": 128000,
         "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.0000025,
+        "completion_cost_per_token": 0.00001,
+    },
+    "gpt-4o-mini-2024-07-18": {
+        "max_tokens": 900,
+        "max_output_tokens": 16384,
+        "prompt_cost_per_token": 0.000000150,
+        "completion_cost_per_token": 0.00000060,
+    },
+    "gpt-4o-2024-05-13": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000005,
+        "completion_cost_per_token": 0.000015,
+    },
+    "gpt-4-turbo-2024-04-09": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
         "prompt_cost_per_token": 0.00001,
-        "completion_cost_per_token": 0.00003
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-4-0125-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-4-1106-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-4-vision-preview": {
+        "max_tokens": 128000,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.00001,
+        "completion_cost_per_token": 0.00003,
+    },
+    "gpt-3.5-turbo-0125": {
+        "max_tokens": 16384,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0000005,
+        "completion_cost_per_token": 0.0000015,
+    },
+    "gpt-3.5-turbo-1106": {
+        "max_tokens": 16384,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.000001,
+        "completion_cost_per_token": 0.000002,
+    },
+    "gemma-7b-it": {
+        "max_tokens": 8192,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0,  # Open source model
+        "completion_cost_per_token": 0.0,
+    },
+    "gemma2-9b-it": {
+        "max_tokens": 8192,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0,  # Open source model
+        "completion_cost_per_token": 0.0,
+    },
+    "llama3-70b-8192": {
+        "max_tokens": 8192,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0,  # Open source model
+        "completion_cost_per_token": 0.0,
+    },
+    "llama3-8b-8192": {
+        "max_tokens": 8192,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0,  # Open source model
+        "completion_cost_per_token": 0.0,
+    },
+    "mixtral-8x7b-32768": {
+        "max_tokens": 32768,
+        "max_output_tokens": 4096,
+        "prompt_cost_per_token": 0.0,  # Open source model
+        "completion_cost_per_token": 0.0,
     }
 }
 
@@ -267,17 +355,35 @@ _NEWER_EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {
 
 # Model aliases for easier reference
 MODEL_POINT: dict[str, str] = {
-    "gpt4": "gpt-4",
-    "gpt4-32k": "gpt-4-32k",
-    "gpt4-turbo": "gpt-4-turbo-preview",
-    "gpt4-vision": "gpt-4-vision-preview",
-    "gpt35": "gpt-3.5-turbo",
-    "gpt35-16k": "gpt-3.5-turbo-16k",
-    "claude3-opus": "claude-3-opus-20240229",
-    "claude3-sonnet": "claude-3-sonnet-20240229",
-    "claude3-haiku": "claude-3-haiku-20240307",
-    "gpt4o": "gpt-4o-2024-08-06",
-    "gpt4o-mini": "gpt-4o-mini-2024-07-18"
+    "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
+    "gpt-4o": "gpt-4o-2024-08-06",
+    "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
+    "gpt-4": "gpt-4-0613",
+    "gpt-4-32k": "gpt-4-32k-0613",
+    "gpt-4-vision": "gpt-4-vision-preview",
+    "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
+    "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-haiku": "claude-3-haiku-20240307",
+    "claude-3-5-sonnet": "claude-3-5-sonnet-20240620",
+
+    # "gpt4": "gpt-4-0613",
+    # "gpt4-32k": "gpt-4-32k-0613",
+    # "gpt4-turbo": "gpt-4-turbo-2024-04-09",
+    # "gpt4-vision": "gpt-4-vision-preview",
+    # "gpt35": "gpt-3.5-turbo-0125",
+    # "gpt35-16k": "gpt-3.5-turbo-16k-0613",
+    # "claude3-opus": "claude-3-opus-20240229",
+    # "claude3-sonnet": "claude-3-sonnet-20240229",
+    # "claude3-haiku": "claude-3-haiku-20240307",
+    # "gpt4o": "gpt-4o-2024-08-06",
+    # "gpt4o-mini": "gpt-4o-mini-2024-07-18",
+    # "gemma7b": "gemma-7b-it",
+    # "gemma9b": "gemma2-9b-it",
+    # "llama70b": "llama3-70b-8192",
+    # "llama8b": "llama3-8b-8192",
+    # "mixtral": "mixtral-8x7b-32768"
 }
 
 # Combine configurations
@@ -293,8 +399,8 @@ _MODEL_POINT_CONFIG = {
 }
 MODEL_CONFIG.update(_MODEL_POINT_CONFIG)
 
-# Create model zoo for validation
-MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys()) | set(EMBEDDING_CONFIG.keys()) | {"text-embedding-3-small", "text-embedding-3-large"}
+# produces a list of all models and embeddings available
+MODEL_ZOO = set(MODEL_CONFIG.keys()) | set(EMBEDDING_CONFIG.keys())
 
 # Embedding model dimensions for different models
 EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
@@ -303,7 +409,6 @@ EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
     "text-embedding-3-large": 1024
 }
 
-TIMEZONE = timezone(timedelta(hours=8), name='Asia/Kuala_Lumpur')
 
 def normalize_settings_path(file_path: str) -> str:
     """Normalize file paths with tilde expansion.
@@ -401,30 +506,37 @@ class AioSettings(BaseSettings):
 
     # OpenCommit settings
     oco_openai_api_key: SecretStr = Field(
+        env="OCO_OPENAI_API_KEY",
         default=SecretStr(""),
         description="OpenAI API key for OpenCommit"
     )
     oco_tokens_max_input: int = Field(
+        env="OCO_TOKENS_MAX_INPUT",
         default=4096,
         description="Maximum input tokens for OpenCommit"
     )
     oco_tokens_max_output: int = Field(
+        env="OCO_TOKENS_MAX_OUTPUT",
         default=500,
         description="Maximum output tokens for OpenCommit"
     )
     oco_model: str = Field(
-        default="gpt-4o",
+        env="OCO_MODEL",
+        default="gpt-4o-mini-2024-07-18",
         description="Model to use for OpenCommit"
     )
     oco_language: str = Field(
+        env="OCO_LANGUAGE",
         default="en",
         description="Language for OpenCommit messages"
     )
     oco_prompt_module: str = Field(
+        env="OCO_PROMPT_MODULE",
         default="conventional-commit",
         description="Prompt module for OpenCommit"
     )
     oco_ai_provider: str = Field(
+        env="OCO_AI_PROVIDER",
         default="openai",
         description="AI provider for OpenCommit"
     )
@@ -460,8 +572,9 @@ class AioSettings(BaseSettings):
         default="?",
         description="Command prefix for the Discord bot"
     )
-    discord_client_id: str = Field(
-        default="",
+    discord_command_prefix: str = "?"
+    discord_client_id: int | str = Field(
+        default=0,
         description="Discord application client ID"
     )
     discord_client_secret: SecretStr = Field(
@@ -764,27 +877,11 @@ class AioSettings(BaseSettings):
     )
 
     # Model configurations
-    MODEL_CONFIG: dict[str, dict[str, int | float]] = {**_OLDER_MODEL_CONFIG, **_NEWER_MODEL_CONFIG}
-    MODEL_POINT: dict[str, str] = {
-        "gpt4": "gpt-4",
-        "gpt4-32k": "gpt-4-32k",
-        "gpt35": "gpt-3.5-turbo",
-        "gpt35-16k": "gpt-3.5-turbo-16k",
-        "gpt4-turbo": "gpt-4-turbo-preview",
-        "gpt4-vision": "gpt-4-vision-preview",
-        "claude3-opus": "claude-3-opus-20240229",
-        "claude3-sonnet": "claude-3-sonnet-20240229",
-        "claude3-haiku": "claude-3-haiku-20240307",
-        "gpt4o": "gpt-4o-2024-08-06",
-        "gpt4o-mini": "gpt-4o-mini-2024-07-18"
-    }
-    MODEL_ZOO: set[str] = set(MODEL_CONFIG.keys())
-    EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = {**_OLDER_EMBEDDING_CONFIG, **_NEWER_EMBEDDING_CONFIG}
-    EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = {
-        "text-embedding-ada-002": 1536,
-        "text-embedding-3-small": 1536,
-        "text-embedding-3-large": 1024
-    }
+    MODEL_POINT: dict[str, str] = MODEL_POINT
+    MODEL_CONFIG: dict[str, dict[str, int | float]] = MODEL_CONFIG
+    EMBEDDING_CONFIG: dict[str, dict[str, int | float]] = EMBEDDING_CONFIG
+    EMBEDDING_MODEL_DIMENSIONS_DATA: dict[str, int] = EMBEDDING_MODEL_DIMENSIONS_DATA
+    MODEL_ZOO: set[str] = MODEL_ZOO
 
     # LLM Provider settings
     llm_provider: str = Field(
@@ -850,16 +947,51 @@ class AioSettings(BaseSettings):
     )
 
     pinecone_api_key: SecretStr = Field(
-        default=SecretStr(""),
-        description="Pinecone API key"
+        env="PINECONE_API_KEY",
+        description="pinecone api key",
+        default=SecretStr("")
     )
+    pinecone_env: str = Field(
+        env="PINECONE_ENV",
+        description="pinecone env",
+        default="local"
+    )
+    pinecone_index: str = Field(
+        env="PINECONE_INDEX",
+        description="pinecone index",
+        default=""
+    )
+    pinecone_namespace: str = Field(
+        env="PINECONE_NAMESPACE",
+        description="pinecone namespace",
+        default="ns1"
+    )
+    pinecone_index_name: str = Field(
+        env="PINECONE_INDEX_NAME",
+        description="pinecone index name",
+        default="democracy-exe"
+    )
+    pinecone_url: str = Field(
+        env="PINECONE_URL",
+        description="pinecone url",
+        default="https://democracy-exe-dxt6ijd.svc.aped-4627-b74a.pinecone.io"
+    )
+
+    chatbot_type: Literal["terminal", "discord"] = Field(
+        env="CHATBOT_TYPE",
+        description="chatbot type",
+        default="terminal"
+    )
+
     cohere_api_key: SecretStr = Field(
-        default=SecretStr(""),
-        description="Cohere API key"
+        env="COHERE_API_KEY",
+        description="cohere api key",
+        default=SecretStr("")
     )
     anthropic_api_key: SecretStr = Field(
-        default=SecretStr(""),
-        description="Anthropic API key"
+        env="ANTHROPIC_API_KEY",
+        description="claude api key",
+        default=SecretStr("")
     )
 
     chat_history_buffer: int = Field(
@@ -872,14 +1004,17 @@ class AioSettings(BaseSettings):
         description="The chat model to use"
     )
 
+    vision_model: str = Field(env="VISION_MODEL", description="vision model", default="gpt-4o")
+
     eval_max_concurrency: int = Field(
         default=4,
         description="Maximum number of concurrent evaluation tasks"
     )
 
     groq_api_key: SecretStr = Field(
-        default=SecretStr(""),
-        description="API key for Groq"
+        env="GROQ_API_KEY",
+        description="groq api key",
+        default=SecretStr("")
     )
 
     langchain_api_key: SecretStr = Field(
@@ -922,68 +1057,388 @@ class AioSettings(BaseSettings):
         default="democracy_exe"
     )
 
-    tavily_api_key: SecretStr = Field(env="TAVILY_API_KEY", description="Tavily API key", default="")
-    brave_search_api_key: SecretStr = Field(env="BRAVE_SEARCH_API_KEY", description="Brave Search API key", default="")
-    unstructured_api_key: SecretStr = Field(env="UNSTRUCTURED_API_KEY", description="unstructured api key", default="")
+    tavily_api_key: SecretStr = Field(
+        env="TAVILY_API_KEY",
+        description="Tavily API key",
+        default=SecretStr("")
+    )
+    brave_search_api_key: SecretStr = Field(
+        env="BRAVE_SEARCH_API_KEY",
+        description="Brave Search API key",
+        default=SecretStr("")
+    )
+    unstructured_api_key: SecretStr = Field(
+        env="UNSTRUCTURED_API_KEY",
+        description="unstructured api key",
+        default=SecretStr("")
+    )
     unstructured_api_url: str = Field(
         env="UNSTRUCTURED_API_URL",
         description="unstructured api url",
         default="https://api.unstructured.io/general/v0/general",
     )
 
-    debug_aider: bool = Field(env="DEBUG_AIDER", description="debug tests stuff written by aider", default=False)
-    debug_langgraph_studio: bool = Field(env="DEBUG_LANGGRAPH_STUDIO", description="enable langgraph studio debug", default=False)
-    python_fault_handler: bool = Field(env="PYTHONFAULTHANDLER", description="enable fault handler", default=False)
+    debug_aider: bool = Field(
+        env="DEBUG_AIDER",
+        description="debug tests stuff written by aider",
+        default=False
+    )
+    debug_langgraph_studio: bool = Field(
+        env="DEBUG_LANGGRAPH_STUDIO",
+        description="enable langgraph studio debug",
+        default=False
+    )
+    python_fault_handler: bool = Field(
+        env="PYTHONFAULTHANDLER",
+        description="enable fault handler",
+        default=False
+    )
 
-    editor: str = Field(env="EDITOR", description="EDITOR", default="vim")
-    visual: str = Field(env="VISUAL", description="VISUAL", default="vim")
-    git_editor: str = Field(env="GIT_EDITOR", description="GIT_EDITOR", default="vim")
+    editor: str = Field(
+        env="EDITOR",
+        description="EDITOR",
+        default="vim"
+    )
+    visual: str = Field(
+        env="VISUAL",
+        description="VISUAL",
+        default="vim"
+    )
+    git_editor: str = Field(
+        env="GIT_EDITOR",
+        description="GIT_EDITOR",
+        default="vim"
+    )
 
-    tweetpik_api_key: SecretStr = Field(env="TWEETPIK_API_KEY", description="TweetPik API key", default="")
-    tweetpik_authorization: SecretStr = Field(env="TWEETPIK_AUTHORIZATION", description="TweetPik authorization", default="")
-    tweetpik_bucket_id: str = Field(env="TWEETPIK_BUCKET_ID", description="TweetPik bucket ID", default="323251495115948625")
-    tweetpik_theme: str = Field(env="TWEETPIK_THEME", description="Theme for tweet screenshots", default="dim")
-    tweetpik_dimension: str = Field(env="TWEETPIK_DIMENSION", description="Dimension for tweet screenshots", default="instagramFeed")
+    tweetpik_api_key: SecretStr = Field(
+        env="TWEETPIK_API_KEY",
+        description="TweetPik API key",
+        default=SecretStr("")
+    )
+    tweetpik_authorization: SecretStr = Field(
+        env="TWEETPIK_AUTHORIZATION",
+        description="TweetPik authorization",
+        default=SecretStr("")
+    )
+    tweetpik_bucket_id: str = Field(
+        env="TWEETPIK_BUCKET_ID",
+        description="TweetPik bucket ID",
+        default="323251495115948625"
+    )
+    tweetpik_theme: str = Field(
+        env="TWEETPIK_THEME",
+        description="Theme for tweet screenshots",
+        default="dim"
+    )
+    tweetpik_dimension: str = Field(
+        env="TWEETPIK_DIMENSION",
+        description="Dimension for tweet screenshots",
+        default="instagramFeed"
+    )
 
     tool_allowlist: list[str] = ["tavily_search", "magic_function"]
     extension_allowlist: list[str] = ["democracy_exe.chatbot.cogs.twitter"]
     tavily_search_max_results: int = 3
 
     agent_type: Literal["plan_and_execute", "basic", "advanced", "adaptive_rag"] = Field(
-        env="AGENT_TYPE", description="Type of agent to use", default="adaptive_rag"
+        env="AGENT_TYPE",
+        description="Type of agent to use",
+        default="adaptive_rag"
     )
 
-    llm_memory_type: str = Field(env="LLM_MEMORY_TYPE", description="Type of memory to use", default="memorysaver")
-    llm_memory_enabled: bool = Field(env="LLM_MEMORY_ENABLED", description="Enable memory", default=True)
-    llm_human_loop_enabled: bool = Field(env="LLM_HUMAN_LOOP_ENABLED", description="Enable human loop", default=False)
+    llm_memory_type: str = Field(
+        env="LLM_MEMORY_TYPE",
+        description="Type of memory to use",
+        default="memorysaver"
+    )
+    llm_memory_enabled: bool = Field(
+        env="LLM_MEMORY_ENABLED",
+        description="Enable memory",
+        default=True
+    )
+    llm_human_loop_enabled: bool = Field(
+        env="LLM_HUMAN_LOOP_ENABLED",
+        description="Enable human loop",
+        default=False
+    )
 
     text_chunk_size: int = 2000
     text_chunk_overlap: int = 200
-    text_splitter: Json[dict[str, Any]] = "{}"  # custom splitter settings
+    text_splitter: str = "{}"  # custom splitter settings
 
-    qa_completion_llm: Json[dict[str, Any]] = """{
+    qa_completion_llm: str = """{
         "_type": "openai-chat",
         "model_name": "gpt-4o-mini",
         "temperature": 0,
         "max_tokens": 1000,
         "verbose": true
     }"""
-    qa_followup_llm: Json[dict[str, Any]] = """{
+    qa_followup_llm: str = """{
         "_type": "openai-chat",
         "model_name": "gpt-4o-mini",
         "temperature": 0,
         "max_tokens": 200,
         "verbose": true
     }"""
-    summarize_llm: Json[dict[str, Any]] = """{
+    summarize_llm: str = """{
         "_type": "openai-chat",
         "model_name": "gpt-4o",
         "temperature": 0,
         "max_tokens": 2000
     }"""
 
+
+    debug: bool = True
+    log_pii: bool = True
+
+    sentry_dsn: SecretStr = Field(
+        default=SecretStr(""),
+        description="Sentry DSN"
+    )
+    enable_sentry: bool = False
+
+    changelogs_github_api_token: SecretStr = Field(
+        env="CHANGELOGS_GITHUB_API_TOKEN",
+        description="GitHub API token for Changelogs",
+        default=SecretStr("")
+    )
+
+    gemini_api_key: SecretStr = Field(
+        env="GEMINI_API_KEY",
+        description="gemini api key",
+        default=SecretStr("")
+    )
+
+
+    default_dropbox_folder: str = "/cerebro_downloads"
+    dropbox_cerebro_app_key: SecretStr = Field(
+        env="DROPBOX_CEREBRO_APP_KEY",
+        description="Dropbox Cerebro App Key",
+        default=SecretStr("")
+    )
+    dropbox_cerebro_app_secret: SecretStr = Field(
+        env="DROPBOX_CEREBRO_APP_SECRET",
+        description="Dropbox Cerebro App Secret",
+        default=SecretStr("")
+    )
+    dropbox_cerebro_token: SecretStr = Field(
+        env="DROPBOX_CEREBRO_TOKEN",
+        description="Dropbox Cerebro Token",
+        default=SecretStr("")
+    )
+    dropbox_cerebro_oauth_access_token: SecretStr = Field(
+        env="DROPBOX_CEREBRO_OAUTH_ACCESS_TOKEN",
+        description="Dropbox Cerebro OAuth Access Token",
+        default=SecretStr("")
+    )
+
+    firecrawl_api_key: SecretStr = Field(
+        env="FIRECRAWL_API_KEY",
+        description="Firecrawl API key",
+        default=SecretStr("")
+    )
+
+    # Model-specific settings
+    max_tokens: int = Field(
+        env="MAX_TOKENS",
+        description="Maximum number of tokens for the model",
+        default=900
+    )
+    max_retries: int = Field(
+        env="MAX_RETRIES",
+        description="Maximum number of retries for API calls",
+        default=9
+    )
+
+    chroma_host: str = "localhost"
+    chroma_port: str = "9010"
+    enable_chroma: bool = True
+
+
+    active_memory_file: str = Field(
+        env="ACTIVE_MEMORY_FILE",
+        description="Path to the active memory JSON file",
+        default="./active_memory.json",
+    )
+    add_start_index: bool = Field(
+        env="ADD_START_INDEX", description="Whether to add start index to text chunks", default=False
+    )
+
+    # Autocrop timeouts
+    autocrop_download_timeout: int = Field(
+        env="AUTOCROP_DOWNLOAD_TIMEOUT",
+        description="Timeout in seconds for downloading images in autocrop",
+        default=30
+    )
+    autocrop_processing_timeout: int = Field(
+        env="AUTOCROP_PROCESSING_TIMEOUT",
+        description="Timeout in seconds for processing images in autocrop",
+        default=60
+    )
+
+    bot_name: str = "DemocracyExeAI"
+
+    chunk_size: int = Field(env="CHUNK_SIZE", description="Size of each text chunk", default=1000)
+    chunk_overlap: int = Field(env="CHUNK_OVERLAP", description="Overlap between text chunks", default=200)
+
+    dataset_name: str = Field(
+        env="DATASET_NAME", description="Name of the dataset to use for evaluation", default="Climate Change Q&A"
+    )
+    default_search_kwargs: dict[str, int] = Field(
+        env="DEFAULT_SEARCH_KWARGS",
+        description="Default arguments for similarity search",
+        default_factory=lambda: {"k": 2},
+    )
+
+    localfilestore_root_path: str = Field(
+        env="LOCALFILESTORE_ROOT_PATH", description="root path for local file store", default="./local_file_store"
+    )
+    log_level: int = 10 # logging.DEBUG
+    thirdparty_lib_loglevel: str = "INFO"
+
+# Variables for Postgres/pgvector
+    pgvector_driver: str = Field(
+        env="PGVECTOR_DRIVER",
+        description="The database driver to use for pgvector (e.g., psycopg)",
+        default="psycopg",
+    )
+    pgvector_host: str = Field(
+        env="PGVECTOR_HOST",
+        description="The hostname or IP address of the pgvector database server",
+        default="localhost",
+    )
+    pgvector_port: int = Field(
+        env="PGVECTOR_PORT",
+        description="The port number of the pgvector database server",
+        default=6432,
+    )
+    pgvector_database: str = Field(
+        env="PGVECTOR_DATABASE",
+        description="The name of the pgvector database",
+        default="langchain",
+    )
+    pgvector_user: str = Field(
+        env="PGVECTOR_USER",
+        description="The username to connect to the pgvector database",
+        default="langchain",
+    )
+    pgvector_password: SecretStr = Field(
+        env="PGVECTOR_PASSWORD",
+        description="The password to connect to the pgvector database",
+        default="langchain",
+    )
+    pgvector_pool_size: int = Field(
+        env="PGVECTOR_POOL_SIZE",
+        description="The size of the connection pool for the pgvector database",
+        default=10,
+    )
+    pgvector_dsn_uri: str = Field(
+        env="PGVECTOR_DSN_URI",
+        description="optional DSN URI, if set other pgvector_* settings are ignored",
+        default="",
+    )
+    provider: str = Field(env="PROVIDER", description="AI provider (openai or anthropic)", default="openai")
+    question_to_ask: str = Field(
+        env="QUESTION_TO_ASK",
+        description="Question to ask for evaluation",
+        default="What is the main cause of climate change?",
+    )
+    retry_stop_after_attempt: int = 3
+    retry_wait_exponential_multiplier: int | float = 2
+    retry_wait_exponential_max: int | float = 5
+    retry_wait_exponential_min: int | float = 1
+    retry_wait_fixed: int | float = 15
+
+    scratch_pad_dir: str = Field(
+        env="SCRATCH_PAD_DIR",
+        description="Directory for scratch pad files",
+        default="./scratchpad",
+    )
+
+    sklearn_persist_path: str = Field(
+        env="SKLEARN_PERSIST_PATH",
+        description="Path to persist the SKLearn vector store",
+        default="./db.db",
+    )
+    sklearn_serializer: Literal["json", "bson", "parquet"] = Field(
+        env="SKLEARN_SERIALIZER",
+        description="Serializer for the SKLearn vector store",
+        default="json",
+    )
+    sklearn_metric: str = Field(
+        env="SKLEARN_METRIC",
+        description="Metric for the SKLearn vector store",
+        default="cosine",
+    )
+    # Summarization
+    summ_default_chain: str = "stuff"
+    summ_token_splitter: int = 4000
+    summ_token_overlap: int = 500
+
+
+    tweetpik_api_key: SecretStr = Field(env="TWEETPIK_API_KEY", description="TweetPik API key", default=SecretStr(""))
+
+    tweetpik_authorization: SecretStr = Field(env="TWEETPIK_AUTHORIZATION", description="TweetPik authorization", default=SecretStr(""))
+    tweetpik_bucket_id: str = Field(env="TWEETPIK_BUCKET_ID", description="TweetPik bucket ID", default="323251495115948625")
+    # change the background color of the tweet screenshot
+    tweetpik_background_color: str = "#ffffff"
+
+    # Theme and dimension settings
+    tweetpik_theme: str = Field(env="TWEETPIK_THEME", description="Theme for tweet screenshots", default="dim")
+    tweetpik_dimension: str = Field(env="TWEETPIK_DIMENSION", description="Dimension for tweet screenshots", default="instagramFeed")
+
+    # Color settings
+    tweetpik_background_color: str = Field(env="TWEETPIK_BACKGROUND_COLOR", description="Background color for tweet screenshots", default="#15212b")
+    tweetpik_text_primary_color: str = Field(env="TWEETPIK_TEXT_PRIMARY_COLOR", description="Primary text color", default="#FFFFFF")
+    tweetpik_text_secondary_color: str = Field(env="TWEETPIK_TEXT_SECONDARY_COLOR", description="Secondary text color", default="#8899a6")
+    tweetpik_link_color: str = Field(env="TWEETPIK_LINK_COLOR", description="Color for links and mentions", default="#1b95e0")
+    tweetpik_verified_icon_color: str = Field(env="TWEETPIK_VERIFIED_ICON_COLOR", description="Color for verified badge", default="#1b95e0")
+
+    # Display settings
+    tweetpik_display_verified: str = Field(env="TWEETPIK_DISPLAY_VERIFIED", description="Show verified badge", default="default")
+    tweetpik_display_metrics: bool = Field(env="TWEETPIK_DISPLAY_METRICS", description="Show metrics (likes, retweets)", default=False)
+    tweetpik_display_embeds: bool = Field(env="TWEETPIK_DISPLAY_EMBEDS", description="Show embedded content", default=True)
+
+    # Content settings
+    tweetpik_content_scale: float = Field(env="TWEETPIK_CONTENT_SCALE", description="Scale factor for content", default=0.77)
+    tweetpik_content_width: int = Field(env="TWEETPIK_CONTENT_WIDTH", description="Width of content in percentage", default=100)
+
+    # any number higher than zero. this value is used in pixels(px) units
+    tweetpik_canvas_width: str = "510"
+    tweetpik_dimension_ig_feed: str = "1:1"
+    tweetpik_dimension_ig_story: str = "9:16"
+    tweetpik_display_likes: bool = False
+    tweetpik_display_link_preview: bool = True
+    tweetpik_display_media_images: bool = True
+    tweetpik_display_replies: bool = False
+    tweetpik_display_retweets: bool = False
+    tweetpik_display_source: bool = True
+    tweetpik_display_time: bool = True
+    tweetpik_display_verified: bool = True
+
+    # change the link colors used for the links, hashtags and mentions
+    tweetpik_link_color: str = "#1b95e0"
+
+    tweetpik_text_primary_color: str = (
+        "#000000"  # change the text primary color used for the main text of the tweet and user's name
+    )
+    tweetpik_text_secondary_color: str = (
+        "#5b7083"  # change the text secondary used for the secondary info of the tweet like the username
+    )
+
+    # any number higher than zero. this value is representing a percentage
+    tweetpik_text_width: str = "100"
+
+    tweetpik_timezone: str = "america/new_york"
+
+    # change the verified icon color
+    tweetpik_verified_icon: str = "#1b95e0"
+
+    vector_store_type: Literal["pgvector", "chroma", "pinecone", "sklearn"] = "pgvector"
+
     @field_validator("monitor_port")
-    def validate_port(cls, v: int, info: Any) -> int: # ruff: noqa: N805
+    @classmethod
+    def validate_port(cls, v: int, info: Any) -> int:
         """Validate port number is in valid range.
 
         Args:
@@ -1006,6 +1461,7 @@ class AioSettings(BaseSettings):
         return v
 
     @field_validator("llm_temperature")
+    @classmethod
     def validate_temperature(cls, v: float, info: Any) -> float:
         """Validate temperature is in valid range.
 
@@ -1029,6 +1485,7 @@ class AioSettings(BaseSettings):
         return v
 
     @field_validator("redis_pass")
+    @classmethod
     def validate_redis_password(cls, v: SecretStr | None, info: Any) -> SecretStr | None:
         """Validate Redis password if provided.
 
@@ -1053,6 +1510,7 @@ class AioSettings(BaseSettings):
         return v
 
     @field_validator("llm_retry_delay", "llm_retry_max_delay")
+    @classmethod
     def validate_retry_delays(cls, v: int, info: Any) -> int:
         """Validate retry delay values.
 
@@ -1136,14 +1594,14 @@ class AioSettings(BaseSettings):
 
         # Validate LLM model settings
         if llm_model_name:
-            if llm_model_name not in MODEL_CONFIG:
-                raise ModelConfigError(
-                    "Invalid model name",
-                    model_name=llm_model_name,
-                    context={
-                        "available_models": list(MODEL_CONFIG.keys())
-                    }
-                )
+            # if llm_model_name not in MODEL_CONFIG:
+            #     raise ModelConfigError(
+            #         "Invalid model name",
+            #         model_name=llm_model_name,
+            #         context={
+            #             "available_models": list(MODEL_CONFIG.keys())
+            #         }
+            #     )
 
             config = MODEL_CONFIG[llm_model_name]
             values["llm_max_tokens"] = config["max_tokens"]
@@ -1154,13 +1612,14 @@ class AioSettings(BaseSettings):
         # Validate embedding models
         for model_name in [llm_embedding_model_name, openai_embeddings_model]:
             if model_name and model_name not in EMBEDDING_CONFIG:
-                raise ModelConfigError(
-                    "Invalid embedding model name",
-                    model_name=model_name,
-                    context={
-                        "available_models": list(EMBEDDING_CONFIG.keys())
-                    }
-                )
+                # raise ModelConfigError(
+                #     "Invalid embedding model name",
+                #     model_name=model_name,
+                #     context={
+                #         "available_models": list(EMBEDDING_CONFIG.keys())
+                #     }
+                # )
+                pass
 
         # Update embedding dimensions
         if llm_embedding_model_name:
@@ -1168,16 +1627,29 @@ class AioSettings(BaseSettings):
 
         # Validate OpenCommit settings
         oco_model = values.get("oco_model")
-        if oco_model and oco_model not in MODEL_CONFIG:
-            raise ModelConfigError(
-                "Invalid OCO model name",
-                model_name=oco_model,
-                context={
-                    "available_models": list(MODEL_CONFIG.keys())
-                }
-            )
+        # rich.print(f"oco_model: {oco_model}")
+        # if oco_model and oco_model not in MODEL_CONFIG:
+        #     raise ModelConfigError(
+        #         "Invalid OCO model name",
+        #         model_name=oco_model,
+        #         context={
+        #             "available_models": list(MODEL_CONFIG.keys())
+        #         }
+        #     )
 
         return values
+
+    @field_serializer(
+        "discord_token",
+        "openai_api_key",
+        "redis_pass",
+        "pinecone_api_key",
+        "langchain_api_key",
+        "langchain_hub_api_key",
+        when_used="json",
+    )
+    def dump_secret(self, v):
+        return v.get_secret_value()
 
 
 def get_rich_console() -> Console:
@@ -1190,3 +1662,6 @@ def get_rich_console() -> Console:
 
 # Global settings instance
 aiosettings = AioSettings()
+# avoid-global-variables
+# In-place reloading
+aiosettings.__init__()

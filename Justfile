@@ -1159,6 +1159,9 @@ test-fix:
 test-aio-settings:
 	uv run pytest -s --verbose --showlocals --tb=short tests/test_aio_settings.py
 
+test-aio-settings-debug:
+	uv run pytest -s --verbose --showlocals --tb=short --pdb --pdbcls bpdb:BPdb tests/test_aio_settings.py
+
 # Generate langgraph dockerfile for studio
 generate-langgraph-dockerfile-studio:
 	#!/bin/bash
