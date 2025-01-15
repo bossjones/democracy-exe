@@ -1,3 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 # INSPIRATION  from https://github.com/RobertCraigie/prisma-client-py/blob/da53c4280756f1a9bddc3407aa3b5f296aa8cc10/src/prisma/_types.py
 # pyright: reportMissingImports=false
 # pyright: reportUnusedVariable=warning

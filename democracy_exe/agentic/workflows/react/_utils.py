@@ -117,7 +117,7 @@ def get_or_create_index() -> Pinecone.Index:
 
 
 
-@langsmith.traceable
+# @langsmith.traceable
 def ensure_configurable(config: RunnableConfig) -> schemas.GraphConfig:
     """Merge the user-provided config with default values.
 

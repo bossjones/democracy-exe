@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableConfig, ensure_config
 logger = structlog.get_logger(__name__)
 from rich.pretty import pprint
 
-from democracy_exe.agentic.studio.react import prompts
+from democracy_exe.agentic.workflows.react import prompts
 
 
 def _update_configurable_for_backwards_compatibility(

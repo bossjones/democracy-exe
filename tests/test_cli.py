@@ -1,3 +1,7 @@
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+
 """Test the democracy_exe CLI."""
 
 from __future__ import annotations

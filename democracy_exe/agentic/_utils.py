@@ -125,7 +125,7 @@ def get_or_create_index() -> Pinecone.Index:
 
 
 
-@langsmith.traceable  # Decorator to enable tracing of this function in LangSmith
+# @langsmith.traceable  # Decorator to enable tracing of this function in LangSmith
 def ensure_configurable(config: RunnableConfig) -> schemas.GraphConfig:
     """Merge the user-provided config with default values.
 

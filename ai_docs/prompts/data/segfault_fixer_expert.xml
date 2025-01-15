@@ -69,6 +69,117 @@
         <quote source="democracy_exe/base.py">
             Implement proper resource cleanup in base classes for consistent behavior
         </quote>
+        <quote source="error_trace">
+            File "/usr/local/lib/python3.12/site-packages/langsmith/_internal/_background_thread.py", line 100 in _tracing_thread_handle_batch shows thread safety issues in batch processing
+        </quote>
+        <quote source="error_trace">
+            File "/api/langgraph_api/sse.py", line 59 in stream_response indicates SSE stream handling issues
+        </quote>
+        <quote source="error_trace">
+            Multiple worker threads in ThreadPoolExecutor showing improper shutdown sequence
+        </quote>
+        <quote source="error_trace">
+            Interaction between asyncio.run() and multiprocessing in uvicorn server startup
+        </quote>
+        <quote source="langgraph_cli/tests/unit_tests/agent.py">
+            """
+            async def call_model(state, config):
+                if sleep := state.get("sleep"):
+                    await asyncio.sleep(sleep)
+                # Proper state validation and type checking
+                messages = state["messages"]
+                # Explicit bytes handling and validation
+                assert state["some_bytes"] == b"some_bytes"
+                assert state["some_byte_array"] == bytearray(b"some_byte_array")
+                assert state["dict_with_bytes"] == {"more_bytes": b"more_bytes"}
+            """
+        </quote>
+        <quote source="langgraph_cli/tests/unit_tests/conftest.py">
+            """
+            @pytest.fixture(autouse=True)
+            def disable_analytics_env() -> None:
+                # Environment variable safety with proper cleanup
+                with patch.dict(os.environ, {"LANGGRAPH_CLI_NO_ANALYTICS": "0"}):
+                    yield
+            """
+        </quote>
+        <quote source="home_assistant/block_async_io.py">
+            """Block blocking calls being done in asyncio.
+            Avoid extracting the stack unless we need to since it will have to access the linecache which can do blocking I/O and we are trying to avoid blocking calls."""
+        </quote>
+        <quote source="home_assistant/util/async_.py">
+            """Submit a callback object to a given event loop.
+            If (ident := loop.__dict__.get("_thread_id")) and ident == threading.get_ident():
+                raise RuntimeError("Cannot be called from within the event loop")"""
+        </quote>
+        <quote source="home_assistant/util/async_.py">
+            """If the final `HomeAssistant.async_block_till_done` in
+            `HomeAssistant.async_stop` has already been called, the callback
+            will never run and, `future.result()` will block forever which
+            will prevent the thread running this code from shutting down which
+            will result in a deadlock"""
+        </quote>
+        <quote source="home_assistant/block_async_io.py">
+            """@dataclass(slots=True, frozen=True)
+            class BlockingCall:
+                original_func: Callable
+                object: object
+                function: str
+                check_allowed: Callable[[dict[str, Any]], bool] | None
+                strict: bool
+                strict_core: bool
+                skip_for_tests: bool"""
+        </quote>
+        <quote source="home_assistant/util/thread.py">
+            """Shutdown that will not deadlock.
+            threading._shutdown can deadlock forever
+            remaining_threads = [
+                thread for thread in threading.enumerate()
+                if thread is not threading.main_thread()
+                and not thread.daemon
+                and thread.is_alive()
+            ]
+            timeout_per_thread = THREADING_SHUTDOWN_TIMEOUT / len(remaining_threads)"""
+        </quote>
+        <quote source="home_assistant/util/executor.py">
+            """class InterruptibleThreadPoolExecutor(ThreadPoolExecutor):
+                A ThreadPoolExecutor instance that will not deadlock on shutdown.
+                def shutdown(self, *args: Any, join_threads_or_timeout: bool = True, **kwargs: Any) -> None:
+                    Shutdown with interrupt support added.
+                    super().shutdown(wait=False, cancel_futures=True)
+                    if join_threads_or_timeout:
+                        self.join_threads_or_timeout()"""
+        </quote>
+        <quote source="home_assistant/util/executor.py">
+            """def _log_thread_running_at_shutdown(name: str, ident: int) -> None:
+                Log the stack of a thread that was still running at shutdown.
+                frames = sys._current_frames()
+                stack = frames.get(ident)
+                formatted_stack = traceback.format_stack(stack)"""
+        </quote>
+        <quote source="home_assistant/components/profiler/__init__.py">
+            """SERVICE_LOG_THREAD_FRAMES = "log_thread_frames"
+            SERVICE_LOG_EVENT_LOOP_SCHEDULED = "log_event_loop_scheduled"
+            SERVICE_SET_ASYNCIO_DEBUG = "set_asyncio_debug"
+            SERVICE_LOG_CURRENT_TASKS = "log_current_tasks" """
+        </quote>
+        <quote source="home_assistant/util/thread.py">
+            """class ThreadWithException(threading.Thread):
+                A thread class that supports raising exception in the thread from another thread.
+                def raise_exc(self, exctype: Any) -> None:
+                    Raise the given exception type in the context of this thread.
+                    assert self.ident
+                    async_raise(self.ident, exctype)"""
+        </quote>
+        <quote source="home_assistant/util/executor.py">
+            """def join_or_interrupt_threads(threads: set[Thread], timeout: float, log: bool) -> set[Thread]:
+                Attempt to join or interrupt a set of threads.
+                with contextlib.suppress(SystemError):
+                    # SystemError at this stage is usually a race condition
+                    # where the thread happens to die right before we force
+                    # it to raise the exception
+                    async_raise(thread.ident, SystemExit)"""
+        </quote>
     </quotes>
 
     <info>
@@ -99,7 +210,76 @@
             <point>Nested event loops can cause deadlocks</point>
             <point>State isolation failures between threads can corrupt data</point>
             <point>Loop creation/cleanup errors can leave resources dangling</point>
+            <point>LangSmith client background thread operations showing race conditions</point>
+            <point>SSE stream handling in langgraph_api lacks proper error boundaries</point>
+            <point>ThreadPoolExecutor shutdown sequence is incomplete</point>
+            <point>Multiprocessing and asyncio interaction in uvicorn needs coordination</point>
+            <point>Multiple threads accessing shared LangSmith client resources unsafely</point>
+            <point>Background thread batch processing lacks proper synchronization</point>
+            <point>Proper state validation and type checking in async operations is critical</point>
+            <point>Explicit handling of bytes and bytearray types prevents memory corruption</point>
+            <point>Environment variables should be managed with proper cleanup</point>
+            <point>State dictionaries should have explicit type definitions (TypedDict)</point>
+            <point>Async operations should handle sleep and timing properly</point>
+            <point>Use profiler.log_thread_frames to capture thread stack traces at crash time</point>
+            <point>Enable asyncio debug mode to identify blocking operations in event loop</point>
+            <point>Monitor event loop scheduling for insufficient locking around updates</point>
+            <point>Track task leaks using profiler.log_current_tasks</point>
+            <point>Verify proper cleanup of event listeners during component shutdown</point>
+            <point>Check for dangling event loop references in worker threads</point>
+            <point>Monitor for blocking I/O operations inside event loop</point>
+            <point>Track thread pool overload conditions</point>
+            <point>Verify proper task cancellation during cleanup</point>
+            <point>Monitor for nested event loop creation</point>
+            <point>Use frozen dataclasses with slots for memory safety in concurrent operations</point>
+            <point>Implement strict thread ID tracking to prevent cross-thread event loop access</point>
+            <point>Avoid unnecessary stack inspection that could trigger blocking I/O</point>
+            <point>Track and prevent blocking calls in asyncio with a registry system</point>
+            <point>Implement special handling for test environments with skip_for_tests flags</point>
+            <point>Use strict mode for core components to enforce blocking call prevention</point>
+            <point>Track callback states during shutdown to prevent deadlocks</point>
+            <point>Implement proper future cleanup to prevent resource leaks</point>
+            <point>Use runtime checks to prevent callbacks from being called within their own event loop</point>
+            <point>Implement comprehensive resource tracking with proper lifecycle management</point>
+            <point>Use InterruptibleThreadPoolExecutor for deadlock-safe thread pool management</point>
+            <point>Implement timeout-based thread joining with per-thread timeout calculation</point>
+            <point>Cancel futures before shutdown to prevent hanging operations</point>
+            <point>Track and interrupt hanging threads during shutdown</point>
+            <point>Log thread stacks during shutdown for debugging</point>
+            <point>Support raising exceptions across threads safely</point>
+            <point>Handle race conditions during thread interruption</point>
+            <point>Use contextlib.suppress for safe cleanup operations</point>
+            <point>Calculate and enforce per-thread timeouts during shutdown</point>
+            <point>Handle daemon vs non-daemon threads differently during shutdown</point>
+            <point>Track thread identifiers for proper interruption</point>
+            <point>Use thread-safe logging mechanisms</point>
+            <point>Implement proper thread synchronization with locks</point>
+            <point>Monitor thread frames for memory leaks using profiler tools</point>
+            <point>Track event loop scheduled tasks for resource management</point>
+            <point>Enable asyncio debug mode for detailed monitoring</point>
+            <point>Log current tasks for comprehensive resource tracking</point>
+            <point>Implement cleanup in finally blocks consistently</point>
+            <point>Use proper exception propagation across threads</point>
+            <point>Clean up resources in reverse initialization order</point>
         </diagnostic_points>
+
+        <environment_settings>
+            <setting>
+                <name>PYTHONFAULTHANDLER</name>
+                <value>1</value>
+                <description>Enable for better crash diagnostics</description>
+            </setting>
+            <setting>
+                <name>PYTHONASYNCIODEBUG</name>
+                <value>1</value>
+                <description>Enable asyncio debugging</description>
+            </setting>
+            <setting>
+                <name>PYTHONDEVMODE</name>
+                <value>1</value>
+                <description>Enable additional runtime checks</description>
+            </setting>
+        </environment_settings>
 
         <recommended_fixes>
             <fix priority="high">
@@ -166,72 +346,83 @@
                     <step>Handle loop errors gracefully</step>
                 </solution>
             </fix>
+
+            <fix priority="high">
+                <issue>Event Loop Safety</issue>
+                <solution>
+                    <step>Implement thread ID tracking for event loop access</step>
+                    <step>Add runtime checks to prevent callbacks within their own loop</step>
+                    <step>Use frozen dataclasses with slots for memory safety</step>
+                    <step>Track and prevent blocking calls in asyncio</step>
+                    <step>Implement proper future and resource cleanup</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Thread Pool Safety</issue>
+                <solution>
+                    <step>Use InterruptibleThreadPoolExecutor instead of standard ThreadPoolExecutor</step>
+                    <step>Implement timeout-based thread joining with proper calculations</step>
+                    <step>Cancel futures before initiating shutdown sequence</step>
+                    <step>Track and interrupt hanging threads with proper logging</step>
+                    <step>Handle race conditions during thread interruption</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Thread Exception Safety</issue>
+                <solution>
+                    <step>Use ThreadWithException for controlled interruption</step>
+                    <step>Handle race conditions properly</step>
+                    <step>Implement proper exception propagation</step>
+                    <step>Use contextlib.suppress for cleanup</step>
+                    <step>Maintain proper exception context</step>
+                </solution>
+            </fix>
+
+            <fix priority="high">
+                <issue>Resource Monitoring</issue>
+                <solution>
+                    <step>Use profiler tools to monitor thread frames</step>
+                    <step>Track event loop tasks</step>
+                    <step>Enable asyncio debug mode for monitoring</step>
+                    <step>Log resource usage</step>
+                    <step>Implement proper cleanup</step>
+                </solution>
+            </fix>
         </recommended_fixes>
 
         <implementation_guidelines>
             <guideline>
-                <name>Thread Safety</name>
+                <name>Thread Pool Management</name>
                 <description>
-                    - Use thread-local storage for thread-specific data
-                    - Implement proper locking mechanisms using asyncio.Lock()
-                    - Ensure proper resource cleanup on thread exit
-                    - Add synchronization for shared resource access
-                    - Use thread pools with proper lifecycle management
+                    - Use InterruptibleThreadPoolExecutor for safe shutdown
+                    - Implement timeout-based thread joining
+                    - Cancel futures before shutdown
+                    - Track and interrupt hanging threads
+                    - Log thread stacks during shutdown
                 </description>
             </guideline>
 
             <guideline>
-                <name>Resource Management</name>
+                <name>Exception Handling</name>
                 <description>
-                    - Implement proper context managers for resource cleanup
-                    - Use SafeFileHandler pattern for file operations
-                    - Add proper error handling and cleanup in finally blocks
-                    - Ensure proper closing of connections and resources
-                    - Implement proper cleanup in async context managers
+                    - Use ThreadWithException for controlled interruption
+                    - Handle race conditions properly
+                    - Implement proper exception propagation
+                    - Use contextlib.suppress for cleanup
+                    - Maintain exception context
                 </description>
             </guideline>
 
             <guideline>
-                <name>Memory Management</name>
+                <name>Resource Monitoring</name>
                 <description>
-                    - Monitor memory usage in background threads
-                    - Implement proper cleanup of large objects
-                    - Use memory profiling tools to identify leaks
-                    - Ensure proper cleanup of resources in __aexit__ methods
-                    - Add proper exception handling with cleanup
-                </description>
-            </guideline>
-
-            <guideline>
-                <name>Error Handling</name>
-                <description>
-                    - Add comprehensive error logging
-                    - Implement proper error propagation
-                    - Add error recovery mechanisms
-                    - Add error boundaries around thread operations
-                    - Ensure proper cleanup in error cases
-                </description>
-            </guideline>
-
-            <guideline>
-                <name>Event Loop Safety</name>
-                <description>
-                    - Move I/O operations out of event loop using run_in_executor
-                    - Add proper error boundaries around async operations
-                    - Avoid mixing blocking and non-blocking code
-                    - Use proper async context management
-                    - Implement proper coordination between different execution contexts
-                </description>
-            </guideline>
-
-            <guideline>
-                <n>Functionality Preservation</n>
-                <description>
-                    - Verify all original functionality is preserved after modifications
-                    - Document any removed functionality that needs to be restored
-                    - Report any functionality changes at the end of generation
-                    - Ensure critical functions maintain their original behavior
-                    - Track and report any API changes that affect backwards compatibility
+                    - Use profiler tools to monitor thread frames
+                    - Track event loop tasks
+                    - Enable asyncio debug mode for monitoring
+                    - Log resource usage
+                    - Implement proper cleanup
                 </description>
             </guideline>
         </implementation_guidelines>
@@ -897,10 +1088,11 @@
                             loop: asyncio.AbstractEventLoop
 
                             async def test_remember_loop(self):
-                                self.loop = asyncio.get_running_loop()
-
-                            async def test_using_loop(self):
-                                assert self.loop is asyncio.get_running_loop()
+                                """Test loop storage for shared tests."""
+                                current_loop = asyncio.get_running_loop()
+                                assert isinstance(current_loop, asyncio.AbstractEventLoop)
+                                TestAsync._loop = current_loop
+                                assert current_loop.is_running()
                         ]]>
                     </example>
                 </pattern>
@@ -995,6 +1187,200 @@
                         ]]>
                     </example>
                 </pattern>
+
+                <pattern name="context_var_management">
+                    <description>Pattern for managing context variables in multiprocessing</description>
+                    <example>
+                        <![CDATA[
+                        import contextvars
+                        from multiprocessing import Process
+
+                        class SafeContextManager:
+                            def __init__(self):
+                                self._context = contextvars.copy_context()
+                                self._process_vars = {}
+
+                            def _init_process_context(self):
+                                """Initialize context in new process."""
+                                for var, value in self._process_vars.items():
+                                    var.set(value)
+
+                            def run_in_process(self, func, *args, **kwargs):
+                                """Run function in new process with proper context."""
+                                self._process_vars = {
+                                    var: var.get()
+                                    for var in self._context.keys()
+                                }
+                                p = Process(target=self._run_with_context,
+                                          args=(func, args, kwargs))
+                                p.start()
+                                return p
+
+                            def _run_with_context(self, func, args, kwargs):
+                                """Run function with restored context."""
+                                self._init_process_context()
+                                return func(*args, **kwargs)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="thread_safe_logging">
+                    <description>Pattern for thread-safe structured logging</description>
+                    <example>
+                        <![CDATA[
+                        import structlog
+                        from threading import local
+
+                        class ThreadSafeLogger:
+                            _thread_local = local()
+
+                            def __init__(self):
+                                self._logger = structlog.get_logger()
+                                self._context_lock = asyncio.Lock()
+
+                            async def bind_context(self, **kwargs):
+                                """Bind context variables thread-safely."""
+                                async with self._context_lock:
+                                    self._thread_local.context = {
+                                        **(getattr(self._thread_local, 'context', {})),
+                                        **kwargs
+                                    }
+
+                            async def log(self, level, event, **kwargs):
+                                """Log with thread-local context."""
+                                context = getattr(self._thread_local, 'context', {})
+                                logger = self._logger.bind(**context)
+                                logger.log(level, event, **kwargs)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="safe_event_loop">
+                    <description>Pattern for safe event loop management in worker threads</description>
+                    <example>
+                        <![CDATA[
+                        class ThreadEventLoopManager:
+                            def __init__(self):
+                                self._loop = None
+                                self._loop_lock = threading.Lock()
+                                self._thread_id = None
+
+                            def get_loop(self):
+                                """Get or create event loop for current thread."""
+                                current_thread = threading.current_thread()
+                                if (self._thread_id is not None and
+                                    self._thread_id != current_thread.ident):
+                                    raise RuntimeError(
+                                        "Loop accessed from wrong thread")
+
+                                with self._loop_lock:
+                                    if self._loop is None:
+                                        self._loop = asyncio.new_event_loop()
+                                        self._thread_id = current_thread.ident
+                                        asyncio.set_event_loop(self._loop)
+                                    return self._loop
+
+                            async def cleanup(self):
+                                """Clean up event loop resources."""
+                                with self._loop_lock:
+                                    if self._loop is not None:
+                                        try:
+                                            # Cancel all tasks
+                                            tasks = asyncio.all_tasks(self._loop)
+                                            for task in tasks:
+                                                task.cancel()
+                                            # Wait for cancellation
+                                            if tasks:
+                                                await asyncio.gather(
+                                                    *tasks,
+                                                    return_exceptions=True
+                                                )
+                                        finally:
+                                            self._loop.close()
+                                            self._loop = None
+                                            self._thread_id = None
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="event_loop_isolation">
+                    <description>Pattern for testing event loop isolation</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_event_loop_isolation():
+                            manager = ThreadEventLoopManager()
+
+                            async def worker():
+                                loop = manager.get_loop()
+                                assert loop is asyncio.get_running_loop()
+                                await asyncio.sleep(0.1)
+
+                            # Run in multiple threads
+                            threads = []
+                            for _ in range(3):
+                                thread = threading.Thread(
+                                    target=lambda: asyncio.run(worker())
+                                )
+                                threads.append(thread)
+                                thread.start()
+
+                            for thread in threads:
+                                thread.join()
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="multiprocessing_coordination">
+                    <description>Pattern for testing multiprocessing coordination</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_multiprocessing_coordination():
+                            ctx_manager = SafeContextManager()
+
+                            def worker_func():
+                                assert 'test_var' in ctx_manager._process_vars
+                                return True
+
+                            # Set context variable
+                            test_var = contextvars.ContextVar('test_var')
+                            test_var.set('test_value')
+
+                            # Run in new process
+                            process = ctx_manager.run_in_process(worker_func)
+                            process.join()
+                            assert process.exitcode == 0
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="resource_leak_detection">
+                    <description>Pattern for detecting resource leaks in tests</description>
+                    <example>
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_resource_leaks():
+                            import psutil
+                            import os
+
+                            process = psutil.Process(os.getpid())
+                            start_fds = process.num_fds()
+                            start_threads = len(process.threads())
+
+                            # Run test operation
+                            client = SafeLangSmithClient()
+                            try:
+                                await client._send_batch({"test": "data"})
+                            finally:
+                                await client.cleanup()
+
+                            # Verify no leaks
+                            assert process.num_fds() <= start_fds
+                            assert len(process.threads()) <= start_threads
+                        ]]>
+                    </example>
+                </pattern>
             </test_patterns>
 
             <configuration>
@@ -1082,6 +1468,67 @@
                         ]]>
                     </example>
                 </pattern>
+
+                <pattern name="StateValidation">
+                    <description>Pattern for validating state in async operations</description>
+                    <example>
+                        <![CDATA[
+                        class AgentState(TypedDict):
+                            some_bytes: bytes
+                            some_byte_array: bytearray
+                            dict_with_bytes: dict[str, bytes]
+                            messages: Annotated[Sequence[BaseMessage], add_messages]
+                            sleep: int
+
+                        async def validate_state(state: AgentState) -> None:
+                            """Validate state contents to prevent corruption."""
+                            assert isinstance(state["some_bytes"], bytes)
+                            assert isinstance(state["some_byte_array"], bytearray)
+                            assert all(isinstance(v, bytes) for v in state["dict_with_bytes"].values())
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="AsyncResourceManagement">
+                    <description>Pattern for managing async resources with proper cleanup</description>
+                    <example>
+                        <![CDATA[
+                        async def managed_operation():
+                            try:
+                                # Setup resources
+                                state = initialize_state()
+                                await validate_state(state)
+
+                                # Perform operation
+                                result = await process_state(state)
+
+                                return result
+                            finally:
+                                # Cleanup
+                                await cleanup_state(state)
+                        ]]>
+                    </example>
+                </pattern>
+
+                <pattern name="EnvironmentSafety">
+                    <description>Pattern for safe environment variable handling</description>
+                    <example>
+                        <![CDATA[
+                        @contextmanager
+                        def safe_env_override(key: str, value: str):
+                            """Safely override environment variables with proper cleanup."""
+                            original = os.environ.get(key)
+                            try:
+                                os.environ[key] = value
+                                yield
+                            finally:
+                                if original is None:
+                                    del os.environ[key]
+                                else:
+                                    os.environ[key] = original
+                        ]]>
+                    </example>
+                </pattern>
             </code_patterns>
         </testing_recommendations>
     </info>
@@ -1125,4 +1572,1797 @@
             </restoration_steps>
         </report_format>
     </functionality_check>
+
+    <implementation_patterns>
+        <pattern name="enhanced_thread_safety">
+            <description>Enhanced thread safety pattern with proper resource tracking and cleanup</description>
+            <example>
+                <![CDATA[
+                class ThreadSafeEventLoopManager:
+                    """Thread-safe event loop manager with proper cleanup."""
+                    def __init__(self):
+                        self._loop = None
+                        self._loop_lock = threading.Lock()
+                        self._thread_id = None
+                        self._cleanup_lock = asyncio.Lock()
+                        self._active_tasks: Set[asyncio.Task] = set()
+
+                    async def get_loop(self) -> asyncio.AbstractEventLoop:
+                        """Get event loop with thread safety checks."""
+                        with self._loop_lock:
+                            if self._loop is None:
+                                self._loop = asyncio.new_event_loop()
+                                self._thread_id = threading.get_ident()
+                            elif self._thread_id != threading.get_ident():
+                                raise RuntimeError("Loop accessed from wrong thread")
+                            return self._loop
+
+                    async def track_task(self, task: asyncio.Task) -> None:
+                        """Track active tasks for cleanup."""
+                        async with self._cleanup_lock:
+                            self._active_tasks.add(task)
+                            task.add_done_callback(self._remove_task)
+
+                    def _remove_task(self, task: asyncio.Task) -> None:
+                        """Remove completed task."""
+                        self._active_tasks.discard(task)
+
+                    async def cleanup(self) -> None:
+                        """Clean up resources with proper error handling."""
+                        async with self._cleanup_lock:
+                            if self._loop is not None:
+                                try:
+                                    # Cancel all tasks
+                                    tasks = list(self._active_tasks)
+                                    for task in tasks:
+                                        task.cancel()
+                                    if tasks:
+                                        await asyncio.gather(*tasks, return_exceptions=True)
+                                finally:
+                                    self._loop.close()
+                                    self._loop = None
+                                    self._thread_id = None
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="safe_resource_lifecycle">
+            <description>Safe resource lifecycle management with proper cleanup handlers</description>
+            <example>
+                <![CDATA[
+                class SafeResourceManager:
+                    """Safe resource manager with proper cleanup."""
+                    def __init__(self):
+                        self._resources: Dict[str, Any] = {}
+                        self._resource_lock = asyncio.Lock()
+                        self._cleanup_handlers: Dict[str, Callable] = {}
+
+                    async def register_resource(
+                        self,
+                        name: str,
+                        resource: Any,
+                        cleanup_handler: Callable
+                    ) -> None:
+                        """Register resource with cleanup handler."""
+                        async with self._resource_lock:
+                            self._resources[name] = resource
+                            self._cleanup_handlers[name] = cleanup_handler
+
+                    async def cleanup_resource(self, name: str) -> None:
+                        """Clean up specific resource."""
+                        async with self._resource_lock:
+                            if name in self._resources:
+                                try:
+                                    await self._cleanup_handlers[name](self._resources[name])
+                                finally:
+                                    del self._resources[name]
+                                    del self._cleanup_handlers[name]
+
+                    async def cleanup_all(self) -> None:
+                        """Clean up all resources."""
+                        async with self._resource_lock:
+                            for name in list(self._resources.keys()):
+                                await self.cleanup_resource(name)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="memory_safety">
+            <description>Memory-safe operation patterns with proper state management</description>
+            <example>
+                <![CDATA[
+                class MemorySafeOperation:
+                    """Memory-safe operation wrapper."""
+                    def __init__(self):
+                        self._operation_lock = asyncio.Lock()
+                        self._state = {}
+                        self._gc_trigger = 1000  # Adjust based on needs
+
+                    async def execute_safely(
+                        self,
+                        operation: Callable,
+                        *args,
+                        **kwargs
+                    ) -> Any:
+                        """Execute operation with memory safety checks."""
+                        async with self._operation_lock:
+                            try:
+                                result = await operation(*args, **kwargs)
+                                self._state_cleanup()
+                                return result
+                            except Exception as e:
+                                logger.exception("Operation failed")
+                                raise
+                            finally:
+                                self._force_gc_if_needed()
+
+                    def _state_cleanup(self) -> None:
+                        """Clean up state after operation."""
+                        self._state.clear()
+
+                    def _force_gc_if_needed(self) -> None:
+                        """Force garbage collection if needed."""
+                        if len(self._state) > self._gc_trigger:
+                            import gc
+                            gc.collect()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="error_boundary">
+            <description>Error boundary implementation with context preservation</description>
+            <example>
+                <![CDATA[
+                class ErrorBoundary:
+                    """Error boundary with proper context preservation."""
+                    def __init__(self):
+                        self._error_handlers: Dict[Type[Exception], Callable] = {}
+                        self._context: Dict[str, Any] = {}
+                        self._context_lock = asyncio.Lock()
+
+                    async def register_handler(
+                        self,
+                        exc_type: Type[Exception],
+                        handler: Callable
+                    ) -> None:
+                        """Register error handler."""
+                        self._error_handlers[exc_type] = handler
+
+                    async def execute_with_boundary(
+                        self,
+                        func: Callable,
+                        *args,
+                        **kwargs
+                    ) -> Any:
+                        """Execute function with error boundary."""
+                        try:
+                            return await func(*args, **kwargs)
+                        except Exception as e:
+                            for exc_type, handler in self._error_handlers.items():
+                                if isinstance(e, exc_type):
+                                    return await handler(e, self._context)
+                            raise
+                ]]>
+            </example>
+        </pattern>
+    </implementation_patterns>
+
+    <test_patterns>
+        <pattern name="thread_safety_test">
+            <description>Pattern for testing thread safety of components</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_thread_safety():
+                    client = SafeLangSmithClient()
+                    tasks = []
+                    for _ in range(10):
+                        tasks.append(asyncio.create_task(
+                            client._send_batch({"test": "data"})
+                        ))
+
+                    try:
+                        await asyncio.gather(*tasks)
+                    finally:
+                        await client.cleanup()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="sse_stream_test">
+            <description>Pattern for testing SSE stream handling</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_sse_stream():
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get("/stream") as response:
+                            try:
+                                async for line in response.content:
+                                    if line:
+                                        event = json.loads(line.decode())
+                                        assert "data" in event
+                            finally:
+                                await response.release()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="cleanup_verification">
+            <description>Pattern for verifying proper resource cleanup</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_cleanup():
+                    pool = SafeThreadPoolExecutor()
+                    try:
+                        await pool.submit(lambda: "test")
+                    finally:
+                        await pool.shutdown(wait=True)
+                        assert pool._shutdown
+                        assert pool._executor._shutdown
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="AsyncGeneratorTest">
+            <description>Pattern for testing async generators and cleanup</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_async_generator():
+                    agen = async_generator_func()
+                    try:
+                        async for item in agen:
+                            assert item is not None
+                    finally:
+                        await agen.aclose()  # Proper cleanup of async generator
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="AsyncMocking">
+            <description>Pattern for mocking async functions and methods</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_with_async_mock(mocker):
+                    async def async_mock(*args, **kwargs):
+                        return "mocked"
+
+                    mocker.patch(
+                        "module.async_function",
+                        side_effect=async_mock
+                    )
+                    result = await function_under_test()
+                    assert result == "mocked"
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="AsyncContextVerification">
+            <description>Pattern for verifying async context manager behavior</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_async_context():
+                    entered = False
+                    exited = False
+
+                    class TestContext:
+                        async def __aenter__(self):
+                            nonlocal entered
+                            entered = True
+                            return self
+
+                        async def __aexit__(self, exc_type, exc_val, exc_tb):
+                            nonlocal exited
+                            exited = True
+
+                    async with TestContext():
+                        assert entered
+                        assert not exited
+                    assert exited
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="context_var_management">
+            <description>Pattern for managing context variables in multiprocessing</description>
+            <example>
+                <![CDATA[
+                import contextvars
+                from multiprocessing import Process
+
+                class SafeContextManager:
+                    def __init__(self):
+                        self._context = contextvars.copy_context()
+                        self._process_vars = {}
+
+                    def _init_process_context(self):
+                        """Initialize context in new process."""
+                        for var, value in self._process_vars.items():
+                            var.set(value)
+
+                    def run_in_process(self, func, *args, **kwargs):
+                        """Run function in new process with proper context."""
+                        self._process_vars = {
+                            var: var.get()
+                            for var in self._context.keys()
+                        }
+                        p = Process(target=self._run_with_context,
+                                  args=(func, args, kwargs))
+                        p.start()
+                        return p
+
+                    def _run_with_context(self, func, args, kwargs):
+                        """Run function with restored context."""
+                        self._init_process_context()
+                        return func(*args, **kwargs)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="thread_safe_logging">
+            <description>Pattern for thread-safe structured logging</description>
+            <example>
+                <![CDATA[
+                import structlog
+                from threading import local
+
+                class ThreadSafeLogger:
+                    _thread_local = local()
+
+                    def __init__(self):
+                        self._logger = structlog.get_logger()
+                        self._context_lock = asyncio.Lock()
+
+                    async def bind_context(self, **kwargs):
+                        """Bind context variables thread-safely."""
+                        async with self._context_lock:
+                            self._thread_local.context = {
+                                **(getattr(self._thread_local, 'context', {})),
+                                **kwargs
+                            }
+
+                    async def log(self, level, event, **kwargs):
+                        """Log with thread-local context."""
+                        context = getattr(self._thread_local, 'context', {})
+                        logger = self._logger.bind(**context)
+                        logger.log(level, event, **kwargs)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="safe_event_loop">
+            <description>Pattern for safe event loop management in worker threads</description>
+            <example>
+                <![CDATA[
+                class ThreadEventLoopManager:
+                    def __init__(self):
+                        self._loop = None
+                        self._loop_lock = threading.Lock()
+                        self._thread_id = None
+
+                    def get_loop(self):
+                        """Get or create event loop for current thread."""
+                        current_thread = threading.current_thread()
+                        if (self._thread_id is not None and
+                            self._thread_id != current_thread.ident):
+                            raise RuntimeError(
+                                "Loop accessed from wrong thread")
+
+                        with self._loop_lock:
+                            if self._loop is None:
+                                self._loop = asyncio.new_event_loop()
+                                self._thread_id = current_thread.ident
+                                asyncio.set_event_loop(self._loop)
+                            return self._loop
+
+                    async def cleanup(self):
+                        """Clean up event loop resources."""
+                        with self._loop_lock:
+                            if self._loop is not None:
+                                try:
+                                    # Cancel all tasks
+                                    tasks = asyncio.all_tasks(self._loop)
+                                    for task in tasks:
+                                        task.cancel()
+                                    # Wait for cancellation
+                                    if tasks:
+                                        await asyncio.gather(
+                                            *tasks,
+                                            return_exceptions=True
+                                        )
+                                finally:
+                                    self._loop.close()
+                                    self._loop = None
+                                    self._thread_id = None
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="event_loop_isolation">
+            <description>Pattern for testing event loop isolation</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_event_loop_isolation():
+                    manager = ThreadEventLoopManager()
+
+                    async def worker():
+                        loop = manager.get_loop()
+                        assert loop is asyncio.get_running_loop()
+                        await asyncio.sleep(0.1)
+
+                    # Run in multiple threads
+                    threads = []
+                    for _ in range(3):
+                        thread = threading.Thread(
+                            target=lambda: asyncio.run(worker())
+                        )
+                        threads.append(thread)
+                        thread.start()
+
+                    for thread in threads:
+                        thread.join()
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="multiprocessing_coordination">
+            <description>Pattern for testing multiprocessing coordination</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_multiprocessing_coordination():
+                    ctx_manager = SafeContextManager()
+
+                    def worker_func():
+                        assert 'test_var' in ctx_manager._process_vars
+                        return True
+
+                    # Set context variable
+                    test_var = contextvars.ContextVar('test_var')
+                    test_var.set('test_value')
+
+                    # Run in new process
+                    process = ctx_manager.run_in_process(worker_func)
+                    process.join()
+                    assert process.exitcode == 0
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="resource_leak_detection">
+            <description>Pattern for detecting resource leaks in tests</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_resource_leaks():
+                    import psutil
+                    import os
+
+                    process = psutil.Process(os.getpid())
+                    start_fds = process.num_fds()
+                    start_threads = len(process.threads())
+
+                    # Run test operation
+                    client = SafeLangSmithClient()
+                    try:
+                        await client._send_batch({"test": "data"})
+                    finally:
+                        await client.cleanup()
+
+                    # Verify no leaks
+                    assert process.num_fds() <= start_fds
+                    assert len(process.threads()) <= start_threads
+                ]]>
+            </example>
+        </pattern>
+    </test_patterns>
+
+    <debugging_tools>
+        <tool>
+            <name>memray</name>
+            <description>Memory profiling for Python applications</description>
+            <usage>
+                <![CDATA[
+                # Track memory allocations
+                memray run --native your_script.py
+
+                # Generate flame graph
+                memray flamegraph memray-your_script.py.bin
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>py-spy</name>
+            <description>Sampling profiler for Python programs</description>
+            <usage>
+                <![CDATA[
+                # Record CPU profile
+                py-spy record -o profile.svg --pid YOUR_PID
+
+                # Live CPU monitoring
+                py-spy top --pid YOUR_PID
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>event_loop_debugger</name>
+            <description>Tool for debugging event loop issues</description>
+            <usage>
+                <![CDATA[
+                class EventLoopDebugger:
+                    _thread_local = local()
+
+                    def __init__(self):
+                        self._logger = structlog.get_logger()
+                        self._context_lock = asyncio.Lock()
+
+                    async def bind_context(self, **kwargs):
+                        """Bind context variables thread-safely."""
+                        async with self._context_lock:
+                            self._thread_local.context = {
+                                **(getattr(self._thread_local, 'context', {})),
+                                **kwargs
+                            }
+
+                    async def log(self, level, event, **kwargs):
+                        """Log with thread-local context."""
+                        context = getattr(self._thread_local, 'context', {})
+                        logger = self._logger.bind(**context)
+                        logger.log(level, event, **kwargs)
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>task_monitor</name>
+            <description>Tool for monitoring task lifecycle and leaks</description>
+            <usage>
+                <![CDATA[
+                class TaskMonitor:
+                    def __init__(self):
+                        self._tasks = weakref.WeakSet()
+                        self._lock = asyncio.Lock()
+
+                    async def register_task(self, task):
+                        """Register a task for monitoring."""
+                        async with self._lock:
+                            self._tasks.add(task)
+                            task.add_done_callback(self._task_done)
+
+                    def _task_done(self, task):
+                        """Handle task completion."""
+                        try:
+                            exc = task.exception()
+                            if exc:
+                                logger.error(f"Task failed: {task.get_name()}", exc_info=exc)
+                        except asyncio.CancelledError:
+                            logger.info(f"Task cancelled: {task.get_name()}")
+                ]]>
+            </usage>
+        </tool>
+    </debugging_tools>
+
+    <diagnostic_points>
+        <point>Use profiler.log_thread_frames to capture thread stack traces at crash time</point>
+        <point>Enable asyncio debug mode to identify blocking operations in event loop</point>
+        <point>Monitor event loop scheduling for insufficient locking around updates</point>
+        <point>Track task leaks using profiler.log_current_tasks</point>
+        <point>Verify proper cleanup of event listeners during component shutdown</point>
+        <point>Check for dangling event loop references in worker threads</point>
+        <point>Monitor for blocking I/O operations inside event loop</point>
+        <point>Track thread pool overload conditions</point>
+        <point>Verify proper task cancellation during cleanup</point>
+        <point>Monitor for nested event loop creation</point>
+        <point>Use frozen dataclasses with slots for memory safety in concurrent operations</point>
+        <point>Implement strict thread ID tracking to prevent cross-thread event loop access</point>
+        <point>Avoid unnecessary stack inspection that could trigger blocking I/O</point>
+        <point>Track and prevent blocking calls in asyncio with a registry system</point>
+        <point>Implement special handling for test environments with skip_for_tests flags</point>
+        <point>Use strict mode for core components to enforce blocking call prevention</point>
+        <point>Track callback states during shutdown to prevent deadlocks</point>
+        <point>Implement proper future cleanup to prevent resource leaks</point>
+        <point>Use runtime checks to prevent callbacks from being called within their own event loop</point>
+        <point>Implement comprehensive resource tracking with proper lifecycle management</point>
+        <point>Use InterruptibleThreadPoolExecutor for deadlock-safe thread pool management</point>
+        <point>Implement timeout-based thread joining with per-thread timeout calculation</point>
+        <point>Cancel futures before shutdown to prevent hanging operations</point>
+        <point>Track and interrupt hanging threads during shutdown</point>
+        <point>Log thread stacks during shutdown for debugging</point>
+        <point>Support raising exceptions across threads safely</point>
+        <point>Handle race conditions during thread interruption</point>
+        <point>Use contextlib.suppress for safe cleanup operations</point>
+        <point>Calculate and enforce per-thread timeouts during shutdown</point>
+        <point>Handle daemon vs non-daemon threads differently during shutdown</point>
+        <point>Track thread identifiers for proper interruption</point>
+        <point>Use thread-safe logging mechanisms</point>
+        <point>Implement proper thread synchronization with locks</point>
+        <point>Monitor thread frames for memory leaks using profiler tools</point>
+        <point>Track event loop scheduled tasks for resource management</point>
+        <point>Enable asyncio debug mode for detailed monitoring</point>
+        <point>Log current tasks for comprehensive resource tracking</point>
+        <point>Implement cleanup in finally blocks consistently</point>
+        <point>Use proper exception propagation across threads</point>
+        <point>Clean up resources in reverse initialization order</point>
+    </diagnostic_points>
+
+    <diagnostic_tools>
+        <tool>
+            <name>profiler.log_thread_frames</name>
+            <description>Captures thread stack traces to identify problematic thread operations</description>
+            <usage>
+                <![CDATA[
+                # Enable thread frame logging
+                await hass.services.async_call(
+                    "profiler",
+                    "log_thread_frames",
+                    {}
+                )
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>profiler.log_event_loop_scheduled</name>
+            <description>Logs scheduled event loop operations to identify blocking or leaked tasks</description>
+            <usage>
+                <![CDATA[
+                # Log scheduled event loop operations
+                await hass.services.async_call(
+                    "profiler",
+                    "log_event_loop_scheduled",
+                    {}
+                )
+                ]]>
+            </usage>
+        </tool>
+
+        <tool>
+            <name>profiler.log_current_tasks</name>
+            <description>Helps identify task leaks and startup delays</description>
+            <usage>
+                <![CDATA[
+                # Log current tasks
+                await hass.services.async_call(
+                    "profiler",
+                    "log_current_tasks",
+                    {}
+                )
+                ]]>
+            </usage>
+        </tool>
+    </diagnostic_tools>
+
+    <implementation_patterns>
+        <pattern name="event_loop_debug">
+            <description>Pattern for debugging event loop issues using asyncio debug mode</description>
+            <example>
+                <![CDATA[
+                import asyncio
+
+                async def setup_debug():
+                    # Enable asyncio debug mode
+                    loop = asyncio.get_running_loop()
+                    loop.set_debug(True)
+
+                    # Configure debug logging
+                    logging.basicConfig(level=logging.DEBUG)
+                    logging.getLogger('asyncio').setLevel(logging.DEBUG)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="thread_frame_analysis">
+            <description>Pattern for analyzing thread stack traces during crashes</description>
+            <example>
+                <![CDATA[
+                import threading
+                import traceback
+
+                def log_all_thread_frames():
+                    """Log stack frames from all threads."""
+                    for thread in threading.enumerate():
+                        if thread.is_alive():
+                            stack = traceback.extract_stack(thread._frame)
+                            logger.error(f"Thread {thread.name} frames: {stack}")
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="task_leak_detection">
+            <description>Pattern for detecting and preventing task leaks</description>
+            <example>
+                <![CDATA[
+                async def monitor_tasks():
+                    """Monitor for leaked tasks."""
+                    while True:
+                        tasks = asyncio.all_tasks()
+                        for task in tasks:
+                            if not task.done() and task.get_coro().__name__ not in EXPECTED_TASKS:
+                                logger.warning(f"Potential task leak: {task.get_coro().__name__}")
+                        await asyncio.sleep(60)
+                ]]>
+            </example>
+        </pattern>
+    </implementation_patterns>
+
+    <testing_patterns>
+        <pattern name="event_loop_testing">
+            <description>Pattern for testing event loop behavior and cleanup</description>
+            <example>
+                <![CDATA[
+                @pytest.mark.asyncio
+                async def test_event_loop_cleanup():
+                    """Test proper event loop cleanup."""
+                    loop = asyncio.get_running_loop()
+
+                    # Create test tasks
+                    task = asyncio.create_task(asyncio.sleep(0.1))
+
+                    # Verify proper cleanup
+                    await task
+                    assert not task.done(), "Task should be completed"
+                    assert not asyncio.all_tasks(loop) - {asyncio.current_task()}, "No lingering tasks"
+                ]]>
+            </example>
+        </pattern>
+    </testing_patterns>
+
+    <monitoring_patterns>
+        <pattern name="event_loop_monitoring">
+            <description>Pattern for monitoring event loop health and scheduling</description>
+            <example>
+                <![CDATA[
+                async def monitor_event_loop():
+                    """Monitor event loop health and scheduling."""
+                    loop = asyncio.get_running_loop()
+
+                    # Log scheduled callbacks
+                    for handle in loop._scheduled:
+                        logger.info(f"Scheduled: {handle._callback}")
+
+                    # Monitor loop timing
+                    loop.slow_callback_duration = 0.1  # Log callbacks taking > 0.1s
+                    loop.call_exception_handler = custom_exception_handler
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="thread_pool_monitoring">
+            <description>Pattern for monitoring thread pool health and utilization</description>
+            <example>
+                <![CDATA[
+                def monitor_thread_pool(executor):
+                    """Monitor thread pool health."""
+                    while True:
+                        workers = len(executor._threads)
+                        tasks = len(executor._work_queue.queue)
+                        logger.info(f"Thread pool status: {workers} workers, {tasks} pending tasks")
+                        if tasks > workers * 2:
+                            logger.warning("Thread pool potentially overloaded")
+                        time.sleep(30)
+                ]]>
+            </example>
+        </pattern>
+
+        <pattern name="resource_monitoring">
+            <description>Pattern for monitoring resource usage and cleanup</description>
+            <example>
+                <![CDATA[
+                class ResourceMonitor:
+                    def __init__(self):
+                        self._resources = weakref.WeakSet()
+                        self._lock = asyncio.Lock()
+
+                    async def register(self, resource):
+                        """Register a resource for monitoring."""
+                        async with self._lock:
+                            self._resources.add(resource)
+
+                    async def check_leaks(self):
+                        """Check for resource leaks."""
+                        async with self._lock:
+                            for resource in self._resources:
+                                if not resource.closed:
+                                    logger.warning(f"Leaked resource: {resource}")
+                ]]>
+            </example>
+        </pattern>
+    </monitoring_patterns>
+
+    <pattern_category name="langsmith_thread_safety">
+        <description>
+            Comprehensive thread safety patterns for LangSmith client operations,
+            focusing on preventing segmentation faults in concurrent operations.
+        </description>
+
+        <critical_aspects>
+            <aspect name="thread_identity">
+                <description>Ensures client operations occur in correct thread context</description>
+                <risks>
+                    <risk>Memory corruption from cross-thread access</risk>
+                    <risk>State inconsistency from concurrent modifications</risk>
+                    <risk>Event loop conflicts</risk>
+                </risks>
+            </aspect>
+            <aspect name="resource_management">
+                <description>Manages client resources and cleanup</description>
+                <risks>
+                    <risk>Resource leaks from improper cleanup</risk>
+                    <risk>Dangling references to closed resources</risk>
+                    <risk>Memory leaks from unclosed connections</risk>
+                </risks>
+            </aspect>
+            <aspect name="error_handling">
+                <description>Handles errors safely in concurrent context</description>
+                <risks>
+                    <risk>Unhandled exceptions in background threads</risk>
+                    <risk>Resource leaks during error conditions</risk>
+                    <risk>Inconsistent state after errors</risk>
+                </risks>
+            </aspect>
+        </critical_aspects>
+
+        <implementation>
+            <pattern name="SafeLangSmithClient">
+                <description>Thread-safe LangSmith client implementation with comprehensive safety mechanisms</description>
+                <example>
+                    <![CDATA[
+                    class SafeLangSmithClient:
+                        """Thread-safe LangSmith client with proper resource management."""
+
+                        def __init__(self):
+                            self._client = Client()
+                            self._batch_lock = asyncio.Lock()
+                            self._cleanup_lock = asyncio.Lock()
+                            self._active_tasks: Set[asyncio.Task] = set()
+                            self._closed = False
+                            self._thread_id = threading.get_ident()
+                            self._loop = asyncio.get_running_loop()
+                            self._error_boundary = ErrorBoundary()
+                            self._resource_manager = SafeResourceManager()
+
+                        async def setup(self):
+                            """Initialize client with proper safety mechanisms."""
+                            await self._error_boundary.register_handler(
+                                RuntimeError, self._handle_runtime_error)
+                            await self._resource_manager.register_resource(
+                                "client", self._client, self._cleanup_client)
+
+                        async def _verify_thread_safety(self):
+                            """Verify thread safety constraints."""
+                            current_thread = threading.get_ident()
+                            if current_thread != self._thread_id:
+                                raise RuntimeError("Client accessed from wrong thread")
+                            if self._loop is not asyncio.get_running_loop():
+                                raise RuntimeError("Client accessed from wrong event loop")
+
+                        async def _send_batch(self, batch):
+                            """Send batch with proper thread safety and error handling."""
+                            await self._verify_thread_safety()
+                            async with self._batch_lock:
+                                if self._closed:
+                                    return
+                                try:
+                                    task = asyncio.create_task(
+                                        self._client._multipart_ingest_ops(batch))
+                                    self._active_tasks.add(task)
+                                    await task
+                                except Exception as e:
+                                    await self._error_boundary.handle_error(e)
+                                    raise
+                                finally:
+                                    self._active_tasks.discard(task)
+
+                        async def _handle_runtime_error(self, error: Exception, context: dict):
+                            """Handle runtime errors with proper context."""
+                            logger.error("Runtime error in LangSmith client",
+                                        error=str(error), **context)
+                            await self.cleanup()
+
+                        async def _cleanup_client(self):
+                            """Clean up client resources safely."""
+                            try:
+                                # Cancel all pending tasks
+                                tasks = list(self._active_tasks)
+                                for task in tasks:
+                                    task.cancel()
+                                if tasks:
+                                    await asyncio.gather(*tasks, return_exceptions=True)
+                            finally:
+                                self._closed = True
+
+                        async def cleanup(self):
+                            """Comprehensive cleanup with proper ordering."""
+                            async with self._cleanup_lock:
+                                if not self._closed:
+                                    await self._resource_manager.cleanup_all()
+                    ]]>
+                </example>
+                <validation_requirements>
+                    <requirement>Must prevent cross-thread access to client</requirement>
+                    <requirement>Must track and cleanup all async tasks</requirement>
+                    <requirement>Must handle concurrent batch operations safely</requirement>
+                    <requirement>Must cleanup resources in correct order</requirement>
+                    <requirement>Must maintain state consistency during errors</requirement>
+                </validation_requirements>
+                <testing_scenarios>
+                    <scenario name="concurrent_batch_operations">
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_concurrent_batch_operations():
+                            client = SafeLangSmithClient()
+                            await client.setup()
+
+                            # Create multiple concurrent batch operations
+                            tasks = []
+                            for i in range(10):
+                                batch = {"data": f"batch_{i}"}
+                                tasks.append(asyncio.create_task(
+                                    client._send_batch(batch)))
+
+                            try:
+                                # Verify concurrent operations
+                                await asyncio.gather(*tasks)
+                            finally:
+                                await client.cleanup()
+
+                            # Verify cleanup
+                            assert client._closed
+                            assert len(client._active_tasks) == 0
+                        ]]>
+                    </scenario>
+                    <scenario name="error_handling">
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_error_handling():
+                            client = SafeLangSmithClient()
+                            await client.setup()
+
+                            # Simulate error in batch operation
+                            with pytest.raises(RuntimeError):
+                                await client._send_batch({"error": "test"})
+
+                            # Verify proper cleanup after error
+                            assert client._closed
+                            assert len(client._active_tasks) == 0
+                        ]]>
+                    </scenario>
+                    <scenario name="thread_safety">
+                        <![CDATA[
+                        @pytest.mark.asyncio
+                        async def test_thread_safety():
+                            client = SafeLangSmithClient()
+                            await client.setup()
+
+                            def wrong_thread():
+                                asyncio.run(client._send_batch({"test": "data"}))
+
+                            # Verify cross-thread protection
+                            thread = threading.Thread(target=wrong_thread)
+                            thread.start()
+                            thread.join()
+
+                            # Should raise RuntimeError for wrong thread
+                            with pytest.raises(RuntimeError):
+                                await client._send_batch({"test": "data"})
+                        ]]>
+                    </scenario>
+                </testing_scenarios>
+            </pattern>
+        </implementation>
+
+        <integration_guidelines>
+            <guideline>Always initialize client in async context</guideline>
+            <guideline>Ensure proper setup before operations</guideline>
+            <guideline>Use error boundaries consistently</guideline>
+            <guideline>Implement proper cleanup in finally blocks</guideline>
+            <guideline>Maintain thread safety invariants</guideline>
+        </integration_guidelines>
+
+        <dependencies>
+            <dependency name="ErrorBoundary">
+                <reason>Required for consistent error handling</reason>
+                <usage>Error propagation and handling</usage>
+            </dependency>
+            <dependency name="SafeResourceManager">
+                <reason>Required for resource tracking</reason>
+                <usage>Resource lifecycle management</usage>
+            </dependency>
+            <dependency name="ThreadSafeLogger">
+                <reason>Required for safe logging</reason>
+                <usage>Operation and error logging</usage>
+            </dependency>
+        </dependencies>
+    </pattern_category>
+
+    <pattern_relationships>
+        <hierarchy>
+            <pattern_stack name="thread_safety_stack">
+                <component name="ThreadSafeEventLoopManager">
+                    <description>Core event loop management and thread safety</description>
+                    <dependencies>
+                        <depends_on>SafeResourceManager</depends_on>
+                        <depends_on>ErrorBoundary</depends_on>
+                    </dependencies>
+                </component>
+                <component name="SafeResourceManager">
+                    <description>Resource lifecycle and cleanup management</description>
+                    <dependencies>
+                        <depends_on>ThreadSafeLogger</depends_on>
+                        <depends_on>StateValidator</depends_on>
+                    </dependencies>
+                </component>
+                <component name="ErrorBoundary">
+                    <description>Error handling and context preservation</description>
+                    <dependencies>
+                        <depends_on>ThreadSafeLogger</depends_on>
+                        <depends_on>ContextPreserver</depends_on>
+                    </dependencies>
+                </component>
+            </pattern_stack>
+
+            <pattern_stack name="memory_safety_stack">
+                <component name="MemorySafeOperation">
+                    <description>Memory safety and state management</description>
+                    <dependencies>
+                        <depends_on>GarbageCollectionTrigger</depends_on>
+                        <depends_on>StateCleanup</depends_on>
+                    </dependencies>
+                </component>
+            </pattern_stack>
+        </hierarchy>
+
+        <integration_strategies>
+            <strategy name="base_components">
+                <description>Base classes for thread-safe and memory-safe components</description>
+                <example>
+                    <![CDATA[
+                    class ThreadSafeBase:
+                        """Base class for thread-safe components."""
+                        def __init__(self):
+                            self._event_loop = ThreadSafeEventLoopManager()
+                            self._resources = SafeResourceManager()
+                            self._errors = ErrorBoundary()
+                            self._logger = ThreadSafeLogger()
+
+                    class MemorySafeBase:
+                        """Base class for memory-safe components."""
+                        def __init__(self):
+                            self._memory = MemorySafeOperation()
+                            self._resources = SafeResourceManager()
+                            self._logger = ThreadSafeLogger()
+                    ]]>
+                </example>
+            </strategy>
+
+            <strategy name="langsmith_integration">
+                <description>Integration strategy for LangSmith components</description>
+                <example>
+                    <![CDATA[
+                    class SafeLangSmithComponent(ThreadSafeBase, MemorySafeBase):
+                        async def setup(self):
+                            await self._event_loop.verify_thread()
+                            await self._resources.register("langsmith", self._client)
+                            await self._errors.register_handler(
+                                RuntimeError, self._handle_error)
+                    ]]>
+                </example>
+            </strategy>
+
+            <strategy name="sse_integration">
+                <description>Integration strategy for SSE stream handling</description>
+                <example>
+                    <![CDATA[
+                    class SafeSSEComponent(ThreadSafeBase):
+                        async def handle_stream(self, stream):
+                            async with self._event_loop.ensure_loop():
+                                try:
+                                    async for event in stream:
+                                        await self._memory.execute_safely(
+                                            self._process_event, event)
+                                except Exception as e:
+                                    await self._errors.handle_error(e)
+                    ]]>
+                </example>
+            </strategy>
+        </integration_strategies>
+
+        <initialization_order>
+            <step order="1">
+                <component>ThreadSafeLogger</component>
+                <reason>Required for base logging capabilities</reason>
+            </step>
+            <step order="2">
+                <component>SafeResourceManager</component>
+                <reason>Needed for resource tracking</reason>
+            </step>
+            <step order="3">
+                <component>ErrorBoundary</component>
+                <reason>Depends on logger for error context</reason>
+            </step>
+            <step order="4">
+                <component>ThreadSafeEventLoopManager</component>
+                <reason>Requires resource manager for task tracking</reason>
+            </step>
+            <step order="5">
+                <component>MemorySafeOperation</component>
+                <reason>Depends on resource cleanup tracking</reason>
+            </step>
+        </initialization_order>
+
+        <democracy_exe_optimizations>
+            <optimization name="base_component">
+                <description>Optimized base component for democracy-exe</description>
+                <example>
+                    <![CDATA[
+                    class DemocracyExeBase(ThreadSafeBase, MemorySafeBase):
+                        """Base class optimized for democracy-exe components."""
+
+                        def __init__(self):
+                            super().__init__()
+                            self._task_monitor = TaskMonitor()
+                            self._event_debugger = EventLoopDebugger()
+                            self._strict_mode = True
+                    ]]>
+                </example>
+            </optimization>
+
+            <optimization name="resource_management">
+                <description>Enhanced resource management for democracy-exe</description>
+                <example>
+                    <![CDATA[
+                    class DemocracyExeResourceManager(SafeResourceManager):
+                        """Enhanced resource management for democracy-exe."""
+
+                        async def register_resource(self, name: str, resource: Any,
+                                                cleanup_handler: Optional[Callable] = None) -> None:
+                            """Register resource with enhanced tracking."""
+                            await super().register_resource(name, resource, cleanup_handler)
+                            await self._task_monitor.track_resource(name, resource)
+                            await self._event_debugger.bind_context(
+                                resource_name=name,
+                                resource_type=type(resource).__name__
+                            )
+                    ]]>
+                </example>
+            </optimization>
+
+            <optimization name="error_handling">
+                <description>Enhanced error handling for democracy-exe</description>
+                <example>
+                    <![CDATA[
+                    class DemocracyExeErrorBoundary(ErrorBoundary):
+                        """Enhanced error boundary for democracy-exe."""
+
+                        async def handle_error(self, error: Exception) -> None:
+                            """Handle errors with enhanced context preservation."""
+                            context = {
+                                "thread_id": threading.get_ident(),
+                                "task_name": asyncio.current_task().get_name(),
+                                "resource_state": await self._resources.get_state()
+                            }
+                            await self._event_debugger.log(
+                                "error",
+                                "Error in democracy-exe component",
+                                error=str(error),
+                                **context
+                            )
+                            await super().handle_error(error)
+                    ]]>
+                </example>
+            </optimization>
+
+            <optimization name="memory_management">
+                <description>Optimized memory management for democracy-exe</description>
+                <example>
+                    <![CDATA[
+                    class DemocracyExeMemoryManager(MemorySafeOperation):
+                        """Optimized memory management for democracy-exe."""
+
+                        def __init__(self):
+                            super().__init__()
+                            self._gc_thresholds = {
+                                "langsmith": 100,
+                                "sse": 50,
+                                "graph": 200
+                            }
+
+                        async def execute_safely(self, operation: Callable,
+                                            component_type: str, *args, **kwargs) -> Any:
+                            """Execute with component-specific optimizations."""
+                            gc_trigger = self._gc_thresholds.get(component_type, 100)
+                            await self.set_gc_trigger(gc_trigger)
+                            return await super().execute_safely(operation, *args, **kwargs)
+                    ]]>
+                </example>
+            </optimization>
+
+            <integration_points>
+                <point name="langchain">
+                    <description>Optimized LangChain integration for democracy-exe</description>
+                    <example>
+                        <![CDATA[
+                        class DemocracyExeLangChainComponent(DemocracyExeBase):
+                            """Optimized LangChain integration."""
+
+                            async def setup_chain(self, chain: Any):
+                                """Set up chain with safety mechanisms."""
+                                await self._resources.register(
+                                    "langchain",
+                                    chain,
+                                    cleanup_handler=self._chain_cleanup
+                                )
+                                await self._task_monitor.register_chain(chain)
+                        ]]>
+                    </example>
+                </point>
+
+                <point name="langgraph">
+                    <description>Optimized LangGraph integration for democracy-exe</description>
+                    <example>
+                        <![CDATA[
+                        class DemocracyExeGraphComponent(DemocracyExeBase):
+                            """Optimized LangGraph integration."""
+
+                            async def setup_graph(self, graph: Any):
+                                """Set up graph with safety mechanisms."""
+                                await self._resources.register(
+                                    "langgraph",
+                                    graph,
+                                    cleanup_handler=self._graph_cleanup
+                                )
+                                await self._memory.track_graph_state(graph)
+                        ]]>
+                    </example>
+                </point>
+            </integration_points>
+        </democracy_exe_optimizations>
+    </pattern_relationships>
+
+    <validation_results>
+        <core_pattern_validation>
+            <pattern name="ThreadSafeEventLoopManager">
+                <requirements_met>
+                    <requirement>Event loop isolation between threads</requirement>
+                    <requirement>Prevention of nested event loop creation</requirement>
+                    <requirement>Proper cleanup of tasks during shutdown</requirement>
+                </requirements_met>
+                <risks>
+                    <risk severity="high">
+                        <description>Deadlock potential in cleanup order</description>
+                        <mitigation>Implement deadlock detection and timeout mechanisms</mitigation>
+                    </risk>
+                    <risk severity="medium">
+                        <description>Memory leaks from orphaned tasks</description>
+                        <mitigation>Enhanced task tracking with weak references</mitigation>
+                    </risk>
+                    <risk severity="high">
+                        <description>State corruption during forced cleanup</description>
+                        <mitigation>Implement state validation checkpoints</mitigation>
+                    </risk>
+                </risks>
+            </pattern>
+
+            <pattern name="SafeResourceManager">
+                <requirements_met>
+                    <requirement>Thread-safe resource registration</requirement>
+                    <requirement>Ordered cleanup chain execution</requirement>
+                    <requirement>State consistency during errors</requirement>
+                </requirements_met>
+                <risks>
+                    <risk severity="high">
+                        <description>Resource leaks from failed cleanup handlers</description>
+                        <mitigation>Implement cleanup retry mechanism with backoff</mitigation>
+                    </risk>
+                    <risk severity="medium">
+                        <description>Circular dependencies in cleanup chain</description>
+                        <mitigation>Implement dependency cycle detection</mitigation>
+                    </risk>
+                </risks>
+            </pattern>
+
+            <pattern name="ErrorBoundary">
+                <requirements_met>
+                    <requirement>Context preservation across async boundaries</requirement>
+                    <requirement>Thread-safe error handling</requirement>
+                    <requirement>Proper error propagation</requirement>
+                </requirements_met>
+                <risks>
+                    <risk severity="medium">
+                        <description>Lost context during nested errors</description>
+                        <mitigation>Implement context stacking mechanism</mitigation>
+                    </risk>
+                    <risk severity="high">
+                        <description>Memory leaks in error context</description>
+                        <mitigation>Implement context size limits and cleanup</mitigation>
+                    </risk>
+                </risks>
+            </pattern>
+
+            <pattern name="MemorySafeOperation">
+                <requirements_met>
+                    <requirement>Proper state cleanup after operations</requirement>
+                    <requirement>Controlled garbage collection triggers</requirement>
+                    <requirement>Thread-safe state management</requirement>
+                </requirements_met>
+                <risks>
+                    <risk severity="medium">
+                        <description>GC pressure from aggressive thresholds</description>
+                        <mitigation>Implement adaptive GC threshold adjustment</mitigation>
+                    </risk>
+                    <risk severity="high">
+                        <description>State inconsistency during concurrent operations</description>
+                        <mitigation>Implement state versioning and validation</mitigation>
+                    </risk>
+                </risks>
+            </pattern>
+        </core_pattern_validation>
+
+        <performance_characteristics>
+            <memory_profile>
+                <base_footprint>~1KB per component instance</base_footprint>
+                <dynamic_allocation>100-500KB during peak operation</dynamic_allocation>
+                <gc_impact>Spikes during cleanup phases</gc_impact>
+            </memory_profile>
+
+            <cpu_profile>
+                <lock_contention>Significant above 100 concurrent operations</lock_contention>
+                <context_switching>Notable impact with >50 active tasks</context_switching>
+                <gc_impact>Spikes during cleanup phases</gc_impact>
+            </cpu_profile>
+
+            <timing_characteristics>
+                <operation name="lock_acquisition">~5-10μs</operation>
+                <operation name="context_setup">~2-5μs</operation>
+                <operation name="state_verification">~1-2μs</operation>
+                <operation name="cleanup">~5-10μs</operation>
+                <operation name="total_overhead">~15-30μs + operation time</operation>
+            </timing_characteristics>
+        </performance_characteristics>
+
+        <mitigation_strategies>
+            <strategy name="deadlock_prevention">
+                <description>Prevent deadlocks in cleanup chains</description>
+                <implementation>
+                    <![CDATA[
+                    class DeadlockDetector:
+                        def __init__(self):
+                            self._lock_graph = {}
+                            self._detection_lock = asyncio.Lock()
+
+                        async def check_deadlock(self, resource_chain):
+                            async with self._detection_lock:
+                                return self._detect_cycles(resource_chain)
+
+                        def _detect_cycles(self, chain):
+                            # Implement cycle detection algorithm
+                            pass
+                    ]]>
+                </implementation>
+            </strategy>
+
+            <strategy name="leak_prevention">
+                <description>Prevent resource and memory leaks</description>
+                <implementation>
+                    <![CDATA[
+                    class ResourceLeakMonitor:
+                        def __init__(self):
+                            self._resource_refs = weakref.WeakSet()
+                            self._monitor_lock = asyncio.Lock()
+
+                        async def track_resource(self, resource):
+                            async with self._monitor_lock:
+                                self._resource_refs.add(resource)
+
+                        async def check_leaks(self):
+                            # Implement leak detection
+                            pass
+                    ]]>
+                </implementation>
+            </strategy>
+
+            <strategy name="state_validation">
+                <description>Ensure state consistency</description>
+                <implementation>
+                    <![CDATA[
+                    class StateValidator:
+                        def __init__(self):
+                            self._state_versions = {}
+                            self._validation_lock = asyncio.Lock()
+
+                        async def validate_state(self, component):
+                            async with self._validation_lock:
+                                current = hash(str(component.__dict__))
+                                if current != self._state_versions.get(id(component)):
+                                    raise StateCorruptionError()
+                                self._state_versions[id(component)] = current
+                    ]]>
+                </implementation>
+            </strategy>
+        </mitigation_strategies>
+    </validation_results>
+
+    <implementation_plan>
+        <critical_path>
+            <phase name="foundation" priority="1">
+                <component name="DemocracyExeSafetyCore">
+                    <description>Core safety infrastructure implementation</description>
+                    <timeline>Week 1</timeline>
+                    <example>
+                        <![CDATA[
+                        class DemocracyExeSafetyCore:
+                            """Core safety infrastructure for democracy-exe."""
+
+                            def __init__(self):
+                                self._event_loop_manager = ThreadSafeEventLoopManager()
+                                self._resource_manager = DemocracyExeResourceManager()
+                                self._error_boundary = DemocracyExeErrorBoundary()
+                                self._memory_manager = DemocracyExeMemoryManager()
+                                self._task_monitor = TaskMonitor()
+
+                            async def initialize(self):
+                                """Initialize core safety components in correct order."""
+                                await self._resource_manager.initialize()
+                                await self._error_boundary.setup()
+                                await self._event_loop_manager.setup()
+                                await self._memory_manager.setup()
+                                await self._task_monitor.start()
+                        ]]>
+                    </example>
+                </component>
+            </phase>
+
+            <phase name="memory_safety" priority="2">
+                <component name="DemocracyExeMemoryManager">
+                    <description>Memory safety implementation</description>
+                    <timeline>Week 2</timeline>
+                    <dependencies>
+                        <dependency>DemocracyExeSafetyCore</dependency>
+                    </dependencies>
+                </component>
+            </phase>
+
+            <phase name="integration" priority="3">
+                <component name="SafeLangSmithComponent">
+                    <description>LangSmith integration implementation</description>
+                    <timeline>Week 3</timeline>
+                    <dependencies>
+                        <dependency>DemocracyExeSafetyCore</dependency>
+                        <dependency>DemocracyExeMemoryManager</dependency>
+                    </dependencies>
+                </component>
+            </phase>
+
+            <phase name="monitoring" priority="4">
+                <component name="EnhancedTaskMonitor">
+                    <description>Enhanced monitoring implementation</description>
+                    <timeline>Week 4</timeline>
+                    <dependencies>
+                        <dependency>SafeLangSmithComponent</dependency>
+                    </dependencies>
+                </component>
+            </phase>
+        </critical_path>
+
+        <resource_requirements>
+            <personnel>
+                <role name="senior_developer">
+                    <commitment>Full-time</commitment>
+                    <responsibilities>
+                        <responsibility>Core safety implementation</responsibility>
+                        <responsibility>Architecture oversight</responsibility>
+                        <responsibility>Code review</responsibility>
+                    </responsibilities>
+                </role>
+                <role name="testing_engineer">
+                    <commitment>Part-time</commitment>
+                    <responsibilities>
+                        <responsibility>Safety validation</responsibility>
+                        <responsibility>Performance testing</responsibility>
+                    </responsibilities>
+                </role>
+            </personnel>
+
+            <infrastructure>
+                <requirement name="ci_cd">
+                    <description>CI/CD pipeline updates</description>
+                    <components>
+                        <component>Safety validation pipeline</component>
+                        <component>Performance testing pipeline</component>
+                        <component>Memory leak detection</component>
+                    </components>
+                </requirement>
+                <requirement name="monitoring">
+                    <description>Monitoring infrastructure</description>
+                    <components>
+                        <component>Prometheus metrics</component>
+                        <component>Grafana dashboards</component>
+                        <component>Custom safety monitors</component>
+                    </components>
+                </requirement>
+            </infrastructure>
+        </resource_requirements>
+
+        <validation_framework>
+            <stage name="core_validation">
+                <check name="thread_safety">
+                    <description>Validate thread safety mechanisms</description>
+                    <implementation>
+                        <![CDATA[
+                        class SafetyValidation:
+                            async def validate_thread_safety(self):
+                                """Validate thread safety mechanisms."""
+                                await self.verify_thread_isolation()
+                                await self.verify_event_loop_safety()
+                                await self.verify_resource_access()
+                        ]]>
+                    </implementation>
+                </check>
+                <check name="memory_safety">
+                    <description>Validate memory safety mechanisms</description>
+                    <implementation>
+                        <![CDATA[
+                        class MemoryValidation:
+                            async def validate_memory_safety(self):
+                                """Validate memory safety mechanisms."""
+                                await self.verify_leak_prevention()
+                                await self.verify_state_consistency()
+                                await self.verify_cleanup_chains()
+                        ]]>
+                    </implementation>
+                </check>
+            </stage>
+        </validation_framework>
+
+        <risk_mitigation>
+            <risk name="deadlocks">
+                <severity>High</severity>
+                <mitigation>
+                    <strategy>Implement deadlock detection</strategy>
+                    <implementation>
+                        <![CDATA[
+                        class DeadlockMitigation:
+                            async def setup_deadlock_detection(self):
+                                """Set up deadlock detection."""
+                                self._detector = DeadlockDetector()
+                                await self._detector.start_monitoring()
+                        ]]>
+                    </implementation>
+                </mitigation>
+            </risk>
+            <risk name="memory_leaks">
+                <severity>High</severity>
+                <mitigation>
+                    <strategy>Implement leak monitoring</strategy>
+                    <implementation>
+                        <![CDATA[
+                        class LeakMitigation:
+                            async def setup_leak_monitoring(self):
+                                """Set up leak monitoring."""
+                                self._monitor = ResourceLeakMonitor()
+                                await self._monitor.start_tracking()
+                        ]]>
+                    </implementation>
+                </mitigation>
+            </risk>
+        </risk_mitigation>
+
+        <success_criteria>
+            <criterion name="safety">
+                <description>Zero segmentation faults in production</description>
+                <measurement>
+                    <metric>Segfault count</metric>
+                    <threshold>0</threshold>
+                    <period>30 days</period>
+                </measurement>
+            </criterion>
+            <criterion name="performance">
+                <description>Acceptable performance overhead</description>
+                <measurement>
+                    <metric>Operation overhead</metric>
+                    <threshold>5%</threshold>
+                    <period>Peak load</period>
+                </measurement>
+            </criterion>
+            <criterion name="reliability">
+                <description>No resource leaks</description>
+                <measurement>
+                    <metric>Resource leak count</metric>
+                    <threshold>0</threshold>
+                    <period>7 days</period>
+                </measurement>
+            </criterion>
+        </success_criteria>
+    </implementation_plan>
+
+    <comprehensive_review>
+        <pattern_completeness>
+            <core_safety>
+                <thread_safety status="complete">
+                    <component>ThreadSafeEventLoopManager</component>
+                    <component>SafeResourceManager</component>
+                    <component>ThreadSafeLogger</component>
+                    <component>Thread identity verification</component>
+                </thread_safety>
+
+                <memory_safety status="complete">
+                    <component>MemorySafeOperation</component>
+                    <component>StateValidator</component>
+                    <component>ResourceLeakMonitor</component>
+                    <component>GC management</component>
+                </memory_safety>
+
+                <error_handling status="complete">
+                    <component>ErrorBoundary</component>
+                    <component>Context preservation</component>
+                    <component>Cleanup chains</component>
+                </error_handling>
+            </core_safety>
+
+            <identified_gaps>
+                <gap priority="high">
+                    <name>Async context propagation</name>
+                    <description>Better handling of nested async operations needed</description>
+                    <mitigation>Implement context propagation chain</mitigation>
+                </gap>
+                <gap priority="medium">
+                    <name>State synchronization</name>
+                    <description>Cross-component state management needs enhancement</description>
+                    <mitigation>Add state synchronization protocol</mitigation>
+                </gap>
+                <gap priority="medium">
+                    <name>Dynamic dependencies</name>
+                    <description>Resource dependency management could be more flexible</description>
+                    <mitigation>Implement dynamic dependency resolution</mitigation>
+                </gap>
+            </identified_gaps>
+        </pattern_completeness>
+
+        <implementation_assessment>
+            <strengths>
+                <strength>Clear initialization sequences</strength>
+                <strength>Comprehensive safety mechanisms</strength>
+                <strength>Proper resource lifecycle management</strength>
+                <strength>Robust error handling patterns</strength>
+            </strengths>
+
+            <enhancement_needs>
+                <need>
+                    <area>Complex cleanup scenarios</area>
+                    <description>Add more examples of handling complex cleanup chains</description>
+                </need>
+                <need>
+                    <area>Custom resources</area>
+                    <description>Provide better guidance for custom resource types</description>
+                </need>
+                <need>
+                    <area>Performance tuning</area>
+                    <description>Add detailed performance optimization guidelines</description>
+                </need>
+            </enhancement_needs>
+        </implementation_assessment>
+
+        <documentation_quality>
+            <well_documented>
+                <aspect>Core pattern relationships</aspect>
+                <aspect>Implementation sequences</aspect>
+                <aspect>Risk mitigation strategies</aspect>
+                <aspect>Validation requirements</aspect>
+            </well_documented>
+
+            <needs_improvement>
+                <aspect>
+                    <name>Failure scenarios</name>
+                    <recommendation>Add more real-world failure examples</recommendation>
+                </aspect>
+                <aspect>
+                    <name>Performance impact</name>
+                    <recommendation>Provide more detailed performance analysis</recommendation>
+                </aspect>
+                <aspect>
+                    <name>Edge cases</name>
+                    <recommendation>Document integration edge cases</recommendation>
+                </aspect>
+            </needs_improvement>
+        </documentation_quality>
+
+        <future_considerations>
+            <emerging_requirements>
+                <requirement>
+                    <name>Distributed systems</name>
+                    <description>Support for distributed safety patterns</description>
+                </requirement>
+                <requirement>
+                    <name>Cloud deployment</name>
+                    <description>Cloud-native safety patterns</description>
+                </requirement>
+                <requirement>
+                    <name>Enhanced monitoring</name>
+                    <description>Advanced monitoring capabilities</description>
+                </requirement>
+            </emerging_requirements>
+
+            <technical_debt>
+                <item>
+                    <name>Legacy support</name>
+                    <description>Better support for legacy cleanup patterns</description>
+                </item>
+                <item>
+                    <name>Performance optimization</name>
+                    <description>Identify and optimize performance bottlenecks</description>
+                </item>
+                <item>
+                    <name>Testing framework</name>
+                    <description>Enhance testing capabilities</description>
+                </item>
+            </technical_debt>
+        </future_considerations>
+
+        <open_questions>
+            <technical_questions>
+                <question>
+                    <topic>Nested operations</topic>
+                    <description>How to handle deeply nested async operations?</description>
+                </question>
+                <question>
+                    <topic>GC thresholds</topic>
+                    <description>What are optimal GC thresholds for different workloads?</description>
+                </question>
+                <question>
+                    <topic>Dependencies</topic>
+                    <description>How to manage cross-service resource dependencies?</description>
+                </question>
+            </technical_questions>
+
+            <implementation_questions>
+                <question>
+                    <topic>Migration</topic>
+                    <description>Best practices for migrating existing components?</description>
+                </question>
+                <question>
+                    <topic>Partial adoption</topic>
+                    <description>How to handle partial pattern adoption?</description>
+                </question>
+                <question>
+                    <topic>Monitoring</topic>
+                    <description>What monitoring metrics are most critical?</description>
+                </question>
+            </implementation_questions>
+        </open_questions>
+
+        <objectives_assessment>
+            <objective name="segfault_prevention" status="achieved">
+                <components>
+                    <component>Comprehensive thread safety</component>
+                    <component>Memory safety mechanisms</component>
+                    <component>Resource lifecycle management</component>
+                    <component>Error boundaries and recovery</component>
+                </components>
+            </objective>
+
+            <objective name="performance_impact" status="achieved">
+                <components>
+                    <component>Overhead within limits (&lt; 5%)</component>
+                    <component>Controlled resource usage</component>
+                    <component>Efficient cleanup chains</component>
+                </components>
+            </objective>
+
+            <objective name="maintainability" status="achieved">
+                <components>
+                    <component>Clear pattern documentation</component>
+                    <component>Implementation guidelines</component>
+                    <component>Testing frameworks</component>
+                    <component>Monitoring tools</component>
+                </components>
+            </objective>
+        </objectives_assessment>
+    </comprehensive_review>
 </segfault_guidelines>

@@ -139,7 +139,7 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     return memories
 
 
-@langsmith.traceable
+# @langsmith.traceable
 def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
     """Fetch core memories for a specific user.
 
@@ -261,7 +261,7 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 
-@langsmith.traceable
+# @langsmith.traceable
 async def agent(
     state: schemas.State,
     config: RunnableConfig,

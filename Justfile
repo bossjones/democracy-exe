@@ -459,6 +459,10 @@ uv_typecheck_pyright:
 	{{UV_RUN}} pyright --threads {{num_cpus()}} -p pyproject.toml democracy_exe tests | tee -a pyright.log
 	cat pyright.log
 
+typecheck-pydantic:
+	#!/bin/bash
+	grep -rl --exclude="*.pyc" --exclude="*requirements.txt" -e "pydantic" -e "pydantic_settings" democracy_exe tests | {{UV_RUN}} pyright --verbose --threads {{num_cpus()}} -p pyproject.toml -
+
 # Verify types using Pyright, ignoring external packages
 typecheck: uv_typecheck_pyright
 
@@ -1028,7 +1032,48 @@ generate-ai-docs:
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/langgraph/tests \
 			--cxml -o ai_docs/prompts/data/langgraph_docs_test_and_code.xml
 
-	echo "AI documentation generation complete"
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/sdk-py/langgraph_sdk \
+			--cxml -o ai_docs/prompts/data/langgraph_sdk_docs_test_and_code.xml
+
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langsmith-sdk/python/langsmith \
+			--cxml -o ai_docs/prompts/data/langsmith_sdk_code.xml
+
+	uv run files-to-prompt \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests \
+			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli \
+			--cxml -o ai_docs/prompts/data/langgraph_cli_code.xml
+
+	uv run files-to-prompt  /Users/malcolm/dev/home-assistant/core/homeassistant/core.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/block_async_io.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/util/async_.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/util/logging.py \
+		/Users/malcolm/dev/home-assistant/core/homeassistant/util/loop.py \
+		--cxml -o ai_docs/prompts/data/home_assistant_code.xml
+
+	uv run files-to-prompt \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/__main__.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/bootstrap.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/util/thread.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/util/timeout.py \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/util/executor.py \
+			--cxml -o ai_docs/prompts/data/home_assistant_bootstrap_and_thread.xml
+
+	uv run files-to-prompt \
+			/Users/malcolm/dev/home-assistant/core/homeassistant/components/profiler \
+			--cxml -o ai_docs/prompts/data/home_assistant_profiler.xml
+
+	@echo "🔥🔥 Rendering: democracy_exe main branch with tests"
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe-main/democracy_exe /Users/malcolm/dev/bossjones/democracy-exe-main/tests --cxml -o ai_docs/prompts/data/democracy_exe_main_branch_with_tests.xml
+	@echo "AI documentation generation complete"
+
+# Regenerate democracy-exe ai docs
+regenerate-democracy-exe-ai-docs:
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/exceptions /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/exceptions/__init__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/factories /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/models /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/services /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/shell /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/subcommands /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/utils --cxml -o ai_docs/prompts/data/democracy_exe_exceptions.xml
+
+	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__init__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__main__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/__version__.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/aio_settings.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/asynctyper.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/base.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/cli.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/constants.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/debugger.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/foo.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/llm_manager.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/main.py /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/requirements.txt /Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/types.py --cxml -o ai_docs/prompts/data/democracy_exe_init.xml
+
 
 
 # Run unit tests in debug mode with extended output
@@ -1112,6 +1157,12 @@ test-logsetup:
 # Run unit tests specifically for utils
 test-fix:
 	uv run pytest -q -s tests/unittests/utils/test_utils_dropbox_.py
+
+test-aio-settings:
+	uv run pytest -s --verbose --showlocals --tb=short tests/test_aio_settings.py
+
+test-aio-settings-debug:
+	uv run pytest -s --verbose --showlocals --tb=short --pdb --pdbcls bpdb:BPdb tests/test_aio_settings.py
 
 # Generate langgraph dockerfile for studio
 generate-langgraph-dockerfile-studio:
@@ -1222,3 +1273,30 @@ docker-build-langraph:
 # Run docker image for debugging
 docker-run-langraph:
 	docker run -it --entrypoint=/bin/bash democracy-langraph -l
+
+# Update cursorrules.xml and aider_rules
+update-rules:
+	@echo "🚀 Updating cursorrules"
+	cp -a cursorrules.xml .cursorrules
+	@echo "🚀 Updating aider_rules"
+	cp -a cursorrules.xml aider_configs/aider_rules
+	git add .cursorrules aider_configs/aider_rules cursorrules.xml
+
+# Find all special imports
+find-all-special-imports:
+	rg -t py '^\s*(from|import)\s+(discord|pydantic|pydantic_settings|dpytest)' democracy_exe/ tests
+
+# Find all unittest.mock imports and usage
+find-all-mock-imports:
+	rg -t py '^\s*(from|import)\s+unittest\.mock|^\s*from\s+unittest\s+import\s+.*mock'
+
+
+# Add lint comments to files in democracy_exe and tests
+add-lint-comments-dry-run:
+	./scripts/add_lint_comments.py --dir democracy_exe --dry-run
+	./scripts/add_lint_comments.py --dir tests --dry-run
+
+# Add lint comments to files in democracy_exe and tests
+add-lint-comments:
+	./scripts/add_lint_comments.py --dir democracy_exe
+	./scripts/add_lint_comments.py --dir tests

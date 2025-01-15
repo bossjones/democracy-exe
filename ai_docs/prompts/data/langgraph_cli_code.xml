@@ -1,0 +1,3383 @@
+<documents>
+<document index="1">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="2">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="3">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/agent.py</source>
+<document_content>
+import asyncio
+import os
+from typing import Annotated, Sequence, TypedDict
+
+from langchain_core.language_models.fake_chat_models import FakeListChatModel
+from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage
+from langgraph.graph import END, StateGraph, add_messages
+
+# check that env var is present
+os.environ["SOME_ENV_VAR"]
+
+
+class AgentState(TypedDict):
+    some_bytes: bytes
+    some_byte_array: bytearray
+    dict_with_bytes: dict[str, bytes]
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    sleep: int
+
+
+async def call_model(state, config):
+    if sleep := state.get("sleep"):
+        await asyncio.sleep(sleep)
+
+    messages = state["messages"]
+
+    if len(messages) > 1:
+        assert state["some_bytes"] == b"some_bytes"
+        assert state["some_byte_array"] == bytearray(b"some_byte_array")
+        assert state["dict_with_bytes"] == {"more_bytes": b"more_bytes"}
+
+    # hacky way to reset model to the "first" response
+    if isinstance(messages[-1], HumanMessage):
+        model.i = 0
+
+    response = await model.ainvoke(messages)
+    return {
+        "messages": [response],
+        "some_bytes": b"some_bytes",
+        "some_byte_array": bytearray(b"some_byte_array"),
+        "dict_with_bytes": {"more_bytes": b"more_bytes"},
+    }
+
+
+def call_tool(state):
+    last_message_content = state["messages"][-1].content
+    return {
+        "messages": [
+            ToolMessage(
+                f"tool_call__{last_message_content}", tool_call_id="tool_call_id"
+            )
+        ]
+    }
+
+
+def should_continue(state):
+    messages = state["messages"]
+    last_message = messages[-1]
+    if last_message.content == "end":
+        return END
+    else:
+        return "tool"
+
+
+# NOTE: the model cycles through responses infinitely here
+model = FakeListChatModel(responses=["begin", "end"])
+workflow = StateGraph(AgentState)
+
+workflow.add_node("agent", call_model)
+workflow.add_node("tool", call_tool)
+
+workflow.set_entry_point("agent")
+
+workflow.add_conditional_edges(
+    "agent",
+    should_continue,
+)
+
+workflow.add_edge("tool", "agent")
+
+graph = workflow.compile()
+
+</document_content>
+</document>
+<document index="4">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/conftest.py</source>
+<document_content>
+import os
+from unittest.mock import patch
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def disable_analytics_env() -> None:
+    """Disable analytics for unit tests LANGGRAPH_CLI_NO_ANALYTICS."""
+    # First check if the environment variable is already set, if so, log a warning prior
+    # to overriding it.
+    if "LANGGRAPH_CLI_NO_ANALYTICS" in os.environ:
+        print("⚠️ LANGGRAPH_CLI_NO_ANALYTICS is set. Overriding it for the test.")
+
+    with patch.dict(os.environ, {"LANGGRAPH_CLI_NO_ANALYTICS": "0"}):
+        yield
+
+</document_content>
+</document>
+<document index="5">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/helpers.py</source>
+<document_content>
+def clean_empty_lines(input_str: str):
+    return "\n".join(filter(None, input_str.splitlines()))
+
+</document_content>
+</document>
+<document index="6">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/pipconfig.txt</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="7">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/test_config.json</source>
+<document_content>
+{
+    "python_version": "3.12",
+    "pip_config_file": "pipconfig.txt",
+    "dockerfile_lines": [
+        "ARG meow=woof"
+    ],
+    "dependencies": [
+        "langchain_openai",
+        "."
+    ],
+    "graphs": {
+        "agent": "graphs/agent.py:graph"
+    },
+    "env": ".env"
+}
+
+</document_content>
+</document>
+<document index="8">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/test_config.py</source>
+<document_content>
+import json
+import os
+import pathlib
+import tempfile
+
+import click
+import pytest
+
+from langgraph_cli.config import (
+    config_to_compose,
+    config_to_docker,
+    validate_config,
+    validate_config_file,
+)
+from langgraph_cli.util import clean_empty_lines
+
+PATH_TO_CONFIG = pathlib.Path(__file__).parent / "test_config.json"
+
+
+def test_validate_config():
+    # minimal config
+    expected_config = {
+        "dependencies": ["."],
+        "graphs": {
+            "agent": "./agent.py:graph",
+        },
+    }
+    expected_config = {
+        "python_version": "3.11",
+        "pip_config_file": None,
+        "dockerfile_lines": [],
+        "env": {},
+        "store": None,
+        "auth": None,
+        **expected_config,
+    }
+    actual_config = validate_config(expected_config)
+    assert actual_config == expected_config
+
+    # full config
+    env = ".env"
+    expected_config = {
+        "python_version": "3.12",
+        "pip_config_file": "pipconfig.txt",
+        "dockerfile_lines": ["ARG meow"],
+        "dependencies": [".", "langchain"],
+        "graphs": {
+            "agent": "./agent.py:graph",
+        },
+        "env": env,
+        "store": None,
+        "auth": None,
+    }
+    actual_config = validate_config(expected_config)
+    assert actual_config == expected_config
+    expected_config["python_version"] = "3.13"
+    actual_config = validate_config(expected_config)
+    assert actual_config == expected_config
+
+    # check wrong python version raises
+    with pytest.raises(click.UsageError):
+        validate_config(
+            {
+                "python_version": "3.9",
+            }
+        )
+
+    # check missing dependencies key raises
+    with pytest.raises(click.UsageError):
+        validate_config(
+            {"python_version": "3.9", "graphs": {"agent": "./agent.py:graph"}},
+        )
+
+    # check missing graphs key raises
+    with pytest.raises(click.UsageError):
+        validate_config({"python_version": "3.9", "dependencies": ["."]})
+
+    with pytest.raises(click.UsageError) as exc_info:
+        validate_config({"python_version": "3.11.0"})
+    assert "Invalid Python version format" in str(exc_info.value)
+
+    with pytest.raises(click.UsageError) as exc_info:
+        validate_config({"python_version": "3"})
+    assert "Invalid Python version format" in str(exc_info.value)
+
+    with pytest.raises(click.UsageError) as exc_info:
+        validate_config({"python_version": "abc.def"})
+    assert "Invalid Python version format" in str(exc_info.value)
+
+    with pytest.raises(click.UsageError) as exc_info:
+        validate_config({"python_version": "3.10"})
+    assert "Minimum required version" in str(exc_info.value)
+
+
+def test_validate_config_file():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = pathlib.Path(tmpdir)
+
+        config_path = tmpdir_path / "langgraph.json"
+
+        node_config = {"node_version": "20", "graphs": {"agent": "./agent.js:graph"}}
+        with open(config_path, "w") as f:
+            json.dump(node_config, f)
+
+        validate_config_file(config_path)
+
+        package_json = {"name": "test", "engines": {"node": "20"}}
+        with open(tmpdir_path / "package.json", "w") as f:
+            json.dump(package_json, f)
+        validate_config_file(config_path)
+
+        package_json["engines"]["node"] = "20.18"
+        with open(tmpdir_path / "package.json", "w") as f:
+            json.dump(package_json, f)
+        with pytest.raises(click.UsageError, match="Use major version only"):
+            validate_config_file(config_path)
+
+        package_json["engines"] = {"node": "18"}
+        with open(tmpdir_path / "package.json", "w") as f:
+            json.dump(package_json, f)
+        with pytest.raises(click.UsageError, match="must be >= 20"):
+            validate_config_file(config_path)
+
+        package_json["engines"] = {"node": "20", "deno": "1.0"}
+        with open(tmpdir_path / "package.json", "w") as f:
+            json.dump(package_json, f)
+        with pytest.raises(click.UsageError, match="Only 'node' engine is supported"):
+            validate_config_file(config_path)
+
+        with open(tmpdir_path / "package.json", "w") as f:
+            f.write("{invalid json")
+        with pytest.raises(click.UsageError, match="Invalid package.json"):
+            validate_config_file(config_path)
+
+        python_config = {
+            "python_version": "3.11",
+            "dependencies": ["."],
+            "graphs": {"agent": "./agent.py:graph"},
+        }
+        with open(config_path, "w") as f:
+            json.dump(python_config, f)
+
+        validate_config_file(config_path)
+
+        for package_content in [
+            {"name": "test"},
+            {"engines": {"node": "18"}},
+            {"engines": {"node": "20", "deno": "1.0"}},
+            "{invalid json",
+        ]:
+            with open(tmpdir_path / "package.json", "w") as f:
+                if isinstance(package_content, dict):
+                    json.dump(package_content, f)
+                else:
+                    f.write(package_content)
+            validate_config_file(config_path)
+
+
+# config_to_docker
+def test_config_to_docker_simple():
+    graphs = {"agent": "./agent.py:graph"}
+    actual_docker_stdin = config_to_docker(
+        PATH_TO_CONFIG,
+        validate_config({"dependencies": ["."], "graphs": graphs}),
+        "langchain/langgraph-api",
+    )
+    expected_docker_stdin = """\
+FROM langchain/langgraph-api:3.11
+ADD . /deps/__outer_unit_tests/unit_tests
+RUN set -ex && \\
+    for line in '[project]' \\
+                'name = "unit_tests"' \\
+                'version = "0.1"' \\
+                '[tool.setuptools.package-data]' \\
+                '"*" = ["**/*"]'; do \\
+        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+    done
+RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+WORKDIR /deps/__outer_unit_tests/unit_tests\
+"""
+    assert clean_empty_lines(actual_docker_stdin) == expected_docker_stdin
+
+
+def test_config_to_docker_pipconfig():
+    graphs = {"agent": "./agent.py:graph"}
+    actual_docker_stdin = config_to_docker(
+        PATH_TO_CONFIG,
+        validate_config(
+            {
+                "dependencies": ["."],
+                "graphs": graphs,
+                "pip_config_file": "pipconfig.txt",
+            }
+        ),
+        "langchain/langgraph-api",
+    )
+    expected_docker_stdin = """\
+FROM langchain/langgraph-api:3.11
+ADD pipconfig.txt /pipconfig.txt
+ADD . /deps/__outer_unit_tests/unit_tests
+RUN set -ex && \\
+    for line in '[project]' \\
+                'name = "unit_tests"' \\
+                'version = "0.1"' \\
+                '[tool.setuptools.package-data]' \\
+                '"*" = ["**/*"]'; do \\
+        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+    done
+RUN PIP_CONFIG_FILE=/pipconfig.txt PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+WORKDIR /deps/__outer_unit_tests/unit_tests\
+"""
+    assert clean_empty_lines(actual_docker_stdin) == expected_docker_stdin
+
+
+def test_config_to_docker_invalid_inputs():
+    # test missing local dependencies
+    with pytest.raises(FileNotFoundError):
+        graphs = {"agent": "tests/unit_tests/agent.py:graph"}
+        config_to_docker(
+            PATH_TO_CONFIG,
+            validate_config({"dependencies": ["./missing"], "graphs": graphs}),
+            "langchain/langgraph-api",
+        )
+
+    # test missing local module
+    with pytest.raises(FileNotFoundError):
+        graphs = {"agent": "./missing_agent.py:graph"}
+        config_to_docker(
+            PATH_TO_CONFIG,
+            validate_config({"dependencies": ["."], "graphs": graphs}),
+            "langchain/langgraph-api",
+        )
+
+
+def test_config_to_docker_local_deps():
+    graphs = {"agent": "./graphs/agent.py:graph"}
+    actual_docker_stdin = config_to_docker(
+        PATH_TO_CONFIG,
+        validate_config(
+            {
+                "dependencies": ["./graphs"],
+                "graphs": graphs,
+            }
+        ),
+        "langchain/langgraph-api-custom",
+    )
+    expected_docker_stdin = """\
+FROM langchain/langgraph-api-custom:3.11
+ADD ./graphs /deps/__outer_graphs/src
+RUN set -ex && \\
+    for line in '[project]' \\
+                'name = "graphs"' \\
+                'version = "0.1"' \\
+                '[tool.setuptools.package-data]' \\
+                '"*" = ["**/*"]'; do \\
+        echo "$line" >> /deps/__outer_graphs/pyproject.toml; \\
+    done
+RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_graphs/src/agent.py:graph"}'\
+"""
+    assert clean_empty_lines(actual_docker_stdin) == expected_docker_stdin
+
+
+def test_config_to_docker_pyproject():
+    pyproject_str = """[project]
+name = "custom"
+version = "0.1"
+dependencies = ["langchain"]"""
+    pyproject_path = "tests/unit_tests/pyproject.toml"
+    with open(pyproject_path, "w") as f:
+        f.write(pyproject_str)
+
+    graphs = {"agent": "./graphs/agent.py:graph"}
+    actual_docker_stdin = config_to_docker(
+        PATH_TO_CONFIG,
+        validate_config(
+            {
+                "dependencies": ["."],
+                "graphs": graphs,
+            }
+        ),
+        "langchain/langgraph-api",
+    )
+    os.remove(pyproject_path)
+    expected_docker_stdin = """FROM langchain/langgraph-api:3.11
+ADD . /deps/unit_tests
+RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+ENV LANGSERVE_GRAPHS='{"agent": "/deps/unit_tests/graphs/agent.py:graph"}'
+WORKDIR /deps/unit_tests"""
+    assert clean_empty_lines(actual_docker_stdin) == expected_docker_stdin
+
+
+def test_config_to_docker_end_to_end():
+    graphs = {"agent": "./graphs/agent.py:graph"}
+    actual_docker_stdin = config_to_docker(
+        PATH_TO_CONFIG,
+        validate_config(
+            {
+                "python_version": "3.12",
+                "dependencies": ["./graphs/", "langchain", "langchain_openai"],
+                "graphs": graphs,
+                "pip_config_file": "pipconfig.txt",
+                "dockerfile_lines": ["ARG meow", "ARG foo"],
+            }
+        ),
+        "langchain/langgraph-api",
+    )
+    expected_docker_stdin = """FROM langchain/langgraph-api:3.12
+ARG meow
+ARG foo
+ADD pipconfig.txt /pipconfig.txt
+RUN PIP_CONFIG_FILE=/pipconfig.txt PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt langchain langchain_openai
+ADD ./graphs/ /deps/__outer_graphs/src
+RUN set -ex && \\
+    for line in '[project]' \\
+                'name = "graphs"' \\
+                'version = "0.1"' \\
+                '[tool.setuptools.package-data]' \\
+                '"*" = ["**/*"]'; do \\
+        echo "$line" >> /deps/__outer_graphs/pyproject.toml; \\
+    done
+RUN PIP_CONFIG_FILE=/pipconfig.txt PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_graphs/src/agent.py:graph"}'"""
+    assert clean_empty_lines(actual_docker_stdin) == expected_docker_stdin
+
+
+# node.js build used for LangGraph Cloud
+def test_config_to_docker_nodejs():
+    graphs = {"agent": "./graphs/agent.js:graph"}
+    actual_docker_stdin = config_to_docker(
+        PATH_TO_CONFIG,
+        validate_config(
+            {
+                "node_version": "20",
+                "graphs": graphs,
+                "dockerfile_lines": ["ARG meow", "ARG foo"],
+            }
+        ),
+        "langchain/langgraphjs-api",
+    )
+    expected_docker_stdin = """FROM langchain/langgraphjs-api:20
+ARG meow
+ARG foo
+ADD . /deps/unit_tests
+RUN cd /deps/unit_tests && npm i
+ENV LANGSERVE_GRAPHS='{"agent": "./graphs/agent.js:graph"}'
+WORKDIR /deps/unit_tests
+RUN (test ! -f /api/langgraph_api/js/build.mts && echo "Prebuild script not found, skipping") || tsx /api/langgraph_api/js/build.mts"""
+
+    assert clean_empty_lines(actual_docker_stdin) == expected_docker_stdin
+
+
+# config_to_compose
+def test_config_to_compose_simple_config():
+    graphs = {"agent": "./agent.py:graph"}
+    expected_compose_stdin = """\
+
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+                FROM langchain/langgraph-api:3.11
+                ADD . /deps/__outer_unit_tests/unit_tests
+                RUN set -ex && \\
+                    for line in '[project]' \\
+                                'name = "unit_tests"' \\
+                                'version = "0.1"' \\
+                                '[tool.setuptools.package-data]' \\
+                                '"*" = ["**/*"]'; do \\
+                        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+                    done
+                RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+                ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+                WORKDIR /deps/__outer_unit_tests/unit_tests
+        """
+    actual_compose_stdin = config_to_compose(
+        PATH_TO_CONFIG,
+        validate_config({"dependencies": ["."], "graphs": graphs}),
+        "langchain/langgraph-api",
+    )
+    assert clean_empty_lines(actual_compose_stdin) == expected_compose_stdin
+
+
+def test_config_to_compose_env_vars():
+    graphs = {"agent": "./agent.py:graph"}
+    expected_compose_stdin = """                        OPENAI_API_KEY: "key"
+
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+                FROM langchain/langgraph-api-custom:3.11
+                ADD . /deps/__outer_unit_tests/unit_tests
+                RUN set -ex && \\
+                    for line in '[project]' \\
+                                'name = "unit_tests"' \\
+                                'version = "0.1"' \\
+                                '[tool.setuptools.package-data]' \\
+                                '"*" = ["**/*"]'; do \\
+                        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+                    done
+                RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+                ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+                WORKDIR /deps/__outer_unit_tests/unit_tests
+        """
+    openai_api_key = "key"
+    actual_compose_stdin = config_to_compose(
+        PATH_TO_CONFIG,
+        validate_config(
+            {
+                "dependencies": ["."],
+                "graphs": graphs,
+                "env": {"OPENAI_API_KEY": openai_api_key},
+            }
+        ),
+        "langchain/langgraph-api-custom",
+    )
+    assert clean_empty_lines(actual_compose_stdin) == expected_compose_stdin
+
+
+def test_config_to_compose_env_file():
+    graphs = {"agent": "./agent.py:graph"}
+    expected_compose_stdin = """\
+        env_file: .env
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+                FROM langchain/langgraph-api:3.11
+                ADD . /deps/__outer_unit_tests/unit_tests
+                RUN set -ex && \\
+                    for line in '[project]' \\
+                                'name = "unit_tests"' \\
+                                'version = "0.1"' \\
+                                '[tool.setuptools.package-data]' \\
+                                '"*" = ["**/*"]'; do \\
+                        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+                    done
+                RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+                ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+                WORKDIR /deps/__outer_unit_tests/unit_tests
+        """
+    actual_compose_stdin = config_to_compose(
+        PATH_TO_CONFIG,
+        validate_config({"dependencies": ["."], "graphs": graphs, "env": ".env"}),
+        "langchain/langgraph-api",
+    )
+    assert clean_empty_lines(actual_compose_stdin) == expected_compose_stdin
+
+
+def test_config_to_compose_watch():
+    graphs = {"agent": "./agent.py:graph"}
+    expected_compose_stdin = """\
+
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+                FROM langchain/langgraph-api:3.11
+                ADD . /deps/__outer_unit_tests/unit_tests
+                RUN set -ex && \\
+                    for line in '[project]' \\
+                                'name = "unit_tests"' \\
+                                'version = "0.1"' \\
+                                '[tool.setuptools.package-data]' \\
+                                '"*" = ["**/*"]'; do \\
+                        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+                    done
+                RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+                ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+                WORKDIR /deps/__outer_unit_tests/unit_tests
+
+        develop:
+            watch:
+                - path: test_config.json
+                  action: rebuild
+                - path: .
+                  action: rebuild\
+"""
+    actual_compose_stdin = config_to_compose(
+        PATH_TO_CONFIG,
+        validate_config({"dependencies": ["."], "graphs": graphs}),
+        "langchain/langgraph-api",
+        watch=True,
+    )
+    assert clean_empty_lines(actual_compose_stdin) == expected_compose_stdin
+
+
+def test_config_to_compose_end_to_end():
+    # test all of the above + langgraph API path
+    graphs = {"agent": "./agent.py:graph"}
+    expected_compose_stdin = """\
+        env_file: .env
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+                FROM langchain/langgraph-api:3.11
+                ADD . /deps/__outer_unit_tests/unit_tests
+                RUN set -ex && \\
+                    for line in '[project]' \\
+                                'name = "unit_tests"' \\
+                                'version = "0.1"' \\
+                                '[tool.setuptools.package-data]' \\
+                                '"*" = ["**/*"]'; do \\
+                        echo "$line" >> /deps/__outer_unit_tests/pyproject.toml; \\
+                    done
+                RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+                ENV LANGSERVE_GRAPHS='{"agent": "/deps/__outer_unit_tests/unit_tests/agent.py:graph"}'
+                WORKDIR /deps/__outer_unit_tests/unit_tests
+
+        develop:
+            watch:
+                - path: test_config.json
+                  action: rebuild
+                - path: .
+                  action: rebuild\
+"""
+    actual_compose_stdin = config_to_compose(
+        PATH_TO_CONFIG,
+        validate_config({"dependencies": ["."], "graphs": graphs, "env": ".env"}),
+        "langchain/langgraph-api",
+        watch=True,
+    )
+    assert clean_empty_lines(actual_compose_stdin) == expected_compose_stdin
+
+</document_content>
+</document>
+<document index="9">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/test_docker.py</source>
+<document_content>
+from langgraph_cli.docker import (
+    DEFAULT_POSTGRES_URI,
+    DockerCapabilities,
+    Version,
+    compose,
+)
+from langgraph_cli.util import clean_empty_lines
+
+DEFAULT_DOCKER_CAPABILITIES = DockerCapabilities(
+    version_docker=Version(26, 1, 1),
+    version_compose=Version(2, 27, 0),
+    healthcheck_start_interval=False,
+)
+
+
+def test_compose_with_no_debugger_and_custom_db():
+    port = 8123
+    custom_postgres_uri = "custom_postgres_uri"
+    actual_compose_str = compose(
+        DEFAULT_DOCKER_CAPABILITIES, port=port, postgres_uri=custom_postgres_uri
+    )
+    expected_compose_str = f"""services:
+    langgraph-redis:
+        image: redis:6
+        healthcheck:
+            test: redis-cli ping
+            interval: 5s
+            timeout: 1s
+            retries: 5
+    langgraph-api:
+        ports:
+            - "{port}:8000"
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            POSTGRES_URI: {custom_postgres_uri}"""
+    assert clean_empty_lines(actual_compose_str) == expected_compose_str
+
+
+def test_compose_with_no_debugger_and_custom_db_with_healthcheck():
+    port = 8123
+    custom_postgres_uri = "custom_postgres_uri"
+    actual_compose_str = compose(
+        DEFAULT_DOCKER_CAPABILITIES._replace(healthcheck_start_interval=True),
+        port=port,
+        postgres_uri=custom_postgres_uri,
+    )
+    expected_compose_str = f"""services:
+    langgraph-redis:
+        image: redis:6
+        healthcheck:
+            test: redis-cli ping
+            interval: 5s
+            timeout: 1s
+            retries: 5
+    langgraph-api:
+        ports:
+            - "{port}:8000"
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            POSTGRES_URI: {custom_postgres_uri}
+        healthcheck:
+            test: python /api/healthcheck.py
+            interval: 60s
+            start_interval: 1s
+            start_period: 10s"""
+    assert clean_empty_lines(actual_compose_str) == expected_compose_str
+
+
+def test_compose_with_debugger_and_custom_db():
+    port = 8123
+    custom_postgres_uri = "custom_postgres_uri"
+    actual_compose_str = compose(
+        DEFAULT_DOCKER_CAPABILITIES,
+        port=port,
+        postgres_uri=custom_postgres_uri,
+    )
+    expected_compose_str = f"""services:
+    langgraph-redis:
+        image: redis:6
+        healthcheck:
+            test: redis-cli ping
+            interval: 5s
+            timeout: 1s
+            retries: 5
+    langgraph-api:
+        ports:
+            - "{port}:8000"
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            POSTGRES_URI: {custom_postgres_uri}"""
+    assert clean_empty_lines(actual_compose_str) == expected_compose_str
+
+
+def test_compose_with_debugger_and_default_db():
+    port = 8123
+    actual_compose_str = compose(DEFAULT_DOCKER_CAPABILITIES, port=port)
+    expected_compose_str = f"""volumes:
+    langgraph-data:
+        driver: local
+services:
+    langgraph-redis:
+        image: redis:6
+        healthcheck:
+            test: redis-cli ping
+            interval: 5s
+            timeout: 1s
+            retries: 5
+    langgraph-postgres:
+        image: postgres:16
+        ports:
+            - "5433:5432"
+        environment:
+            POSTGRES_DB: postgres
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - langgraph-data:/var/lib/postgresql/data
+        healthcheck:
+            test: pg_isready -U postgres
+            start_period: 10s
+            timeout: 1s
+            retries: 5
+            interval: 5s
+    langgraph-api:
+        ports:
+            - "{port}:8000"
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+            langgraph-postgres:
+                condition: service_healthy
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            POSTGRES_URI: {DEFAULT_POSTGRES_URI}"""
+    assert clean_empty_lines(actual_compose_str) == expected_compose_str
+
+</document_content>
+</document>
+<document index="10">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/cli/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="11">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/cli/test_cli.py</source>
+<document_content>
+import json
+import pathlib
+import shutil
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
+
+from click.testing import CliRunner
+
+from langgraph_cli.cli import cli, prepare_args_and_stdin
+from langgraph_cli.config import Config, validate_config
+from langgraph_cli.docker import DEFAULT_POSTGRES_URI, DockerCapabilities, Version
+from langgraph_cli.util import clean_empty_lines
+
+DEFAULT_DOCKER_CAPABILITIES = DockerCapabilities(
+    version_docker=Version(26, 1, 1),
+    version_compose=Version(2, 27, 0),
+    healthcheck_start_interval=True,
+)
+
+
+@contextmanager
+def temporary_config_folder(config_content: dict):
+    # Create a temporary directory
+    temp_dir = tempfile.mkdtemp()
+    try:
+        # Define the path for the config.json file
+        config_path = Path(temp_dir) / "config.json"
+
+        # Write the provided dictionary content to config.json
+        with open(config_path, "w", encoding="utf-8") as config_file:
+            json.dump(config_content, config_file)
+
+        # Yield the temporary directory path for use within the context
+        yield config_path.parent
+    finally:
+        # Cleanup the temporary directory and its contents
+        shutil.rmtree(temp_dir)
+
+
+def test_prepare_args_and_stdin() -> None:
+    # this basically serves as an end-to-end test for using config and docker helpers
+    config_path = pathlib.Path("./langgraph.json")
+    config = validate_config(
+        Config(dependencies=["."], graphs={"agent": "agent.py:graph"})
+    )
+    port = 8000
+    debugger_port = 8001
+    debugger_graph_url = f"http://127.0.0.1:{port}"
+
+    actual_args, actual_stdin = prepare_args_and_stdin(
+        capabilities=DEFAULT_DOCKER_CAPABILITIES,
+        config_path=config_path,
+        config=config,
+        docker_compose=pathlib.Path("custom-docker-compose.yml"),
+        port=port,
+        debugger_port=debugger_port,
+        debugger_base_url=debugger_graph_url,
+        watch=True,
+    )
+
+    expected_args = [
+        "--project-directory",
+        ".",
+        "-f",
+        "custom-docker-compose.yml",
+        "-f",
+        "-",
+    ]
+    expected_stdin = f"""volumes:
+    langgraph-data:
+        driver: local
+services:
+    langgraph-redis:
+        image: redis:6
+        healthcheck:
+            test: redis-cli ping
+            interval: 5s
+            timeout: 1s
+            retries: 5
+    langgraph-postgres:
+        image: postgres:16
+        ports:
+            - "5433:5432"
+        environment:
+            POSTGRES_DB: postgres
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - langgraph-data:/var/lib/postgresql/data
+        healthcheck:
+            test: pg_isready -U postgres
+            start_period: 10s
+            timeout: 1s
+            retries: 5
+            interval: 60s
+            start_interval: 1s
+    langgraph-debugger:
+        image: langchain/langgraph-debugger
+        restart: on-failure
+        depends_on:
+            langgraph-postgres:
+                condition: service_healthy
+        ports:
+            - "{debugger_port}:3968"
+        environment:
+            VITE_STUDIO_LOCAL_GRAPH_URL: {debugger_graph_url}
+    langgraph-api:
+        ports:
+            - "8000:8000"
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+            langgraph-postgres:
+                condition: service_healthy
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            POSTGRES_URI: {DEFAULT_POSTGRES_URI}
+        healthcheck:
+            test: python /api/healthcheck.py
+            interval: 60s
+            start_interval: 1s
+            start_period: 10s
+
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+                FROM langchain/langgraph-api:3.11
+                ADD . /deps/
+                RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -e /deps/*
+                ENV LANGSERVE_GRAPHS='{{"agent": "agent.py:graph"}}'
+                WORKDIR /deps/
+
+        develop:
+            watch:
+                - path: langgraph.json
+                  action: rebuild
+                - path: .
+                  action: rebuild\
+"""
+    assert actual_args == expected_args
+    assert clean_empty_lines(actual_stdin) == expected_stdin
+
+
+def test_version_option() -> None:
+    """Test the --version option of the CLI."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--version"])
+
+    # Verify that the command executed successfully
+    assert result.exit_code == 0, "Expected exit code 0 for --version option"
+
+    # Check that the output contains the correct version information
+    assert (
+        "LangGraph CLI, version" in result.output
+    ), "Expected version information in output"
+
+
+def test_dockerfile_command_basic() -> None:
+    """Test the 'dockerfile' command with basic configuration."""
+    runner = CliRunner()
+    config_content = {
+        "node_version": "20",  # Add any other necessary configuration fields
+        "graphs": {"agent": "agent.py:graph"},
+    }
+
+    with temporary_config_folder(config_content) as temp_dir:
+        save_path = temp_dir / "Dockerfile"
+
+        result = runner.invoke(
+            cli,
+            ["dockerfile", str(save_path), "--config", str(temp_dir / "config.json")],
+        )
+
+        # Assert command was successful
+        assert result.exit_code == 0, result.output
+        assert "✅ Created: Dockerfile" in result.output
+
+        # Check if Dockerfile was created
+        assert save_path.exists()
+
+
+def test_dockerfile_command_with_docker_compose() -> None:
+    """Test the 'dockerfile' command with Docker Compose configuration."""
+    runner = CliRunner()
+    config_content = {
+        "dependencies": ["./my_agent"],
+        "graphs": {"agent": "./my_agent/agent.py:graph"},
+        "env": ".env",
+    }
+    with temporary_config_folder(config_content) as temp_dir:
+        save_path = temp_dir / "Dockerfile"
+        # Add agent.py file
+        agent_path = temp_dir / "my_agent" / "agent.py"
+        agent_path.parent.mkdir(parents=True, exist_ok=True)
+        agent_path.touch()
+
+        result = runner.invoke(
+            cli,
+            [
+                "dockerfile",
+                str(save_path),
+                "--config",
+                str(temp_dir / "config.json"),
+                "--add-docker-compose",
+            ],
+        )
+
+        # Assert command was successful
+        assert result.exit_code == 0
+        assert "✅ Created: Dockerfile" in result.output
+        assert "✅ Created: .dockerignore" in result.output
+        assert "✅ Created: docker-compose.yml" in result.output
+        assert (
+            "✅ Created: .env" in result.output or "➖ Skipped: .env" in result.output
+        )
+        assert "🎉 Files generated successfully" in result.output
+
+        # Check if Dockerfile, .dockerignore, docker-compose.yml, and .env were created
+        assert save_path.exists()
+        assert (temp_dir / ".dockerignore").exists()
+        assert (temp_dir / "docker-compose.yml").exists()
+        assert (temp_dir / ".env").exists() or "➖ Skipped: .env" in result.output
+
+
+def test_dockerfile_command_with_bad_config() -> None:
+    """Test the 'dockerfile' command with basic configuration."""
+    runner = CliRunner()
+    config_content = {
+        "node_version": "20"  # Add any other necessary configuration fields
+    }
+
+    with temporary_config_folder(config_content) as temp_dir:
+        save_path = temp_dir / "Dockerfile"
+
+        result = runner.invoke(
+            cli,
+            ["dockerfile", str(save_path), "--config", str(temp_dir / "conf.json")],
+        )
+
+        # Assert command was successful
+        assert result.exit_code == 2
+        assert "conf.json' does not exist" in result.output
+
+</document_content>
+</document>
+<document index="12">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/cli/test_templates.py</source>
+<document_content>
+"""Unit tests for the 'new' CLI command.
+
+This command creates a new LangGraph project using a specified template.
+"""
+
+import os
+from io import BytesIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, patch
+from urllib import request
+from zipfile import ZipFile
+
+from click.testing import CliRunner
+
+from langgraph_cli.cli import cli
+from langgraph_cli.templates import TEMPLATE_ID_TO_CONFIG
+
+
+@patch.object(request, "urlopen")
+def test_create_new_with_mocked_download(mock_urlopen: MagicMock) -> None:
+    """Test the 'new' CLI command with a mocked download response using urllib."""
+    # Mock the response content to simulate a ZIP file
+    mock_zip_content = BytesIO()
+    with ZipFile(mock_zip_content, "w") as mock_zip:
+        mock_zip.writestr("test-file.txt", "Test content.")
+
+    # Create a mock response that behaves like a context manager
+    mock_response = MagicMock()
+    mock_response.read.return_value = mock_zip_content.getvalue()
+    mock_response.__enter__.return_value = mock_response  # Setup enter context
+    mock_response.status = 200
+
+    mock_urlopen.return_value = mock_response
+
+    with TemporaryDirectory() as temp_dir:
+        runner = CliRunner()
+        template = next(
+            iter(TEMPLATE_ID_TO_CONFIG)
+        )  # Select the first template for the test
+        result = runner.invoke(cli, ["new", temp_dir, "--template", template])
+
+        # Verify CLI command execution and success
+        assert result.exit_code == 0, result.output
+        assert (
+            "New project created" in result.output
+        ), "Expected success message in output."
+
+        # Verify that the directory is not empty
+        assert os.listdir(temp_dir), "Expected files to be created in temp directory."
+
+        # Check for a known file in the extracted content
+        extracted_files = [f.name for f in Path(temp_dir).glob("*")]
+        assert (
+            "test-file.txt" in extracted_files
+        ), "Expected 'test-file.txt' in the extracted content."
+
+
+def test_invalid_template_id() -> None:
+    """Test that an invalid template ID passed via CLI results in a graceful error."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["new", "dummy_path", "--template", "invalid-template-id"]
+    )
+
+    # Verify the command failed and proper message is displayed
+    assert result.exit_code != 0, "Expected non-zero exit code for invalid template."
+    assert (
+        "Template 'invalid-template-id' not found" in result.output
+    ), "Expected error message in output."
+
+</document_content>
+</document>
+<document index="13">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/unit_tests/graphs/agent.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="14">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/integration_tests/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="15">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests/integration_tests/test_cli.py</source>
+<document_content>
+import pytest
+import requests
+
+from langgraph_cli.templates import TEMPLATE_ID_TO_CONFIG
+
+
+@pytest.mark.parametrize("template_key", TEMPLATE_ID_TO_CONFIG.keys())
+def test_template_urls_work(template_key: str) -> None:
+    """Integration test to verify that all template URLs are reachable."""
+    _, _, template_url = TEMPLATE_ID_TO_CONFIG[template_key]
+    response = requests.head(template_url)
+    # Returns 302 on a successful HEAD request
+    assert response.status_code == 302, f"URL {template_url} is not reachable."
+
+</document_content>
+</document>
+<document index="16">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/__init__.py</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="17">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/analytics.py</source>
+<document_content>
+import functools
+import json
+import os
+import pathlib
+import platform
+import threading
+import urllib.error
+import urllib.request
+from typing import Any, TypedDict
+
+from langgraph_cli.constants import (
+    DEFAULT_CONFIG,
+    DEFAULT_PORT,
+    SUPABASE_PUBLIC_API_KEY,
+    SUPABASE_URL,
+)
+from langgraph_cli.version import __version__
+
+
+class LogData(TypedDict):
+    os: str
+    os_version: str
+    python_version: str
+    cli_version: str
+    cli_command: str
+    params: dict[str, Any]
+
+
+def get_anonymized_params(kwargs: dict[str, Any]) -> dict[str, bool]:
+    params = {}
+
+    # anonymize params with values
+    if config := kwargs.get("config"):
+        if config != pathlib.Path(DEFAULT_CONFIG).resolve():
+            params["config"] = True
+
+    if port := kwargs.get("port"):
+        if port != DEFAULT_PORT:
+            params["port"] = True
+
+    if kwargs.get("docker_compose"):
+        params["docker_compose"] = True
+
+    if kwargs.get("debugger_port"):
+        params["debugger_port"] = True
+
+    if kwargs.get("postgres_uri"):
+        params["postgres_uri"] = True
+
+    # pick up exact values for boolean flags
+    for boolean_param in ["recreate", "pull", "watch", "wait", "verbose"]:
+        if kwargs.get(boolean_param):
+            params[boolean_param] = kwargs[boolean_param]
+
+    return params
+
+
+def log_data(data: LogData) -> None:
+    headers = {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_PUBLIC_API_KEY,
+        "User-Agent": "Mozilla/5.0",
+    }
+    supabase_url = SUPABASE_URL
+
+    req = urllib.request.Request(
+        f"{supabase_url}/rest/v1/logs",
+        data=json.dumps(data).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+
+    try:
+        urllib.request.urlopen(req)
+    except urllib.error.URLError:
+        pass
+
+
+def log_command(func):
+    @functools.wraps(func)
+    def decorator(*args, **kwargs):
+        if os.getenv("LANGGRAPH_CLI_NO_ANALYTICS") == "1":
+            return func(*args, **kwargs)
+
+        data = {
+            "os": platform.system(),
+            "os_version": platform.version(),
+            "python_version": platform.python_version(),
+            "cli_version": __version__,
+            "cli_command": func.__name__,
+            "params": get_anonymized_params(kwargs),
+        }
+
+        background_thread = threading.Thread(target=log_data, args=(data,))
+        background_thread.start()
+        return func(*args, **kwargs)
+
+    return decorator
+
+</document_content>
+</document>
+<document index="18">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/cli.py</source>
+<document_content>
+import os
+import pathlib
+import shutil
+import sys
+from typing import Callable, Optional, Sequence
+
+import click
+import click.exceptions
+from click import secho
+
+import langgraph_cli.config
+import langgraph_cli.docker
+from langgraph_cli.analytics import log_command
+from langgraph_cli.config import Config
+from langgraph_cli.constants import DEFAULT_CONFIG, DEFAULT_PORT
+from langgraph_cli.docker import DockerCapabilities
+from langgraph_cli.exec import Runner, subp_exec
+from langgraph_cli.progress import Progress
+from langgraph_cli.templates import TEMPLATE_HELP_STRING, create_new
+from langgraph_cli.version import __version__
+
+OPT_DOCKER_COMPOSE = click.option(
+    "--docker-compose",
+    "-d",
+    help="Advanced: Path to docker-compose.yml file with additional services to launch.",
+    type=click.Path(
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        path_type=pathlib.Path,
+    ),
+)
+OPT_CONFIG = click.option(
+    "--config",
+    "-c",
+    help="""Path to configuration file declaring dependencies, graphs and environment variables.
+
+    \b
+    Config file must be a JSON file that has the following keys:
+    - "dependencies": array of dependencies for langgraph API server. Dependencies can be one of the following:
+      - ".", which would look for local python packages, as well as pyproject.toml, setup.py or requirements.txt in the app directory
+      - "./local_package"
+      - "<package_name>
+    - "graphs": mapping from graph ID to path where the compiled graph is defined, i.e. ./your_package/your_file.py:variable, where
+        "variable" is an instance of langgraph.graph.graph.CompiledGraph
+    - "env": (optional) path to .env file or a mapping from environment variable to its value
+    - "python_version": (optional) 3.11, 3.12, or 3.13. Defaults to 3.11
+    - "pip_config_file": (optional) path to pip config file
+    - "dockerfile_lines": (optional) array of additional lines to add to Dockerfile following the import from parent image
+
+    \b
+    Example:
+        langgraph up -c langgraph.json
+
+    \b
+    Example:
+    {
+        "dependencies": [
+            "langchain_openai",
+            "./your_package"
+        ],
+        "graphs": {
+            "my_graph_id": "./your_package/your_file.py:variable"
+        },
+        "env": "./.env"
+    }
+
+    \b
+    Example:
+    {
+        "python_version": "3.11",
+        "dependencies": [
+            "langchain_openai",
+            "."
+        ],
+        "graphs": {
+            "my_graph_id": "./your_package/your_file.py:variable"
+        },
+        "env": {
+            "OPENAI_API_KEY": "secret-key"
+        }
+    }
+
+    Defaults to looking for langgraph.json in the current directory.""",
+    default=DEFAULT_CONFIG,
+    type=click.Path(
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        path_type=pathlib.Path,
+    ),
+)
+OPT_PORT = click.option(
+    "--port",
+    "-p",
+    type=int,
+    default=DEFAULT_PORT,
+    show_default=True,
+    help="""
+    Port to expose.
+
+    \b
+    Example:
+        langgraph up --port 8000
+    \b
+    """,
+)
+OPT_RECREATE = click.option(
+    "--recreate/--no-recreate",
+    default=False,
+    show_default=True,
+    help="Recreate containers even if their configuration and image haven't changed",
+)
+OPT_PULL = click.option(
+    "--pull/--no-pull",
+    default=True,
+    show_default=True,
+    help="""
+    Pull latest images. Use --no-pull for running the server with locally-built images.
+
+    \b
+    Example:
+        langgraph up --no-pull
+    \b
+    """,
+)
+OPT_VERBOSE = click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Show more output from the server logs",
+)
+OPT_WATCH = click.option("--watch", is_flag=True, help="Restart on file changes")
+OPT_DEBUGGER_PORT = click.option(
+    "--debugger-port",
+    type=int,
+    help="Pull the debugger image locally and serve the UI on specified port",
+)
+OPT_DEBUGGER_BASE_URL = click.option(
+    "--debugger-base-url",
+    type=str,
+    help="URL used by the debugger to access LangGraph API. Defaults to http://127.0.0.1:[PORT]",
+)
+
+OPT_POSTGRES_URI = click.option(
+    "--postgres-uri",
+    help="Postgres URI to use for the database. Defaults to launching a local database",
+)
+
+
+@click.group()
+@click.version_option(version=__version__, prog_name="LangGraph CLI")
+def cli():
+    pass
+
+
+@OPT_RECREATE
+@OPT_PULL
+@OPT_PORT
+@OPT_DOCKER_COMPOSE
+@OPT_CONFIG
+@OPT_VERBOSE
+@OPT_DEBUGGER_PORT
+@OPT_DEBUGGER_BASE_URL
+@OPT_WATCH
+@OPT_POSTGRES_URI
+@click.option(
+    "--wait",
+    is_flag=True,
+    help="Wait for services to start before returning. Implies --detach",
+)
+@cli.command(help="🚀 Launch LangGraph API server.")
+@log_command
+def up(
+    config: pathlib.Path,
+    docker_compose: Optional[pathlib.Path],
+    port: int,
+    recreate: bool,
+    pull: bool,
+    watch: bool,
+    wait: bool,
+    verbose: bool,
+    debugger_port: Optional[int],
+    debugger_base_url: Optional[str],
+    postgres_uri: Optional[str],
+):
+    click.secho("Starting LangGraph API server...", fg="green")
+    click.secho(
+        """For local dev, requires env var LANGSMITH_API_KEY with access to LangGraph Cloud closed beta.
+For production use, requires a license key in env var LANGGRAPH_CLOUD_LICENSE_KEY.""",
+    )
+    with Runner() as runner, Progress(message="Pulling...") as set:
+        capabilities = langgraph_cli.docker.check_capabilities(runner)
+        args, stdin = prepare(
+            runner,
+            capabilities=capabilities,
+            config_path=config,
+            docker_compose=docker_compose,
+            port=port,
+            pull=pull,
+            watch=watch,
+            verbose=verbose,
+            debugger_port=debugger_port,
+            debugger_base_url=debugger_base_url,
+            postgres_uri=postgres_uri,
+        )
+        # add up + options
+        args.extend(["up", "--remove-orphans"])
+        if recreate:
+            args.extend(["--force-recreate", "--renew-anon-volumes"])
+            try:
+                runner.run(subp_exec("docker", "volume", "rm", "langgraph-data"))
+            except click.exceptions.Exit:
+                pass
+        if watch:
+            args.append("--watch")
+        if wait:
+            args.append("--wait")
+        else:
+            args.append("--abort-on-container-exit")
+        # run docker compose
+        set("Building...")
+
+        def on_stdout(line: str):
+            if "unpacking to docker.io" in line:
+                set("Starting...")
+            elif "Application startup complete" in line:
+                debugger_origin = (
+                    f"http://localhost:{debugger_port}"
+                    if debugger_port
+                    else "https://smith.langchain.com"
+                )
+                debugger_base_url_query = (
+                    debugger_base_url or f"http://127.0.0.1:{port}"
+                )
+                set("")
+                sys.stdout.write(
+                    f"""Ready!
+- API: http://localhost:{port}
+- Docs: http://localhost:{port}/docs
+- LangGraph Studio: {debugger_origin}/studio/?baseUrl={debugger_base_url_query}
+"""
+                )
+                sys.stdout.flush()
+                return True
+
+        if capabilities.compose_type == "plugin":
+            compose_cmd = ["docker", "compose"]
+        elif capabilities.compose_type == "standalone":
+            compose_cmd = ["docker-compose"]
+
+        runner.run(
+            subp_exec(
+                *compose_cmd,
+                *args,
+                input=stdin,
+                verbose=verbose,
+                on_stdout=on_stdout,
+            )
+        )
+
+
+def _build(
+    runner,
+    set: Callable[[str], None],
+    config: pathlib.Path,
+    config_json: dict,
+    base_image: Optional[str],
+    pull: bool,
+    tag: str,
+    passthrough: Sequence[str] = (),
+):
+    base_image = base_image or (
+        "langchain/langgraphjs-api"
+        if config_json.get("node_version")
+        else "langchain/langgraph-api"
+    )
+
+    # pull latest images
+    if pull:
+        runner.run(
+            subp_exec(
+                "docker",
+                "pull",
+                (
+                    f"{base_image}:{config_json['node_version']}"
+                    if config_json.get("node_version")
+                    else f"{base_image}:{config_json['python_version']}"
+                ),
+                verbose=True,
+            )
+        )
+    set("Building...")
+    # apply options
+    args = [
+        "-f",
+        "-",  # stdin
+        "-t",
+        tag,
+    ]
+    # apply config
+    stdin = langgraph_cli.config.config_to_docker(config, config_json, base_image)
+    # run docker build
+    runner.run(
+        subp_exec(
+            "docker",
+            "build",
+            *args,
+            *passthrough,
+            str(config.parent),
+            input=stdin,
+            verbose=True,
+        )
+    )
+
+
+@OPT_CONFIG
+@OPT_PULL
+@click.option(
+    "--tag",
+    "-t",
+    help="""Tag for the docker image.
+
+    \b
+    Example:
+        langgraph build -t my-image
+
+    \b
+    """,
+    required=True,
+)
+@click.option(
+    "--base-image",
+    hidden=True,
+)
+@click.argument("docker_build_args", nargs=-1, type=click.UNPROCESSED)
+@cli.command(
+    help="📦 Build LangGraph API server Docker image.",
+    context_settings=dict(
+        ignore_unknown_options=True,
+    ),
+)
+@log_command
+def build(
+    config: pathlib.Path,
+    docker_build_args: Sequence[str],
+    base_image: Optional[str],
+    pull: bool,
+    tag: str,
+):
+    with Runner() as runner, Progress(message="Pulling...") as set:
+        if shutil.which("docker") is None:
+            raise click.UsageError("Docker not installed") from None
+        config_json = langgraph_cli.config.validate_config_file(config)
+        _build(
+            runner, set, config, config_json, base_image, pull, tag, docker_build_args
+        )
+
+
+def _get_docker_ignore_content() -> str:
+    """Return the content of a .dockerignore file.
+
+    This file is used to exclude files and directories from the Docker build context.
+
+    It may be overly broad, but it's better to be safe than sorry.
+
+    The main goal is to exclude .env files by default.
+    """
+    return """\
+# Ignore node_modules and other dependency directories
+node_modules
+bower_components
+vendor
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# Ignore .env files and other environment files
+.env
+.env.*
+*.local
+
+# Ignore git-related files
+.git
+.gitignore
+
+# Ignore Docker-related files and configs
+.dockerignore
+docker-compose.yml
+
+# Ignore build and cache directories
+dist
+build
+.cache
+__pycache__
+
+# Ignore IDE and editor configurations
+.vscode
+.idea
+*.sublime-project
+*.sublime-workspace
+.DS_Store  # macOS-specific
+
+# Ignore test and coverage files
+coverage
+*.coverage
+*.test.js
+*.spec.js
+tests
+"""
+
+
+@OPT_CONFIG
+@click.argument("save_path", type=click.Path(resolve_path=True))
+@cli.command(
+    help="🐳 Generate a Dockerfile for the LangGraph API server, with Docker Compose options."
+)
+@click.option(
+    # Add a flag for adding a docker-compose.yml file as part of the output
+    "--add-docker-compose",
+    help=(
+        "Add additional files for running the LangGraph API server with "
+        "docker-compose. These files include a docker-compose.yml, .env file, "
+        "and a .dockerignore file."
+    ),
+    is_flag=True,
+)
+@log_command
+def dockerfile(save_path: str, config: pathlib.Path, add_docker_compose: bool) -> None:
+    save_path = pathlib.Path(save_path).absolute()
+    secho(f"🔍 Validating configuration at path: {config}", fg="yellow")
+    config_json = langgraph_cli.config.validate_config_file(config)
+    secho("✅ Configuration validated!", fg="green")
+
+    secho(f"📝 Generating Dockerfile at {save_path}", fg="yellow")
+    with open(str(save_path), "w", encoding="utf-8") as f:
+        f.write(
+            langgraph_cli.config.config_to_docker(
+                config,
+                config_json,
+                (
+                    "langchain/langgraphjs-api"
+                    if config_json.get("node_version")
+                    else "langchain/langgraph-api"
+                ),
+            )
+        )
+    secho("✅ Created: Dockerfile", fg="green")
+
+    if add_docker_compose:
+        # Add docker compose and related files
+        # Add .dockerignore file in the same directory as the Dockerfile
+        with open(str(save_path.parent / ".dockerignore"), "w", encoding="utf-8") as f:
+            f.write(_get_docker_ignore_content())
+        secho("✅ Created: .dockerignore", fg="green")
+
+        # Generate a docker-compose.yml file
+        path = str(save_path.parent / "docker-compose.yml")
+        with open(path, "w", encoding="utf-8") as f:
+            with Runner() as runner:
+                capabilities = langgraph_cli.docker.check_capabilities(runner)
+
+            compose_dict = langgraph_cli.docker.compose_as_dict(
+                capabilities,
+                port=8123,
+            )
+            # Add .env file to the docker-compose.yml for the langgraph-api service
+            compose_dict["services"]["langgraph-api"]["env_file"] = [".env"]
+            # Add the Dockerfile to the build context
+            compose_dict["services"]["langgraph-api"]["build"] = {
+                "context": ".",
+                "dockerfile": save_path.name,
+            }
+            f.write(langgraph_cli.docker.dict_to_yaml(compose_dict))
+            secho("✅ Created: docker-compose.yml", fg="green")
+
+        # Check if the .env file exists in the same directory as the Dockerfile
+        if not (save_path.parent / ".env").exists():
+            # Also add an empty .env file
+            with open(str(save_path.parent / ".env"), "w", encoding="utf-8") as f:
+                f.writelines(
+                    [
+                        "# Uncomment the following line to add your LangSmith API key",
+                        "\n",
+                        "# LANGSMITH_API_KEY=your-api-key",
+                        "\n",
+                        "# Or if you have a LangGraph Cloud license key, "
+                        "then uncomment the following line: ",
+                        "\n",
+                        "# LANGGRAPH_CLOUD_LICENSE_KEY=your-license-key",
+                        "\n",
+                        "# Add any other environment variables go below...",
+                    ]
+                )
+
+            secho("✅ Created: .env", fg="green")
+        else:
+            # Do nothing since the .env file already exists. Not a great
+            # idea to overwrite in case the user has added custom env vars set
+            # in the .env file already.
+            secho("➖ Skipped: .env. It already exists!", fg="yellow")
+
+    secho(
+        f"🎉 Files generated successfully at path {save_path.parent}!",
+        fg="cyan",
+        bold=True,
+    )
+
+
+@click.option(
+    "--host",
+    default="127.0.0.1",
+    help="Network interface to bind the development server to. Default 127.0.0.1 is recommended for security. Only use 0.0.0.0 in trusted networks",
+)
+@click.option(
+    "--port",
+    default=2024,
+    type=int,
+    help="Port number to bind the development server to. Example: langgraph dev --port 8000",
+)
+@click.option(
+    "--no-reload",
+    is_flag=True,
+    help="Disable automatic reloading when code changes are detected",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default="langgraph.json",
+    help="Path to configuration file declaring dependencies, graphs and environment variables",
+)
+@click.option(
+    "--n-jobs-per-worker",
+    default=None,
+    type=int,
+    help="Maximum number of concurrent jobs each worker process can handle. Default: 10",
+)
+@click.option(
+    "--no-browser",
+    is_flag=True,
+    help="Skip automatically opening the browser when the server starts",
+)
+@click.option(
+    "--debug-port",
+    default=None,
+    type=int,
+    help="Enable remote debugging by listening on specified port. Requires debugpy to be installed",
+)
+@click.option(
+    "--wait-for-client",
+    is_flag=True,
+    help="Wait for a debugger client to connect to the debug port before starting the server",
+    default=False,
+)
+@cli.command(
+    "dev",
+    help="🏃‍♀️‍➡️ Run LangGraph API server in development mode with hot reloading and debugging support",
+)
+@log_command
+def dev(
+    host: str,
+    port: int,
+    no_reload: bool,
+    config: str,
+    n_jobs_per_worker: Optional[int],
+    no_browser: bool,
+    debug_port: Optional[int],
+    wait_for_client: bool,
+):
+    """CLI entrypoint for running the LangGraph API server."""
+    try:
+        from langgraph_api.cli import run_server
+    except ImportError:
+        try:
+            from importlib import util
+
+            if not util.find_spec("langgraph_api"):
+                raise click.UsageError(
+                    "Required package 'langgraph-api' is not installed.\n"
+                    "Please install it with:\n\n"
+                    '    pip install -U "langgraph-cli[inmem]"\n\n'
+                ) from None
+        except ImportError:
+            raise click.UsageError(
+                "Could not verify package installation. Please ensure Python is up to date and\n"
+                "langgraph-cli is installed with the 'inmem' extra: pip install -U \"langgraph-cli[inmem]\""
+            ) from None
+        raise click.UsageError(
+            "Could not import run_server. This likely means your installation is incomplete.\n"
+            "Please ensure langgraph-cli is installed with the 'inmem' extra: pip install -U \"langgraph-cli[inmem]\""
+        ) from None
+
+    config_json = langgraph_cli.config.validate_config_file(pathlib.Path(config))
+    cwd = os.getcwd()
+    sys.path.append(cwd)
+    dependencies = config_json.get("dependencies", [])
+    for dep in dependencies:
+        dep_path = pathlib.Path(cwd) / dep
+        if dep_path.is_dir() and dep_path.exists():
+            sys.path.append(str(dep_path))
+
+    graphs = config_json.get("graphs", {})
+
+    run_server(
+        host,
+        port,
+        not no_reload,
+        graphs,
+        n_jobs_per_worker=n_jobs_per_worker,
+        open_browser=not no_browser,
+        debug_port=debug_port,
+        env=config_json.get("env"),
+        store=config_json.get("store"),
+        wait_for_client=wait_for_client,
+        auth=config_json.get("auth"),
+    )
+
+
+@click.argument("path", required=False)
+@click.option(
+    "--template",
+    type=str,
+    help=TEMPLATE_HELP_STRING,
+)
+@cli.command("new", help="🌱 Create a new LangGraph project from a template.")
+@log_command
+def new(path: Optional[str], template: Optional[str]) -> None:
+    """Create a new LangGraph project from a template."""
+    return create_new(path, template)
+
+
+def prepare_args_and_stdin(
+    *,
+    capabilities: DockerCapabilities,
+    config_path: pathlib.Path,
+    config: Config,
+    docker_compose: Optional[pathlib.Path],
+    port: int,
+    watch: bool,
+    debugger_port: Optional[int] = None,
+    debugger_base_url: Optional[str] = None,
+    postgres_uri: Optional[str] = None,
+):
+    # prepare args
+    stdin = langgraph_cli.docker.compose(
+        capabilities,
+        port=port,
+        debugger_port=debugger_port,
+        debugger_base_url=debugger_base_url,
+        postgres_uri=postgres_uri,
+    )
+    args = [
+        "--project-directory",
+        str(config_path.parent),
+    ]
+    # apply options
+    if docker_compose:
+        args.extend(["-f", str(docker_compose)])
+    args.extend(["-f", "-"])  # stdin
+    # apply config
+    stdin += langgraph_cli.config.config_to_compose(
+        config_path,
+        config,
+        watch=watch,
+        base_image=(
+            "langchain/langgraphjs-api"
+            if config.get("node_version")
+            else "langchain/langgraph-api"
+        ),
+    )
+    return args, stdin
+
+
+def prepare(
+    runner,
+    *,
+    capabilities: DockerCapabilities,
+    config_path: pathlib.Path,
+    docker_compose: Optional[pathlib.Path],
+    port: int,
+    pull: bool,
+    watch: bool,
+    verbose: bool,
+    debugger_port: Optional[int] = None,
+    debugger_base_url: Optional[str] = None,
+    postgres_uri: Optional[str] = None,
+):
+    config_json = langgraph_cli.config.validate_config_file(config_path)
+    # pull latest images
+    if pull:
+        runner.run(
+            subp_exec(
+                "docker",
+                "pull",
+                (
+                    f"langchain/langgraphjs-api:{config_json['node_version']}"
+                    if config_json.get("node_version")
+                    else f"langchain/langgraph-api:{config_json['python_version']}"
+                ),
+                verbose=verbose,
+            )
+        )
+
+    args, stdin = prepare_args_and_stdin(
+        capabilities=capabilities,
+        config_path=config_path,
+        config=config_json,
+        docker_compose=docker_compose,
+        port=port,
+        watch=watch,
+        debugger_port=debugger_port,
+        debugger_base_url=debugger_base_url or f"http://127.0.0.1:{port}",
+        postgres_uri=postgres_uri,
+    )
+    return args, stdin
+
+</document_content>
+</document>
+<document index="19">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/config.py</source>
+<document_content>
+import json
+import os
+import pathlib
+import textwrap
+from typing import NamedTuple, Optional, TypedDict, Union
+
+import click
+
+MIN_NODE_VERSION = "20"
+MIN_PYTHON_VERSION = "3.11"
+
+
+class IndexConfig(TypedDict, total=False):
+    """Configuration for indexing documents for semantic search in the store."""
+
+    dims: int
+    """Number of dimensions in the embedding vectors.
+
+    Common embedding models have the following dimensions:
+        - openai:text-embedding-3-large: 3072
+        - openai:text-embedding-3-small: 1536
+        - openai:text-embedding-ada-002: 1536
+        - cohere:embed-english-v3.0: 1024
+        - cohere:embed-english-light-v3.0: 384
+        - cohere:embed-multilingual-v3.0: 1024
+        - cohere:embed-multilingual-light-v3.0: 384
+    """
+
+    embed: str
+    """Optional model (string) to generate embeddings from text or path to model or function.
+
+    Examples:
+        - "openai:text-embedding-3-large"
+        - "cohere:embed-multilingual-v3.0"
+        - "src/app.py:embeddings
+    """
+
+    fields: Optional[list[str]]
+    """Fields to extract text from for embedding generation.
+
+    Defaults to the root ["$"], which embeds the json object as a whole.
+    """
+
+
+class StoreConfig(TypedDict, total=False):
+    embed: Optional[IndexConfig]
+    """Configuration for vector embeddings in store."""
+
+
+class SecurityConfig(TypedDict, total=False):
+    securitySchemes: dict
+    security: list
+    # path => {method => security}
+    paths: dict[str, dict[str, list]]
+
+
+class AuthConfig(TypedDict, total=False):
+    path: str
+    """Path to the authentication function in a Python file."""
+    disable_studio_auth: bool
+    """Whether to disable auth when connecting from the LangSmith Studio."""
+    openapi: SecurityConfig
+    """The schema to use for updating the openapi spec.
+
+    Example:
+        {
+            "securitySchemes": {
+                "OAuth2": {
+                    "type": "oauth2",
+                    "flows": {
+                        "password": {
+                            "tokenUrl": "/token",
+                            "scopes": {
+                                "me": "Read information about the current user",
+                                "items": "Access to create and manage items"
+                            }
+                        }
+                    }
+                }
+            },
+            "security": [
+                {"OAuth2": ["me"]}  # Default security requirement for all endpoints
+            ]
+        }
+    """
+
+
+class Config(TypedDict, total=False):
+    python_version: str
+    node_version: Optional[str]
+    pip_config_file: Optional[str]
+    dockerfile_lines: list[str]
+    dependencies: list[str]
+    graphs: dict[str, str]
+    env: Union[dict[str, str], str]
+    store: Optional[StoreConfig]
+    auth: Optional[AuthConfig]
+
+
+def _parse_version(version_str: str) -> tuple[int, int]:
+    """Parse a version string into a tuple of (major, minor)."""
+    try:
+        major, minor = map(int, version_str.split("."))
+        return (major, minor)
+    except ValueError:
+        raise click.UsageError(f"Invalid version format: {version_str}") from None
+
+
+def _parse_node_version(version_str: str) -> int:
+    """Parse a Node.js version string into a major version number."""
+    try:
+        if "." in version_str:
+            raise ValueError("Node.js version must be major version only")
+        return int(version_str)
+    except ValueError:
+        raise click.UsageError(
+            f"Invalid Node.js version format: {version_str}. "
+            "Use major version only (e.g., '20')."
+        ) from None
+
+
+def validate_config(config: Config) -> Config:
+    config = (
+        {
+            "node_version": config.get("node_version"),
+            "dockerfile_lines": config.get("dockerfile_lines", []),
+            "dependencies": config.get("dependencies", []),
+            "graphs": config.get("graphs", {}),
+            "env": config.get("env", {}),
+            "store": config.get("store"),
+            "auth": config.get("auth"),
+        }
+        if config.get("node_version")
+        else {
+            "python_version": config.get("python_version", "3.11"),
+            "pip_config_file": config.get("pip_config_file"),
+            "dockerfile_lines": config.get("dockerfile_lines", []),
+            "dependencies": config.get("dependencies", []),
+            "graphs": config.get("graphs", {}),
+            "env": config.get("env", {}),
+            "store": config.get("store"),
+            "auth": config.get("auth"),
+        }
+    )
+
+    if config.get("node_version"):
+        node_version = config["node_version"]
+        try:
+            major = _parse_node_version(node_version)
+            min_major = _parse_node_version(MIN_NODE_VERSION)
+            if major < min_major:
+                raise click.UsageError(
+                    f"Node.js version {node_version} is not supported. "
+                    f"Minimum required version is {MIN_NODE_VERSION}."
+                )
+        except ValueError as e:
+            raise click.UsageError(str(e)) from None
+
+    if config.get("python_version"):
+        pyversion = config["python_version"]
+        if not pyversion.count(".") == 1 or not all(
+            part.isdigit() for part in pyversion.split(".")
+        ):
+            raise click.UsageError(
+                f"Invalid Python version format: {pyversion}. "
+                "Use 'major.minor' format (e.g., '3.11'). "
+                "Patch version cannot be specified."
+            )
+        if _parse_version(pyversion) < _parse_version(MIN_PYTHON_VERSION):
+            raise click.UsageError(
+                f"Python version {pyversion} is not supported. "
+                f"Minimum required version is {MIN_PYTHON_VERSION}."
+            )
+
+        if not config["dependencies"]:
+            raise click.UsageError(
+                "No dependencies found in config. "
+                "Add at least one dependency to 'dependencies' list."
+            )
+
+    if not config["graphs"]:
+        raise click.UsageError(
+            "No graphs found in config. "
+            "Add at least one graph to 'graphs' dictionary."
+        )
+    return config
+
+
+def validate_config_file(config_path: pathlib.Path) -> Config:
+    with open(config_path) as f:
+        config = json.load(f)
+    validated = validate_config(config)
+    # Enforce the package.json doesn't enforce an
+    # incompatible Node.js version
+    if validated.get("node_version"):
+        package_json_path = config_path.parent / "package.json"
+        if package_json_path.is_file():
+            try:
+                with open(package_json_path) as f:
+                    package_json = json.load(f)
+                    if "engines" in package_json:
+                        engines = package_json["engines"]
+                        if any(engine != "node" for engine in engines.keys()):
+                            raise click.UsageError(
+                                "Only 'node' engine is supported in package.json engines."
+                                f" Got engines: {list(engines.keys())}"
+                            )
+                        if engines:
+                            node_version = engines["node"]
+                            try:
+                                major = _parse_node_version(node_version)
+                                min_major = _parse_node_version(MIN_NODE_VERSION)
+                                if major < min_major:
+                                    raise click.UsageError(
+                                        f"Node.js version in package.json engines must be >= {MIN_NODE_VERSION} "
+                                        f"(major version only), got '{node_version}'. Minor/patch versions "
+                                        "(like '20.x.y') are not supported to prevent deployment issues "
+                                        "when new Node.js versions are released."
+                                    )
+                            except ValueError as e:
+                                raise click.UsageError(str(e)) from None
+
+            except json.JSONDecodeError:
+                raise click.UsageError(
+                    "Invalid package.json found in langgraph "
+                    f"config directory {package_json_path}: file is not valid JSON"
+                ) from None
+    return validated
+
+
+class LocalDeps(NamedTuple):
+    pip_reqs: list[tuple[pathlib.Path, str]]
+    real_pkgs: dict[pathlib.Path, str]
+    faux_pkgs: dict[pathlib.Path, tuple[str, str]]
+    # if . is in dependencies, use it as working_dir
+    working_dir: Optional[str] = None
+
+
+def _assemble_local_deps(config_path: pathlib.Path, config: Config) -> LocalDeps:
+    # ensure reserved package names are not used
+    reserved = {
+        "src",
+        "langgraph-api",
+        "langgraph_api",
+        "langgraph",
+        "langchain-core",
+        "langchain_core",
+        "pydantic",
+        "orjson",
+        "fastapi",
+        "uvicorn",
+        "psycopg",
+        "httpx",
+        "langsmith",
+    }
+
+    def check_reserved(name: str, ref: str):
+        if name in reserved:
+            raise ValueError(
+                f"Package name '{name}' used in local dep '{ref}' is reserved. "
+                "Rename the directory."
+            )
+        reserved.add(name)
+
+    pip_reqs = []
+    real_pkgs = {}
+    faux_pkgs = {}
+    working_dir = None
+
+    for local_dep in config["dependencies"]:
+        if not local_dep.startswith("."):
+            continue
+
+        resolved = config_path.parent / local_dep
+
+        # validate local dependency
+        if not resolved.exists():
+            raise FileNotFoundError(f"Could not find local dependency: {resolved}")
+        elif not resolved.is_dir():
+            raise NotADirectoryError(
+                f"Local dependency must be a directory: {resolved}"
+            )
+        elif not resolved.is_relative_to(config_path.parent):
+            raise ValueError(
+                f"Local dependency '{resolved}' must be a subdirectory of '{config_path.parent}'"
+            )
+
+        # if it's installable, add it to local_pkgs
+        # otherwise, add it to faux_pkgs, and create a pyproject.toml
+        files = os.listdir(resolved)
+        if "pyproject.toml" in files:
+            real_pkgs[resolved] = local_dep
+            if local_dep == ".":
+                working_dir = f"/deps/{resolved.name}"
+        elif "setup.py" in files:
+            real_pkgs[resolved] = local_dep
+            if local_dep == ".":
+                working_dir = f"/deps/{resolved.name}"
+        else:
+            if any(file == "__init__.py" for file in files):
+                # flat layout
+                if "-" in resolved.name:
+                    raise ValueError(
+                        f"Package name '{resolved.name}' contains a hyphen. "
+                        "Rename the directory to use it as flat-layout package."
+                    )
+                check_reserved(resolved.name, local_dep)
+                container_path = f"/deps/__outer_{resolved.name}/{resolved.name}"
+            else:
+                # src layout
+                container_path = f"/deps/__outer_{resolved.name}/src"
+                for file in files:
+                    rfile = resolved / file
+                    if (
+                        rfile.is_dir()
+                        and file != "__pycache__"
+                        and not file.startswith(".")
+                    ):
+                        try:
+                            for subfile in os.listdir(rfile):
+                                if subfile.endswith(".py"):
+                                    check_reserved(file, local_dep)
+                                    break
+                        except PermissionError:
+                            pass
+            faux_pkgs[resolved] = (local_dep, container_path)
+            if local_dep == ".":
+                working_dir = container_path
+            if "requirements.txt" in files:
+                rfile = resolved / "requirements.txt"
+                pip_reqs.append(
+                    (
+                        rfile.relative_to(config_path.parent),
+                        f"{container_path}/requirements.txt",
+                    )
+                )
+
+    return LocalDeps(pip_reqs, real_pkgs, faux_pkgs, working_dir)
+
+
+def _update_graph_paths(
+    config_path: pathlib.Path, config: Config, local_deps: LocalDeps
+) -> None:
+    for graph_id, import_str in config["graphs"].items():
+        module_str, _, attr_str = import_str.partition(":")
+        if not module_str or not attr_str:
+            message = (
+                'Import string "{import_str}" must be in format "<module>:<attribute>".'
+            )
+            raise ValueError(message.format(import_str=import_str))
+        if "/" in module_str:
+            resolved = config_path.parent / module_str
+            if not resolved.exists():
+                raise FileNotFoundError(f"Could not find local module: {resolved}")
+            elif not resolved.is_file():
+                raise IsADirectoryError(f"Local module must be a file: {resolved}")
+            else:
+                for path in local_deps.real_pkgs:
+                    if resolved.is_relative_to(path):
+                        module_str = f"/deps/{path.name}/{resolved.relative_to(path)}"
+                        break
+                else:
+                    for faux_pkg, (_, destpath) in local_deps.faux_pkgs.items():
+                        if resolved.is_relative_to(faux_pkg):
+                            module_str = f"{destpath}/{resolved.relative_to(faux_pkg)}"
+                            break
+                    else:
+                        raise ValueError(
+                            f"Module '{import_str}' not found in 'dependencies' list. "
+                            "Add its containing package to 'dependencies' list."
+                        )
+            # update the config
+            config["graphs"][graph_id] = f"{module_str}:{attr_str}"
+
+
+def python_config_to_docker(config_path: pathlib.Path, config: Config, base_image: str):
+    # configure pip
+    pip_install = (
+        "PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt"
+    )
+    if config.get("pip_config_file"):
+        pip_install = f"PIP_CONFIG_FILE=/pipconfig.txt {pip_install}"
+    pip_config_file_str = (
+        f"ADD {config['pip_config_file']} /pipconfig.txt"
+        if config.get("pip_config_file")
+        else ""
+    )
+
+    # collect dependencies
+    pypi_deps = [dep for dep in config["dependencies"] if not dep.startswith(".")]
+    local_deps = _assemble_local_deps(config_path, config)
+
+    # rewrite graph paths
+    _update_graph_paths(config_path, config, local_deps)
+
+    pip_pkgs_str = f"RUN {pip_install} {' '.join(pypi_deps)}" if pypi_deps else ""
+    if local_deps.pip_reqs:
+        pip_reqs_str = os.linesep.join(
+            f"ADD {reqpath} {destpath}" for reqpath, destpath in local_deps.pip_reqs
+        )
+        pip_reqs_str += f'{os.linesep}RUN {pip_install} {" ".join("-r " + r for _,r in local_deps.pip_reqs)}'
+
+    else:
+        pip_reqs_str = ""
+
+    # https://setuptools.pypa.io/en/latest/userguide/datafiles.html#package-data
+    # https://til.simonwillison.net/python/pyproject
+    faux_pkgs_str = f"{os.linesep}{os.linesep}".join(
+        f"""ADD {relpath} {destpath}
+RUN set -ex && \\
+    for line in '[project]' \\
+                'name = "{fullpath.name}"' \\
+                'version = "0.1"' \\
+                '[tool.setuptools.package-data]' \\
+                '"*" = ["**/*"]'; do \\
+        echo "$line" >> /deps/__outer_{fullpath.name}/pyproject.toml; \\
+    done"""
+        for fullpath, (relpath, destpath) in local_deps.faux_pkgs.items()
+    )
+    local_pkgs_str = os.linesep.join(
+        f"ADD {relpath} /deps/{fullpath.name}"
+        for fullpath, relpath in local_deps.real_pkgs.items()
+    )
+
+    installs = f"{os.linesep}{os.linesep}".join(
+        filter(
+            None,
+            [
+                pip_config_file_str,
+                pip_pkgs_str,
+                pip_reqs_str,
+                local_pkgs_str,
+                faux_pkgs_str,
+            ],
+        )
+    )
+    store_config = config.get("store")
+    env_additional_config = (
+        ""
+        if not store_config
+        else f"""
+ENV LANGGRAPH_STORE='{json.dumps(store_config)}'
+"""
+    )
+    if (auth_config := config.get("auth")) is not None:
+        env_additional_config += f"""
+ENV LANGGRAPH_AUTH='{json.dumps(auth_config)}'
+"""
+    return f"""FROM {base_image}:{config['python_version']}
+
+{os.linesep.join(config["dockerfile_lines"])}
+
+{installs}
+
+RUN {pip_install} -e /deps/*
+{env_additional_config}
+ENV LANGSERVE_GRAPHS='{json.dumps(config["graphs"])}'
+
+{f"WORKDIR {local_deps.working_dir}" if local_deps.working_dir else ""}"""
+
+
+def node_config_to_docker(config_path: pathlib.Path, config: Config, base_image: str):
+    faux_path = f"/deps/{config_path.parent.name}"
+
+    def test_file(file_name):
+        full_path = config_path.parent / file_name
+        try:
+            return full_path.is_file()
+        except OSError:
+            return False
+
+    npm, yarn, pnpm = [
+        test_file("package-lock.json"),
+        test_file("yarn.lock"),
+        test_file("pnpm-lock.yaml"),
+    ]
+
+    if yarn:
+        install_cmd = "yarn install --frozen-lockfile"
+    elif pnpm:
+        install_cmd = "pnpm i --frozen-lockfile"
+    elif npm:
+        install_cmd = "npm ci"
+    else:
+        install_cmd = "npm i"
+    store_config = config.get("store")
+    env_additional_config = (
+        ""
+        if not store_config
+        else f"""
+ENV LANGGRAPH_STORE='{json.dumps(store_config)}'
+"""
+    )
+    if (auth_config := config.get("auth")) is not None:
+        env_additional_config += f"""
+ENV LANGGRAPH_AUTH='{json.dumps(auth_config)}'
+"""
+    return f"""FROM {base_image}:{config['node_version']}
+
+{os.linesep.join(config["dockerfile_lines"])}
+
+ADD . {faux_path}
+
+RUN cd {faux_path} && {install_cmd}
+{env_additional_config}
+ENV LANGSERVE_GRAPHS='{json.dumps(config["graphs"])}'
+
+WORKDIR {faux_path}
+
+RUN (test ! -f /api/langgraph_api/js/build.mts && echo "Prebuild script not found, skipping") || tsx /api/langgraph_api/js/build.mts"""
+
+
+def config_to_docker(config_path: pathlib.Path, config: Config, base_image: str):
+    if config.get("node_version"):
+        return node_config_to_docker(config_path, config, base_image)
+
+    return python_config_to_docker(config_path, config, base_image)
+
+
+def config_to_compose(
+    config_path: pathlib.Path,
+    config: Config,
+    base_image: str,
+    watch: bool = False,
+):
+    env_vars = config["env"].items() if isinstance(config["env"], dict) else {}
+    env_vars_str = "\n".join(f'            {k}: "{v}"' for k, v in env_vars)
+    env_file_str = (
+        f"env_file: {config['env']}" if isinstance(config["env"], str) else ""
+    )
+    if watch:
+        dependencies = config.get("dependencies") or ["."]
+        watch_paths = [config_path.name] + [
+            dep for dep in dependencies if dep.startswith(".")
+        ]
+        watch_actions = "\n".join(
+            f"""- path: {path}
+  action: rebuild"""
+            for path in watch_paths
+        )
+        watch_str = f"""
+        develop:
+            watch:
+{textwrap.indent(watch_actions, "                ")}
+"""
+    else:
+        watch_str = ""
+
+    return f"""
+{textwrap.indent(env_vars_str, "            ")}
+        {env_file_str}
+        pull_policy: build
+        build:
+            context: .
+            dockerfile_inline: |
+{textwrap.indent(config_to_docker(config_path, config, base_image), "                ")}
+        {watch_str}
+"""
+
+</document_content>
+</document>
+<document index="20">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/constants.py</source>
+<document_content>
+DEFAULT_CONFIG = "langgraph.json"
+DEFAULT_PORT = 8123
+
+# analytics
+SUPABASE_PUBLIC_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6cmxwcG9qaW5wY3l5YWlweG5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTkyNTc1NzksImV4cCI6MjAzNDgzMzU3OX0.kkVOlLz3BxemA5nP-vat3K4qRtrDuO4SwZSR_htcX9c"
+SUPABASE_URL = "https://kzrlppojinpcyyaipxnb.supabase.co"
+
+</document_content>
+</document>
+<document index="21">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/docker.py</source>
+<document_content>
+import json
+import pathlib
+import shutil
+from typing import Literal, NamedTuple, Optional
+
+import click.exceptions
+
+from langgraph_cli.exec import subp_exec
+
+ROOT = pathlib.Path(__file__).parent.resolve()
+DEFAULT_POSTGRES_URI = (
+    "postgres://postgres:postgres@langgraph-postgres:5432/postgres?sslmode=disable"
+)
+
+
+class Version(NamedTuple):
+    major: int
+    minor: int
+    patch: int
+
+
+DockerComposeType = Literal["plugin", "standalone"]
+
+
+class DockerCapabilities(NamedTuple):
+    version_docker: Version
+    version_compose: Version
+    healthcheck_start_interval: bool
+    compose_type: DockerComposeType = "plugin"
+
+
+def _parse_version(version: str) -> Version:
+    parts = version.split(".", 2)
+    if len(parts) == 1:
+        major = parts[0]
+        minor = "0"
+        patch = "0"
+    elif len(parts) == 2:
+        major, minor = parts
+        patch = "0"
+    else:
+        major, minor, patch = parts
+    return Version(int(major.lstrip("v")), int(minor), int(patch.split("-")[0]))
+
+
+def check_capabilities(runner) -> DockerCapabilities:
+    # check docker available
+    if shutil.which("docker") is None:
+        raise click.UsageError("Docker not installed") from None
+
+    try:
+        stdout, _ = runner.run(subp_exec("docker", "info", "-f", "json", collect=True))
+        info = json.loads(stdout)
+    except (click.exceptions.Exit, json.JSONDecodeError):
+        raise click.UsageError("Docker not installed or not running") from None
+
+    if not info["ServerVersion"]:
+        raise click.UsageError("Docker not running") from None
+
+    compose_type: DockerComposeType
+    try:
+        compose = next(
+            p for p in info["ClientInfo"]["Plugins"] if p["Name"] == "compose"
+        )
+        compose_version_str = compose["Version"]
+        compose_type = "plugin"
+    except (KeyError, StopIteration):
+        if shutil.which("docker-compose") is None:
+            raise click.UsageError("Docker Compose not installed") from None
+
+        compose_version_str, _ = runner.run(
+            subp_exec("docker-compose", "--version", "--short", collect=True)
+        )
+        compose_type = "standalone"
+
+    # parse versions
+    docker_version = _parse_version(info["ServerVersion"])
+    compose_version = _parse_version(compose_version_str)
+
+    # check capabilities
+    return DockerCapabilities(
+        version_docker=docker_version,
+        version_compose=compose_version,
+        healthcheck_start_interval=docker_version >= Version(25, 0, 0),
+        compose_type=compose_type,
+    )
+
+
+def debugger_compose(
+    *, port: Optional[int] = None, base_url: Optional[str] = None
+) -> dict:
+    if port is None:
+        return ""
+
+    config = {
+        "langgraph-debugger": {
+            "image": "langchain/langgraph-debugger",
+            "restart": "on-failure",
+            "depends_on": {
+                "langgraph-postgres": {"condition": "service_healthy"},
+            },
+            "ports": [f'"{port}:3968"'],
+        }
+    }
+
+    if base_url:
+        config["langgraph-debugger"]["environment"] = {
+            "VITE_STUDIO_LOCAL_GRAPH_URL": base_url
+        }
+
+    return config
+
+
+# Function to convert dictionary to YAML
+def dict_to_yaml(d: dict, *, indent: int = 0) -> str:
+    """Convert a dictionary to a YAML string."""
+    yaml_str = ""
+
+    for idx, (key, value) in enumerate(d.items()):
+        # Format things in a visually appealing way
+        # Use an extra newline for top-level keys only
+        if idx >= 1 and indent < 2:
+            yaml_str += "\n"
+        space = "    " * indent
+        if isinstance(value, dict):
+            yaml_str += f"{space}{key}:\n" + dict_to_yaml(value, indent=indent + 1)
+        elif isinstance(value, list):
+            yaml_str += f"{space}{key}:\n"
+            for item in value:
+                yaml_str += f"{space}    - {item}\n"
+        else:
+            yaml_str += f"{space}{key}: {value}\n"
+    return yaml_str
+
+
+def compose_as_dict(
+    capabilities: DockerCapabilities,
+    *,
+    port: int,
+    debugger_port: Optional[int] = None,
+    debugger_base_url: Optional[str] = None,
+    # postgres://user:password@host:port/database?option=value
+    postgres_uri: Optional[str] = None,
+) -> dict:
+    """Create a docker compose file as a dictionary in YML style."""
+    if postgres_uri is None:
+        include_db = True
+        postgres_uri = DEFAULT_POSTGRES_URI
+    else:
+        include_db = False
+
+    # The services below are defined in a non-intuitive order to match
+    # the existing unit tests for this function.
+    # It's fine to re-order just requires updating the unit tests, so it should
+    # be done with caution.
+
+    # Define the Redis service first as per the test order
+    services = {
+        "langgraph-redis": {
+            "image": "redis:6",
+            "healthcheck": {
+                "test": "redis-cli ping",
+                "interval": "5s",
+                "timeout": "1s",
+                "retries": 5,
+            },
+        }
+    }
+
+    # Add Postgres service before langgraph-api if it is needed
+    if include_db:
+        services["langgraph-postgres"] = {
+            "image": "postgres:16",
+            "ports": ['"5433:5432"'],
+            "environment": {
+                "POSTGRES_DB": "postgres",
+                "POSTGRES_USER": "postgres",
+                "POSTGRES_PASSWORD": "postgres",
+            },
+            "volumes": ["langgraph-data:/var/lib/postgresql/data"],
+            "healthcheck": {
+                "test": "pg_isready -U postgres",
+                "start_period": "10s",
+                "timeout": "1s",
+                "retries": 5,
+            },
+        }
+        if capabilities.healthcheck_start_interval:
+            services["langgraph-postgres"]["healthcheck"]["interval"] = "60s"
+            services["langgraph-postgres"]["healthcheck"]["start_interval"] = "1s"
+        else:
+            services["langgraph-postgres"]["healthcheck"]["interval"] = "5s"
+
+    # Add optional debugger service if debugger_port is specified
+    if debugger_port:
+        services["langgraph-debugger"] = debugger_compose(
+            port=debugger_port, base_url=debugger_base_url
+        )["langgraph-debugger"]
+
+    # Add langgraph-api service
+    services["langgraph-api"] = {
+        "ports": [f'"{port}:8000"'],
+        "depends_on": {
+            "langgraph-redis": {"condition": "service_healthy"},
+        },
+        "environment": {
+            "REDIS_URI": "redis://langgraph-redis:6379",
+            "POSTGRES_URI": postgres_uri,
+        },
+    }
+
+    # If Postgres is included, add it to the dependencies of langgraph-api
+    if include_db:
+        services["langgraph-api"]["depends_on"]["langgraph-postgres"] = {
+            "condition": "service_healthy"
+        }
+
+    # Additional healthcheck for langgraph-api if required
+    if capabilities.healthcheck_start_interval:
+        services["langgraph-api"]["healthcheck"] = {
+            "test": "python /api/healthcheck.py",
+            "interval": "60s",
+            "start_interval": "1s",
+            "start_period": "10s",
+        }
+
+    # Final compose dictionary with volumes included if needed
+    compose_dict = {}
+    if include_db:
+        compose_dict["volumes"] = {"langgraph-data": {"driver": "local"}}
+    compose_dict["services"] = services
+
+    return compose_dict
+
+
+def compose(
+    capabilities: DockerCapabilities,
+    *,
+    port: int,
+    debugger_port: Optional[int] = None,
+    debugger_base_url: Optional[str] = None,
+    # postgres://user:password@host:port/database?option=value
+    postgres_uri: Optional[str] = None,
+) -> str:
+    """Create a docker compose file as a string."""
+    compose_content = compose_as_dict(
+        capabilities,
+        port=port,
+        debugger_port=debugger_port,
+        debugger_base_url=debugger_base_url,
+        postgres_uri=postgres_uri,
+    )
+    compose_str = dict_to_yaml(compose_content)
+    return compose_str
+
+</document_content>
+</document>
+<document index="22">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/exec.py</source>
+<document_content>
+import asyncio
+import signal
+import sys
+from contextlib import contextmanager
+from typing import Callable, Optional, cast
+
+import click.exceptions
+
+
+@contextmanager
+def Runner():
+    if hasattr(asyncio, "Runner"):
+        with asyncio.Runner() as runner:
+            yield runner
+    else:
+
+        class _Runner:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def run(self, coro):
+                return asyncio.run(coro)
+
+        yield _Runner()
+
+
+async def subp_exec(
+    cmd: str,
+    *args: str,
+    input: Optional[str] = None,
+    wait: Optional[float] = None,
+    verbose: bool = False,
+    collect: bool = False,
+    on_stdout: Optional[Callable[[str], Optional[bool]]] = None,
+) -> tuple[Optional[str], Optional[str]]:
+    if verbose:
+        cmd_str = f"+ {cmd} {' '.join(map(str, args))}"
+        if input:
+            print(cmd_str, " <\n", "\n".join(filter(None, input.splitlines())), sep="")
+        else:
+            print(cmd_str)
+    if wait:
+        await asyncio.sleep(wait)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            cmd,
+            *args,
+            stdin=asyncio.subprocess.PIPE if input else None,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        def signal_handler():
+            # make sure process exists, then terminate it
+            if proc.returncode is None:
+                proc.terminate()
+
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        if sys.platform == "win32":
+
+            def handle_windows_signal(signum, frame):
+                signal_handler()
+                original_sigint_handler(signum, frame)
+
+            signal.signal(signal.SIGINT, handle_windows_signal)
+            # NOTE: we're not adding a handler for SIGTERM since it's ignored on Windows
+        else:
+            loop = asyncio.get_event_loop()
+            loop.add_signal_handler(signal.SIGINT, signal_handler)
+            loop.add_signal_handler(signal.SIGTERM, signal_handler)
+
+        empty_fut: asyncio.Future = asyncio.Future()
+        empty_fut.set_result(None)
+        stdout, stderr, _ = await asyncio.gather(
+            monitor_stream(
+                cast(asyncio.StreamReader, proc.stdout),
+                collect=True,
+                display=verbose,
+                on_line=on_stdout,
+            ),
+            monitor_stream(
+                cast(asyncio.StreamReader, proc.stderr),
+                collect=True,
+                display=verbose,
+            ),
+            proc._feed_stdin(input.encode()) if input else empty_fut,  # type: ignore[attr-defined]
+        )
+        returncode = await proc.wait()
+        if (
+            returncode is not None
+            and returncode != 0  # success
+            and returncode != 130  # user interrupt
+        ):
+            sys.stdout.write(stdout.decode() if stdout else "")
+            sys.stderr.write(stderr.decode() if stderr else "")
+            raise click.exceptions.Exit(returncode)
+        if collect:
+            return (
+                stdout.decode() if stdout else None,
+                stderr.decode() if stderr else None,
+            )
+        else:
+            return None, None
+    finally:
+        try:
+            if proc.returncode is None:
+                try:
+                    proc.terminate()
+                except (ProcessLookupError, KeyboardInterrupt):
+                    pass
+
+            if sys.platform == "win32":
+                signal.signal(signal.SIGINT, original_sigint_handler)
+            else:
+                loop.remove_signal_handler(signal.SIGINT)
+                loop.remove_signal_handler(signal.SIGTERM)
+        except UnboundLocalError:
+            pass
+
+
+async def monitor_stream(
+    stream: asyncio.StreamReader,
+    collect: bool = False,
+    display: bool = False,
+    on_line: Optional[Callable[[str], Optional[bool]]] = None,
+) -> Optional[bytearray]:
+    if collect:
+        ba = bytearray()
+
+    def handle(line: bytes, overrun: bool):
+        nonlocal on_line
+        nonlocal display
+
+        if display:
+            sys.stdout.buffer.write(line)
+        if overrun:
+            return
+        if collect:
+            ba.extend(line)
+        if on_line:
+            if on_line(line.decode()):
+                on_line = None
+                display = True
+
+    """Adapted from asyncio.StreamReader.readline() to handle LimitOverrunError."""
+    sep = b"\n"
+    seplen = len(sep)
+    while True:
+        try:
+            line = await stream.readuntil(sep)
+            overrun = False
+        except asyncio.IncompleteReadError as e:
+            line = e.partial
+            overrun = False
+        except asyncio.LimitOverrunError as e:
+            if stream._buffer.startswith(sep, e.consumed):
+                line = stream._buffer[: e.consumed + seplen]
+            else:
+                line = stream._buffer.clear()
+            overrun = True
+            stream._maybe_resume_transport()
+        await asyncio.to_thread(handle, line, overrun)
+        if line == b"":
+            break
+
+    if collect:
+        return ba
+    else:
+        return None
+
+</document_content>
+</document>
+<document index="23">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/progress.py</source>
+<document_content>
+import sys
+import threading
+import time
+from typing import Callable
+
+
+class Progress:
+    delay: float = 0.1
+
+    @staticmethod
+    def spinning_cursor():
+        while True:
+            yield from "|/-\\"
+
+    def __init__(self, *, message=""):
+        self.message = message
+        self.spinner_generator = self.spinning_cursor()
+
+    def spinner_iteration(self):
+        message = self.message
+        sys.stdout.write(next(self.spinner_generator) + " " + message)
+        sys.stdout.flush()
+        time.sleep(self.delay)
+        # clear the spinner and message
+        sys.stdout.write(
+            "\b" * (len(message) + 2)
+            + " " * (len(message) + 2)
+            + "\b" * (len(message) + 2)
+        )
+        sys.stdout.flush()
+
+    def spinner_task(self):
+        while self.message:
+            message = self.message
+            sys.stdout.write(next(self.spinner_generator) + " " + message)
+            sys.stdout.flush()
+            time.sleep(self.delay)
+            # clear the spinner and message
+            sys.stdout.write(
+                "\b" * (len(message) + 2)
+                + " " * (len(message) + 2)
+                + "\b" * (len(message) + 2)
+            )
+            sys.stdout.flush()
+
+    def __enter__(self) -> Callable[[str], None]:
+        self.thread = threading.Thread(target=self.spinner_task)
+        self.thread.start()
+
+        def set_message(message):
+            self.message = message
+            if not message:
+                self.thread.join()
+
+        return set_message
+
+    def __exit__(self, exception, value, tb):
+        self.message = ""
+        try:
+            self.thread.join()
+        finally:
+            del self.thread
+        if exception is not None:
+            return False
+
+</document_content>
+</document>
+<document index="24">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/py.typed</source>
+<document_content>
+
+</document_content>
+</document>
+<document index="25">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/templates.py</source>
+<document_content>
+import os
+import shutil
+import sys
+from io import BytesIO
+from typing import Dict, Optional
+from urllib import error, request
+from zipfile import ZipFile
+
+import click
+
+TEMPLATES: Dict[str, Dict[str, str]] = {
+    "New LangGraph Project": {
+        "description": "A simple, minimal chatbot with memory.",
+        "python": "https://github.com/langchain-ai/new-langgraph-project/archive/refs/heads/main.zip",
+        "js": "https://github.com/langchain-ai/new-langgraphjs-project/archive/refs/heads/main.zip",
+    },
+    "ReAct Agent": {
+        "description": "A simple agent that can be flexibly extended to many tools.",
+        "python": "https://github.com/langchain-ai/react-agent/archive/refs/heads/main.zip",
+        "js": "https://github.com/langchain-ai/react-agent-js/archive/refs/heads/main.zip",
+    },
+    "Memory Agent": {
+        "description": "A ReAct-style agent with an additional tool to store memories for use across conversational threads.",
+        "python": "https://github.com/langchain-ai/memory-agent/archive/refs/heads/main.zip",
+        "js": "https://github.com/langchain-ai/memory-agent-js/archive/refs/heads/main.zip",
+    },
+    "Retrieval Agent": {
+        "description": "An agent that includes a retrieval-based question-answering system.",
+        "python": "https://github.com/langchain-ai/retrieval-agent-template/archive/refs/heads/main.zip",
+        "js": "https://github.com/langchain-ai/retrieval-agent-template-js/archive/refs/heads/main.zip",
+    },
+    "Data-enrichment Agent": {
+        "description": "An agent that performs web searches and organizes its findings into a structured format.",
+        "python": "https://github.com/langchain-ai/data-enrichment/archive/refs/heads/main.zip",
+        "js": "https://github.com/langchain-ai/data-enrichment-js/archive/refs/heads/main.zip",
+    },
+}
+
+# Generate TEMPLATE_IDS programmatically
+TEMPLATE_ID_TO_CONFIG = {
+    f"{name.lower().replace(' ', '-')}-{lang}": (name, lang, url)
+    for name, versions in TEMPLATES.items()
+    for lang, url in versions.items()
+    if lang in {"python", "js"}
+}
+
+TEMPLATE_IDS = list(TEMPLATE_ID_TO_CONFIG.keys())
+
+TEMPLATE_HELP_STRING = (
+    "The name of the template to use. Available options:\n"
+    + "\n".join(f"{id_}" for id_ in TEMPLATE_ID_TO_CONFIG)
+)
+
+
+def _choose_template() -> str:
+    """Presents a list of templates to the user and prompts them to select one.
+
+    Returns:
+        str: The URL of the selected template.
+    """
+    click.secho("🌟 Please select a template:", bold=True, fg="yellow")
+    for idx, (template_name, template_info) in enumerate(TEMPLATES.items(), 1):
+        click.secho(f"{idx}. ", nl=False, fg="cyan")
+        click.secho(template_name, fg="cyan", nl=False)
+        click.secho(f" - {template_info['description']}", fg="white")
+
+    # Get the template choice from the user, defaulting to the first template if blank
+    template_choice: Optional[int] = click.prompt(
+        "Enter the number of your template choice (default is 1)",
+        type=int,
+        default=1,
+        show_default=False,
+    )
+
+    template_keys = list(TEMPLATES.keys())
+    if 1 <= template_choice <= len(template_keys):
+        selected_template: str = template_keys[template_choice - 1]
+    else:
+        click.secho("❌ Invalid choice. Please try again.", fg="red")
+        return _choose_template()
+
+    # Prompt the user to choose between Python or JS/TS version
+    click.secho(
+        f"\nYou selected: {selected_template} - {TEMPLATES[selected_template]['description']}",
+        fg="green",
+    )
+    version_choice: int = click.prompt(
+        "Choose language (1 for Python 🐍, 2 for JS/TS 🌐)", type=int
+    )
+
+    if version_choice == 1:
+        return TEMPLATES[selected_template]["python"]
+    elif version_choice == 2:
+        return TEMPLATES[selected_template]["js"]
+    else:
+        click.secho("❌ Invalid choice. Please try again.", fg="red")
+        return _choose_template()
+
+
+def _download_repo_with_requests(repo_url: str, path: str) -> None:
+    """Download a ZIP archive from the given URL and extracts it to the specified path.
+
+    Args:
+        repo_url (str): The URL of the repository to download.
+        path (str): The path where the repository should be extracted.
+    """
+    click.secho("📥 Attempting to download repository as a ZIP archive...", fg="yellow")
+    click.secho(f"URL: {repo_url}", fg="yellow")
+    try:
+        with request.urlopen(repo_url) as response:
+            if response.status == 200:
+                with ZipFile(BytesIO(response.read())) as zip_file:
+                    zip_file.extractall(path)
+                    # Move extracted contents to path
+                    for item in os.listdir(path):
+                        if item.endswith("-main"):
+                            extracted_dir = os.path.join(path, item)
+                            for filename in os.listdir(extracted_dir):
+                                shutil.move(os.path.join(extracted_dir, filename), path)
+                            shutil.rmtree(extracted_dir)
+                click.secho(
+                    f"✅ Downloaded and extracted repository to {path}", fg="green"
+                )
+    except error.HTTPError as e:
+        click.secho(
+            f"❌ Error: Failed to download repository.\n" f"Details: {e}\n",
+            fg="red",
+            bold=True,
+            err=True,
+        )
+        sys.exit(1)
+
+
+def _get_template_url(template_name: str) -> Optional[str]:
+    """
+    Retrieves the template URL based on the provided template name.
+
+    Args:
+        template_name (str): The name of the template.
+
+    Returns:
+        Optional[str]: The URL of the template if found, else None.
+    """
+    if template_name in TEMPLATES:
+        click.secho(f"Template selected: {template_name}", fg="green")
+        version_choice: int = click.prompt(
+            "Choose version (1 for Python 🐍, 2 for JS/TS 🌐)", type=int
+        )
+
+        if version_choice == 1:
+            return TEMPLATES[template_name]["python"]
+        elif version_choice == 2:
+            return TEMPLATES[template_name]["js"]
+        else:
+            click.secho("❌ Invalid choice. Please try again.", fg="red")
+            return None
+    else:
+        click.secho(
+            f"Template '{template_name}' not found. Please select from the available options.",
+            fg="red",
+        )
+        return None
+
+
+def create_new(path: Optional[str], template: Optional[str]) -> None:
+    """Create a new LangGraph project at the specified PATH using the chosen TEMPLATE.
+
+    Args:
+        path (Optional[str]): The path where the new project will be created.
+        template (Optional[str]): The name of the template to use.
+    """
+    # Prompt for path if not provided
+    if not path:
+        path = click.prompt(
+            "📂 Please specify the path to create the application", default="."
+        )
+
+    path = os.path.abspath(path)  # Ensure path is absolute
+
+    # Check if path exists and is not empty
+    if os.path.exists(path) and os.listdir(path):
+        click.secho(
+            "❌ The specified directory already exists and is not empty. "
+            "Aborting to prevent overwriting files.",
+            fg="red",
+            bold=True,
+        )
+        sys.exit(1)
+
+    # Get template URL either from command-line argument or
+    # through interactive selection
+    if template:
+        if template not in TEMPLATE_ID_TO_CONFIG:
+            # Format available options in a readable way with descriptions
+            template_options = ""
+            for id_ in TEMPLATE_IDS:
+                name, lang, _ = TEMPLATE_ID_TO_CONFIG[id_]
+                description = TEMPLATES[name]["description"]
+
+                # Add each template option with color formatting
+                template_options += (
+                    click.style("- ", fg="yellow", bold=True)
+                    + click.style(f"{id_}", fg="cyan")
+                    + click.style(f": {description}", fg="white")
+                    + "\n"
+                )
+
+            # Display error message with colors and formatting
+            click.secho("❌ Error:", fg="red", bold=True, nl=False)
+            click.secho(f" Template '{template}' not found.", fg="red")
+            click.secho(
+                "Please select from the available options:\n", fg="yellow", bold=True
+            )
+            click.secho(template_options, fg="cyan")
+            sys.exit(1)
+        _, _, template_url = TEMPLATE_ID_TO_CONFIG[template]
+    else:
+        template_url = _choose_template()
+
+    # Download and extract the template
+    _download_repo_with_requests(template_url, path)
+
+    click.secho(f"🎉 New project created at {path}", fg="green", bold=True)
+
+</document_content>
+</document>
+<document index="26">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/util.py</source>
+<document_content>
+def clean_empty_lines(input_str: str):
+    return "\n".join(filter(None, input_str.splitlines()))
+
+</document_content>
+</document>
+<document index="27">
+<source>/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli/version.py</source>
+<document_content>
+"""Main entrypoint into package."""
+
+from importlib import metadata
+
+try:
+    __version__ = metadata.version(__package__)
+except metadata.PackageNotFoundError:
+    # Case where package metadata is not available.
+    __version__ = ""
+del metadata  # optional, avoids polluting the results of dir(__package__)
+
+</document_content>
+</document>
+</documents>

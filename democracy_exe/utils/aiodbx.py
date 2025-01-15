@@ -1,3 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 """democracy_exe.utils.aiodbx.
 
 Provides asynchronous Dropbox API client functionality.
@@ -29,6 +37,10 @@ from pydantic import SecretStr
 
 from democracy_exe.aio_settings import aiosettings
 
+
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
 
 async def aio_path_exists(path: str | pathlib.Path) -> bool:
     """Async wrapper for path existence check.
