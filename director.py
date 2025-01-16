@@ -80,6 +80,22 @@ class Director:
         self.log_file.write_text("")
 
     @staticmethod
+    def create_missing_files(paths: list[str]) -> None:
+        """Create missing files and their parent directories.
+
+        Args:
+            paths: List of file paths to create if they don't exist
+        """
+        for path_str in paths:
+            path = Path(path_str)
+            if not path.exists():
+                # Create parent directories if they don't exist
+                path.parent.mkdir(parents=True, exist_ok=True)
+                # Create empty file
+                path.touch()
+                logger.info(f"Created missing file: {path}")
+
+    @staticmethod
     def validate_config(config_path: Path) -> DirectorConfig:
         """Validate the yaml config file and return DirectorConfig object."""
         # Check if the config file exists
@@ -109,6 +125,9 @@ class Director:
         # Ensure there is at least one editable file specified
         if not config.context_editable:
             raise ValueError("At least one editable context file must be specified")
+
+        # Create any missing files before validation
+        Director.create_missing_files(config.context_editable + config.context_read_only)
 
         # Verify all specified files (both editable and read-only) exist
         for path in config.context_editable:
