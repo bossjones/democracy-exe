@@ -14,6 +14,7 @@ from democracy_exe.utils.ai_docs_utils.api import (
     request_message,
 )
 from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
+from democracy_exe.utils.file_functions import tilda
 
 
 SIGNATURE = """
@@ -50,7 +51,8 @@ async def agenerate_docs_from_local_repo(directory_path: str) -> None:
     Args:
         directory_path: Path to the local repository directory
     """
-    code_file_path = extract_local_directory(directory_path)
+    expanded_path = str(tilda(directory_path))
+    code_file_path = extract_local_directory(expanded_path)
     file_content = read_file(code_file_path)
     input_prompt = f"Given this repo. \n{file_content}\ncomplete your instruction"
 
@@ -61,7 +63,7 @@ async def agenerate_docs_from_local_repo(directory_path: str) -> None:
 
     message = response.content[0].text
     readme_text = SIGNATURE + message
-    readme_path = f"{directory_path}/README.md"
+    readme_path = f"{expanded_path}/README.md"
     with open(readme_path, "w", encoding="utf-8") as file:
         file.write(readme_text)
 
@@ -72,7 +74,8 @@ def generate_docs_from_local_repo(directory_path: str) -> None:
     Args:
         directory_path: Path to the local repository directory
     """
-    code_file_path = extract_local_directory(directory_path)
+    expanded_path = str(tilda(directory_path))
+    code_file_path = extract_local_directory(expanded_path)
     file_content = read_file(code_file_path)
     input_prompt = f"Given this repo. \n{file_content}\ncomplete your instruction"
 
@@ -83,7 +86,7 @@ def generate_docs_from_local_repo(directory_path: str) -> None:
 
     message = response.content[0].text
     readme_text = SIGNATURE + message
-    readme_path = f"{directory_path}/README.md"
+    readme_path = f"{expanded_path}/README.md"
     with open(readme_path, "w", encoding="utf-8") as file:
         file.write(readme_text)
 

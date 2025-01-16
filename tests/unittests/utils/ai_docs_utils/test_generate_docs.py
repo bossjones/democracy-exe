@@ -16,6 +16,7 @@ from democracy_exe.utils.ai_docs_utils.generate_docs import (
     agenerate_docs_from_local_repo,
     generate_docs_from_local_repo,
 )
+from democracy_exe.utils.file_functions import tilda
 
 
 if TYPE_CHECKING:
@@ -59,6 +60,66 @@ def mock_refined_response() -> AnthropicMessage:
         model="claude-3-opus-20240229",
         usage={"input_tokens": 150, "output_tokens": 75},
     )
+
+
+def test_generate_docs_from_local_repo_with_tilde(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    mock_response: AnthropicMessage,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test generating documentation from a local repository with tilde path.
+
+    Args:
+        tmp_path: Pytest fixture for temporary directory
+        mocker: Pytest mocker fixture
+        mock_response: Mock API response fixture
+        monkeypatch: Pytest monkeypatch fixture
+    """
+    # Setup home directory for tilde expansion
+    home_dir = tmp_path / "home" / "user"
+    test_dir = home_dir / "test_repo"
+    os.makedirs(test_dir, exist_ok=True)
+    monkeypatch.setenv("HOME", str(home_dir))
+
+    # Create tilde path
+    tilde_path = "~/test_repo"
+    expanded_path = str(tilda(tilde_path))
+
+    # Mock dependencies
+    mock_extract = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.extract_local_directory", return_value="test_code.txt"
+    )
+    mock_read = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.read_file", return_value="test code content"
+    )
+    mock_request = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.request_message", return_value=mock_response
+    )
+
+    # Run function with tilde path
+    generate_docs_from_local_repo(tilde_path)
+
+    # Verify calls with expanded path
+    mock_extract.assert_called_once_with(expanded_path)
+    mock_read.assert_called_once_with("test_code.txt")
+    mock_request.assert_called_once()
+
+    # Verify request message construction
+    messages = mock_request.call_args[0][1]
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    assert "test code content" in messages[0]["content"]
+
+    # Verify README.md creation in expanded path
+    readme_path = os.path.join(expanded_path, "README.md")
+    assert os.path.exists(readme_path)
+
+    with open(readme_path, encoding="utf-8") as f:
+        content = f.read()
+        assert content.startswith(SIGNATURE)
+        assert "Test Repository" in content
+        assert "This is a test repository documentation." in content
 
 
 def test_generate_docs_from_local_repo(
