@@ -113,7 +113,7 @@ class _DropboxTransport:
         """
         ...
     
-    def request(self, route, namespace, request_arg, request_binary, timeout=...): # -> tuple[datetime | bytes | Any | list | dict | None, Response | None] | datetime | bytes | list | dict | None:
+    def request(self, route, namespace, request_arg, request_binary, timeout=...): # -> tuple[datetime | bytes | Any | list[Any | dict[Any | datetime | bytes | None, Any | datetime | bytes | None] | datetime | bytes | None] | dict[Any | datetime | bytes | None, Any | datetime | bytes | None] | None, Response | None] | datetime | bytes | list[Any | dict[Any | datetime | bytes | None, Any | datetime | bytes | None] | datetime | bytes | None] | dict[Any | datetime | bytes | None, Any | datetime | bytes | None] | None:
         """
         Makes a request to the Dropbox API and in the process validates that
         the route argument and result are the expected data types. The

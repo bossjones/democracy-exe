@@ -127,7 +127,7 @@ class DocumentQuestionAnsweringPipeline(ChunkPipeline):
         """
         ...
     
-    def preprocess(self, input, padding=..., doc_stride=..., max_seq_len=..., word_boxes: Tuple[str, List[float]] = ..., lang=..., tesseract_config=..., timeout=...): # -> Generator[dict[str, Any] | dict[Any | str, Any], Any, None]:
+    def preprocess(self, input, padding=..., doc_stride=..., max_seq_len=..., word_boxes: Tuple[str, List[float]] = ..., lang=..., tesseract_config=..., timeout=...): # -> Generator[dict[str, Any] | dict[Any, Any], Any, None]:
         ...
     
     def postprocess(self, model_outputs, top_k=..., **kwargs):

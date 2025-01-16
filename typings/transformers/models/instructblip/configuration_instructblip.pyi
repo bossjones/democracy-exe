@@ -162,8 +162,6 @@ class InstructBlipConfig(PretrainedConfig):
         num_query_tokens (`int`, *optional*, defaults to 32):
             The number of query tokens passed through the Transformer.
 
-        image_token_index (`int`, *optional*):
-            Token index of special image token.
         kwargs (*optional*):
             Dictionary of keyword arguments.
 
@@ -197,7 +195,7 @@ class InstructBlipConfig(PretrainedConfig):
     >>> config = InstructBlipConfig.from_text_vision_configs(vision_config, qformer_config, text_config)
     ```"""
     model_type = ...
-    def __init__(self, vision_config=..., qformer_config=..., text_config=..., num_query_tokens=..., image_token_index=..., **kwargs) -> None:
+    def __init__(self, vision_config=..., qformer_config=..., text_config=..., num_query_tokens=..., **kwargs) -> None:
         ...
     
     @classmethod

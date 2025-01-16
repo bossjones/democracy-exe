@@ -123,14 +123,22 @@ class QuestionAnsweringPipeline(ChunkPipeline):
         Answer the question(s) given as inputs by using the context(s).
 
         Args:
+            args ([`SquadExample`] or a list of [`SquadExample`]):
+                One or several [`SquadExample`] containing the question and context.
+            X ([`SquadExample`] or a list of [`SquadExample`], *optional*):
+                One or several [`SquadExample`] containing the question and context (will be treated the same way as if
+                passed as the first positional argument).
+            data ([`SquadExample`] or a list of [`SquadExample`], *optional*):
+                One or several [`SquadExample`] containing the question and context (will be treated the same way as if
+                passed as the first positional argument).
             question (`str` or `List[str]`):
                 One or several question(s) (must be used in conjunction with the `context` argument).
             context (`str` or `List[str]`):
                 One or several context(s) associated with the question(s) (must be used in conjunction with the
                 `question` argument).
-            top_k (`int`, *optional*, defaults to 1):
+            topk (`int`, *optional*, defaults to 1):
                 The number of answers to return (will be chosen by order of likelihood). Note that we return less than
-                top_k answers if there are not enough options available within the context.
+                topk answers if there are not enough options available within the context.
             doc_stride (`int`, *optional*, defaults to 128):
                 If the context is too long to fit with the question for the model, it will be split in several chunks
                 with some overlap. This argument controls the size of that overlap.
@@ -144,7 +152,7 @@ class QuestionAnsweringPipeline(ChunkPipeline):
             handle_impossible_answer (`bool`, *optional*, defaults to `False`):
                 Whether or not we accept impossible as an answer.
             align_to_words (`bool`, *optional*, defaults to `True`):
-                Attempts to align the answer to real words. Improves quality on space separated languages. Might hurt on
+                Attempts to align the answer to real words. Improves quality on space separated langages. Might hurt on
                 non-space-separated languages (like Japanese or Chinese)
 
         Return:
@@ -157,7 +165,7 @@ class QuestionAnsweringPipeline(ChunkPipeline):
         """
         ...
     
-    def preprocess(self, example, padding=..., doc_stride=..., max_question_len=..., max_seq_len=...): # -> Generator[dict[str | Any, Any], Any, None]:
+    def preprocess(self, example, padding=..., doc_stride=..., max_question_len=..., max_seq_len=...): # -> Generator[dict[Any, Any], Any, None]:
         ...
     
     def postprocess(self, model_outputs, top_k=..., handle_impossible_answer=..., max_answer_len=..., align_to_words=...): # -> list[Any]:

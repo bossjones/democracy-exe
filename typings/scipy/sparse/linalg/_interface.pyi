@@ -145,7 +145,7 @@ class LinearOperator:
         """
         ...
     
-    def matvec(self, x): # -> ndarray[Any, dtype[Any]] | ndarray[Any, Any]:
+    def matvec(self, x):
         """Matrix-vector multiplication.
 
         Performs the operation y=A*x where A is an MxN linear
@@ -195,7 +195,7 @@ class LinearOperator:
         """
         ...
     
-    def matmat(self, X): # -> matrix[Any, dtype[Any]] | matrix[Any, Any] | ndarray[Any, dtype[Any]]:
+    def matmat(self, X):
         """Matrix-matrix multiplication.
 
         Performs the operation y=A*X where A is an MxN linear
@@ -247,13 +247,13 @@ class LinearOperator:
     def __call__(self, x):
         ...
     
-    def __mul__(self, x): # -> _ProductLinearOperator | _ScaledLinearOperator | ndarray[Any, dtype[Any]] | ndarray[Any, Any] | matrix[Any, dtype[Any]] | matrix[Any, Any]:
+    def __mul__(self, x): # -> _ProductLinearOperator | _ScaledLinearOperator:
         ...
     
     def __truediv__(self, other): # -> _ScaledLinearOperator:
         ...
     
-    def dot(self, x): # -> _ProductLinearOperator | _ScaledLinearOperator | ndarray[Any, dtype[Any]] | ndarray[Any, Any] | matrix[Any, dtype[Any]] | matrix[Any, Any]:
+    def dot(self, x): # -> _ProductLinearOperator | _ScaledLinearOperator:
         """Matrix-matrix or matrix-vector multiplication.
 
         Parameters
@@ -270,7 +270,7 @@ class LinearOperator:
         """
         ...
     
-    def __matmul__(self, other): # -> _ProductLinearOperator | _ScaledLinearOperator | ndarray[Any, dtype[Any]] | ndarray[Any, Any] | matrix[Any, dtype[Any]] | matrix[Any, Any]:
+    def __matmul__(self, other): # -> _ProductLinearOperator | _ScaledLinearOperator:
         ...
     
     def __rmatmul__(self, other): # -> _ScaledLinearOperator | _ProductLinearOperator | Any:

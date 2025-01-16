@@ -39,7 +39,7 @@ class Bnb8BitHfQuantizer(HfQuantizer):
     def update_torch_dtype(self, torch_dtype: torch.dtype) -> torch.dtype:
         ...
     
-    def update_device_map(self, device_map): # -> dict[str, int] | dict[str, str] | Dict[str, Any]:
+    def update_device_map(self, device_map): # -> dict[str, int] | Dict[str, Any]:
         ...
     
     def adjust_target_dtype(self, target_dtype: torch.dtype) -> torch.dtype:
@@ -55,7 +55,8 @@ class Bnb8BitHfQuantizer(HfQuantizer):
         """
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> bool:
+    @property
+    def is_serializable(self): # -> bool:
         ...
     
     @property

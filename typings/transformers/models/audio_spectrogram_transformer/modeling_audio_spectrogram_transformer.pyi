@@ -62,7 +62,7 @@ class ASTSdpaSelfAttention(ASTSelfAttention):
     def __init__(self, config: ASTConfig) -> None:
         ...
     
-    def forward(self, hidden_states: torch.FloatTensor, head_mask: Optional[torch.Tensor] = ..., output_attentions: bool = ...) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor]]:
+    def forward(self, hidden_states, head_mask: Optional[torch.Tensor] = ..., output_attentions: bool = ...) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor]]:
         ...
     
 

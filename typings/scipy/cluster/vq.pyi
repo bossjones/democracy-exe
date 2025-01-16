@@ -74,7 +74,7 @@ class ClusterError(Exception):
     ...
 
 
-def whiten(obs, check_finite=...): # -> Any:
+def whiten(obs, check_finite=...):
     """
     Normalize a group of observations on a per feature basis.
 
@@ -222,7 +222,7 @@ def py_vq(obs, code_book, check_finite=...): # -> tuple[Any, Any]:
     """
     ...
 
-def kmeans(obs, k_or_guess, iter=..., thresh=..., check_finite=..., *, seed=...): # -> tuple[Array | ndarray[Any, dtype[Any]], float | Any] | tuple[Any | Array | ndarray[Any, dtype[Any]], Any | float]:
+def kmeans(obs, k_or_guess, iter=..., thresh=..., check_finite=..., *, seed=...): # -> tuple[Any | ndarray[Any, dtype[Any]], float | Any]:
     """
     Performs k-means on a set of observation vectors forming k clusters.
 

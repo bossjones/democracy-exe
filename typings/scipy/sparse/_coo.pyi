@@ -39,7 +39,7 @@ class _coo_base(_data_matrix, _minmax_mixin):
     def resize(self, *shape) -> None:
         ...
     
-    def toarray(self, order=..., out=...):
+    def toarray(self, order=..., out=...): # -> ndarray[Any, dtype[float64]]:
         ...
     
     def tocsc(self, copy=...): # -> csc_array:

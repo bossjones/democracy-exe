@@ -47,10 +47,12 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         ...
     
     def multiply(self, other):
-        """Point-wise multiplication by array/matrix, vector, or scalar."""
+        """Point-wise multiplication by another array/matrix, vector, or
+        scalar.
+        """
         ...
     
-    def diagonal(self, k=...): # -> NDArray[floating[_64Bit]]:
+    def diagonal(self, k=...): # -> NDArray[float_] | NDArray[float64]:
         ...
     
     def maximum(self, other): # -> Self:

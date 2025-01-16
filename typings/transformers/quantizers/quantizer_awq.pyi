@@ -26,7 +26,8 @@ class AwqQuantizer(HfQuantizer):
     def update_torch_dtype(self, torch_dtype): # -> dtype:
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> bool:
+    @property
+    def is_serializable(self): # -> bool:
         ...
     
     @property

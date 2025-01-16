@@ -6,7 +6,6 @@ import torch
 from typing import Any, Dict, List, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache, DynamicCache
-from ...generation import GenerationMixin
 from ...modeling_outputs import MoeCausalLMOutputWithPast, MoeModelOutputWithPast, SequenceClassifierOutputWithPast
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -27,7 +26,7 @@ else:
 is_fast_path_available = ...
 logger = ...
 _CONFIG_FOR_DOC = ...
-def load_balancing_loss_func(router_logits: Union[torch.Tensor, Tuple[torch.Tensor], None], num_experts: Optional[int] = ..., top_k=..., attention_mask: Optional[torch.Tensor] = ...) -> Union[torch.Tensor, int]:
+def load_balancing_loss_func(router_logits: torch.Tensor, num_experts: torch.Tensor = ..., top_k=..., attention_mask: Optional[torch.Tensor] = ...) -> float:
     r"""
     Computes auxiliary load balancing loss as in Switch Transformer - implemented in Pytorch.
 
@@ -36,17 +35,14 @@ def load_balancing_loss_func(router_logits: Union[torch.Tensor, Tuple[torch.Tens
     experts is too unbalanced.
 
     Args:
-        router_logits:
+        router_logits (Union[`torch.Tensor`, Tuple[torch.Tensor]):
             Logits from the `router`, should be a tuple of model.config.num_hidden_layers tensors of
             shape [batch_size X sequence_length, num_experts].
-        num_experts:
-            Number of experts
-        top_k:
-            The number of experts to route per-token, can be also interpreted as the `top-k` routing
-            parameter.
         attention_mask (`torch.Tensor`, *optional*):
             The attention_mask used in forward function
             shape [batch_size X sequence_length] if not None.
+        num_experts (`int`, *optional*):
+            Number of experts
 
     Returns:
         The auxiliary loss.
@@ -160,13 +156,13 @@ class JambaMambaMixer(nn.Module):
     def __init__(self, config: JambaConfig, layer_idx) -> None:
         ...
     
-    def cuda_kernels_forward(self, hidden_states: torch.Tensor, cache_params: HybridMambaAttentionDynamicCache = ..., attention_mask: Optional[torch.LongTensor] = ...): # -> Any:
+    def cuda_kernels_forward(self, hidden_states: torch.Tensor, cache_params: HybridMambaAttentionDynamicCache = ...): # -> Any:
         ...
     
-    def slow_forward(self, input_states, cache_params: HybridMambaAttentionDynamicCache = ..., attention_mask: Optional[torch.LongTensor] = ...): # -> Any:
+    def slow_forward(self, input_states, cache_params: HybridMambaAttentionDynamicCache = ...): # -> Any:
         ...
     
-    def forward(self, hidden_states, cache_params: HybridMambaAttentionDynamicCache = ..., attention_mask: Optional[torch.LongTensor] = ...): # -> Any:
+    def forward(self, hidden_states, cache_params: HybridMambaAttentionDynamicCache = ...): # -> Any:
         ...
     
 
@@ -293,7 +289,7 @@ class JambaModel(JambaPreTrainedModel):
     
 
 
-class JambaForCausalLM(JambaPreTrainedModel, GenerationMixin):
+class JambaForCausalLM(JambaPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config: JambaConfig) -> None:
         ...
@@ -318,7 +314,7 @@ class JambaForCausalLM(JambaPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(JAMBA_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=MoeCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[HybridMambaAttentionDynamicCache] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., output_router_logits: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: Optional[Union[int, None]] = ..., **loss_kwargs) -> Union[Tuple, MoeCausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[HybridMambaAttentionDynamicCache] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., output_router_logits: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: Optional[Union[int, None]] = ...) -> Union[Tuple, MoeCausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):

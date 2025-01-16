@@ -13,6 +13,9 @@ Configuration: Requires Pinecone and Fireworks API keys (see README for setup)
 # pyright: reportUninitializedInstanceVariable=false
 # pyright: reportAttributeAccessIssue=false
 # pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pylint: disable=no-member
+# pylint: disable=no-value-for-parameter
 
 from __future__ import annotations
 
@@ -30,6 +33,7 @@ import tiktoken
 
 from langchain_anthropic import ChatAnthropic
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.vectorstores import SKLearnVectorStore
 from langchain_core.messages.utils import get_buffer_string
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig, ensure_config, get_executor_for_config
@@ -98,10 +102,11 @@ async def save_recall_memory(memory: str) -> str:
     logger.error(f"vector: {vector}")
     logger.error(f"embeddings: {embeddings}")
 
-    agentic_utils.get_index().upsert(
-        vectors=documents,
-        namespace=aiosettings.pinecone_namespace,
-    )
+    # TODO: fix this to work with chroma/scikitlearn
+    # agentic_utils.get_index().upsert(
+    #     vectors=documents,
+    #     namespace=aiosettings.pinecone_namespace,
+    # )
     # await logger.complete()
     return memory
 
@@ -122,24 +127,24 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = embeddings.embed_query(query)
     with langsmith.trace("query", inputs={"query": query, "top_k": top_k}) as rt:
-        response = agentic_utils.get_index().query(
-            vector=vector,
-            filter={
-                "user_id": {"$eq": configurable["user_id"]}, # pyright: ignore[reportUndefinedVariable]
-                constants.TYPE_KEY: {"$eq": "recall"},
-            },
-            namespace=aiosettings.pinecone_namespace,
-            include_metadata=True,
-            top_k=top_k,
+        # Get the sklearn vector store
+        vector_store: SKLearnVectorStore = agentic_utils.get_or_create_sklearn_index(embeddings=embeddings)
+
+        # Use similarity search with metadata filter
+        response = vector_store.similarity_search_with_score(
+            embedding=vector,
+            k=top_k,
+            filter={"user_id": configurable["user_id"], "type": "recall"}  # type: ignore
         )
         rt.end(outputs={"response": response})
+
     memories = []
-    if matches := response.get("matches"):
-        memories = [m["metadata"][constants.PAYLOAD_KEY] for m in matches] # pyright: ignore[reportUndefinedVariable]
+    if response:
+        memories = [doc.page_content for doc, _ in response]
     return memories
 
 
-@langsmith.traceable
+# @langsmith.traceable
 def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
     """Fetch core memories for a specific user.
 
@@ -151,14 +156,27 @@ def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
     """
     path: str = constants.PATCH_PATH.format(user_id=user_id)
     logger.error(f"path: {path}")
-    response = agentic_utils.get_index().fetch(
-        ids=[path], namespace=aiosettings.pinecone_namespace
+
+    # Get the sklearn vector store
+    embeddings: agentic_utils.FireworksEmbeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
+    vector_store: SKLearnVectorStore = agentic_utils.get_or_create_sklearn_index(embeddings=embeddings)
+
+    # Search for core memories
+    response = vector_store.similarity_search_with_score(
+        embedding=[0.0] * 768,  # Use zero vector to match exact metadata
+        k=1,
+        filter={"user_id": user_id, "type": "core", "path": path}  # type: ignore
     )
+
     memories = []
-    if vectors := response.get("vectors"):
-        document = vectors[path]
-        payload = document["metadata"][constants.PAYLOAD_KEY]
-        memories = json.loads(payload)["memories"]
+    if response:
+        doc, _ = response[0]
+        try:
+            payload = json.loads(doc.page_content)
+            memories = payload.get("memories", [])
+        except json.JSONDecodeError:
+            logger.error("Failed to decode core memories JSON", error=True)
+
     return path, memories
 
 
@@ -182,23 +200,27 @@ def store_core_memory(memory: str, index: int | None = None) -> str:
         memories[index] = memory
     else:
         memories.insert(0, memory)
-    documents = [
-        {
-            "id": path,
-            "values": _EMPTY_VEC,
-            "metadata": {
-                constants.PAYLOAD_KEY: json.dumps({"memories": memories}),
-                constants.PATH_KEY: path,
-                constants.TIMESTAMP_KEY: datetime.now(tz=UTC),
-                constants.TYPE_KEY: "recall",
-                "user_id": configurable["user_id"], # pyright: ignore[reportUndefinedVariable]
-            },
-        }
-    ]
-    agentic_utils.get_index().upsert(
-        vectors=documents,
-        namespace=aiosettings.pinecone_namespace,
+
+    # Get the sklearn vector store
+    embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
+    vector_store = agentic_utils.get_or_create_sklearn_index(embeddings=embeddings)
+
+    # Create the document with metadata
+    document = json.dumps({"memories": memories})
+    metadata = {
+        constants.PATH_KEY: path,
+        constants.TIMESTAMP_KEY: datetime.now(tz=UTC).isoformat(),
+        constants.TYPE_KEY: "core",
+        "user_id": configurable["user_id"], # pyright: ignore[reportUndefinedVariable]
+    }
+
+    # Add or update the document
+    vector_store.add_texts(
+        texts=[document],
+        metadatas=[metadata],
+        embeddings=[[0.0] * 768]  # Use zero vector for exact metadata matching
     )
+
     return "Memory stored."
 
 
@@ -261,7 +283,7 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 
-@langsmith.traceable
+# @langsmith.traceable
 async def agent(
     state: schemas.State,
     config: RunnableConfig,

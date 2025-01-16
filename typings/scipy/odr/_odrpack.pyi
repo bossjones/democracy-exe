@@ -216,11 +216,11 @@ class RealData(Data):
     The weights `wd` and `we` are computed from provided values as follows:
 
     `sx` and `sy` are converted to weights by dividing 1.0 by their squares.
-    For example, ``wd = 1./np.power(`sx`, 2)``.
+    For example, ``wd = 1./numpy.power(`sx`, 2)``.
 
     `covx` and `covy` are arrays of covariance matrices and are converted to
     weights by performing a matrix inversion on each observation's covariance
-    matrix. For example, ``we[i] = np.linalg.inv(covy[i])``.
+    matrix. For example, ``we[i] = numpy.linalg.inv(covy[i])``.
 
     These arguments follow the same structured argument conventions as wd and
     we only restricted by their natures: `sx` and `sy` can't be rank-3, but

@@ -302,7 +302,7 @@ class BroydenFirst(GenericBroyden):
     def setup(self, x, F, func): # -> None:
         ...
     
-    def todense(self): # -> NDArray[floating[_64Bit]] | NDArray[Any]:
+    def todense(self):
         ...
     
     def solve(self, f, tol=...): # -> Any:
@@ -689,7 +689,7 @@ class KrylovJacobian(Jacobian):
     def matvec(self, v):
         ...
     
-    def solve(self, rhs, tol=...): # -> ndarray[Any, dtype[Any]] | ndarray[Any, Any] | NDArray[floating[Any]] | Any:
+    def solve(self, rhs, tol=...): # -> ndarray[Any, dtype[Any]]:
         ...
     
     def update(self, x, f): # -> None:

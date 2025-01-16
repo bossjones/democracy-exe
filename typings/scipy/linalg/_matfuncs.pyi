@@ -456,7 +456,7 @@ def funm(A, func, disp=...): # -> Any | tuple[Any, float | floating[Any] | int]:
     """
     ...
 
-def signm(A, disp=...): # -> Any | NDArray[floating[Any]] | tuple[NDArray[floating[Any]] | Any, Any | floating[Any] | float | int]:
+def signm(A, disp=...): # -> Any | tuple[Any, Any | floating[Any] | float | int]:
     """
     Matrix sign function.
 
@@ -491,7 +491,7 @@ def signm(A, disp=...): # -> Any | NDArray[floating[Any]] | tuple[NDArray[floati
     """
     ...
 
-def khatri_rao(a, b): # -> NDArray[Any] | ndarray[Any, dtype[bool_]]:
+def khatri_rao(a, b): # -> ndarray[Any, dtype[bool_]]:
     r"""
     Khatri-rao product
 

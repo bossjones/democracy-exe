@@ -11,6 +11,7 @@ ENV UV_SYSTEM_PYTHON=1 \
     UV_VERSION=0.5.16 \
     PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     PYTHONFAULTHANDLER=1 \
+    PYTHONDEVMODE=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -71,4 +72,3 @@ RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt
 ENV LANGSERVE_GRAPHS='{"react": "/deps/democracy-exe/democracy_exe/agentic/workflows/react/graph.py:graph"}'
 
 WORKDIR /deps/democracy-exe
-CMD bash -l

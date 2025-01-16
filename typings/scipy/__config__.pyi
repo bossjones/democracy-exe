@@ -12,7 +12,7 @@ class DisplayModes(Enum):
 
 
 CONFIG = ...
-def show(mode=...): # -> dict[str, Any] | None:
+def show(mode=...): # -> dict[str, dict[str, Any]] | None:
     """
     Show libraries and system information on which SciPy was built
     and is being used

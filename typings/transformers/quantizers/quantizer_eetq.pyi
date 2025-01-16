@@ -40,7 +40,8 @@ class EetqHfQuantizer(HfQuantizer):
         """
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> Literal[True]:
+    @property
+    def is_serializable(self): # -> Literal[True]:
         ...
     
     @property

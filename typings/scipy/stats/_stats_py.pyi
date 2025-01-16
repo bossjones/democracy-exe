@@ -6,6 +6,7 @@ import numpy as np
 from scipy._lib._util import _rename_parameter
 from dataclasses import dataclass
 from ._axis_nan_policy import _axis_nan_policy_factory
+from scipy._lib.deprecation import _deprecate_positional_args
 
 """
 A collection of basic statistical functions for Python.
@@ -17,7 +18,7 @@ References
    York. 2000.
 
 """
-__all__ = ['find_repeats', 'gmean', 'hmean', 'pmean', 'mode', 'tmean', 'tvar', 'tmin', 'tmax', 'tstd', 'tsem', 'moment', 'skew', 'kurtosis', 'describe', 'skewtest', 'kurtosistest', 'normaltest', 'jarque_bera', 'scoreatpercentile', 'percentileofscore', 'cumfreq', 'relfreq', 'obrientransform', 'sem', 'zmap', 'zscore', 'gzscore', 'iqr', 'gstd', 'median_abs_deviation', 'sigmaclip', 'trimboth', 'trim1', 'trim_mean', 'f_oneway', 'pearsonr', 'fisher_exact', 'spearmanr', 'pointbiserialr', 'kendalltau', 'weightedtau', 'linregress', 'siegelslopes', 'theilslopes', 'ttest_1samp', 'ttest_ind', 'ttest_ind_from_stats', 'ttest_rel', 'kstest', 'ks_1samp', 'ks_2samp', 'chisquare', 'power_divergence', 'tiecorrect', 'ranksums', 'kruskal', 'friedmanchisquare', 'rankdata', 'combine_pvalues', 'quantile_test', 'wasserstein_distance', 'wasserstein_distance_nd', 'energy_distance', 'brunnermunzel', 'alexandergovern', 'expectile']
+__all__ = ['find_repeats', 'gmean', 'hmean', 'pmean', 'mode', 'tmean', 'tvar', 'tmin', 'tmax', 'tstd', 'tsem', 'moment', 'skew', 'kurtosis', 'describe', 'skewtest', 'kurtosistest', 'normaltest', 'jarque_bera', 'scoreatpercentile', 'percentileofscore', 'cumfreq', 'relfreq', 'obrientransform', 'sem', 'zmap', 'zscore', 'gzscore', 'iqr', 'gstd', 'median_abs_deviation', 'sigmaclip', 'trimboth', 'trim1', 'trim_mean', 'f_oneway', 'pearsonr', 'fisher_exact', 'spearmanr', 'pointbiserialr', 'kendalltau', 'weightedtau', 'multiscale_graphcorr', 'linregress', 'siegelslopes', 'theilslopes', 'ttest_1samp', 'ttest_ind', 'ttest_ind_from_stats', 'ttest_rel', 'kstest', 'ks_1samp', 'ks_2samp', 'chisquare', 'power_divergence', 'tiecorrect', 'ranksums', 'kruskal', 'friedmanchisquare', 'rankdata', 'combine_pvalues', 'quantile_test', 'wasserstein_distance', 'wasserstein_distance_nd', 'energy_distance', 'brunnermunzel', 'alexandergovern', 'expectile']
 SignificanceResult = ...
 @_axis_nan_policy_factory(lambda x: x, n_samples=1, n_outputs=1, too_small=0, paired=True, result_to_tuple=lambda x: (x, ), kwd_samples=['weights'])
 def gmean(a, axis=..., dtype=..., weights=...): # -> Any:
@@ -605,7 +606,7 @@ def tsem(a, limits=..., inclusive=..., axis=..., ddof=...): # -> Any:
 
 @_rename_parameter('moment', 'order')
 @_axis_nan_policy_factory(_moment_result_object, n_samples=1, result_to_tuple=lambda x: (x, ), n_outputs=_moment_outputs)
-def moment(a, order=..., axis=..., nan_policy=..., *, center=...): # -> Any:
+def moment(a, order=..., axis=..., nan_policy=..., *, center=...): # -> NDArray[Any] | float64 | NDArray[floating[_64Bit]]:
     r"""Calculate the nth moment about the mean for a sample.
 
     A moment is a specific quantitative measure of the shape of a set of
@@ -616,7 +617,7 @@ def moment(a, order=..., axis=..., nan_policy=..., *, center=...): # -> Any:
     ----------
     a : array_like
        Input array.
-    order : int or 1-D array_like of ints, optional
+    order : int or array_like of ints, optional
        Order of central moment that is returned. Default is 1.
     axis : int or None, optional
        Axis along which the central moment is computed. Default is 0.
@@ -677,7 +678,7 @@ def moment(a, order=..., axis=..., nan_policy=..., *, center=...): # -> Any:
     ...
 
 @_axis_nan_policy_factory(lambda x: x, result_to_tuple=lambda x: (x, ), n_outputs=1)
-def skew(a, axis=..., bias=..., nan_policy=...): # -> Any:
+def skew(a, axis=..., bias=..., nan_policy=...): # -> ndarray[Any, dtype[Any]]:
     r"""Compute the sample skewness of a data set.
 
     For normally distributed data, the skewness should be about zero. For
@@ -754,7 +755,7 @@ def skew(a, axis=..., bias=..., nan_policy=...): # -> Any:
     ...
 
 @_axis_nan_policy_factory(lambda x: x, result_to_tuple=lambda x: (x, ), n_outputs=1)
-def kurtosis(a, axis=..., fisher=..., bias=..., nan_policy=...): # -> Any:
+def kurtosis(a, axis=..., fisher=..., bias=..., nan_policy=...): # -> NDArray[signedinteger[Any]] | ndarray[Any, dtype[Any]]:
     """Compute the kurtosis (Fisher or Pearson) of a dataset.
 
     Kurtosis is the fourth central moment divided by the square of the
@@ -917,7 +918,7 @@ def skewtest(a, axis=..., nan_policy=..., alternative=...): # -> SkewtestResult:
     Parameters
     ----------
     a : array
-        The data to be tested. Must contain at least eight observations.
+        The data to be tested.
     axis : int or None, optional
        Axis along which statistics are calculated. Default is 0.
        If None, compute over the whole array `a`.
@@ -1080,7 +1081,7 @@ def kurtosistest(a, axis=..., nan_policy=..., alternative=...): # -> Kurtosistes
     Parameters
     ----------
     a : array
-        Array of the sample data. Must contain at least five observations.
+        Array of the sample data.
     axis : int or None, optional
        Axis along which to compute test. Default is 0. If None,
        compute over the whole array `a`.
@@ -1249,8 +1250,7 @@ def normaltest(a, axis=..., nan_policy=...): # -> NormaltestResult:
     Parameters
     ----------
     a : array_like
-        The array containing the sample to be tested. Must contain
-        at least eight observations.
+        The array containing the sample to be tested.
     axis : int or None, optional
         Axis along which to compute test. Default is 0. If None,
         compute over the whole array `a`.
@@ -1900,7 +1900,7 @@ def sem(a, axis=..., ddof=..., nan_policy=...): # -> Any:
     ----------
     a : array_like
         An array containing the values for which the standard error is
-        returned. Must contain at least two observations.
+        returned.
     axis : int or None, optional
         Axis along which to operate. Default is 0. If None, compute over
         the whole array `a`.
@@ -2171,25 +2171,25 @@ def zmap(scores, compare, axis=..., ddof=..., nan_policy=...): # -> NDArray[floa
     ...
 
 def gstd(a, axis=..., ddof=...): # -> Any:
-    r"""
+    """
     Calculate the geometric standard deviation of an array.
 
     The geometric standard deviation describes the spread of a set of numbers
     where the geometric mean is preferred. It is a multiplicative factor, and
     so a dimensionless quantity.
 
-    It is defined as the exponential of the standard deviation of the
-    natural logarithms of the observations.
+    It is defined as the exponent of the standard deviation of ``log(a)``.
+    Mathematically the population geometric standard deviation can be
+    evaluated as::
+
+        gstd = exp(std(log(a)))
+
+    .. versionadded:: 1.3.0
 
     Parameters
     ----------
     a : array_like
-        An array containing finite, strictly positive, real numbers.
-
-        .. deprecated:: 1.14.0
-            Support for masked array input was deprecated in
-            SciPy 1.14.0 and will be removed in version 1.16.0.
-
+        An array like object containing the sample data.
     axis : int, tuple or None, optional
         Axis along which to operate. Default is 0. If None, compute over
         the whole array `a`.
@@ -2211,26 +2211,14 @@ def gstd(a, axis=..., ddof=...): # -> Any:
 
     Notes
     -----
-    Mathematically, the sample geometric standard deviation :math:`s_G` can be
-    defined in terms of the natural logarithms of the observations
-    :math:`y_i = \log(x_i)`:
-
-    .. math::
-
-        s_G = \exp(s), \quad s = \sqrt{\frac{1}{n - d} \sum_{i=1}^n (y_i - \bar y)^2}
-
-    where :math:`n` is the number of observations, :math:`d` is the adjustment `ddof`
-    to the degrees of freedom, and :math:`\bar y` denotes the mean of the natural
-    logarithms of the observations. Note that the default ``ddof=1`` is different from
-    the default value used by similar functions, such as `numpy.std` and `numpy.var`.
-
-    When an observation is infinite, the geometric standard deviation is
-    NaN (undefined). Non-positive observations will also produce NaNs in the
-    output because the *natural* logarithm (as opposed to the *complex*
-    logarithm) is defined and finite only for positive reals.
-    The geometric standard deviation is sometimes confused with the exponential
-    of the standard deviation, ``exp(std(a))``. Instead, the geometric standard
+    As the calculation requires the use of logarithms the geometric standard
+    deviation only supports strictly positive values. Any non-positive or
+    infinite values will raise a `ValueError`.
+    The geometric standard deviation is sometimes confused with the exponent of
+    the standard deviation, ``exp(std(a))``. Instead the geometric standard
     deviation is ``exp(std(log(a)))``.
+    The default value for `ddof` is different to the default value (0) used
+    by other ddof containing functions, such as ``np.std`` and ``np.nanstd``.
 
     References
     ----------
@@ -2242,7 +2230,7 @@ def gstd(a, axis=..., ddof=...): # -> Any:
     Examples
     --------
     Find the geometric standard deviation of a log-normally distributed sample.
-    Note that the standard deviation of the distribution is one; on a
+    Note that the standard deviation of the distribution is one, on a
     log scale this evaluates to approximately ``exp(1)``.
 
     >>> import numpy as np
@@ -2264,12 +2252,39 @@ def gstd(a, axis=..., ddof=...): # -> Any:
     >>> gstd(a, axis=(1,2))
     array([2.12939215, 1.22120169])
 
+    The geometric standard deviation further handles masked arrays.
+
+    >>> a = np.arange(1, 25).reshape(2, 3, 4)
+    >>> ma = np.ma.masked_where(a > 16, a)
+    >>> ma
+    masked_array(
+      data=[[[1, 2, 3, 4],
+             [5, 6, 7, 8],
+             [9, 10, 11, 12]],
+            [[13, 14, 15, 16],
+             [--, --, --, --],
+             [--, --, --, --]]],
+      mask=[[[False, False, False, False],
+             [False, False, False, False],
+             [False, False, False, False]],
+            [[False, False, False, False],
+             [ True,  True,  True,  True],
+             [ True,  True,  True,  True]]],
+      fill_value=999999)
+    >>> gstd(ma, axis=2)
+    masked_array(
+      data=[[1.8242475707663655, 1.2243686572447428, 1.1318311657788478],
+            [1.0934830582350938, --, --]],
+      mask=[[False, False, False],
+            [False,  True,  True]],
+      fill_value=999999)
+
     """
     ...
 
 _scale_conversions = ...
 @_axis_nan_policy_factory(lambda x: x, result_to_tuple=lambda x: (x, ), n_outputs=1, default_axis=None, override={ 'nan_propagation': False })
-def iqr(x, axis=..., rng=..., scale=..., nan_policy=..., interpolation=..., keepdims=...): # -> Any:
+def iqr(x, axis=..., rng=..., scale=..., nan_policy=..., interpolation=..., keepdims=...): # -> ndarray[Any, dtype[floating[_64Bit]]] | ndarray[Any, dtype[Any]] | Any:
     r"""
     Compute the interquartile range of the data along the specified axis.
 
@@ -2768,12 +2783,12 @@ def f_oneway(*samples, axis=...): # -> F_onewayResult:
     Warns
     -----
     `~scipy.stats.ConstantInputWarning`
-        Emitted if all values within each of the input arrays are identical.
+        Raised if all values within each of the input arrays are identical.
         In this case the F statistic is either infinite or isn't defined,
         so ``np.inf`` or ``np.nan`` is returned.
 
-    RuntimeWarning
-        Emitted if the length of any input array is 0, or if all the input
+    `~scipy.stats.DegenerateDataWarning`
+        Raised if the length of any input array is 0, or if all the input
         arrays have length 1.  ``np.nan`` is returned for the F statistic
         and the p-value in these cases.
 
@@ -2891,7 +2906,7 @@ def alexandergovern(*samples, nan_policy=...): # -> AlexanderGovernResult:
     ----------
     sample1, sample2, ... : array_like
         The sample measurements for each group.  There must be at least
-        two samples, and each sample must contain at least two observations.
+        two samples.
     nan_policy : {'propagate', 'raise', 'omit'}, optional
         Defines how to handle when input contains nan.
         The following options are available (default is 'propagate'):
@@ -2990,7 +3005,7 @@ class PearsonRResult(PearsonRResultBase):
         coefficient `statistic` for the given confidence level.
 
     """
-    def __init__(self, statistic, pvalue, alternative, n, x, y, axis) -> None:
+    def __init__(self, statistic, pvalue, alternative, n, x, y) -> None:
         ...
     
     def confidence_interval(self, confidence_level=..., method=...): # -> ConfidenceInterval:
@@ -3042,7 +3057,7 @@ class PearsonRResult(PearsonRResultBase):
     
 
 
-def pearsonr(x, y, *, alternative=..., method=..., axis=...): # -> PearsonRResult:
+def pearsonr(x, y, *, alternative=..., method=...): # -> PearsonRResult:
     r"""
     Pearson correlation coefficient and p-value for testing non-correlation.
 
@@ -3064,15 +3079,10 @@ def pearsonr(x, y, *, alternative=..., method=..., axis=...): # -> PearsonRResul
 
     Parameters
     ----------
-    x : array_like
+    x : (N,) array_like
         Input array.
-    y : array_like
+    y : (N,) array_like
         Input array.
-    axis : int or None, default
-        Axis along which to perform the calculation. Default is 0.
-        If None, ravel both arrays before performing the calculation.
-
-        .. versionadded:: 1.13.0
     alternative : {'two-sided', 'greater', 'less'}, optional
         Defines the alternative hypothesis. Default is 'two-sided'.
         The following options are available:
@@ -3229,24 +3239,6 @@ def pearsonr(x, y, *, alternative=..., method=..., axis=...): # -> PearsonRResul
     >>> method = stats.BootstrapMethod(method='BCa', random_state=rng)
     >>> res.confidence_interval(confidence_level=0.9, method=method)
     ConfidenceInterval(low=-0.9983163756488651, high=-0.22771001702132443)  # may vary
-
-    If N-dimensional arrays are provided, multiple tests are performed in a
-    single call according to the same conventions as most `scipy.stats` functions:
-
-    >>> rng = np.random.default_rng(2348246935601934321)
-    >>> x = rng.standard_normal((8, 15))
-    >>> y = rng.standard_normal((8, 15))
-    >>> stats.pearsonr(x, y, axis=0).statistic.shape  # between corresponding columns
-    (15,)
-    >>> stats.pearsonr(x, y, axis=1).statistic.shape  # between corresponding rows
-    (8,)
-
-    To perform all pairwise comparisons between slices of the arrays,
-    use standard NumPy broadcasting techniques. For instance, to compute the
-    correlation between all pairs of rows:
-
-    >>> stats.pearsonr(x[:, np.newaxis, :], y, axis=-1).statistic.shape
-    (8, 8)
 
     There is a linear dependence between x and y if y = a + b*x + e, where
     a,b are constants and e is a random error term, assumed to be independent
@@ -3861,7 +3853,8 @@ def pointbiserialr(x, y): # -> _:
     """
     ...
 
-def kendalltau(x, y, *, nan_policy=..., method=..., variant=..., alternative=...):
+@_deprecate_positional_args(version="1.14")
+def kendalltau(x, y, *, initial_lexsort=..., nan_policy=..., method=..., variant=..., alternative=...):
     r"""Calculate Kendall's tau, a correlation measure for ordinal data.
 
     Kendall's tau is a measure of the correspondence between two rankings.
@@ -3878,6 +3871,12 @@ def kendalltau(x, y, *, nan_policy=..., method=..., variant=..., alternative=...
     x, y : array_like
         Arrays of rankings, of the same shape. If arrays are not 1-D, they
         will be flattened to 1-D.
+    initial_lexsort : bool, optional, deprecated
+        This argument is unused.
+
+        .. deprecated:: 1.10.0
+           `kendalltau` keyword argument `initial_lexsort` is deprecated as it
+           is unused and will be removed in SciPy 1.14.0.
     nan_policy : {'propagate', 'raise', 'omit'}, optional
         Defines how to handle when input contains nan.
         The following options are available (default is 'propagate'):
@@ -3978,7 +3977,7 @@ def kendalltau(x, y, *, nan_policy=..., method=..., variant=..., alternative=...
     >>> y = np.array([2.8, 2.9, 2.8, 2.6, 3.5, 4.6, 5.0])
 
     These data were analyzed in [7]_ using Spearman's correlation coefficient,
-    a statistic similar to Kendall's tau in that it is also sensitive to
+    a statistic similar to to Kendall's tau in that it is also sensitive to
     ordinal correlation between the samples. Let's perform an analogous study
     using Kendall's tau.
 
@@ -4229,6 +4228,217 @@ def weightedtau(x, y, rank=..., weigher=..., additive=...): # -> _:
     """
     ...
 
+class _ParallelP:
+    """Helper function to calculate parallel p-value."""
+    def __init__(self, x, y, random_states) -> None:
+        ...
+    
+    def __call__(self, index):
+        ...
+    
+
+
+MGCResult = ...
+def multiscale_graphcorr(x, y, compute_distance=..., reps=..., workers=..., is_twosamp=..., random_state=...): # -> _:
+    r"""Computes the Multiscale Graph Correlation (MGC) test statistic.
+
+    Specifically, for each point, MGC finds the :math:`k`-nearest neighbors for
+    one property (e.g. cloud density), and the :math:`l`-nearest neighbors for
+    the other property (e.g. grass wetness) [1]_. This pair :math:`(k, l)` is
+    called the "scale". A priori, however, it is not know which scales will be
+    most informative. So, MGC computes all distance pairs, and then efficiently
+    computes the distance correlations for all scales. The local correlations
+    illustrate which scales are relatively informative about the relationship.
+    The key, therefore, to successfully discover and decipher relationships
+    between disparate data modalities is to adaptively determine which scales
+    are the most informative, and the geometric implication for the most
+    informative scales. Doing so not only provides an estimate of whether the
+    modalities are related, but also provides insight into how the
+    determination was made. This is especially important in high-dimensional
+    data, where simple visualizations do not reveal relationships to the
+    unaided human eye. Characterizations of this implementation in particular
+    have been derived from and benchmarked within in [2]_.
+
+    Parameters
+    ----------
+    x, y : ndarray
+        If ``x`` and ``y`` have shapes ``(n, p)`` and ``(n, q)`` where `n` is
+        the number of samples and `p` and `q` are the number of dimensions,
+        then the MGC independence test will be run.  Alternatively, ``x`` and
+        ``y`` can have shapes ``(n, n)`` if they are distance or similarity
+        matrices, and ``compute_distance`` must be sent to ``None``. If ``x``
+        and ``y`` have shapes ``(n, p)`` and ``(m, p)``, an unpaired
+        two-sample MGC test will be run.
+    compute_distance : callable, optional
+        A function that computes the distance or similarity among the samples
+        within each data matrix. Set to ``None`` if ``x`` and ``y`` are
+        already distance matrices. The default uses the euclidean norm metric.
+        If you are calling a custom function, either create the distance
+        matrix before-hand or create a function of the form
+        ``compute_distance(x)`` where `x` is the data matrix for which
+        pairwise distances are calculated.
+    reps : int, optional
+        The number of replications used to estimate the null when using the
+        permutation test. The default is ``1000``.
+    workers : int or map-like callable, optional
+        If ``workers`` is an int the population is subdivided into ``workers``
+        sections and evaluated in parallel (uses ``multiprocessing.Pool
+        <multiprocessing>``). Supply ``-1`` to use all cores available to the
+        Process. Alternatively supply a map-like callable, such as
+        ``multiprocessing.Pool.map`` for evaluating the p-value in parallel.
+        This evaluation is carried out as ``workers(func, iterable)``.
+        Requires that `func` be pickleable. The default is ``1``.
+    is_twosamp : bool, optional
+        If `True`, a two sample test will be run. If ``x`` and ``y`` have
+        shapes ``(n, p)`` and ``(m, p)``, this optional will be overridden and
+        set to ``True``. Set to ``True`` if ``x`` and ``y`` both have shapes
+        ``(n, p)`` and a two sample test is desired. The default is ``False``.
+        Note that this will not run if inputs are distance matrices.
+    random_state : {None, int, `numpy.random.Generator`,
+                    `numpy.random.RandomState`}, optional
+
+        If `seed` is None (or `np.random`), the `numpy.random.RandomState`
+        singleton is used.
+        If `seed` is an int, a new ``RandomState`` instance is used,
+        seeded with `seed`.
+        If `seed` is already a ``Generator`` or ``RandomState`` instance then
+        that instance is used.
+
+    Returns
+    -------
+    res : MGCResult
+        An object containing attributes:
+
+        statistic : float
+            The sample MGC test statistic within `[-1, 1]`.
+        pvalue : float
+            The p-value obtained via permutation.
+        mgc_dict : dict
+            Contains additional useful results:
+
+                - mgc_map : ndarray
+                    A 2D representation of the latent geometry of the
+                    relationship.
+                - opt_scale : (int, int)
+                    The estimated optimal scale as a `(x, y)` pair.
+                - null_dist : list
+                    The null distribution derived from the permuted matrices.
+
+    See Also
+    --------
+    pearsonr : Pearson correlation coefficient and p-value for testing
+               non-correlation.
+    kendalltau : Calculates Kendall's tau.
+    spearmanr : Calculates a Spearman rank-order correlation coefficient.
+
+    Notes
+    -----
+    A description of the process of MGC and applications on neuroscience data
+    can be found in [1]_. It is performed using the following steps:
+
+    #. Two distance matrices :math:`D^X` and :math:`D^Y` are computed and
+       modified to be mean zero columnwise. This results in two
+       :math:`n \times n` distance matrices :math:`A` and :math:`B` (the
+       centering and unbiased modification) [3]_.
+
+    #. For all values :math:`k` and :math:`l` from :math:`1, ..., n`,
+
+       * The :math:`k`-nearest neighbor and :math:`l`-nearest neighbor graphs
+         are calculated for each property. Here, :math:`G_k (i, j)` indicates
+         the :math:`k`-smallest values of the :math:`i`-th row of :math:`A`
+         and :math:`H_l (i, j)` indicates the :math:`l` smallested values of
+         the :math:`i`-th row of :math:`B`
+
+       * Let :math:`\circ` denotes the entry-wise matrix product, then local
+         correlations are summed and normalized using the following statistic:
+
+    .. math::
+
+        c^{kl} = \frac{\sum_{ij} A G_k B H_l}
+                      {\sqrt{\sum_{ij} A^2 G_k \times \sum_{ij} B^2 H_l}}
+
+    #. The MGC test statistic is the smoothed optimal local correlation of
+       :math:`\{ c^{kl} \}`. Denote the smoothing operation as :math:`R(\cdot)`
+       (which essentially set all isolated large correlations) as 0 and
+       connected large correlations the same as before, see [3]_.) MGC is,
+
+    .. math::
+
+        MGC_n (x, y) = \max_{(k, l)} R \left(c^{kl} \left( x_n, y_n \right)
+                                                    \right)
+
+    The test statistic returns a value between :math:`(-1, 1)` since it is
+    normalized.
+
+    The p-value returned is calculated using a permutation test. This process
+    is completed by first randomly permuting :math:`y` to estimate the null
+    distribution and then calculating the probability of observing a test
+    statistic, under the null, at least as extreme as the observed test
+    statistic.
+
+    MGC requires at least 5 samples to run with reliable results. It can also
+    handle high-dimensional data sets.
+    In addition, by manipulating the input data matrices, the two-sample
+    testing problem can be reduced to the independence testing problem [4]_.
+    Given sample data :math:`U` and :math:`V` of sizes :math:`p \times n`
+    :math:`p \times m`, data matrix :math:`X` and :math:`Y` can be created as
+    follows:
+
+    .. math::
+
+        X = [U | V] \in \mathcal{R}^{p \times (n + m)}
+        Y = [0_{1 \times n} | 1_{1 \times m}] \in \mathcal{R}^{(n + m)}
+
+    Then, the MGC statistic can be calculated as normal. This methodology can
+    be extended to similar tests such as distance correlation [4]_.
+
+    .. versionadded:: 1.4.0
+
+    References
+    ----------
+    .. [1] Vogelstein, J. T., Bridgeford, E. W., Wang, Q., Priebe, C. E.,
+           Maggioni, M., & Shen, C. (2019). Discovering and deciphering
+           relationships across disparate data modalities. ELife.
+    .. [2] Panda, S., Palaniappan, S., Xiong, J., Swaminathan, A.,
+           Ramachandran, S., Bridgeford, E. W., ... Vogelstein, J. T. (2019).
+           mgcpy: A Comprehensive High Dimensional Independence Testing Python
+           Package. :arXiv:`1907.02088`
+    .. [3] Shen, C., Priebe, C.E., & Vogelstein, J. T. (2019). From distance
+           correlation to multiscale graph correlation. Journal of the American
+           Statistical Association.
+    .. [4] Shen, C. & Vogelstein, J. T. (2018). The Exact Equivalence of
+           Distance and Kernel Methods for Hypothesis Testing.
+           :arXiv:`1806.05514`
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scipy.stats import multiscale_graphcorr
+    >>> x = np.arange(100)
+    >>> y = x
+    >>> res = multiscale_graphcorr(x, y)
+    >>> res.statistic, res.pvalue
+    (1.0, 0.001)
+
+    To run an unpaired two-sample test,
+
+    >>> x = np.arange(100)
+    >>> y = np.arange(79)
+    >>> res = multiscale_graphcorr(x, y)
+    >>> res.statistic, res.pvalue  # doctest: +SKIP
+    (0.033258146255703246, 0.023)
+
+    or, if shape of the inputs are the same,
+
+    >>> x = np.arange(100)
+    >>> y = x
+    >>> res = multiscale_graphcorr(x, y, is_twosamp=True)
+    >>> res.statistic, res.pvalue  # doctest: +SKIP
+    (-0.008021809890200488, 1.0)
+
+    """
+    ...
+
 TtestResultBase = ...
 class TtestResult(TtestResultBase):
     """
@@ -4258,7 +4468,7 @@ class TtestResult(TtestResultBase):
         fields `low` and `high`.
 
     """
-    def __init__(self, statistic, pvalue, df, alternative, standard_error, estimate, statistic_np=..., xp=...) -> None:
+    def __init__(self, statistic, pvalue, df, alternative, standard_error, estimate) -> None:
         ...
     
     def confidence_interval(self, confidence_level=...): # -> ConfidenceInterval:
@@ -4538,9 +4748,7 @@ def ttest_ind_from_stats(mean1, std1, nobs1, mean2, std2, nobs2, equal_var=..., 
     >>> b = np.array([2, 4, 6, 9, 11, 13, 14, 15, 18, 19, 21])
     >>> from scipy.stats import ttest_ind
     >>> ttest_ind(a, b)
-    TtestResult(statistic=0.905135809331027,
-                pvalue=0.3751996797581486,
-                df=22.0)
+    Ttest_indResult(statistic=0.905135809331027, pvalue=0.3751996797581486)
 
     Suppose we instead have binary data and would like to apply a t-test to
     compare the proportion of 1s in two independent groups::
@@ -4564,9 +4772,7 @@ def ttest_ind_from_stats(mean1, std1, nobs1, mean2, std2, nobs2, equal_var=..., 
     >>> group1 = np.array([1]*30 + [0]*(150-30))
     >>> group2 = np.array([1]*45 + [0]*(200-45))
     >>> ttest_ind(group1, group2)
-    TtestResult(statistic=-0.5627179589855622,
-                pvalue=0.573989277115258,
-                df=348.0)
+    Ttest_indResult(statistic=-0.5627179589855622, pvalue=0.573989277115258)
 
     """
     ...
@@ -4766,50 +4972,34 @@ def ttest_ind(a, b, axis=..., equal_var=..., nan_policy=..., permutations=..., r
     >>> rvs1 = stats.norm.rvs(loc=5, scale=10, size=500, random_state=rng)
     >>> rvs2 = stats.norm.rvs(loc=5, scale=10, size=500, random_state=rng)
     >>> stats.ttest_ind(rvs1, rvs2)
-    TtestResult(statistic=-0.4390847099199348,
-                pvalue=0.6606952038870015,
-                df=998.0)
+    Ttest_indResult(statistic=-0.4390847099199348, pvalue=0.6606952038870015)
     >>> stats.ttest_ind(rvs1, rvs2, equal_var=False)
-    TtestResult(statistic=-0.4390847099199348,
-                pvalue=0.6606952553131064,
-                df=997.4602304121448)
+    Ttest_indResult(statistic=-0.4390847099199348, pvalue=0.6606952553131064)
 
     `ttest_ind` underestimates p for unequal variances:
 
     >>> rvs3 = stats.norm.rvs(loc=5, scale=20, size=500, random_state=rng)
     >>> stats.ttest_ind(rvs1, rvs3)
-    TtestResult(statistic=-1.6370984482905417,
-                pvalue=0.1019251574705033,
-                df=998.0)
+    Ttest_indResult(statistic=-1.6370984482905417, pvalue=0.1019251574705033)
     >>> stats.ttest_ind(rvs1, rvs3, equal_var=False)
-    TtestResult(statistic=-1.637098448290542,
-                pvalue=0.10202110497954867,
-                df=765.1098655246868)
+    Ttest_indResult(statistic=-1.637098448290542, pvalue=0.10202110497954867)
 
     When ``n1 != n2``, the equal variance t-statistic is no longer equal to the
     unequal variance t-statistic:
 
     >>> rvs4 = stats.norm.rvs(loc=5, scale=20, size=100, random_state=rng)
     >>> stats.ttest_ind(rvs1, rvs4)
-    TtestResult(statistic=-1.9481646859513422,
-                pvalue=0.05186270935842703,
-                df=598.0)
+    Ttest_indResult(statistic=-1.9481646859513422, pvalue=0.05186270935842703)
     >>> stats.ttest_ind(rvs1, rvs4, equal_var=False)
-    TtestResult(statistic=-1.3146566100751664,
-                pvalue=0.1913495266513811,
-                df=110.41349083985212)
+    Ttest_indResult(statistic=-1.3146566100751664, pvalue=0.1913495266513811)
 
     T-test with different means, variance, and n:
 
     >>> rvs5 = stats.norm.rvs(loc=8, scale=20, size=100, random_state=rng)
     >>> stats.ttest_ind(rvs1, rvs5)
-    TtestResult(statistic=-2.8415950600298774,
-                pvalue=0.0046418707568707885,
-                df=598.0)
+    Ttest_indResult(statistic=-2.8415950600298774, pvalue=0.0046418707568707885)
     >>> stats.ttest_ind(rvs1, rvs5, equal_var=False)
-    TtestResult(statistic=-1.8686598649188084,
-                pvalue=0.06434714193919686,
-                df=109.32167496550137)
+    Ttest_indResult(statistic=-1.8686598649188084, pvalue=0.06434714193919686)
 
     When performing a permutation test, more permutations typically yields
     more accurate results. Use a ``np.random.Generator`` to ensure
@@ -4817,9 +5007,7 @@ def ttest_ind(a, b, axis=..., equal_var=..., nan_policy=..., permutations=..., r
 
     >>> stats.ttest_ind(rvs1, rvs5, permutations=10000,
     ...                 random_state=rng)
-    TtestResult(statistic=-2.8415950600298774,
-                pvalue=0.0052994700529947,
-                df=nan)
+    Ttest_indResult(statistic=-2.8415950600298774, pvalue=0.0052994700529947)
 
     Take these two samples, one of which has an extreme tail.
 
@@ -4832,9 +5020,8 @@ def ttest_ind(a, b, axis=..., equal_var=..., nan_policy=..., permutations=..., r
     have no effect on sample `b` because ``np.floor(trim*len(b))`` is 0.
 
     >>> stats.ttest_ind(a, b, trim=.2)
-    TtestResult(statistic=3.4463884028073513,
-                pvalue=0.01369338726499547,
-                df=6.0)
+    Ttest_indResult(statistic=3.4463884028073513,
+                    pvalue=0.01369338726499547)
     """
     ...
 
@@ -4953,19 +5140,9 @@ def power_divergence(f_obs, f_exp=..., ddof=..., axis=..., lambda_=...): # -> Po
     ----------
     f_obs : array_like
         Observed frequencies in each category.
-
-        .. deprecated:: 1.14.0
-            Support for masked array input was deprecated in
-            SciPy 1.14.0 and will be removed in version 1.16.0.
-
     f_exp : array_like, optional
         Expected frequencies in each category.  By default the categories are
         assumed to be equally likely.
-
-        .. deprecated:: 1.14.0
-            Support for masked array input was deprecated in
-            SciPy 1.14.0 and will be removed in version 1.16.0.
-
     ddof : int, optional
         "Delta degrees of freedom": adjustment to the degrees of freedom
         for the p-value.  The p-value is computed using a chi-squared
@@ -5019,8 +5196,7 @@ def power_divergence(f_obs, f_exp=..., ddof=..., axis=..., lambda_=...): # -> Po
 
     Also, the sum of the observed and expected frequencies must be the same
     for the test to be valid; `power_divergence` raises an error if the sums
-    do not agree within a relative tolerance of ``eps**0.5``, where ``eps``
-    is the precision of the input dtype.
+    do not agree within a relative tolerance of ``1e-8``.
 
     When `lambda_` is less than zero, the formula for the statistic involves
     dividing by `f_obs`, so a warning or error may be generated if any value
@@ -5036,6 +5212,12 @@ def power_divergence(f_obs, f_exp=..., ddof=..., axis=..., lambda_=...): # -> Po
     dof can be between k-1-p and k-1. However, it is also possible that
     the asymptotic distribution is not a chisquare, in which case this
     test is not appropriate.
+
+    This function handles masked arrays.  If an element of `f_obs` or `f_exp`
+    is masked, then data at that position is ignored, and does not count
+    towards the size of the data set.
+
+    .. versionadded:: 0.13.0
 
     References
     ----------
@@ -5375,10 +5557,7 @@ def ks_1samp(x, cdf, args=..., alternative=..., method=...): # -> _:
     >>> rng = np.random.default_rng()
     >>> stats.ks_1samp(stats.uniform.rvs(size=100, random_state=rng),
     ...                stats.norm.cdf)
-    KstestResult(statistic=0.5001899973268688,
-                 pvalue=1.1616392184763533e-23,
-                 statistic_location=0.00047625268963724654,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.5001899973268688, pvalue=1.1616392184763533e-23)
 
     Indeed, the p-value is lower than our threshold of 0.05, so we reject the
     null hypothesis in favor of the default "two-sided" alternative: the data
@@ -5389,10 +5568,7 @@ def ks_1samp(x, cdf, args=..., alternative=..., method=...): # -> _:
 
     >>> x = stats.norm.rvs(size=100, random_state=rng)
     >>> stats.ks_1samp(x, stats.norm.cdf)
-    KstestResult(statistic=0.05345882212970396,
-                 pvalue=0.9227159037744717,
-                 statistic_location=-1.2451343873745018,
-                 statistic_sign=1)
+    KstestResult(statistic=0.05345882212970396, pvalue=0.9227159037744717)
 
     As expected, the p-value of 0.92 is not below our threshold of 0.05, so
     we cannot reject the null hypothesis.
@@ -5405,10 +5581,7 @@ def ks_1samp(x, cdf, args=..., alternative=..., method=...): # -> _:
 
     >>> x = stats.norm.rvs(size=100, loc=0.5, random_state=rng)
     >>> stats.ks_1samp(x, stats.norm.cdf, alternative='less')
-    KstestResult(statistic=0.17482387821055168,
-                 pvalue=0.001913921057766743,
-                 statistic_location=0.3713830565352756,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.17482387821055168, pvalue=0.001913921057766743)
 
     and indeed, with p-value smaller than our threshold, we reject the null
     hypothesis in favor of the alternative.
@@ -5534,11 +5707,7 @@ def ks_2samp(data1, data2, alternative=..., method=...): # -> _:
     >>> sample1 = stats.uniform.rvs(size=100, random_state=rng)
     >>> sample2 = stats.norm.rvs(size=110, random_state=rng)
     >>> stats.ks_2samp(sample1, sample2)
-    KstestResult(statistic=0.5454545454545454,
-                 pvalue=7.37417839555191e-15,
-                 statistic_location=-0.014071496412861274,
-                 statistic_sign=-1)
-
+    KstestResult(statistic=0.5454545454545454, pvalue=7.37417839555191e-15)
 
     Indeed, the p-value is lower than our threshold of 0.05, so we reject the
     null hypothesis in favor of the default "two-sided" alternative: the data
@@ -5550,10 +5719,7 @@ def ks_2samp(data1, data2, alternative=..., method=...): # -> _:
     >>> sample1 = stats.norm.rvs(size=105, random_state=rng)
     >>> sample2 = stats.norm.rvs(size=95, random_state=rng)
     >>> stats.ks_2samp(sample1, sample2)
-    KstestResult(statistic=0.10927318295739348,
-                 pvalue=0.5438289009927495,
-                 statistic_location=-0.1670157701848795,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.10927318295739348, pvalue=0.5438289009927495)
 
     As expected, the p-value of 0.54 is not below our threshold of 0.05, so
     we cannot reject the null hypothesis.
@@ -5566,10 +5732,7 @@ def ks_2samp(data1, data2, alternative=..., method=...): # -> _:
 
     >>> sample1 = stats.norm.rvs(size=105, loc=0.5, random_state=rng)
     >>> stats.ks_2samp(sample1, sample2, alternative='less')
-    KstestResult(statistic=0.4055137844611529,
-                 pvalue=3.5474563068855554e-08,
-                 statistic_location=-0.13249370614972575,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.4055137844611529, pvalue=3.5474563068855554e-08)
 
     and indeed, with p-value smaller than our threshold, we reject the null
     hypothesis in favor of the alternative.
@@ -5693,10 +5856,7 @@ def kstest(rvs, cdf, args=..., N=..., alternative=..., method=...):
     >>> rng = np.random.default_rng()
     >>> stats.kstest(stats.uniform.rvs(size=100, random_state=rng),
     ...              stats.norm.cdf)
-    KstestResult(statistic=0.5001899973268688,
-                 pvalue=1.1616392184763533e-23,
-                 statistic_location=0.00047625268963724654,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.5001899973268688, pvalue=1.1616392184763533e-23)
 
     Indeed, the p-value is lower than our threshold of 0.05, so we reject the
     null hypothesis in favor of the default "two-sided" alternative: the data
@@ -5707,11 +5867,7 @@ def kstest(rvs, cdf, args=..., N=..., alternative=..., method=...):
 
     >>> x = stats.norm.rvs(size=100, random_state=rng)
     >>> stats.kstest(x, stats.norm.cdf)
-    KstestResult(statistic=0.05345882212970396,
-                 pvalue=0.9227159037744717,
-                 statistic_location=-1.2451343873745018,
-                 statistic_sign=1)
-
+    KstestResult(statistic=0.05345882212970396, pvalue=0.9227159037744717)
 
     As expected, the p-value of 0.92 is not below our threshold of 0.05, so
     we cannot reject the null hypothesis.
@@ -5724,10 +5880,7 @@ def kstest(rvs, cdf, args=..., N=..., alternative=..., method=...):
 
     >>> x = stats.norm.rvs(size=100, loc=0.5, random_state=rng)
     >>> stats.kstest(x, stats.norm.cdf, alternative='less')
-    KstestResult(statistic=0.17482387821055168,
-                 pvalue=0.001913921057766743,
-                 statistic_location=0.3713830565352756,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.17482387821055168, pvalue=0.001913921057766743)
 
     and indeed, with p-value smaller than our threshold, we reject the null
     hypothesis in favor of the alternative.
@@ -5736,10 +5889,7 @@ def kstest(rvs, cdf, args=..., N=..., alternative=..., method=...):
     distribution as the second argument.
 
     >>> stats.kstest(x, "norm", alternative='less')
-    KstestResult(statistic=0.17482387821055168,
-                 pvalue=0.001913921057766743,
-                 statistic_location=0.3713830565352756,
-                 statistic_sign=-1)
+    KstestResult(statistic=0.17482387821055168, pvalue=0.001913921057766743)
 
     The examples above have all been one-sample tests identical to those
     performed by `ks_1samp`. Note that `kstest` can also perform two-sample
@@ -5750,10 +5900,7 @@ def kstest(rvs, cdf, args=..., N=..., alternative=..., method=...):
     >>> sample1 = stats.laplace.rvs(size=105, random_state=rng)
     >>> sample2 = stats.laplace.rvs(size=95, random_state=rng)
     >>> stats.kstest(sample1, sample2)
-    KstestResult(statistic=0.11779448621553884,
-                 pvalue=0.4494256912629795,
-                 statistic_location=0.6138814275424155,
-                 statistic_sign=1)
+    KstestResult(statistic=0.11779448621553884, pvalue=0.4494256912629795)
 
     As expected, the p-value of 0.45 is not below our threshold of 0.05, so
     we cannot reject the null hypothesis.
@@ -5873,7 +6020,7 @@ def ranksums(x, y, alternative=...): # -> RanksumsResult:
 
 KruskalResult = ...
 @_axis_nan_policy_factory(KruskalResult, n_samples=None)
-def kruskal(*samples, nan_policy=...): # -> KruskalResult:
+def kruskal(*samples, nan_policy=...): # -> scipy.stats._stats_py.KruskalResult | scipy.stats._mstats_basic.KruskalResult:
     """Compute the Kruskal-Wallis H-test for independent samples.
 
     The Kruskal-Wallis H-test tests the null hypothesis that the population
@@ -7111,143 +7258,4 @@ def expectile(a, alpha=..., *, weights=...): # -> floating[Any]:
 
     """
     ...
-
-LinregressResult = ...
-def linregress(x, y=..., alternative=...): # -> _:
-    """
-    Calculate a linear least-squares regression for two sets of measurements.
-
-    Parameters
-    ----------
-    x, y : array_like
-        Two sets of measurements.  Both arrays should have the same length N.  If
-        only `x` is given (and ``y=None``), then it must be a two-dimensional
-        array where one dimension has length 2.  The two sets of measurements
-        are then found by splitting the array along the length-2 dimension. In
-        the case where ``y=None`` and `x` is a 2xN array, ``linregress(x)`` is
-        equivalent to ``linregress(x[0], x[1])``.
-
-        .. deprecated:: 1.14.0
-            Inference of the two sets of measurements from a single argument `x`
-            is deprecated will result in an error in SciPy 1.16.0; the sets
-            must be specified separately as `x` and `y`.
-    alternative : {'two-sided', 'less', 'greater'}, optional
-        Defines the alternative hypothesis. Default is 'two-sided'.
-        The following options are available:
-
-        * 'two-sided': the slope of the regression line is nonzero
-        * 'less': the slope of the regression line is less than zero
-        * 'greater':  the slope of the regression line is greater than zero
-
-        .. versionadded:: 1.7.0
-
-    Returns
-    -------
-    result : ``LinregressResult`` instance
-        The return value is an object with the following attributes:
-
-        slope : float
-            Slope of the regression line.
-        intercept : float
-            Intercept of the regression line.
-        rvalue : float
-            The Pearson correlation coefficient. The square of ``rvalue``
-            is equal to the coefficient of determination.
-        pvalue : float
-            The p-value for a hypothesis test whose null hypothesis is
-            that the slope is zero, using Wald Test with t-distribution of
-            the test statistic. See `alternative` above for alternative
-            hypotheses.
-        stderr : float
-            Standard error of the estimated slope (gradient), under the
-            assumption of residual normality.
-        intercept_stderr : float
-            Standard error of the estimated intercept, under the assumption
-            of residual normality.
-
-    See Also
-    --------
-    scipy.optimize.curve_fit :
-        Use non-linear least squares to fit a function to data.
-    scipy.optimize.leastsq :
-        Minimize the sum of squares of a set of equations.
-
-    Notes
-    -----
-    For compatibility with older versions of SciPy, the return value acts
-    like a ``namedtuple`` of length 5, with fields ``slope``, ``intercept``,
-    ``rvalue``, ``pvalue`` and ``stderr``, so one can continue to write::
-
-        slope, intercept, r, p, se = linregress(x, y)
-
-    With that style, however, the standard error of the intercept is not
-    available.  To have access to all the computed values, including the
-    standard error of the intercept, use the return value as an object
-    with attributes, e.g.::
-
-        result = linregress(x, y)
-        print(result.intercept, result.intercept_stderr)
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> from scipy import stats
-    >>> rng = np.random.default_rng()
-
-    Generate some data:
-
-    >>> x = rng.random(10)
-    >>> y = 1.6*x + rng.random(10)
-
-    Perform the linear regression:
-
-    >>> res = stats.linregress(x, y)
-
-    Coefficient of determination (R-squared):
-
-    >>> print(f"R-squared: {res.rvalue**2:.6f}")
-    R-squared: 0.717533
-
-    Plot the data along with the fitted line:
-
-    >>> plt.plot(x, y, 'o', label='original data')
-    >>> plt.plot(x, res.intercept + res.slope*x, 'r', label='fitted line')
-    >>> plt.legend()
-    >>> plt.show()
-
-    Calculate 95% confidence interval on slope and intercept:
-
-    >>> # Two-sided inverse Students t-distribution
-    >>> # p - probability, df - degrees of freedom
-    >>> from scipy.stats import t
-    >>> tinv = lambda p, df: abs(t.ppf(p/2, df))
-
-    >>> ts = tinv(0.05, len(x)-2)
-    >>> print(f"slope (95%): {res.slope:.6f} +/- {ts*res.stderr:.6f}")
-    slope (95%): 1.453392 +/- 0.743465
-    >>> print(f"intercept (95%): {res.intercept:.6f}"
-    ...       f" +/- {ts*res.intercept_stderr:.6f}")
-    intercept (95%): 0.616950 +/- 0.544475
-
-    """
-    ...
-
-class _SimpleNormal:
-    def cdf(self, x): # -> Any:
-        ...
-    
-    def sf(self, x): # -> Any:
-        ...
-    
-
-
-class _SimpleChi2:
-    def __init__(self, df) -> None:
-        ...
-    
-    def sf(self, x): # -> Any:
-        ...
-    
-
 

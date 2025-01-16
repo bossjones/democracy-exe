@@ -108,7 +108,7 @@ class ZeroShotObjectDetectionPipeline(ChunkPipeline):
         """
         ...
     
-    def preprocess(self, inputs, timeout=...): # -> Generator[dict[str | Any, Any], Any, None]:
+    def preprocess(self, inputs, timeout=...): # -> Generator[dict[Any, Any], Any, None]:
         ...
     
     def postprocess(self, model_outputs, threshold=..., top_k=...): # -> list[Any]:

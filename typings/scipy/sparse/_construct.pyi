@@ -235,11 +235,11 @@ def identity(n, dtype=..., format=...): # -> coo_array | coo_matrix | dia_array 
            [ 0.,  1.,  0.],
            [ 0.,  0.,  1.]])
     >>> sp.sparse.identity(3, dtype='int8', format='dia')
-    <DIAgonal sparse matrix of dtype 'int8'
-        with 3 stored elements (1 diagonals) and shape (3, 3)>
+    <3x3 sparse matrix of type '<class 'numpy.int8'>'
+            with 3 stored elements (1 diagonals) in DIAgonal format>
     >>> sp.sparse.eye_array(3, dtype='int8', format='dia')
-    <DIAgonal sparse array of dtype 'int8'
-        with 3 stored elements (1 diagonals) and shape (3, 3)>
+    <3x3 sparse array of type '<class 'numpy.int8'>'
+            with 3 stored elements (1 diagonals) in DIAgonal format>
 
     """
     ...
@@ -273,8 +273,8 @@ def eye_array(m, n=..., *, k=..., dtype=..., format=...): # -> coo_array | coo_m
            [ 0.,  1.,  0.],
            [ 0.,  0.,  1.]])
     >>> sp.sparse.eye_array(3, dtype=np.int8)
-    <DIAgonal sparse array of dtype 'int8'
-        with 3 stored elements (1 diagonals) and shape (3, 3)>
+    <3x3 sparse array of type '<class 'numpy.int8'>'
+            with 3 stored elements (1 diagonals) in DIAgonal format>
 
     """
     ...
@@ -313,8 +313,8 @@ def eye(m, n=..., k=..., dtype=..., format=...): # -> coo_array | coo_matrix | d
            [ 0.,  1.,  0.],
            [ 0.,  0.,  1.]])
     >>> sp.sparse.eye(3, dtype=np.int8)
-    <DIAgonal sparse matrix of dtype 'int8'
-        with 3 stored elements (1 diagonals) and shape (3, 3)>
+    <3x3 sparse matrix of type '<class 'numpy.int8'>'
+        with 3 stored elements (1 diagonals) in DIAgonal format>
 
     """
     ...
@@ -880,8 +880,8 @@ def rand(m, n, density=..., format=..., dtype=..., random_state=...): # -> coo_m
     >>> from scipy.sparse import rand
     >>> matrix = rand(3, 4, density=0.25, format="csr", random_state=42)
     >>> matrix
-    <Compressed Sparse Row sparse matrix of dtype 'float64'
-        with 3 stored elements and shape (3, 4)>
+    <3x4 sparse matrix of type '<class 'numpy.float64'>'
+       with 3 stored elements in Compressed Sparse Row format>
     >>> matrix.toarray()
     array([[0.05641158, 0.        , 0.        , 0.65088847],  # random
            [0.        , 0.        , 0.        , 0.14286682],

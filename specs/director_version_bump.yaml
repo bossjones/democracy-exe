@@ -1,0 +1,38 @@
+prompt: |
+  # Automates version bumping across multiple files in the democracy_exe project.
+  # Updates version in pyproject.toml, __version__.py, and ensures CLI displays correct version.
+  # Supports patch, minor, and major version increments following semantic versioning.
+  # Allowed bump types: patch, minor, major
+  # Required files must exist: pyproject.toml, democracy_exe/__version__.py, democracy_exe/cli.py
+  # Version must match pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
+
+  UPDATE pyproject.toml:
+      BUMP version number according to bump_type parameter ('patch', 'minor', or 'major')
+  UPDATE democracy_exe/__version__.py:
+      UPDATE version string to match new version
+  UPDATE democracy_exe/cli.py:
+      ENSURE version command displays new version
+
+coder_model: gpt-4o
+
+context_editable:
+  - pyproject.toml
+  - democracy_exe/__version__.py
+  - democracy_exe/cli.py
+
+context_read_only:
+  - README.md
+
+execution_command: |
+  uv run python -c "
+  import democracy_exe
+  from importlib import metadata
+  assert hasattr(democracy_exe, '__version__'), 'Version not properly updated'
+  print(f'New version: {democracy_exe.__version__}')
+  "
+
+max_iterations: 2
+
+evaluator_model: gpt-4o
+
+evaluator: default

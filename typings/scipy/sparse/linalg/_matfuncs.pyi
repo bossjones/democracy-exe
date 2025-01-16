@@ -36,11 +36,11 @@ def inv(A):
     >>> A = csc_matrix([[1., 0.], [1., 2.]])
     >>> Ainv = inv(A)
     >>> Ainv
-    <Compressed Sparse Column sparse matrix of dtype 'float64'
-        with 3 stored elements and shape (2, 2)>
+    <2x2 sparse matrix of type '<class 'numpy.float64'>'
+        with 3 stored elements in Compressed Sparse Column format>
     >>> A.dot(Ainv)
-    <Compressed Sparse Column sparse matrix of dtype 'float64'
-        with 2 stored elements and shape (2, 2)>
+    <2x2 sparse matrix of type '<class 'numpy.float64'>'
+        with 2 stored elements in Compressed Sparse Column format>
     >>> A.dot(Ainv).toarray()
     array([[ 1.,  0.],
            [ 0.,  1.]])
@@ -207,8 +207,8 @@ def expm(A):
            [0, 0, 3]], dtype=int64)
     >>> Aexp = expm(A)
     >>> Aexp
-    <Compressed Sparse Column sparse matrix of dtype 'float64'
-        with 3 stored elements and shape (3, 3)>
+    <3x3 sparse matrix of type '<class 'numpy.float64'>'
+        with 3 stored elements in Compressed Sparse Column format>
     >>> Aexp.toarray()
     array([[  2.71828183,   0.        ,   0.        ],
            [  0.        ,   7.3890561 ,   0.        ],
@@ -216,7 +216,7 @@ def expm(A):
     """
     ...
 
-def matrix_power(A, power): # -> coo_array | coo_matrix | dia_array | Any | dia_matrix:
+def matrix_power(A, power): # -> coo_array | coo_matrix | dia_array | Any | dia_matrix | _NotImplementedType:
     """
     Raise a square matrix to the integer power, `power`.
 

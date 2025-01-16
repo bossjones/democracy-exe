@@ -6,9 +6,9 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
+from ... import PreTrainedModel
 from ...modeling_outputs import ModelOutput
-from ...modeling_utils import PreTrainedModel, PretrainedConfig
+from ...modeling_utils import PretrainedConfig
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
 from .configuration_idefics import IdeficsConfig
 
@@ -101,6 +101,9 @@ class IdeficsCausalLMOutputWithPast(ModelOutput):
 
 
 def expand_inputs_for_generation(input_ids, expand_size=..., is_encoder_decoder=..., attention_mask=..., encoder_outputs=..., **model_kwargs): # -> tuple[Any, dict[str, Any]]:
+    ...
+
+def prepare_inputs_for_generation(input_ids, past_key_values=..., **kwargs): # -> dict[str, Any]:
     ...
 
 def freeze_model(model, module_exceptions=...):
@@ -246,19 +249,19 @@ class IdeficsMLP(nn.Module):
 
 class IdeficsAttention(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
-    def __init__(self, hidden_size: int, num_heads: int, dropout: float = ..., is_cross_attention: bool = ..., config: PretrainedConfig = ..., qk_layer_norms: bool = ..., layer_idx: int = ...) -> None:
+    def __init__(self, hidden_size: int, num_heads: int, dropout: float = ..., is_cross_attention: bool = ..., config: PretrainedConfig = ..., qk_layer_norms: bool = ...) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, key_value_states: Optional[torch.Tensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    def forward(self, hidden_states: torch.Tensor, key_value_states: Optional[torch.Tensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: bool = ..., use_cache: bool = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
 
 class IdeficsDecoderLayer(nn.Module):
-    def __init__(self, config: IdeficsConfig, layer_idx: int = ...) -> None:
+    def __init__(self, config: IdeficsConfig) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: Optional[bool] = ..., use_cache: Optional[bool] = ...) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
@@ -310,8 +313,6 @@ class IdeficsPreTrainedModel(PreTrainedModel):
     supports_gradient_checkpointing = ...
     _no_split_modules = ...
     _supports_sdpa = ...
-    _supports_cache_class = ...
-    _supports_static_cache = ...
 
 
 LLAMA_INPUTS_DOCSTRING = ...
@@ -342,12 +343,12 @@ class IdeficsModel(IdeficsPreTrainedModel):
         ...
     
     @add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., image_encoder_embeddings: Optional[torch.FloatTensor] = ..., perceiver_embeddings: Optional[torch.FloatTensor] = ..., image_attention_mask: Optional[torch.Tensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, IdeficsBaseModelOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., image_encoder_embeddings: Optional[torch.FloatTensor] = ..., perceiver_embeddings: Optional[torch.FloatTensor] = ..., image_attention_mask: Optional[torch.Tensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, IdeficsBaseModelOutputWithPast]:
         ...
     
 
 
-class IdeficsForVisionText2Text(IdeficsPreTrainedModel, GenerationMixin):
+class IdeficsForVisionText2Text(IdeficsPreTrainedModel):
     _keys_to_ignore_on_load_missing = ...
     _tied_weights_keys = ...
     def __init__(self, config, vision_model=...) -> None:
@@ -380,7 +381,7 @@ class IdeficsForVisionText2Text(IdeficsPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=IdeficsCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., image_encoder_embeddings: Optional[torch.FloatTensor] = ..., perceiver_embeddings: Optional[torch.FloatTensor] = ..., image_attention_mask: Optional[torch.Tensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, IdeficsCausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., image_encoder_embeddings: Optional[torch.FloatTensor] = ..., perceiver_embeddings: Optional[torch.FloatTensor] = ..., image_attention_mask: Optional[torch.Tensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, IdeficsCausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -417,7 +418,7 @@ class IdeficsForVisionText2Text(IdeficsPreTrainedModel, GenerationMixin):
         ```"""
         ...
     
-    def prepare_inputs_for_generation(self, input_ids, attention_mask=..., position_ids=..., inputs_embeds=..., past_key_values=..., cache_position=..., pixel_values=..., image_hidden_states=..., image_attention_mask=..., use_cache=..., **kwargs): # -> dict[Any, Any]:
+    def prepare_inputs_for_generation(self, input_ids, past=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

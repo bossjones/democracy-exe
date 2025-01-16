@@ -31,13 +31,10 @@ class Constraint(ABC):
     @abstractmethod
     def advance(self):
         """
-        When called, returns the token(s) that would take this constraint one step closer to being fulfilled.
+        When called, returns the token that would take this constraint one step closer to being fulfilled.
 
         Return:
-            token_ids (Union[int, List[int], None]):
-                - A single token ID (int) that advances the constraint, or
-                - A list of token IDs that could advance the constraint
-                - None if the constraint is completed or cannot be advanced
+            token_ids(`torch.tensor`): Must be a tensor of a list of indexable tokens, not some integer.
         """
         ...
     

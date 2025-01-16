@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -173,12 +172,11 @@ class BlipVisionEmbeddings(nn.Module):
     
     def interpolate_pos_encoding(self, embeddings: torch.Tensor, height: int, width: int) -> torch.Tensor:
         """
-        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher resolution
-        images. This method is also adapted to support torch.jit tracing.
+        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher
+        resolution images.
 
-        Adapted from:
-        - https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174-L194, and
-        - https://github.com/facebookresearch/dinov2/blob/e1277af2ba9496fbadf7aec6eba56e8d882d1e35/dinov2/models/vision_transformer.py#L179-L211
+        Source:
+        https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174
         """
         ...
     
@@ -422,7 +420,7 @@ class BlipModel(BlipPreTrainedModel):
     the decoder starts generating text from the [BOS] (beginning-of-sequence) token. will start generating the caption
     from the text input. If no text input is provided, the decoder will start with the [BOS] token only.
     """, BLIP_START_DOCSTRING)
-class BlipForConditionalGeneration(BlipPreTrainedModel, GenerationMixin):
+class BlipForConditionalGeneration(BlipPreTrainedModel):
     config_class = BlipConfig
     _tied_weights_keys = ...
     main_input_name = ...

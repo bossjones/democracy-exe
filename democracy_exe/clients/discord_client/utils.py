@@ -1,3 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 # pylint: disable=too-many-function-args
 # mypy: disable-error-code="arg-type, var-annotated, list-item, no-redef, truthy-bool, return-value"
 # pyright: reportPrivateImportUsage=false

@@ -100,4 +100,3 @@ class AlbertOnnxConfig(OnnxConfig):
     
 
 
-__all__ = ["AlbertConfig", "AlbertOnnxConfig"]

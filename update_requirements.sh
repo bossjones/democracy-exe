@@ -45,5 +45,8 @@ gsed -i 's/^langserve\[all\]==.*/langserve\[all\]/g' democracy_exe/requirements.
 gsed -i 's/^langserve==.*/langserve/g' democracy_exe/requirements.txt
 gsed -i 's/^tenacity==.*/tenacity/g' democracy_exe/requirements.txt
 
+gsed -i 's/^langgraph-sdk==.*/langgraph-sdk/g' democracy_exe/requirements.txt
+gsed -i 's/^langgraph==.*/langgraph/g' democracy_exe/requirements.txt
+
 # Show the changes made to requirements.txt
 # git diff democracy_exe/requirements.txt

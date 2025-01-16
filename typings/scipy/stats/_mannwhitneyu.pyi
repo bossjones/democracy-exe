@@ -6,36 +6,27 @@ from ._axis_nan_policy import _axis_nan_policy_factory
 
 class _MWU:
     '''Distribution of MWU statistic under the null hypothesis'''
-    def __init__(self, n1, n2) -> None:
+    def __init__(self) -> None:
+        '''Minimal initializer'''
         ...
     
-    def set_shapes(self, n1, n2): # -> None:
+    def pmf(self, k, m, n): # -> Any:
         ...
     
-    def reset(self): # -> None:
+    def pmf_recursive(self, k, m, n): # -> Any:
+        '''Probability mass function, recursive version'''
         ...
     
-    def pmf(self, k): # -> Any:
+    def pmf_iterative(self, k, m, n): # -> Any:
+        '''Probability mass function, iterative version'''
         ...
     
-    def cdf(self, k): # -> ndarray[Any, dtype[Any]]:
+    def cdf(self, k, m, n): # -> ndarray[Any, dtype[Any]]:
         '''Cumulative distribution function'''
         ...
     
-    def sf(self, k): # -> ndarray[Any, dtype[Any]]:
+    def sf(self, k, m, n): # -> ndarray[Any, dtype[Any]]:
         '''Survival function'''
-        ...
-    
-    def build_sigma_array(self, a): # -> ndarray[Any, dtype[Any]]:
-        ...
-    
-    def build_u_freqs_array(self, maxu): # -> Any:
-        """
-        Build all the array of frequencies for u from 0 to maxu.
-        Assumptions:
-          n1 <= n2
-          maxu <= n1 * n2 / 2
-        """
         ...
     
 
@@ -123,8 +114,8 @@ def mannwhitneyu(x, y, use_continuity=..., alternative=..., axis=..., method=...
     consider `scipy.stats.wilcoxon`.
 
     `method` ``'exact'`` is recommended when there are no ties and when either
-    sample size is less than 8 [1]_. The implementation follows the algorithm
-    reported in [3]_.
+    sample size is less than 8 [1]_. The implementation follows the recurrence
+    relation originally proposed in [1]_ as it is described in [3]_.
     Note that the exact method is *not* corrected for ties, but
     `mannwhitneyu` will not raise errors or warnings if there are ties in the
     data. If there are ties and either samples is small (fewer than ~10
@@ -146,9 +137,9 @@ def mannwhitneyu(x, y, use_continuity=..., alternative=..., axis=..., method=...
            Mathematical Statistics, Vol. 18, pp. 50-60, 1947.
     .. [2] Mann-Whitney U Test, Wikipedia,
            http://en.wikipedia.org/wiki/Mann-Whitney_U_test
-    .. [3] Andreas Löffler,
-           "Über eine Partition der nat. Zahlen und ihr Anwendung beim U-Test",
-           Wiss. Z. Univ. Halle, XXXII'83 pp. 87-89.
+    .. [3] A. Di Bucchianico, "Combinatorics, computer algebra, and the
+           Wilcoxon-Mann-Whitney test", Journal of Statistical Planning and
+           Inference, Vol. 79, pp. 349-364, 1999.
     .. [4] Rosie Shier, "Statistics: 2.3 The Mann-Whitney U Test", Mathematics
            Learning Support Centre, 2004.
     .. [5] Michael P. Fay and Michael A. Proschan. "Wilcoxon-Mann-Whitney
@@ -257,9 +248,7 @@ def mannwhitneyu(x, y, use_continuity=..., alternative=..., axis=..., method=...
     >>> from scipy.stats import ttest_ind
     >>> res = ttest_ind(females, males, alternative="less")
     >>> print(res)
-    TtestResult(statistic=-2.239334696520584,
-                pvalue=0.030068441095757924,
-                df=7.0)
+    Ttest_indResult(statistic=-2.239334696520584, pvalue=0.030068441095757924)
 
     Under this assumption, the *p*-value would be low enough to reject the
     null hypothesis in favor of the alternative.

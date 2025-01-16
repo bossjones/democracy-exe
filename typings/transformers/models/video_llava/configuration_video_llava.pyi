@@ -36,10 +36,6 @@ class VideoLlavaConfig(PretrainedConfig):
             Can be either "full" to select all features or "default" to select features without `CLS`.
         vision_feature_layer (`int`, *optional*, defaults to -2):
             The index of the layer to select the vision feature.
-        image_seq_length (`int`, *optional*, defaults to 256):
-            Sequence length of one image embedding.
-        video_seq_length (`int`, *optional*, defaults to 2056):
-            Sequence length of one video embedding.
 
     Example:
 
@@ -63,7 +59,7 @@ class VideoLlavaConfig(PretrainedConfig):
     ```"""
     model_type = ...
     is_composition = ...
-    def __init__(self, vision_config=..., text_config=..., ignore_index=..., image_token_index=..., video_token_index=..., projector_hidden_act=..., vision_feature_select_strategy=..., vision_feature_layer=..., image_seq_length=..., video_seq_length=..., **kwargs) -> None:
+    def __init__(self, vision_config=..., text_config=..., ignore_index=..., image_token_index=..., video_token_index=..., projector_hidden_act=..., vision_feature_select_strategy=..., vision_feature_layer=..., **kwargs) -> None:
         ...
     
 

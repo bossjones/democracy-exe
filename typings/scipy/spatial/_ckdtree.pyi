@@ -105,7 +105,7 @@ class cKDTree(Generic[_BoxType]):
     def query(self, x: npt.ArrayLike, k: npt.ArrayLike = ..., eps: float = ..., p: float = ..., distance_upper_bound: float = ..., workers: int | None = ...) -> tuple[Any, Any]:
         ...
     
-    def query_ball_point(self, x: npt.ArrayLike, r: npt.ArrayLike, p: float = ..., eps: float = ..., workers: int | None = ..., return_sorted: bool | None = ..., return_length: bool = ...) -> Any:
+    def query_ball_point(self, x: npt.ArrayLike, r: npt.ArrayLike, p: float, eps: float = ..., workers: int | None = ..., return_sorted: bool | None = ..., return_length: bool = ...) -> Any:
         ...
     
     def query_ball_tree(self, other: cKDTree, r: float, p: float, eps: float = ...) -> list[list[int]]:

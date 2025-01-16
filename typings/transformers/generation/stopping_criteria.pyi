@@ -43,6 +43,27 @@ class MaxLengthCriteria(StoppingCriteria):
     
 
 
+class MaxNewTokensCriteria(StoppingCriteria):
+    """
+    This class can be used to stop generation whenever the generated number of tokens exceeds `max_new_tokens`. Keep in
+    mind for decoder-only type of transformers, this will **not** include the initial prompted tokens. This is very
+    close to `MaxLengthCriteria` but ignores the number of initial tokens.
+
+    Args:
+        start_length (`int`):
+            The number of initial tokens.
+        max_new_tokens (`int`):
+            The maximum number of tokens to generate.
+    """
+    def __init__(self, start_length: int, max_new_tokens: int) -> None:
+        ...
+    
+    @add_start_docstrings(STOPPING_CRITERIA_INPUTS_DOCSTRING)
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> torch.BoolTensor:
+        ...
+    
+
+
 class MaxTimeCriteria(StoppingCriteria):
     """
     This class can be used to stop generation whenever the full generation exceeds some amount of time. By default, the
@@ -230,23 +251,6 @@ class EosTokenCriteria(StoppingCriteria):
         ...
     
     @add_start_docstrings(STOPPING_CRITERIA_INPUTS_DOCSTRING)
-    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> torch.BoolTensor:
-        ...
-    
-
-
-class ConfidenceCriteria(StoppingCriteria):
-    """
-    This class can be used to stop generation whenever assistant model's confidence in its prediction for the current token is lower than the threshold
-        `model.generation_config.assistant_confidence_threshold` even if the number of speculative tokens (defined by `num_assistant_tokens`) is not yet reached.
-
-    Args:
-        assistant_confidence_threshold (`float`):
-            The value of the threshold.
-    """
-    def __init__(self, assistant_confidence_threshold) -> None:
-        ...
-    
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> torch.BoolTensor:
         ...
     

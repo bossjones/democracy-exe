@@ -60,11 +60,11 @@ class PaliGemmaConfig(PretrainedConfig):
         ...
     
     @property
-    def ignore_index(self): # -> int:
+    def vocab_size(self): # -> int:
         ...
     
-    @ignore_index.setter
-    def ignore_index(self, value): # -> None:
+    @vocab_size.setter
+    def vocab_size(self, value): # -> None:
         ...
     
     def to_dict(self): # -> Dict[str, Any]:

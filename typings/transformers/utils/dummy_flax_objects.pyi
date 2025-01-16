@@ -592,27 +592,6 @@ class FlaxCLIPVisionPreTrainedModel(metaclass=DummyObject):
     
 
 
-class FlaxDinov2ForImageClassification(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class FlaxDinov2Model(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class FlaxDinov2PreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class FlaxDistilBertForMaskedLM(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:

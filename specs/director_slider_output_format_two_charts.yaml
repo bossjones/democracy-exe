@@ -1,0 +1,21 @@
+prompt: specs/spec_feature_new_slider_html_output_and_charts.md
+
+coder_model: claude-3-5-haiku-20241022
+
+context_editable:
+  - src/let_the_code_write_itself/main.py
+  - src/let_the_code_write_itself/output_format.py
+  - src/let_the_code_write_itself/chart.py
+  - src/let_the_code_write_itself/tests/output_format_test.py
+  - src/let_the_code_write_itself/tests/chart_test.py
+
+context_read_only:
+  - src/let_the_code_write_itself/data_types.py
+
+execution_command: uv run pytest src/let_the_code_write_itself/tests --disable-warnings
+
+max_iterations: 5
+
+evaluator_model: o1-mini
+
+evaluator: default

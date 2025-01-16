@@ -494,18 +494,20 @@ class ZoeDepthForDepthEstimation(ZoeDepthPreTrainedModel):
 
         >>> with torch.no_grad():
         ...     outputs = model(**inputs)
+        ...     predicted_depth = outputs.predicted_depth
 
         >>> # interpolate to original size
-        >>> post_processed_output = image_processor.post_process_depth_estimation(
-        ...     outputs,
-        ...     source_sizes=[(image.height, image.width)],
+        >>> prediction = torch.nn.functional.interpolate(
+        ...     predicted_depth.unsqueeze(1),
+        ...     size=image.size[::-1],
+        ...     mode="bicubic",
+        ...     align_corners=False,
         ... )
 
         >>> # visualize the prediction
-        >>> predicted_depth = post_processed_output[0]["predicted_depth"]
-        >>> depth = predicted_depth * 255 / predicted_depth.max()
-        >>> depth = depth.detach().cpu().numpy()
-        >>> depth = Image.fromarray(depth.astype("uint8"))
+        >>> output = prediction.squeeze().cpu().numpy()
+        >>> formatted = (output * 255 / np.max(output)).astype("uint8")
+        >>> depth = Image.fromarray(formatted)
         ```"""
         ...
     

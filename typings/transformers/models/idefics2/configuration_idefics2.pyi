@@ -41,7 +41,7 @@ class Idefics2VisionConfig(PretrainedConfig):
             The epsilon used by the layer normalization layers.
         attention_dropout (`float`, *optional*, defaults to 0.0):
             The dropout ratio for the attention probabilities.
-        initializer_range (`float`, *optional*, defaults to 0.02):
+        intializer_range (`float`, *optional*, defaults to 0.02):
             The standard deviation for initializing all weight matrices in the model.
 
     Example:
@@ -77,10 +77,6 @@ class Idefics2PerceiverConfig(PretrainedConfig):
     Args:
         hidden_act (`str` or `function`, *optional*, defaults to `"silu"`):
             The non-linear activation function (function or string) in the perceiver block.
-        hidden_size (`int`, *optional*, defaults to 4096):
-            Dimension of the hidden representations.
-        rms_norm_eps (`float`, *optional*, defaults to 1e-06):
-            The epsilon used by the rms normalization layers.
         resampler_n_latents (`int`, *optional*, defaults to 64):
             Number of latent embeddings to resample ("compress") the input sequence to (usually < 128).
         resampler_depth (`int`, *optional*, defaults to 3):
@@ -95,7 +91,7 @@ class Idefics2PerceiverConfig(PretrainedConfig):
             The dropout ratio for the attention probabilities.
     """
     model_type = ...
-    def __init__(self, hidden_act=..., hidden_size=..., rms_norm_eps=..., resampler_n_latents=..., resampler_depth=..., resampler_n_heads=..., resampler_head_dim=..., num_key_value_heads=..., attention_dropout=..., **kwargs) -> None:
+    def __init__(self, hidden_act=..., resampler_n_latents=..., resampler_depth=..., resampler_n_heads=..., resampler_head_dim=..., num_key_value_heads=..., attention_dropout=..., **kwargs) -> None:
         ...
     
 

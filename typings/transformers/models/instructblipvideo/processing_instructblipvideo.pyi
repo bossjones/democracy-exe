@@ -12,7 +12,6 @@ from ...utils import TensorType
 """
 Processor class for InstructBLIP. Largely copy of Blip2Processor with addition of a tokenizer for the Q-Former.
 """
-logger = ...
 class InstructBlipVideoProcessor(ProcessorMixin):
     r"""
     Constructs an InstructBLIPVideo processor which wraps a InstructBLIP image processor and a LLaMa/T5 tokenizer into a single
@@ -26,17 +25,14 @@ class InstructBlipVideoProcessor(ProcessorMixin):
             An instance of [`InstructBlipVideoImageProcessor`]. The image processor is a required input.
         tokenizer (`AutoTokenizer`):
             An instance of ['PreTrainedTokenizer`]. The tokenizer is a required input.
-        qformer_tokenizer (`AutoTokenizer`):
+        qformer_tokenizer (`AutoTokenizer`, *optional*):
             An instance of ['PreTrainedTokenizer`]. The Q-Former tokenizer is a required input.
-        num_query_tokens (`int`, *optional*):
-            Number of tokens used by the Qformer as queries, should be same as in model's config.
     """
     attributes = ...
     valid_kwargs = ...
     image_processor_class = ...
     tokenizer_class = ...
-    qformer_tokenizer_class = ...
-    def __init__(self, image_processor, tokenizer, qformer_tokenizer, num_query_tokens=..., **kwargs) -> None:
+    def __init__(self, image_processor, tokenizer, qformer_tokenizer=..., **kwargs) -> None:
         ...
     
     def __call__(self, images: VideoInput = ..., text: Union[TextInput, PreTokenizedInput, List[TextInput], List[PreTokenizedInput]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TruncationStrategy] = ..., max_length: Optional[int] = ..., stride: int = ..., pad_to_multiple_of: Optional[int] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_token_type_ids: bool = ..., return_length: bool = ..., verbose: bool = ..., return_tensors: Optional[Union[str, TensorType]] = ..., **kwargs) -> BatchFeature:

@@ -41,14 +41,13 @@ class VivitEmbeddings(nn.Module):
     def __init__(self, config) -> None:
         ...
     
-    def interpolate_pos_encoding(self, embeddings: torch.Tensor, height: int, width: int) -> torch.Tensor:
+    def interpolate_pos_encoding(self, embeddings, height, width): # -> Parameter | Tensor:
         """
-        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher resolution
-        images. This method is also adapted to support torch.jit tracing.
+        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher
+        resolution images.
 
-        Adapted from:
-        - https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174-L194, and
-        - https://github.com/facebookresearch/dinov2/blob/e1277af2ba9496fbadf7aec6eba56e8d882d1e35/dinov2/models/vision_transformer.py#L179-L211
+        Source:
+        https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174
         """
         ...
     
@@ -62,15 +61,6 @@ class VivitSelfAttention(nn.Module):
         ...
     
     def transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
-        ...
-    
-    def forward(self, hidden_states, head_mask: Optional[torch.Tensor] = ..., output_attentions: bool = ...) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor]]:
-        ...
-    
-
-
-class VivitSdpaSelfAttention(VivitSelfAttention):
-    def __init__(self, config: VivitConfig) -> None:
         ...
     
     def forward(self, hidden_states, head_mask: Optional[torch.Tensor] = ..., output_attentions: bool = ...) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor]]:
@@ -103,12 +93,6 @@ class VivitAttention(nn.Module):
     
 
 
-class VivitSdpaAttention(VivitAttention):
-    def __init__(self, config: VivitConfig) -> None:
-        ...
-    
-
-
 class VivitIntermediate(nn.Module):
     def __init__(self, config) -> None:
         ...
@@ -127,13 +111,12 @@ class VivitOutput(nn.Module):
     
 
 
-VIVIT_ATTENTION_CLASSES = ...
 class VivitLayer(nn.Module):
     """This corresponds to the EncoderBlock class in the scenic/vivit implementation."""
     def __init__(self, config) -> None:
         ...
     
-    def forward(self, hidden_states, head_mask=..., output_attentions=...):
+    def forward(self, hidden_states, head_mask=..., output_attentions=...): # -> Any:
         ...
     
 
@@ -166,7 +149,6 @@ class VivitPreTrainedModel(PreTrainedModel):
     main_input_name = ...
     supports_gradient_checkpointing = ...
     _no_split_modules = ...
-    _supports_sdpa = ...
 
 
 VIVIT_START_DOCSTRING = ...

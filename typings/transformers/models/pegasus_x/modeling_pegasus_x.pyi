@@ -6,7 +6,6 @@ import dataclasses
 import torch
 from typing import Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import Seq2SeqLMOutput, Seq2SeqModelOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_end_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -406,7 +405,7 @@ class PegasusXModel(PegasusXPreTrainedModel):
 
 
 @add_start_docstrings("The PEGASUS-X for conditional generation (e.g. summarization).", PEGASUS_X_START_DOCSTRING)
-class PegasusXForConditionalGeneration(PegasusXPreTrainedModel, GenerationMixin):
+class PegasusXForConditionalGeneration(PegasusXPreTrainedModel):
     base_model_prefix = ...
     _tied_weights_keys = ...
     def __init__(self, config: PegasusXConfig) -> None:
@@ -458,6 +457,9 @@ class PegasusXForConditionalGeneration(PegasusXPreTrainedModel, GenerationMixin)
         Returns:
 
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor): # -> Tensor:

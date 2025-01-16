@@ -37,8 +37,6 @@ class RTDetrConfig(PretrainedConfig):
         use_timm_backbone (`bool`, *optional*, defaults to `False`):
             Whether to load `backbone` from the timm library. If `False`, the backbone is loaded from the transformers
             library.
-        freeze_backbone_batch_norms (`bool`, *optional*, defaults to `True`):
-            Whether to freeze the batch normalization layers in the backbone.
         backbone_kwargs (`dict`, *optional*):
             Keyword arguments to be passed to AutoBackbone when loading from a checkpoint
             e.g. `{'out_indices': (0, 1, 2, 3)}`. Cannot be specified if `backbone_config` is set.
@@ -158,7 +156,7 @@ class RTDetrConfig(PretrainedConfig):
     model_type = ...
     layer_types = ...
     attribute_map = ...
-    def __init__(self, initializer_range=..., initializer_bias_prior_prob=..., layer_norm_eps=..., batch_norm_eps=..., backbone_config=..., backbone=..., use_pretrained_backbone=..., use_timm_backbone=..., freeze_backbone_batch_norms=..., backbone_kwargs=..., encoder_hidden_dim=..., encoder_in_channels=..., feat_strides=..., encoder_layers=..., encoder_ffn_dim=..., encoder_attention_heads=..., dropout=..., activation_dropout=..., encode_proj_layers=..., positional_encoding_temperature=..., encoder_activation_function=..., activation_function=..., eval_size=..., normalize_before=..., hidden_expansion=..., d_model=..., num_queries=..., decoder_in_channels=..., decoder_ffn_dim=..., num_feature_levels=..., decoder_n_points=..., decoder_layers=..., decoder_attention_heads=..., decoder_activation_function=..., attention_dropout=..., num_denoising=..., label_noise_ratio=..., box_noise_scale=..., learn_initial_query=..., anchor_image_size=..., disable_custom_kernels=..., with_box_refine=..., is_encoder_decoder=..., matcher_alpha=..., matcher_gamma=..., matcher_class_cost=..., matcher_bbox_cost=..., matcher_giou_cost=..., use_focal_loss=..., auxiliary_loss=..., focal_loss_alpha=..., focal_loss_gamma=..., weight_loss_vfl=..., weight_loss_bbox=..., weight_loss_giou=..., eos_coefficient=..., **kwargs) -> None:
+    def __init__(self, initializer_range=..., initializer_bias_prior_prob=..., layer_norm_eps=..., batch_norm_eps=..., backbone_config=..., backbone=..., use_pretrained_backbone=..., use_timm_backbone=..., backbone_kwargs=..., encoder_hidden_dim=..., encoder_in_channels=..., feat_strides=..., encoder_layers=..., encoder_ffn_dim=..., encoder_attention_heads=..., dropout=..., activation_dropout=..., encode_proj_layers=..., positional_encoding_temperature=..., encoder_activation_function=..., activation_function=..., eval_size=..., normalize_before=..., hidden_expansion=..., d_model=..., num_queries=..., decoder_in_channels=..., decoder_ffn_dim=..., num_feature_levels=..., decoder_n_points=..., decoder_layers=..., decoder_attention_heads=..., decoder_activation_function=..., attention_dropout=..., num_denoising=..., label_noise_ratio=..., box_noise_scale=..., learn_initial_query=..., anchor_image_size=..., disable_custom_kernels=..., with_box_refine=..., is_encoder_decoder=..., matcher_alpha=..., matcher_gamma=..., matcher_class_cost=..., matcher_bbox_cost=..., matcher_giou_cost=..., use_focal_loss=..., auxiliary_loss=..., focal_loss_alpha=..., focal_loss_gamma=..., weight_loss_vfl=..., weight_loss_bbox=..., weight_loss_giou=..., eos_coefficient=..., **kwargs) -> None:
         ...
     
     @property

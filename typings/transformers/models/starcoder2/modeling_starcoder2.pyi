@@ -6,24 +6,21 @@ import torch
 from typing import List, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
-from ...utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
+from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
 from .configuration_starcoder2 import Starcoder2Config
 
 """PyTorch Starcoder2 model."""
 if is_flash_attn_2_available():
     ...
 logger = ...
-_CHECKPOINT_FOR_DOC = ...
 _CONFIG_FOR_DOC = ...
 class Starcoder2RotaryEmbedding(nn.Module):
-    def __init__(self, dim=..., max_position_embeddings=..., base=..., device=..., scaling_factor=..., rope_type=..., config: Optional[Starcoder2Config] = ...) -> None:
+    def __init__(self, dim, max_position_embeddings=..., base=..., device=...) -> None:
         ...
     
-    @torch.no_grad()
-    def forward(self, x, position_ids): # -> tuple[Any, Any]:
+    def forward(self, x, seq_len=...): # -> tuple[Any, Any]:
         ...
     
 
@@ -32,7 +29,7 @@ def rotate_half(x): # -> Tensor:
     """Rotates half the hidden dims of the input."""
     ...
 
-def apply_rotary_pos_emb(q, k, cos, sin, position_ids=..., unsqueeze_dim=...): # -> tuple[Any, Any]:
+def apply_rotary_pos_emb(q, k, cos, sin, position_ids, unsqueeze_dim=...): # -> tuple[Any, Any]:
     """Applies Rotary Position Embedding to the query and key tensors.
 
     Args:
@@ -40,8 +37,9 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids=..., unsqueeze_dim=...): #
         k (`torch.Tensor`): The key tensor.
         cos (`torch.Tensor`): The cosine part of the rotary embedding.
         sin (`torch.Tensor`): The sine part of the rotary embedding.
-        position_ids (`torch.Tensor`, *optional*):
-            Deprecated and unused.
+        position_ids (`torch.Tensor`):
+            The position indices of the tokens corresponding to the query and key tensors. For example, this can be
+            used to pass offsetted position ids when working with a KV-cache.
         unsqueeze_dim (`int`, *optional*, defaults to 1):
             The 'unsqueeze_dim' argument specifies the dimension along which to unsqueeze cos[position_ids] and
             sin[position_ids] so that they can be properly broadcasted to the dimensions of q and k. For example, note
@@ -78,7 +76,7 @@ class Starcoder2Attention(nn.Module):
     def __init__(self, config: Starcoder2Config, layer_idx: Optional[int] = ...) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
@@ -92,7 +90,7 @@ class Starcoder2FlashAttention2(Starcoder2Attention):
     def __init__(self, *args, **kwargs) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ...): # -> tuple[Tensor, Any | None, Cache | None]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...): # -> tuple[Tensor, Any | None, Cache | None]:
         ...
     
 
@@ -103,7 +101,7 @@ class Starcoder2SdpaAttention(Starcoder2Attention):
     `Starcoder2Attention` as the weights of the module stays untouched. The only changes are on the forward pass to adapt to
     SDPA API.
     """
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
@@ -113,7 +111,7 @@ class Starcoder2DecoderLayer(nn.Module):
     def __init__(self, config: Starcoder2Config, layer_idx: int) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ..., **kwargs) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., **kwargs) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
@@ -128,9 +126,6 @@ class Starcoder2DecoderLayer(nn.Module):
             past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
             cache_position (`torch.LongTensor` of shape `(sequence_length)`, *optional*):
                 Indices depicting the position of the input sequence tokens in the sequence.
-            position_embeddings (`Tuple[torch.FloatTensor, torch.FloatTensor]`, *optional*):
-                Tuple containing the cosine and sine positional embeddings of shape `(batch_size, seq_len, head_dim)`,
-                with `head_dim` being the embedding dimension of each attention head.
             kwargs (`dict`, *optional*):
                 Arbitrary kwargs to be ignored, used for FSDP and other methods that injects code
                 into the model
@@ -150,8 +145,6 @@ class Starcoder2PreTrainedModel(PreTrainedModel):
     _supports_flash_attn_2 = ...
     _supports_sdpa = ...
     _supports_cache_class = ...
-    _supports_quantized_cache = ...
-    _supports_static_cache = ...
 
 
 STARCODER2_INPUTS_DOCSTRING = ...
@@ -178,7 +171,7 @@ class Starcoder2Model(Starcoder2PreTrainedModel):
     
 
 
-class Starcoder2ForCausalLM(Starcoder2PreTrainedModel, GenerationMixin):
+class Starcoder2ForCausalLM(Starcoder2PreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -203,18 +196,13 @@ class Starcoder2ForCausalLM(Starcoder2PreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(STARCODER2_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, CausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
 
         Returns:
 
@@ -223,8 +211,8 @@ class Starcoder2ForCausalLM(Starcoder2PreTrainedModel, GenerationMixin):
         ```python
         >>> from transformers import AutoTokenizer, Starcoder2ForCausalLM
 
-        >>> model = Starcoder2ForCausalLM.from_pretrained("bigcode/starcoder2-7b")
-        >>> tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoder2-7b")
+        >>> model = Starcoder2ForCausalLM.from_pretrained("bigcode/starcoder2-7b_16k")
+        >>> tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoder2-7b_16k")
 
         >>> prompt = "Hey, are you conscious? Can you talk to me?"
         >>> inputs = tokenizer(prompt, return_tensors="pt")
@@ -234,6 +222,9 @@ class Starcoder2ForCausalLM(Starcoder2PreTrainedModel, GenerationMixin):
         >>> tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         "Hey, are you conscious? Can you talk to me?\nI'm not conscious, but I can talk to you."
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., position_ids=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -287,7 +278,6 @@ class Starcoder2ForTokenClassification(Starcoder2PreTrainedModel):
         ...
     
     @add_start_docstrings_to_model_forward(STARCODER2_INPUTS_DOCSTRING)
-    @add_code_sample_docstrings(checkpoint=_CHECKPOINT_FOR_DOC, output_type=TokenClassifierOutput, config_class=_CONFIG_FOR_DOC)
     def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, TokenClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

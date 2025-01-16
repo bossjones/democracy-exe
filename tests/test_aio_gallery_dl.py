@@ -330,27 +330,38 @@ async def test_download_error(mock_gallery_dl: Any, caplog: LogCaptureFixture, c
     """Test error handling during download.
 
     This test verifies that errors during download are properly handled
-    and logged.
+    and logged in both dev and production modes.
 
     Args:
         mock_gallery_dl: Mock gallery-dl module
         caplog: Pytest log capture fixture
-        capsys: Pytest capture fixture
+        capsys: Pytest stdout/stderr capture fixture
     """
     with capture_logs() as cap_logs:
         caplog.set_level(logging.ERROR, logger="democracy_exe")
+
         # Setup mock error
         mock_gallery_dl.job.DownloadJob.side_effect = ValueError("Test error")
 
-        # Test error handling
-        client = AsyncGalleryDL()
+        # Test with test_mode=True to prevent debugger
+        client = AsyncGalleryDL(test_mode=True)
         with pytest.raises(ValueError, match="Test error"):
             async for _ in client.download("https://example.com"):
                 pass
 
         # Verify error was logged
-        # assert "Error in gallery-dl download" in caplog.text
-        assert "" in caplog.text
+        assert any(
+            log.get("event") == "Error in executor"
+            and log.get("error") == "Test error"
+            and log.get("error_type") == "ValueError"
+            for log in cap_logs
+        )
+
+        # Verify error output was captured
+        captured = capsys.readouterr()
+        assert "Test error" in captured.out
+        assert "Error Class: <class 'ValueError'>" in captured.out
+        assert "[UNEXPECTED] ValueError: Test error" in captured.out
 
 
 def _filter_request_headers(request: VCRRequest) -> Any:

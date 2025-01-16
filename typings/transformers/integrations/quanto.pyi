@@ -6,8 +6,7 @@ from ..utils import is_torch_available
 
 if is_torch_available():
     ...
-logger = ...
-def replace_with_quanto_layers(model, quantization_config=..., modules_to_not_convert=..., current_key_name=..., has_been_replaced=...): # -> tuple[Any, bool | Any]:
+def replace_with_quanto_layers(model, quantization_config=..., modules_to_not_convert=..., current_key_name=..., has_been_replaced=...): # -> tuple[Any, bool]:
     """
     Public method that recursively replaces the Linear layers of the given model with Quanto quantized layers.
     Returns the converted model and a boolean that indicates if the conversion has been successfull or not.

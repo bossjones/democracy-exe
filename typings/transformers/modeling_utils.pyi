@@ -45,16 +45,16 @@ def no_init_weights(_enable=...): # -> Generator[None, Any, None]:
     """
     ...
 
-def get_parameter_device(parameter: Union[nn.Module, ModuleUtilsMixin]): # -> device:
+def get_parameter_device(parameter: Union[nn.Module, GenerationMixin, ModuleUtilsMixin]): # -> device:
     ...
 
-def get_first_parameter_dtype(parameter: Union[nn.Module, ModuleUtilsMixin]): # -> dtype:
+def get_first_parameter_dtype(parameter: Union[nn.Module, GenerationMixin, ModuleUtilsMixin]): # -> dtype:
     """
     Returns the first parameter dtype (can be non-floating) or asserts if none were found.
     """
     ...
 
-def get_parameter_dtype(parameter: Union[nn.Module, ModuleUtilsMixin]): # -> dtype | None:
+def get_parameter_dtype(parameter: Union[nn.Module, GenerationMixin, ModuleUtilsMixin]): # -> dtype | None:
     """
     Returns the first found floating dtype in parameters if there is one, otherwise returns the last dtype it found.
     """
@@ -148,7 +148,7 @@ def load_sharded_checkpoint(model, folder, strict=..., prefer_safe=...): # -> _I
     """
     ...
 
-def load_state_dict(checkpoint_file: Union[str, os.PathLike], is_quantized: bool = ..., map_location: Optional[Union[str, torch.device]] = ..., weights_only: bool = ...): # -> Dict[str, Tensor] | Any:
+def load_state_dict(checkpoint_file: Union[str, os.PathLike], is_quantized: bool = ...): # -> Dict[str, Tensor] | Any:
     """
     Reads a PyTorch checkpoint file, returning properly formatted errors if they arise.
     """
@@ -472,7 +472,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
         """
         ...
     
-    def resize_token_embeddings(self, new_num_tokens: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., mean_resizing: bool = ...) -> nn.Embedding:
+    def resize_token_embeddings(self, new_num_tokens: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ...) -> nn.Embedding:
         """
         Resizes input token embeddings matrix of the model if `new_num_tokens != config.vocab_size`.
 
@@ -491,14 +491,6 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                 `>= 7.5` (Volta), or on TPUs which benefit from having sequence lengths be a multiple of 128. For more
                 details about this, or help on choosing the correct value for resizing, refer to this guide:
                 https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html#requirements-tc
-            mean_resizing (`bool`):
-                Whether to initialize the added embeddings from a multivariate normal distribution that has old embeddings' mean and
-                covariance or to initialize them with a normal distribution that has a mean of zero and std equals `config.initializer_range`.
-
-                Setting `mean_resizing` to `True` is useful when increasing the size of the embeddings of causal language models,
-                where the generated tokens' probabilities won't be affected by the added embeddings because initializing the new embeddings with the
-                old embeddings' mean will reduce the kl-divergence between the next token probability before and after adding the new embeddings.
-                Refer to this article for more information: https://nlp.stanford.edu/~johnhew/vocab-expansion.html
 
         Return:
             `torch.nn.Embedding`: Pointer to the input tokens Embeddings Module of the model.
@@ -636,7 +628,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
         ...
     
     @wraps(torch.nn.Module.cuda)
-    def cuda(self, *args, **kwargs): # -> Self | None:
+    def cuda(self, *args, **kwargs): # -> Self:
         ...
     
     @wraps(torch.nn.Module.to)
@@ -650,7 +642,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
         ...
     
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path: Optional[Union[str, os.PathLike]], *model_args, config: Optional[Union[PretrainedConfig, str, os.PathLike]] = ..., cache_dir: Optional[Union[str, os.PathLike]] = ..., ignore_mismatched_sizes: bool = ..., force_download: bool = ..., local_files_only: bool = ..., token: Optional[Union[str, bool]] = ..., revision: str = ..., use_safetensors: bool = ..., weights_only: bool = ..., **kwargs) -> PreTrainedModel:
+    def from_pretrained(cls, pretrained_model_name_or_path: Optional[Union[str, os.PathLike]], *model_args, config: Optional[Union[PretrainedConfig, str, os.PathLike]] = ..., cache_dir: Optional[Union[str, os.PathLike]] = ..., ignore_mismatched_sizes: bool = ..., force_download: bool = ..., local_files_only: bool = ..., token: Optional[Union[str, bool]] = ..., revision: str = ..., use_safetensors: bool = ..., **kwargs) -> PreTrainedModel:
         r"""
         Instantiate a pretrained pytorch model from a pre-trained model configuration.
 
@@ -743,7 +735,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
 
                 <Tip>
 
-                To test a pull request you made on the Hub, you can pass `revision="refs/pr/<pr_number>"`.
+                To test a pull request you made on the Hub, you can pass `revision="refs/pr/<pr_number>".
 
                 </Tip>
 
@@ -767,7 +759,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
             > Parameters for big model inference
 
             low_cpu_mem_usage(`bool`, *optional*):
-                Tries not to use more than 1x model size in CPU memory (including peak memory) while loading the model.
+                Tries to not use more than 1x model size in CPU memory (including peak memory) while loading the model.
                 Generally should be combined with a `device_map` (such as `"auto"`) for best results.
                 This is an experimental feature and a subject to change at any moment.
                 </Tip>
@@ -835,11 +827,6 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
             use_safetensors (`bool`, *optional*, defaults to `None`):
                 Whether or not to use `safetensors` checkpoints. Defaults to `None`. If not specified and `safetensors`
                 is not installed, it will be set to `False`.
-
-            weights_only (`bool`, *optional*, defaults to `True`):
-                Indicates whether unpickler should be restricted to loading only tensors, primitive types,
-                dictionaries and any types added via torch.serialization.add_safe_globals().
-                When set to False, we can load wrapper tensor subclass weights.
 
             kwargs (remaining dictionary of keyword arguments, *optional*):
                 Can be used to update the configuration object (after it being loaded) and initiate the model (e.g.,
@@ -950,10 +937,6 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
         """
         Shows a one-time warning if the input_ids appear to contain padding and no attention mask was given.
         """
-        ...
-    
-    @property
-    def loss_function(self):
         ...
     
 

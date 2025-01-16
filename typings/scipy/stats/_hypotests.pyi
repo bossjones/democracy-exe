@@ -19,8 +19,7 @@ def epps_singleton_2samp(x, y, t=...): # -> Epps_Singleton_2sampResult:
     ----------
     x, y : array-like
         The two samples of observations to be tested. Input must not have more
-        than one dimension. Samples can have different lengths, but both
-        must have at least five observations.
+        than one dimension. Samples can have different lengths.
     t : array-like, optional
         The points (t1, ..., tn) where the empirical characteristic function is
         to be evaluated. It should be positive distinct numbers. The default
@@ -210,7 +209,6 @@ def cramervonmises(rvs, cdf, args=...): # -> CramerVonMisesResult:
     ----------
     rvs : array_like
         A 1-D array of observed values of the random variables :math:`X_i`.
-        The sample must contain at least two observations.
     cdf : str or callable
         The cumulative distribution function :math:`F` to test the
         observations against. If a string, it should be the name of a
@@ -633,9 +631,9 @@ def barnard_exact(table, alternative=..., pooled=..., n=...): # -> BarnardExactR
     >>> import scipy.stats as stats
     >>> res = stats.barnard_exact([[7, 12], [8, 3]], alternative="less")
     >>> res.statistic
-    -1.894
+    -1.894...
     >>> res.pvalue
-    0.03407
+    0.03407...
 
     Under the null hypothesis that the vaccine will not lower the chance of
     becoming infected, the probability of obtaining test results at least as
@@ -647,7 +645,7 @@ def barnard_exact(table, alternative=..., pooled=..., n=...): # -> BarnardExactR
 
     >>> _, pvalue = stats.fisher_exact([[7, 12], [8, 3]], alternative="less")
     >>> pvalue
-    0.0640
+    0.0640...
 
     With the same threshold significance of 5%, we would not have been able
     to reject the null hypothesis in favor of the alternative. As stated in
@@ -785,9 +783,9 @@ def boschloo_exact(table, alternative=..., n=...): # -> BoschlooExactResult:
     >>> import scipy.stats as stats
     >>> res = stats.boschloo_exact([[74, 31], [43, 32]], alternative="greater")
     >>> res.statistic
-    0.0483
+    0.0483...
     >>> res.pvalue
-    0.0355
+    0.0355...
 
     Under the null hypothesis that scientists are happier in their work than
     college professors, the probability of obtaining test
@@ -811,10 +809,8 @@ def cramervonmises_2samp(x, y, method=...): # -> CramerVonMisesResult:
     ----------
     x : array_like
         A 1-D array of observed values of the random variables :math:`X_i`.
-        Must contain at least two observations.
     y : array_like
         A 1-D array of observed values of the random variables :math:`Y_i`.
-        Must contain at least two observations.
     method : {'auto', 'asymptotic', 'exact'}, optional
         The method used to compute the p-value, see Notes for details.
         The default is 'auto'.

@@ -322,14 +322,15 @@ def spsolve_triangular(A, b, lower=..., overwrite_A=..., overwrite_b=..., unit_d
     Parameters
     ----------
     A : (M, M) sparse matrix
-        A sparse square triangular matrix. Should be in CSR or CSC format.
+        A sparse square triangular matrix. Should be in CSR format.
     b : (M,) or (M, N) array_like
         Right-hand side matrix in ``A x = b``
     lower : bool, optional
         Whether `A` is a lower or upper triangular matrix.
         Default is lower triangular matrix.
     overwrite_A : bool, optional
-        Allow changing `A`.
+        Allow changing `A`. The indices of `A` are going to be sorted and zero
+        entries are going to be removed.
         Enabling gives a performance gain. Default is False.
     overwrite_b : bool, optional
         Allow overwriting data in `b`.
@@ -337,7 +338,8 @@ def spsolve_triangular(A, b, lower=..., overwrite_A=..., overwrite_b=..., unit_d
         If `overwrite_b` is True, it should be ensured that
         `b` has an appropriate dtype to be able to store the result.
     unit_diagonal : bool, optional
-        If True, diagonal elements of `a` are assumed to be 1.
+        If True, diagonal elements of `a` are assumed to be 1 and will not be
+        referenced.
 
         .. versionadded:: 1.4.0
 
@@ -361,9 +363,9 @@ def spsolve_triangular(A, b, lower=..., overwrite_A=..., overwrite_b=..., unit_d
     Examples
     --------
     >>> import numpy as np
-    >>> from scipy.sparse import csc_array
+    >>> from scipy.sparse import csr_matrix
     >>> from scipy.sparse.linalg import spsolve_triangular
-    >>> A = csc_array([[3, 0, 0], [1, -1, 0], [2, 0, 1]], dtype=float)
+    >>> A = csr_matrix([[3, 0, 0], [1, -1, 0], [2, 0, 1]], dtype=float)
     >>> B = np.array([[2, 0], [-1, 0], [2, 0]], dtype=float)
     >>> x = spsolve_triangular(A, B)
     >>> np.allclose(A.dot(x), B)

@@ -402,7 +402,7 @@ class EsmFoldRelativePosition(nn.Module):
     def forward(self, residue_index, mask=...): # -> Any:
         """
         Input:
-          residue_index: B x L tensor of indices (dtype=torch.long) mask: B x L tensor of booleans
+          residue_index: B x L tensor of indices (dytpe=torch.long) mask: B x L tensor of booleans
 
         Output:
           pairwise_state: B x L x L x pairwise_state_dim tensor of embeddings

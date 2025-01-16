@@ -7,7 +7,6 @@ from functools import cached_property
 from typing import Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
@@ -370,7 +369,7 @@ class ChameleonModel(ChameleonPreTrainedModel):
 
 
 @add_start_docstrings("Chameleon Model with a head on top used for outputting logits for next token prediction.", CHAMELEON_START_DOCSTRING)
-class ChameleonForConditionalGeneration(ChameleonPreTrainedModel, GenerationMixin):
+class ChameleonForConditionalGeneration(ChameleonPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -420,7 +419,7 @@ class ChameleonForConditionalGeneration(ChameleonPreTrainedModel, GenerationMixi
         >>> image = Image.open(requests.get("https://nineplanets.org/wp-content/uploads/2020/12/the-big-dipper-1.jpg", stream=True).raw)
         >>> image_2 = Image.open(requests.get("https://www.kxan.com/wp-content/uploads/sites/40/2020/10/ORION.jpg", stream=True).raw)
 
-        >>> inputs = processor(images=[image, image_2], text=prompt, return_tensors="pt").to(model.device, torch.bfloat16)
+        >>> inputs = processor(prompt, images=[image, image_2], return_tensors="pt").to(model.device, torch.bfloat16)
 
         >>> generated_ids = model.generate(**inputs, max_new_tokens=100, do_sample=False)
         >>> processor.batch_decode(generated_ids, skip_special_tokens=True)[0]

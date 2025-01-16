@@ -6,7 +6,6 @@ import torch
 from typing import Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import EncoderDecoderCache
-from ...generation import GenerationMixin
 from ...modeling_outputs import CausalLMOutputWithCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput, SequenceClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
@@ -354,7 +353,7 @@ class WhisperForConditionalGeneration(WhisperGenerationMixin, WhisperPreTrainedM
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
             Labels for computing the language modeling loss. Indices should either be in `[0, ..., config.vocab_size]`
             or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored (masked), the loss is
-            only computed for the tokens with labels in `[0, ..., config.vocab_size]`. `sequence_length` should be smaller than or equal to `config.max_target_positions`.
+            only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
 
         Returns:
 
@@ -408,7 +407,7 @@ class WhisperDecoderWrapper(WhisperPreTrainedModel):
 @add_start_docstrings("""
     Whisper decoder with a language modeling head on top (linear layer with weights tied to the input embeddings).
     """, WHISPER_START_DOCSTRING)
-class WhisperForCausalLM(WhisperPreTrainedModel, GenerationMixin):
+class WhisperForCausalLM(WhisperPreTrainedModel):
     _tied_weights_keys = ...
     main_input_name = ...
     def __init__(self, config) -> None:
@@ -518,6 +517,9 @@ class WhisperForCausalLM(WhisperPreTrainedModel, GenerationMixin):
         >>> transcription
         ' Mr. Quilter is the apostle of the middle classes and we are glad to welcome his gospel.'
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., use_cache=..., encoder_outputs=..., attention_mask=..., cache_position=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

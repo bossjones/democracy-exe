@@ -11,7 +11,6 @@ Utilities to convert slow tokenizers in their fast tokenizers counterparts.
 All the conversions are grouped here to gather SentencePiece dependencies outside of the fast tokenizers files and
 allow to make our dependency on SentencePiece optional.
 """
-logger = ...
 def import_protobuf(error_message=...): # -> Any:
     ...
 
@@ -87,7 +86,7 @@ class OpenAIGPTConverter(Converter):
 
 
 class GPT2Converter(Converter):
-    def converted(self, vocab: Dict[str, int] = ..., merges: List[Tuple[str, str]] = ...) -> Tokenizer:
+    def converted(self) -> Tokenizer:
         ...
     
 
@@ -410,22 +409,6 @@ class MarkupLMConverter(Converter):
     
 
 
-class MoshiConverter(SpmConverter):
-    handle_byte_fallback = ...
-    def __init__(self, vocab_file, model_max_length=..., **kwargs) -> None:
-        ...
-    
-    def normalizer(self, proto): # -> Sequence:
-        ...
-    
-    def decoder(self, replacement, add_prefix_space): # -> Sequence:
-        ...
-    
-    def pre_tokenizer(self, replacement, add_prefix_space): # -> Metaspace:
-        ...
-    
-
-
 def bytes_to_unicode(): # -> dict[int, str]:
     """
     Returns list of utf-8 byte and a mapping to unicode strings. We specifically avoids mapping to whitespace/control
@@ -442,7 +425,7 @@ class TikTokenConverter:
     """
     A general tiktoken converter.
     """
-    def __init__(self, vocab_file=..., pattern=..., add_prefix_space=..., additional_special_tokens=..., *args, **kwargs) -> None:
+    def __init__(self, vocab_file=..., pattern=..., add_prefix_space=..., *args) -> None:
         ...
     
     def extract_vocab_merges_from_model(self, tiktoken_url: str): # -> tuple[dict[Any, Any], list[tuple[str, str]]]:
@@ -457,7 +440,7 @@ class TikTokenConverter:
 
 
 SLOW_TO_FAST_CONVERTERS = ...
-def convert_slow_tokenizer(transformer_tokenizer, from_tiktoken=...) -> Tokenizer:
+def convert_slow_tokenizer(transformer_tokenizer) -> Tokenizer:
     """
     Utilities to convert a slow tokenizer instance in a fast tokenizer instance.
 
@@ -465,8 +448,6 @@ def convert_slow_tokenizer(transformer_tokenizer, from_tiktoken=...) -> Tokenize
         transformer_tokenizer ([`~tokenization_utils_base.PreTrainedTokenizer`]):
             Instance of a slow tokenizer to convert in the backend tokenizer for
             [`~tokenization_utils_base.PreTrainedTokenizerFast`].
-       from_tiktoken (bool, optional): Whether to use the `tiktoken` library to convert the tokenizer instead of sentencepiece.
-            Defaults to False.
 
     Return:
         A instance of [`~tokenizers.Tokenizer`] to be used as the backend tokenizer of a

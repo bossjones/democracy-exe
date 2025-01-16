@@ -13,7 +13,7 @@ from ._base import _spbase
 """
 __all__ = []
 class _data_matrix(_spbase):
-    def __init__(self, arg1) -> None:
+    def __init__(self) -> None:
         ...
     
     @property
@@ -218,7 +218,7 @@ class _minmax_mixin:
         """
         ...
     
-    def argmax(self, axis=..., out=...): # -> NDArray[Any] | int:
+    def argmax(self, axis=..., out=...): # -> int:
         """Return indices of maximum elements along an axis.
 
         Implicit zero elements are also taken into account. If there are
@@ -241,7 +241,7 @@ class _minmax_mixin:
         """
         ...
     
-    def argmin(self, axis=..., out=...): # -> NDArray[Any] | int:
+    def argmin(self, axis=..., out=...): # -> int:
         """Return indices of minimum elements along an axis.
 
         Implicit zero elements are also taken into account. If there are

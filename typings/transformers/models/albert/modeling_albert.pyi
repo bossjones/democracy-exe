@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling, MaskedLMOutput, MultipleChoiceModelOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -47,16 +46,6 @@ class AlbertAttention(nn.Module):
     
 
 
-class AlbertSdpaAttention(AlbertAttention):
-    def __init__(self, config) -> None:
-        ...
-    
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.FloatTensor] = ..., head_mask: Optional[torch.FloatTensor] = ..., output_attentions: bool = ...) -> Union[Tuple[torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]:
-        ...
-    
-
-
-ALBERT_ATTENTION_CLASSES = ...
 class AlbertLayer(nn.Module):
     def __init__(self, config: AlbertConfig) -> None:
         ...
@@ -95,7 +84,6 @@ class AlbertPreTrainedModel(PreTrainedModel):
     config_class = AlbertConfig
     load_tf_weights = ...
     base_model_prefix = ...
-    _supports_sdpa = ...
 
 
 @dataclass
@@ -225,7 +213,7 @@ class AlbertSOPHead(nn.Module):
 
 
 @add_start_docstrings("Albert Model with a `language modeling` head on top.", ALBERT_START_DOCSTRING)
-class AlbertForMaskedLM(AlbertPreTrainedModel, GenerationMixin):
+class AlbertForMaskedLM(AlbertPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -369,4 +357,3 @@ class AlbertForMultipleChoice(AlbertPreTrainedModel):
     
 
 
-__all__ = ["load_tf_weights_in_albert", "AlbertPreTrainedModel", "AlbertModel", "AlbertForPreTraining", "AlbertForMaskedLM", "AlbertForSequenceClassification", "AlbertForTokenClassification", "AlbertForQuestionAnswering", "AlbertForMultipleChoice"]

@@ -1,4 +1,47 @@
 # pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
+"""LLM Manager for democracy_exe.
+
+This module provides LLM (Language Learning Model) management functionality,
+handling model initialization, configuration, and execution. It focuses on
+core LangChain integration without external tracing dependencies.
+
+Implementation Details:
+    - Model Management: Handles OpenAI and ChatOpenAI models
+    - Configuration: Supports configurable fields and runnable maps
+    - Execution: Implements branching and lambda execution patterns
+    - Resource Management: Basic resource handling for LLM calls
+    - Error Handling: Basic error capture and reporting
+
+Missing or Needs Improvement:
+    - Comprehensive tracing and monitoring solution (removed langsmith)
+    - Detailed performance metrics and logging
+    - Resource usage tracking and limits
+    - Retry mechanisms for failed LLM calls
+    - Cost tracking and optimization
+    - Caching mechanisms for repeated queries
+    - Model fallback strategies
+    - Input/output validation patterns
+    - Rate limiting implementation
+    - Comprehensive error handling
+
+Technical Notes:
+    - Uses LangChain's Runnable interface for model execution
+    - Implements configurable fields for dynamic model settings
+    - Supports branching for different model execution paths
+    - Handles both chat and completion models
+"""
+
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+# pylint: disable=no-member
 # sourcery skip: docstrings-for-classes
 from __future__ import annotations
 
@@ -9,8 +52,6 @@ import structlog
 
 from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch, RunnableLambda, RunnableMap
 from langchain_openai import ChatOpenAI, OpenAI
-from langsmith import traceable
-from langsmith.wrappers import wrap_openai
 
 
 logger = structlog.get_logger(__name__)

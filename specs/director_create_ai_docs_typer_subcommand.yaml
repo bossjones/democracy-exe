@@ -1,0 +1,94 @@
+prompt: |
+  # CREATE new typer subcommand for AI docs generation
+  CREATE democracy_exe/subcommands/ai_docs_cmd.py:
+    MIRROR democracy_exe/subcommands/dummy_cmd.py:
+      - USE AsyncTyperImproved pattern
+      - USE both sync and async command examples
+      - USE proper type hints and docstrings
+    MODIFY APP initialization:
+      - UPDATE help text to "ai docs command"
+    ADD cli_generate_docs function:
+      - ADD proper type hints and docstrings
+      - ADD directory path handling
+      - USE generate_docs_from_local_repo from ai_docs_utils
+      - ADD error handling for invalid paths
+    ADD cli_extract_repo function:
+      - ADD proper type hints and docstrings
+      - ADD directory path handling
+      - USE extract_local_directory from ai_docs_utils
+      - ADD error handling for invalid paths
+    ADD aio_cli_generate_docs function:
+      - ADD async implementation
+      - ADD proper type hints and docstrings
+      - ADD directory path handling
+      - USE generate_docs_from_local_repo from ai_docs_utils
+      - ADD error handling for invalid paths
+    ADD aio_cli_extract_repo function:
+      - ADD async implementation
+      - ADD proper type hints and docstrings
+      - ADD directory path handling
+      - USE extract_local_directory from ai_docs_utils
+      - ADD error handling for invalid paths
+
+  CREATE tests/unittests/subcommands/test_ai_docs_cmd.py:
+    MIRROR tests/unittests/subcommands/test_dummy_cmd.py:
+      - USE pytest fixtures and markers
+      - ADD proper type hints and docstrings
+      - ADD structlog testing patterns
+    ADD test_cli_generate_docs:
+      - TEST directory path validation
+      - TEST successful doc generation
+      - TEST error handling for invalid paths
+      - USE tmp_path fixture for file operations
+    ADD test_cli_extract_repo:
+      - TEST directory path validation
+      - TEST successful repo extraction
+      - TEST error handling for invalid paths
+      - USE tmp_path fixture for file operations
+    ADD test_aio_cli_generate_docs:
+      - TEST async directory path validation
+      - TEST async successful doc generation
+      - TEST async error handling for invalid paths
+      - USE tmp_path fixture for file operations
+    ADD test_aio_cli_extract_repo:
+      - TEST async directory path validation
+      - TEST async successful repo extraction
+      - TEST async error handling for invalid paths
+      - USE tmp_path fixture for file operations
+    ADD test_fixtures:
+      - ADD mock_repo_directory fixture
+      - ADD mock_docs_output fixture
+      - ADD mock_extract_output fixture
+
+  UPDATE democracy_exe/cli.py:
+    ADD ai_docs command to available commands
+
+# The model to use for code generation
+coder_model: claude-3-5-sonnet-20241022
+
+# List of files that can be modified by the AI
+context_editable:
+  - democracy_exe/subcommands/ai_docs_cmd.py
+  - democracy_exe/cli.py
+  - tests/unittests/subcommands/test_ai_docs_cmd.py
+
+# List of files that provide context but cannot be modified
+context_read_only:
+  - democracy_exe/utils/ai_docs_utils/api.py
+  - democracy_exe/utils/ai_docs_utils/extract_repo.py
+  - democracy_exe/utils/ai_docs_utils/generate_docs.py
+  - democracy_exe/subcommands/dummy_cmd.py
+  - democracy_exe/asynctyper.py
+  - tests/unittests/subcommands/test_dummy_cmd.py
+
+# Command to run tests/validation
+execution_command: uv run pytest -s --verbose --showlocals --tb=short --disable-warnings tests/unittests/subcommands/test_ai_docs_cmd.py
+
+# Maximum number of attempts to generate correct code
+max_iterations: 5
+
+# The model to use for code evaluation
+evaluator_model: gpt-4o
+
+# Evaluator type to use
+evaluator: default

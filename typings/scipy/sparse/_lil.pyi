@@ -30,6 +30,9 @@ class _lil_base(_spbase, IndexMixin):
     def count_nonzero(self): # -> int:
         ...
     
+    def __str__(self) -> str:
+        ...
+    
     def getrowview(self, i): # -> lil_array:
         """Returns a view of the 'i'th row (without copying).
         """
@@ -40,7 +43,7 @@ class _lil_base(_spbase, IndexMixin):
         """
         ...
     
-    def __getitem__(self, key): # -> Any | IndexMixin:
+    def __getitem__(self, key): # -> Any | floating[_NBitDouble] | IndexMixin:
         ...
     
     def __setitem__(self, key, x): # -> None:
@@ -58,10 +61,10 @@ class _lil_base(_spbase, IndexMixin):
     def resize(self, *shape): # -> None:
         ...
     
-    def toarray(self, order=..., out=...):
+    def toarray(self, order=..., out=...): # -> NDArray[float64]:
         ...
     
-    def transpose(self, axes=..., copy=...): # -> lil_array:
+    def transpose(self, axes=..., copy=...):
         ...
     
     def tolil(self, copy=...): # -> lil_array | Self:

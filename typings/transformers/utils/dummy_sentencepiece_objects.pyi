@@ -130,14 +130,14 @@ class MarianTokenizer(metaclass=DummyObject):
     
 
 
-class MBartTokenizer(metaclass=DummyObject):
+class MBart50Tokenizer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
     
 
 
-class MBart50Tokenizer(metaclass=DummyObject):
+class MBartTokenizer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...

@@ -41,37 +41,7 @@ class ksone_gen(rv_continuous):
        for probability distribution functions", The Annals of Mathematical
        Statistics, 22(4), pp 592-596 (1951).
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from scipy.stats import ksone
-    >>> import matplotlib.pyplot as plt
-    >>> fig, ax = plt.subplots(1, 1)
-
-    Display the probability density function (``pdf``):
-
-    >>> n = 1e+03
-    >>> x = np.linspace(ksone.ppf(0.01, n),
-    ...                 ksone.ppf(0.99, n), 100)
-    >>> ax.plot(x, ksone.pdf(x, n),
-    ...         'r-', lw=5, alpha=0.6, label='ksone pdf')
-
-    Alternatively, the distribution object can be called (as a function)
-    to fix the shape, location and scale parameters. This returns a "frozen"
-    RV object holding the given parameters fixed.
-
-    Freeze the distribution and display the frozen ``pdf``:
-
-    >>> rv = ksone(n)
-    >>> ax.plot(x, rv.pdf(x), 'k-', lw=2, label='frozen pdf')
-    >>> ax.legend(loc='best', frameon=False)
-    >>> plt.show()
-
-    Check accuracy of ``cdf`` and ``ppf``:
-
-    >>> vals = ksone.ppf([0.001, 0.5, 0.999], n)
-    >>> np.allclose([0.001, 0.5, 0.999], ksone.cdf(vals, n))
-    True
+    %(example)s
 
     """
     ...
@@ -112,37 +82,7 @@ class kstwo_gen(rv_continuous):
        Kolmogorov-Smirnov Distribution",  Journal of Statistical Software,
        Vol 39, 11, 1-18 (2011).
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from scipy.stats import kstwo
-    >>> import matplotlib.pyplot as plt
-    >>> fig, ax = plt.subplots(1, 1)
-
-    Display the probability density function (``pdf``):
-
-    >>> n = 10
-    >>> x = np.linspace(kstwo.ppf(0.01, n),
-    ...                 kstwo.ppf(0.99, n), 100)
-    >>> ax.plot(x, kstwo.pdf(x, n),
-    ...         'r-', lw=5, alpha=0.6, label='kstwo pdf')
-
-    Alternatively, the distribution object can be called (as a function)
-    to fix the shape, location and scale parameters. This returns a "frozen"
-    RV object holding the given parameters fixed.
-
-    Freeze the distribution and display the frozen ``pdf``:
-
-    >>> rv = kstwo(n)
-    >>> ax.plot(x, rv.pdf(x), 'k-', lw=2, label='frozen pdf')
-    >>> ax.legend(loc='best', frameon=False)
-    >>> plt.show()
-
-    Check accuracy of ``cdf`` and ``ppf``:
-
-    >>> vals = kstwo.ppf([0.001, 0.5, 0.999], n)
-    >>> np.allclose([0.001, 0.5, 0.999], kstwo.cdf(vals, n))
-    True
+    %(example)s
 
     """
     ...
@@ -1007,7 +947,7 @@ class f_gen(rv_continuous):
     the distribution of the ratio of two independent chi-squared distributions with
     :math:`df_1` and :math:`df_2` degrees of freedom, after rescaling by
     :math:`df_2 / df_1`.
-
+    
     The probability density function for `f` is:
 
     .. math::
@@ -1783,7 +1723,7 @@ class halfnorm_gen(rv_continuous):
     """
     @_call_super_mom
     @inherit_docstring_from(rv_continuous)
-    def fit(self, data, *args, **kwds): # -> tuple[Any, ...] | tuple[Any, Any]:
+    def fit(self, data, *args, **kwds): # -> tuple[Any, ...] | tuple[Any, Any | NDArray[floating[Any]] | floating[_64Bit | Any]]:
         ...
     
 
@@ -3410,71 +3350,6 @@ class rice_gen(rv_continuous):
 
 
 rice = ...
-class irwinhall_gen(rv_continuous):
-    r"""An Irwin-Hall (Uniform Sum) continuous random variable.
-
-    An `Irwin-Hall <https://en.wikipedia.org/wiki/Irwin-Hall_distribution/>`_
-    continuous random variable is the sum of :math:`n` independent
-    standard uniform random variables [1]_ [2]_.
-
-    %(before_notes)s
-
-    Notes
-    -----
-    Applications include `Rao's Spacing Test
-    <https://jammalam.faculty.pstat.ucsb.edu/html/favorite/test.htm>`_,
-    a more powerful alternative to the Rayleigh test
-    when the data are not unimodal, and radar [3]_.
-
-    Conveniently, the pdf and cdf are the :math:`n`-fold convolution of
-    the ones for the standard uniform distribution, which is also the
-    definition of the cardinal B-splines of degree :math:`n-1`
-    having knots evenly spaced from :math:`1` to :math:`n` [4]_ [5]_.
-
-    The Bates distribution, which represents the *mean* of statistically
-    independent, uniformly distributed random variables, is simply the
-    Irwin-Hall distribution scaled by :math:`1/n`. For example, the frozen
-    distribution ``bates = irwinhall(10, scale=1/10)`` represents the
-    distribution of the mean of 10 uniformly distributed random variables.
-    
-    %(after_notes)s
-
-    References
-    ----------
-    .. [1] P. Hall, "The distribution of means for samples of size N drawn
-            from a population in which the variate takes values between 0 and 1,
-            all such values being equally probable",
-            Biometrika, Volume 19, Issue 3-4, December 1927, Pages 240-244,
-            :doi:`10.1093/biomet/19.3-4.240`.
-    .. [2] J. O. Irwin, "On the frequency distribution of the means of samples
-            from a population having any law of frequency with finite moments,
-            with special reference to Pearson's Type II,
-            Biometrika, Volume 19, Issue 3-4, December 1927, Pages 225-239,
-            :doi:`0.1093/biomet/19.3-4.225`.
-    .. [3] K. Buchanan, T. Adeyemi, C. Flores-Molina, S. Wheeland and D. Overturf, 
-            "Sidelobe behavior and bandwidth characteristics
-            of distributed antenna arrays,"
-            2018 United States National Committee of
-            URSI National Radio Science Meeting (USNC-URSI NRSM),
-            Boulder, CO, USA, 2018, pp. 1-2.
-            https://www.usnc-ursi-archive.org/nrsm/2018/papers/B15-9.pdf.
-    .. [4] Amos Ron, "Lecture 1: Cardinal B-splines and convolution operators", p. 1
-            https://pages.cs.wisc.edu/~deboor/887/lec1new.pdf.
-    .. [5] Trefethen, N. (2012, July). B-splines and convolution. Chebfun. 
-            Retrieved April 30, 2024, from http://www.chebfun.org/examples/approx/BSplineConv.html.
-
-    %(example)s
-    """
-    @replace_notes_in_docstring(rv_continuous, notes="""\
-        Raises a ``NotImplementedError`` for the Irwin-Hall distribution because
-        the generic `fit` implementation is unreliable and no custom implementation
-        is available. Consider using `scipy.stats.fit`.\n\n""")
-    def fit(self, data, *args, **kwds):
-        ...
-    
-
-
-irwinhall = ...
 class recipinvgauss_gen(rv_continuous):
     r"""A reciprocal inverse Gaussian continuous random variable.
 
@@ -3656,31 +3531,10 @@ class trapezoid_gen(rv_continuous):
     ...
 
 
-deprmsg = ...
-class trapz_gen(trapezoid_gen):
-    """
-
-    .. deprecated:: 1.14.0
-        `trapz` is deprecated and will be removed in SciPy 1.16.
-        Plese use `trapezoid` instead!
-    """
-    def __call__(self, *args, **kwds): # -> rv_continuous_frozen | rv_discrete_frozen:
-        ...
-    
-
-
 trapezoid = ...
 trapz = ...
-_method_names = ...
-class _DeprecationWrapper:
-    def __init__(self, method) -> None:
-        ...
-    
-    def __call__(self, *args, **kwargs): # -> Any:
-        ...
-    
-
-
+if trapz.__doc__:
+    ...
 class triang_gen(rv_continuous):
     r"""A triangular continuous random variable.
 
@@ -4088,7 +3942,7 @@ class vonmises_gen(rv_continuous):
         unit circle. `f0` and `fscale` are ignored; the returned shape is
         always the maximum likelihood estimate and the scale is always
         1. Initial guesses are ignored.\n\n""")
-    def fit(self, data, *args, **kwds): # -> tuple[Any, ...] | tuple[Any | float | float_, Any, Literal[1]]:
+    def fit(self, data, *args, **kwds): # -> tuple[Any, ...] | tuple[Any | float | float_, NDArray[floating[Any]], Literal[1]]:
         ...
     
 
@@ -4489,9 +4343,13 @@ class studentized_range_gen(rv_continuous):
     >>> import matplotlib.pyplot as plt
     >>> fig, ax = plt.subplots(1, 1)
 
-    Display the probability density function (``pdf``):
+    Calculate the first four moments:
 
     >>> k, df = 3, 10
+    >>> mean, var, skew, kurt = studentized_range.stats(k, df, moments='mvsk')
+
+    Display the probability density function (``pdf``):
+
     >>> x = np.linspace(studentized_range.ppf(0.01, k, df),
     ...                 studentized_range.ppf(0.99, k, df), 100)
     >>> ax.plot(x, studentized_range.pdf(x, k, df),

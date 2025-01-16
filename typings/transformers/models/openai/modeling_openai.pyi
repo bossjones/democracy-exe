@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, CausalLMOutput, SequenceClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -125,7 +124,7 @@ class OpenAIGPTModel(OpenAIGPTPreTrainedModel):
     OpenAI GPT Model transformer with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, OPENAI_GPT_START_DOCSTRING)
-class OpenAIGPTLMHeadModel(OpenAIGPTPreTrainedModel, GenerationMixin):
+class OpenAIGPTLMHeadModel(OpenAIGPTPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...

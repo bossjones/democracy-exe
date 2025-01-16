@@ -6,20 +6,15 @@ import torch
 import datasets
 import optuna
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union
-from packaging import version
 from torch import nn
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from .data.data_collator import DataCollator
-from .feature_extraction_utils import FeatureExtractionMixin
-from .image_processing_utils import BaseImageProcessor
 from .modeling_utils import PreTrainedModel
-from .processing_utils import ProcessorMixin
 from .tokenization_utils_base import PreTrainedTokenizerBase
 from .trainer_callback import TrainerCallback
 from .trainer_utils import BestRun, EvalLoopOutput, EvalPrediction, HPSearchBackend, PredictionOutput
 from .training_args import TrainingArguments
 from .utils import is_accelerate_available, is_apex_available, is_datasets_available, is_in_notebook, is_peft_available, is_safetensors_available, is_sagemaker_mp_enabled, is_torch_xla_available
-from .utils.deprecation import deprecate_kwarg
 
 """
 The Trainer class, to easily train a 🤗 Transformers from scratch or finetune it on a new task.
@@ -79,8 +74,8 @@ class Trainer:
             `output_dir` set to a directory named *tmp_trainer* in the current directory if not provided.
         data_collator (`DataCollator`, *optional*):
             The function to use to form a batch from a list of elements of `train_dataset` or `eval_dataset`. Will
-            default to [`default_data_collator`] if no `processing_class` is provided, an instance of
-            [`DataCollatorWithPadding`] otherwise if the processing_class is a feature extractor or tokenizer.
+            default to [`default_data_collator`] if no `tokenizer` is provided, an instance of
+            [`DataCollatorWithPadding`] otherwise.
         train_dataset (Union[`torch.utils.data.Dataset`, `torch.utils.data.IterableDataset`, `datasets.Dataset`], *optional*):
             The dataset to use for training. If it is a [`~datasets.Dataset`], columns not accepted by the
             `model.forward()` method are automatically removed.
@@ -94,11 +89,10 @@ class Trainer:
              The dataset to use for evaluation. If it is a [`~datasets.Dataset`], columns not accepted by the
              `model.forward()` method are automatically removed. If it is a dictionary, it will evaluate on each
              dataset prepending the dictionary key to the metric name.
-        processing_class (`PreTrainedTokenizerBase` or `BaseImageProcessor` or `FeatureExtractionMixin` or `ProcessorMixin`, *optional*):
-            Processing class used to process the data. If provided, will be used to automatically process the inputs
-            for the model, and it will be saved along the model to make it easier to rerun an interrupted training or
-            reuse the fine-tuned model.
-            This supercedes the `tokenizer` argument, which is now deprecated.
+        tokenizer ([`PreTrainedTokenizerBase`], *optional*):
+            The tokenizer used to preprocess the data. If provided, will be used to automatically pad the inputs to the
+            maximum length when batching inputs, and it will be saved along the model to make it easier to rerun an
+            interrupted training or reuse the fine-tuned model.
         model_init (`Callable[[], PreTrainedModel]`, *optional*):
             A function that instantiates the model to be used. If provided, each call to [`~Trainer.train`] will start
             from a new instance of the model as given by this function.
@@ -106,16 +100,12 @@ class Trainer:
             The function may have zero argument, or a single one containing the optuna/Ray Tune/SigOpt trial object, to
             be able to choose different architectures according to hyper parameters (such as layer count, sizes of
             inner layers, dropout probabilities etc).
-        compute_loss_func (`Callable`, *optional*):
-            A function that accepts the raw model outputs, labels, and the number of items in the entire accumulated
-            batch (batch_size * gradient_accumulation_steps) and returns the loss. For example, here is one using
-            the loss function from `transformers`
         compute_metrics (`Callable[[EvalPrediction], Dict]`, *optional*):
             The function that will be used to compute metrics at evaluation. Must take a [`EvalPrediction`] and return
             a dictionary string to metric values. *Note* When passing TrainingArgs with `batch_eval_metrics` set to
             `True`, your compute_metrics function must take a boolean `compute_result` argument. This will be triggered
             after the last eval batch to signal that the function needs to calculate and return the global summary
-            statistics rather than accumulating the batch-level statistics
+            statistics rather than accumulating the batch-level statistics.
         callbacks (List of [`TrainerCallback`], *optional*):
             A list of callbacks to customize the training loop. Will add those to the list of default callbacks
             detailed in [here](callback).
@@ -148,16 +138,7 @@ class Trainer:
           in `train`)
 
     """
-    @deprecate_kwarg("tokenizer", new_name="processing_class", version="5.0.0", raise_if_both_names=True)
-    def __init__(self, model: Union[PreTrainedModel, nn.Module] = ..., args: TrainingArguments = ..., data_collator: Optional[DataCollator] = ..., train_dataset: Optional[Union[Dataset, IterableDataset, datasets.Dataset]] = ..., eval_dataset: Optional[Union[Dataset, Dict[str, Dataset], datasets.Dataset]] = ..., processing_class: Optional[Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin]] = ..., model_init: Optional[Callable[[], PreTrainedModel]] = ..., compute_loss_func: Optional[Callable] = ..., compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = ..., callbacks: Optional[List[TrainerCallback]] = ..., optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = ..., preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = ...) -> None:
-        ...
-    
-    @property
-    def tokenizer(self) -> Optional[PreTrainedTokenizerBase]:
-        ...
-    
-    @tokenizer.setter
-    def tokenizer(self, processing_class) -> None:
+    def __init__(self, model: Union[PreTrainedModel, nn.Module] = ..., args: TrainingArguments = ..., data_collator: Optional[DataCollator] = ..., train_dataset: Optional[Union[Dataset, IterableDataset, datasets.Dataset]] = ..., eval_dataset: Optional[Union[Dataset, Dict[str, Dataset], datasets.Dataset]] = ..., tokenizer: Optional[PreTrainedTokenizerBase] = ..., model_init: Optional[Callable[[], PreTrainedModel]] = ..., compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = ..., callbacks: Optional[List[TrainerCallback]] = ..., optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = ..., preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = ...) -> None:
         ...
     
     def add_callback(self, callback): # -> None:
@@ -427,7 +408,7 @@ class Trainer:
         """
         ...
     
-    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]], num_items_in_batch=...) -> torch.Tensor:
+    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
         """
         Perform a training step on a batch of inputs.
 
@@ -447,7 +428,7 @@ class Trainer:
         """
         ...
     
-    def compute_loss(self, model, inputs, return_outputs=..., num_items_in_batch=...): # -> tuple[Any, Any | dict[Any, Any]]:
+    def compute_loss(self, model, inputs, return_outputs=...): # -> tuple[Any, Any | dict[Any, Any]]:
         """
         How the loss is computed by Trainer. By default, all models return the loss in the first element.
 
@@ -639,9 +620,9 @@ class Trainer:
         """
         ...
     
-    def push_to_hub(self, commit_message: Optional[str] = ..., blocking: bool = ..., token: Optional[str] = ..., revision: Optional[str] = ..., **kwargs) -> str:
+    def push_to_hub(self, commit_message: Optional[str] = ..., blocking: bool = ..., token: Optional[str] = ..., **kwargs) -> str:
         """
-        Upload `self.model` and `self.processing_class` to the 🤗 model hub on the repo `self.args.hub_model_id`.
+        Upload `self.model` and `self.tokenizer` to the 🤗 model hub on the repo `self.args.hub_model_id`.
 
         Parameters:
             commit_message (`str`, *optional*, defaults to `"End of training"`):
@@ -650,8 +631,6 @@ class Trainer:
                 Whether the function should return only when the `git push` has finished.
             token (`str`, *optional*, defaults to `None`):
                 Token with write permission to overwrite Trainer's original args.
-            revision (`str`, *optional*):
-                The git revision to commit from. Defaults to the head of the "main" branch.
             kwargs (`Dict[str, Any]`, *optional*):
                 Additional keyword arguments passed along to [`~Trainer.create_model_card`].
 
@@ -676,9 +655,6 @@ class Trainer:
         """
         Sets values in the deepspeed plugin based on the Trainer args
         """
-        ...
-    
-    def get_batch_samples(self, epoch_iterator, num_batches): # -> tuple[list[Any], None] | tuple[list[Any], Any | int | None]:
         ...
     
 

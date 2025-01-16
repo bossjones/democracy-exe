@@ -26,12 +26,12 @@ class VideoClassificationPipeline(Pipeline):
     def __init__(self, *args, **kwargs) -> None:
         ...
     
-    def __call__(self, inputs: Union[str, List[str]] = ..., **kwargs): # -> list[Any] | PipelineIterator | Generator[Any, Any, None] | Tensor | Any | None:
+    def __call__(self, videos: Union[str, List[str]], **kwargs): # -> list[Any] | PipelineIterator | Generator[Any, Any, None] | Tensor | Any | None:
         """
         Assign labels to the video(s) passed as inputs.
 
         Args:
-            inputs (`str`, `List[str]`):
+            videos (`str`, `List[str]`):
                 The pipeline handles three types of videos:
 
                 - A string containing a http link pointing to a video
@@ -48,11 +48,6 @@ class VideoClassificationPipeline(Pipeline):
             frame_sampling_rate (`int`, *optional*, defaults to 1):
                 The sampling rate used to select frames from the video. If not provided, will default to 1, i.e. every
                 frame will be used.
-            function_to_apply(`str`, *optional*, defaults to "softmax"):
-                The function to apply to the model output. By default, the pipeline will apply the softmax function to
-                the output of the model. Valid options: ["softmax", "sigmoid", "none"]. Note that passing Python's
-                built-in `None` will default to "softmax", so you need to pass the string "none" to disable any
-                post-processing.
 
         Return:
             A dictionary or a list of dictionaries containing result. If the input is a single video, will return a
@@ -69,7 +64,7 @@ class VideoClassificationPipeline(Pipeline):
     def preprocess(self, video, num_frames=..., frame_sampling_rate=...): # -> transformers.feature_extraction_utils.BatchFeature | transformers.image_processing_base.BatchFeature:
         ...
     
-    def postprocess(self, model_outputs, top_k=..., function_to_apply=...): # -> list[dict[str, Any]]:
+    def postprocess(self, model_outputs, top_k=...): # -> list[dict[str, Any]]:
         ...
     
 

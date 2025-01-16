@@ -413,13 +413,12 @@ class DataCollatorWithFlattening(DefaultDataCollator):
     Data collator used for padding free approach. Does the following:
 
     - concatate the entire mini batch into single long sequence [1, total_tokens]
-    - uses `separator_id` to separate sequences within the concatenated `labels`, default value is -100
     - no padding will be added, returns `input_ids`, `labels` and `position_ids`
     """
-    def __init__(self, *args, return_position_ids=..., separator_id=..., **kwargs) -> None:
+    def __init__(self, *args, return_position_ids=..., **kwargs) -> None:
         ...
     
-    def __call__(self, features, return_tensors=..., separator_id=...): # -> Dict[str, Any]:
+    def __call__(self, features, return_tensors=...): # -> Dict[str, Any]:
         ...
     
 

@@ -151,7 +151,7 @@ def sbd_wrapper(dataset, target_keys): # -> Callable[..., tuple[Any, Mask]]:
     ...
 
 @WRAPPER_FACTORIES.register(datasets.CelebA)
-def celeba_wrapper_factory(dataset, target_keys): # -> Callable[..., tuple[Any, Any | tuple[Any, ...]]]:
+def celeba_wrapper_factory(dataset, target_keys): # -> Callable[..., tuple[Any, Tensor | tuple[Tensor, ...]]]:
     ...
 
 KITTI_CATEGORIES = ...
@@ -161,7 +161,7 @@ def kitti_wrapper_factory(dataset, target_keys): # -> Callable[..., tuple[Any, A
     ...
 
 @WRAPPER_FACTORIES.register(datasets.OxfordIIITPet)
-def oxford_iiit_pet_wrapper_factor(dataset, target_keys): # -> Callable[..., tuple[Any, Any | tuple[Any, ...]]]:
+def oxford_iiit_pet_wrapper_factor(dataset, target_keys): # -> Callable[..., tuple[Any, Mask | Any | tuple[Mask | Any, ...]]]:
     ...
 
 @WRAPPER_FACTORIES.register(datasets.Cityscapes)

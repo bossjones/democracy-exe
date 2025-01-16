@@ -107,18 +107,7 @@ class BridgeTowerVisionEmbeddings(nn.Module):
     def __init__(self, config: BridgeTowerVisionConfig) -> None:
         ...
     
-    def interpolate_pos_encoding(self, embeddings: torch.Tensor, height: int, width: int) -> torch.Tensor:
-        """
-        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher resolution
-        images. This method is also adapted to support torch.jit tracing.
-
-        Adapted from:
-        - https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174-L194, and
-        - https://github.com/facebookresearch/dinov2/blob/e1277af2ba9496fbadf7aec6eba56e8d882d1e35/dinov2/models/vision_transformer.py#L179-L211
-        """
-        ...
-    
-    def forward(self, pixel_values: torch.FloatTensor, interpolate_pos_encoding=...) -> torch.Tensor:
+    def forward(self, pixel_values: torch.FloatTensor) -> torch.Tensor:
         ...
     
 
@@ -127,10 +116,10 @@ class BridgeTowerVisionTransformer(nn.Module):
     def __init__(self, config) -> None:
         ...
     
-    def forward(self, pixel_values: torch.Tensor, attention_mask, interpolate_pos_encoding: bool = ...): # -> Any | Tensor:
+    def forward(self, pixel_values: torch.Tensor, attention_mask): # -> Any | Tensor:
         ...
     
-    def forward_pre(self, pixel_values: torch.Tensor, interpolate_pos_encoding: bool = ...): # -> Any:
+    def forward_pre(self, pixel_values: torch.Tensor): # -> Any:
         ...
     
     def forward_post(self, hidden_state: torch.Tensor): # -> Any:
@@ -297,7 +286,7 @@ class BridgeTowerVisionModel(BridgeTowerPreTrainedModel):
     def dtype(self): # -> dtype:
         ...
     
-    def forward(self, image, image_mask=..., interpolate_pos_encoding=...): # -> Any:
+    def forward(self, image, image_mask=...): # -> Any:
         ...
     
 
@@ -365,7 +354,7 @@ class BridgeTowerModel(BridgeTowerPreTrainedModel):
     
     @add_start_docstrings_to_model_forward(BRIDGETOWER_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=BridgeTowerModelOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.FloatTensor] = ..., token_type_ids: Optional[torch.LongTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., pixel_mask: Optional[torch.LongTensor] = ..., head_mask: Optional[torch.FloatTensor] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., image_embeds: Optional[torch.FloatTensor] = ..., image_token_type_idx: Optional[int] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., labels: Optional[torch.LongTensor] = ..., interpolate_pos_encoding: bool = ...) -> Union[Tuple[torch.Tensor], BridgeTowerModelOutput]:
+    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.FloatTensor] = ..., token_type_ids: Optional[torch.LongTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., pixel_mask: Optional[torch.LongTensor] = ..., head_mask: Optional[torch.FloatTensor] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., image_embeds: Optional[torch.FloatTensor] = ..., image_token_type_idx: Optional[int] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., labels: Optional[torch.LongTensor] = ...) -> Union[Tuple[torch.Tensor], BridgeTowerModelOutput]:
         r"""
         output_hidden_states (`bool`, *optional*):
             If set to `True`, hidden states are returned as a list containing the hidden states of text, image, and

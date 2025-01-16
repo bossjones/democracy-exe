@@ -11,13 +11,7 @@ __docformat__ = ...
 __all__ = ['csr_array', 'csr_matrix', 'isspmatrix_csr']
 class _csr_base(_cs_matrix):
     _format = ...
-    def __getitem__(self, key): # -> Self | ndarray[Any, dtype[Any]] | ndarray[Any, dtype[float64]] | ndarray[Any, Any] | _DTypeScalar_co | Any | floating[_64Bit]:
-        ...
-    
-    def __setitem__(self, key, value): # -> None:
-        ...
-    
-    def transpose(self, axes=..., copy=...): # -> Self | csc_array:
+    def transpose(self, axes=..., copy=...): # -> csc_array:
         ...
     
     def tolil(self, copy=...): # -> lil_array:
@@ -32,7 +26,7 @@ class _csr_base(_cs_matrix):
     def tobsr(self, blocksize=..., copy=...): # -> bsr_array:
         ...
     
-    def __iter__(self): # -> Generator[Any | <subclass of _csr_base* and sparray> | _csr_base, Any, None]:
+    def __iter__(self): # -> Generator[Self, Any, None]:
         ...
     
 

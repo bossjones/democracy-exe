@@ -6,13 +6,12 @@ import torch
 from typing import List, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
-from ...utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
+from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
 from .configuration_gemma import GemmaConfig
 
-_CHECKPOINT_FOR_DOC = ...
+logger = ...
 class GemmaRMSNorm(nn.Module):
     def __init__(self, dim: int, eps: float = ...) -> None:
         ...
@@ -25,13 +24,21 @@ class GemmaRMSNorm(nn.Module):
     
 
 
-logger = ...
 class GemmaRotaryEmbedding(nn.Module):
     def __init__(self, dim, max_position_embeddings=..., base=..., device=...) -> None:
         ...
     
     @torch.no_grad()
     def forward(self, x, position_ids, seq_len=...): # -> tuple[Tensor, Tensor]:
+        ...
+    
+
+
+class GemmaMLP(nn.Module):
+    def __init__(self, config) -> None:
+        ...
+    
+    def forward(self, x): # -> Any:
         ...
     
 
@@ -46,15 +53,6 @@ class GemmaLinearScalingRotaryEmbedding(GemmaRotaryEmbedding):
 class GemmaDynamicNTKScalingRotaryEmbedding(GemmaRotaryEmbedding):
     """GemmaRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla"""
     def forward(self, x, position_ids): # -> tuple[Tensor, Tensor]:
-        ...
-    
-
-
-class GemmaMLP(nn.Module):
-    def __init__(self, config) -> None:
-        ...
-    
-    def forward(self, x): # -> Any:
         ...
     
 
@@ -102,17 +100,6 @@ class GemmaAttention(nn.Module):
     
 
 
-class GemmaSdpaAttention(GemmaAttention):
-    """
-    Gemma attention module using torch.nn.functional.scaled_dot_product_attention. This module inherits from
-    `GemmaAttention` as the weights of the module stays untouched. The only changes are on the forward pass to adapt to
-    SDPA API.
-    """
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., **kwargs) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        ...
-    
-
-
 class GemmaFlashAttention2(GemmaAttention):
     """
     Gemma flash attention module. This module inherits from `GemmaAttention` as the weights of the module stays
@@ -123,6 +110,17 @@ class GemmaFlashAttention2(GemmaAttention):
         ...
     
     def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.LongTensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        ...
+    
+
+
+class GemmaSdpaAttention(GemmaAttention):
+    """
+    Gemma attention module using torch.nn.functional.scaled_dot_product_attention. This module inherits from
+    `GemmaAttention` as the weights of the module stays untouched. The only changes are on the forward pass to adapt to
+    SDPA API.
+    """
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., **kwargs) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
@@ -196,7 +194,7 @@ class GemmaModel(GemmaPreTrainedModel):
     
 
 
-class GemmaForCausalLM(GemmaPreTrainedModel, GenerationMixin):
+class GemmaForCausalLM(GemmaPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -221,18 +219,13 @@ class GemmaForCausalLM(GemmaPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(GEMMA_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ..., **loss_kwargs) -> Union[Tuple, CausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
 
         Returns:
 
@@ -252,6 +245,9 @@ class GemmaForCausalLM(GemmaPreTrainedModel, GenerationMixin):
         >>> tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         "What is your favorite condiment?"
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., position_ids=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -279,7 +275,7 @@ class GemmaForSequenceClassification(GemmaPreTrainedModel):
         ...
     
     @add_start_docstrings_to_model_forward(GEMMA_INPUTS_DOCSTRING)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, SequenceClassifierOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, SequenceClassifierOutputWithPast]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
             Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
@@ -305,7 +301,6 @@ class GemmaForTokenClassification(GemmaPreTrainedModel):
         ...
     
     @add_start_docstrings_to_model_forward(GEMMA_INPUTS_DOCSTRING)
-    @add_code_sample_docstrings(checkpoint=_CHECKPOINT_FOR_DOC, output_type=TokenClassifierOutput, config_class=_CONFIG_FOR_DOC)
     def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, TokenClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -317,4 +312,3 @@ class GemmaForTokenClassification(GemmaPreTrainedModel):
     
 
 
-__all__ = ["GemmaModel", "GemmaForCausalLM", "GemmaForSequenceClassification", "GemmaForTokenClassification"]

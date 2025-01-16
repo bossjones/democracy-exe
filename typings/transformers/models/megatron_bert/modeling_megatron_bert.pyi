@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPoolingAndCrossAttentions, CausalLMOutputWithCrossAttentions, MaskedLMOutput, MultipleChoiceModelOutput, NextSentencePredictorOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -305,7 +304,7 @@ class MegatronBertForPreTraining(MegatronBertPreTrainedModel):
 
 
 @add_start_docstrings("""MegatronBert Model with a `language modeling` head on top for CLM fine-tuning.""", MEGATRON_BERT_START_DOCSTRING)
-class MegatronBertForCausalLM(MegatronBertPreTrainedModel, GenerationMixin):
+class MegatronBertForCausalLM(MegatronBertPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -359,6 +358,9 @@ class MegatronBertForCausalLM(MegatronBertPreTrainedModel, GenerationMixin):
 
         >>> prediction_logits = outputs.logits
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., **model_kwargs): # -> dict[str, Any]:
         ...
     
 

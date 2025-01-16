@@ -52,9 +52,6 @@ class Conv1D(nn.Module):
     def __init__(self, nf, nx) -> None:
         ...
     
-    def __repr__(self) -> str:
-        ...
-    
     def forward(self, x): # -> Tensor:
         ...
     
@@ -160,21 +157,6 @@ def id_tensor_storage(tensor: torch.Tensor) -> Tuple[torch.device, int, int]:
     example, "meta" tensors all share the same storage, and thus their identifier will all be equal. This identifier is
     guaranteed to be unique and constant for this tensor's storage during its lifetime. Two tensor storages with
     non-overlapping lifetimes may have the same id.
-    """
-    ...
-
-def isin_mps_friendly(elements: torch.Tensor, test_elements: torch.Tensor | int) -> torch.Tensor:
-    """
-    Same as `torch.isin` without flags, but MPS-friendly. We can remove this function when we stop supporting
-    torch <= 2.3. See https://github.com/pytorch/pytorch/issues/77764#issuecomment-2067838075
-
-    Args:
-        elements (`torch.Tensor`): Input elements
-        test_elements (`torch.Tensor` or `int`): The elements to check against.
-
-    Returns:
-        `torch.Tensor`: A boolean tensor of the same shape as `elements` that is True for `elements` in `test_elements`
-        and False otherwise
     """
     ...
 

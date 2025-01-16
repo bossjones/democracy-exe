@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPooling, CausalLMOutputWithCrossAttentions
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -140,18 +139,7 @@ class Kosmos2VisionEmbeddings(nn.Module):
     def __init__(self, config: Kosmos2VisionConfig) -> None:
         ...
     
-    def interpolate_pos_encoding(self, embeddings: torch.Tensor, height: int, width: int) -> torch.Tensor:
-        """
-        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher resolution
-        images. This method is also adapted to support torch.jit tracing.
-
-        Adapted from:
-        - https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174-L194, and
-        - https://github.com/facebookresearch/dinov2/blob/e1277af2ba9496fbadf7aec6eba56e8d882d1e35/dinov2/models/vision_transformer.py#L179-L211
-        """
-        ...
-    
-    def forward(self, pixel_values: torch.FloatTensor, interpolate_pos_encoding=...) -> torch.Tensor:
+    def forward(self, pixel_values: torch.FloatTensor) -> torch.Tensor:
         ...
     
 
@@ -244,7 +232,7 @@ class Kosmos2VisionTransformer(nn.Module):
     def __init__(self, config: Kosmos2VisionConfig) -> None:
         ...
     
-    def forward(self, pixel_values: Optional[torch.FloatTensor] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: bool = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, BaseModelOutputWithPooling]:
+    def forward(self, pixel_values: Optional[torch.FloatTensor] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, BaseModelOutputWithPooling]:
         ...
     
 
@@ -352,7 +340,7 @@ class Kosmos2VisionModel(Kosmos2PreTrainedModel):
     
     @add_start_docstrings_to_model_forward(KOSMOS2_VISION_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=BaseModelOutputWithPooling, config_class=Kosmos2VisionConfig)
-    def forward(self, pixel_values: Optional[torch.FloatTensor] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: bool = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, BaseModelOutputWithPooling]:
+    def forward(self, pixel_values: Optional[torch.FloatTensor] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, BaseModelOutputWithPooling]:
         r"""
         Returns:
 
@@ -387,7 +375,7 @@ class Kosmos2TextModel(Kosmos2PreTrainedModel):
     The text model from KOSMOS-2 with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, KOSMOS2_START_DOCSTRING)
-class Kosmos2TextForCausalLM(Kosmos2PreTrainedModel, GenerationMixin):
+class Kosmos2TextForCausalLM(Kosmos2PreTrainedModel):
     config_class = Kosmos2TextConfig
     _tied_weights_keys = ...
     def __init__(self, config: Kosmos2TextConfig) -> None:
@@ -451,7 +439,7 @@ class Kosmos2Model(Kosmos2PreTrainedModel):
     
     @add_start_docstrings_to_model_forward(KOSMOS2_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=Kosmos2ModelOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, pixel_values: Optional[torch.Tensor] = ..., input_ids: Optional[torch.Tensor] = ..., image_embeds_position_mask: Optional[torch.Tensor] = ..., attention_mask: Optional[torch.Tensor] = ..., head_mask: Optional[torch.Tensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., image_embeds: Optional[torch.Tensor] = ..., inputs_embeds: Optional[torch.Tensor] = ..., position_ids: Optional[torch.Tensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., interpolate_pos_encoding: bool = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, Kosmos2ModelOutput]:
+    def forward(self, pixel_values: Optional[torch.Tensor] = ..., input_ids: Optional[torch.Tensor] = ..., image_embeds_position_mask: Optional[torch.Tensor] = ..., attention_mask: Optional[torch.Tensor] = ..., head_mask: Optional[torch.Tensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., image_embeds: Optional[torch.Tensor] = ..., inputs_embeds: Optional[torch.Tensor] = ..., position_ids: Optional[torch.Tensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, Kosmos2ModelOutput]:
         r"""
         Returns:
 
@@ -493,7 +481,7 @@ class Kosmos2Model(Kosmos2PreTrainedModel):
     KOSMOS-2 Model for generating text and bounding boxes given an image. The model consists of a vision encoder and a
     language model.
     """, KOSMOS2_START_DOCSTRING)
-class Kosmos2ForConditionalGeneration(Kosmos2PreTrainedModel, GenerationMixin):
+class Kosmos2ForConditionalGeneration(Kosmos2PreTrainedModel):
     config_class = Kosmos2Config
     main_input_name = ...
     _tied_weights_keys = ...

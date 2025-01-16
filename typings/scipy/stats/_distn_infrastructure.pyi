@@ -917,7 +917,7 @@ class rv_continuous(rv_generic):
             - optimizer : The optimizer to use.  The optimizer must take
               ``func`` and starting position as the first two arguments,
               plus ``args`` (for extra arguments to pass to the
-              function to be optimized) and ``disp``.
+              function to be optimized) and ``disp``. 
               The ``fit`` method calls the optimizer with ``disp=0`` to suppress output.
               The optimizer must return the estimated parameters.
 
@@ -978,7 +978,7 @@ class rv_continuous(rv_generic):
                                     \log(f(k_u; \pmb{\theta}))
                                 + \sum
                                     \log(F(k_l; \pmb{\theta})) \\
-                                & + \sum
+                                & + \sum 
                                     \log(1 - F(k_r; \pmb{\theta})) \\
                                 & + \sum
                                     \log(F(k_{\text{high}, i}; \pmb{\theta})

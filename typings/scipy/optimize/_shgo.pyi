@@ -27,12 +27,12 @@ def shgo(func, bounds, args=..., constraints=..., n=..., iters=..., callback=...
         Any additional fixed parameters needed to completely specify the
         objective function.
     constraints : {Constraint, dict} or List of {Constraint, dict}, optional
-        Constraints definition. Only for COBYLA, COBYQA, SLSQP and trust-constr.
+        Constraints definition. Only for COBYLA, SLSQP and trust-constr.
         See the tutorial [5]_ for further details on specifying constraints.
 
         .. note::
 
-           Only COBYLA, COBYQA, SLSQP, and trust-constr local minimize methods
+           Only COBYLA, SLSQP, and trust-constr local minimize methods
            currently support constraint arguments. If the ``constraints``
            sequence used in the local optimization problem is not defined in
            ``minimizer_kwargs`` and a constrained method is used then the
@@ -254,9 +254,8 @@ def shgo(func, bounds, args=..., constraints=..., n=..., iters=..., callback=...
     The local search method may be specified using the ``minimizer_kwargs``
     parameter which is passed on to ``scipy.optimize.minimize``. By default,
     the ``SLSQP`` method is used. In general, it is recommended to use the
-    ``SLSQP``, ``COBYLA``, or ``COBYQA`` local minimization if inequality
-    constraints are defined for the problem since the other methods do not use
-    constraints.
+    ``SLSQP`` or ``COBYLA`` local minimization if inequality constraints
+    are defined for the problem since the other methods do not use constraints.
 
     The ``halton`` and ``sobol`` method points are generated using
     `scipy.stats.qmc`. Any other QMC method could be used.

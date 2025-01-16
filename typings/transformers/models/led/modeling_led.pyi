@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import Seq2SeqLMOutput, Seq2SeqModelOutput, Seq2SeqQuestionAnsweringModelOutput, Seq2SeqSequenceClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_end_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -629,7 +628,7 @@ class LEDModel(LEDPreTrainedModel):
 
 
 @add_start_docstrings("The LED Model with a language modeling head. Can be used for summarization.", LED_START_DOCSTRING)
-class LEDForConditionalGeneration(LEDPreTrainedModel, GenerationMixin):
+class LEDForConditionalGeneration(LEDPreTrainedModel):
     base_model_prefix = ...
     _keys_to_ignore_on_load_missing = ...
     _tied_weights_keys = ...
@@ -677,6 +676,9 @@ class LEDForConditionalGeneration(LEDPreTrainedModel, GenerationMixin):
         >>> prediction = model.generate(input_ids)[0]
         >>> print(tokenizer.decode(prediction, skip_special_tokens=True))
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., global_attention_mask=..., head_mask=..., decoder_head_mask=..., cross_attn_head_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor): # -> Tensor:

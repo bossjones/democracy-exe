@@ -83,7 +83,7 @@ def get_keys_to_not_convert(model): # -> list[Any]:
     """
     ...
 
-def dequantize_bnb_weight(weight: torch.nn.Parameter, dtype: torch.dtype, state=...): # -> Parameter:
+def dequantize_bnb_weight(weight: torch.nn.Parameter, state=...): # -> Parameter:
     """
     Helper function to dequantize 4bit or 8bit bnb weights.
 
@@ -92,11 +92,5 @@ def dequantize_bnb_weight(weight: torch.nn.Parameter, dtype: torch.dtype, state=
     ...
 
 def dequantize_and_replace(model, modules_to_not_convert=..., quantization_config=...):
-    ...
-
-def validate_bnb_backend_availability(raise_exception=...): # -> bool:
-    """
-    Validates if the available devices are supported by bitsandbytes, optionally raising an exception if not.
-    """
     ...
 

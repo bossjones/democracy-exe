@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward
 from .configuration_rwkv import RwkvConfig
@@ -164,7 +163,7 @@ class RwkvModel(RwkvPreTrainedModel):
     The RWKV Model transformer with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, RWKV_START_DOCSTRING)
-class RwkvForCausalLM(RwkvPreTrainedModel, GenerationMixin):
+class RwkvForCausalLM(RwkvPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -175,7 +174,7 @@ class RwkvForCausalLM(RwkvPreTrainedModel, GenerationMixin):
     def set_output_embeddings(self, new_embeddings): # -> None:
         ...
     
-    def prepare_inputs_for_generation(self, input_ids, state=..., inputs_embeds=..., use_cache=..., **kwargs): # -> dict[str, Any]:
+    def prepare_inputs_for_generation(self, input_ids, state=..., inputs_embeds=..., **kwargs): # -> dict[str, Any]:
         ...
     
     @add_start_docstrings_to_model_forward(RWKV_INPUTS_DOCSTRING)

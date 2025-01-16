@@ -29,7 +29,7 @@ class _dia_base(_data_matrix):
     def transpose(self, axes=..., copy=...): # -> dia_array:
         ...
     
-    def diagonal(self, k=...): # -> NDArray[Any]:
+    def diagonal(self, k=...): # -> NDArray[float_] | ndarray[Any, dtype[Any]]:
         ...
     
     def tocsc(self, copy=...): # -> csc_array:

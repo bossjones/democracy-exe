@@ -6,7 +6,9 @@ import torch
 import torch.nn as nn
 from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING, Tuple, Union
-from ...generation import GenerationConfig, GenerationMixin, LogitsProcessorList, StoppingCriteriaList
+from ...generation.configuration_utils import GenerationConfig
+from ...generation.logits_process import LogitsProcessorList
+from ...generation.stopping_criteria import StoppingCriteriaList
 from ...modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions, ModelOutput, Seq2SeqLMOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
@@ -183,7 +185,7 @@ class MusicgenModel(MusicgenPreTrainedModel):
 
 
 @add_start_docstrings("The MusicGen decoder model with a language modelling head on top.", MUSICGEN_START_DOCSTRING)
-class MusicgenForCausalLM(MusicgenPreTrainedModel, GenerationMixin):
+class MusicgenForCausalLM(MusicgenPreTrainedModel):
     def __init__(self, config: MusicgenDecoderConfig) -> None:
         ...
     
@@ -286,8 +288,7 @@ class MusicgenForCausalLM(MusicgenPreTrainedModel, GenerationMixin):
                 generation config. If a stopping criteria is passed that is already created with the arguments or a
                 generation config an error is thrown. This feature is intended for advanced users.
             synced_gpus (`bool`, *optional*, defaults to `False`):
-                Whether to continue running the while loop until max_length (needed to avoid deadlocking with
-                `FullyShardedDataParallel` and DeepSpeed ZeRO Stage 3).
+                Whether to continue running the while loop until max_length (needed for ZeRO stage 3)
             streamer (`BaseStreamer`, *optional*):
                 Streamer object that will be used to stream the generated sequences. Generated tokens are passed
                 through `streamer.put(token_ids)` and the streamer is responsible for any further processing.
@@ -317,7 +318,7 @@ class MusicgenForCausalLM(MusicgenPreTrainedModel, GenerationMixin):
 
 
 @add_start_docstrings("The composite MusicGen model with a text encoder, audio encoder and Musicgen decoder, " "for music generation tasks with one or both of text and audio prompts.", MUSICGEN_START_DOCSTRING)
-class MusicgenForConditionalGeneration(PreTrainedModel, GenerationMixin):
+class MusicgenForConditionalGeneration(PreTrainedModel):
     config_class = MusicgenConfig
     base_model_prefix = ...
     main_input_name = ...
@@ -521,8 +522,7 @@ class MusicgenForConditionalGeneration(PreTrainedModel, GenerationMixin):
                 generation config. If a stopping criteria is passed that is already created with the arguments or a
                 generation config an error is thrown. This feature is intended for advanced users.
             synced_gpus (`bool`, *optional*, defaults to `False`):
-                Whether to continue running the while loop until max_length (needed to avoid deadlocking with
-                `FullyShardedDataParallel` and DeepSpeed ZeRO Stage 3).
+                Whether to continue running the while loop until max_length (needed for ZeRO stage 3)
             streamer (`BaseStreamer`, *optional*):
                 Streamer object that will be used to stream the generated sequences. Generated tokens are passed
                 through `streamer.put(token_ids)` and the streamer is responsible for any further processing.

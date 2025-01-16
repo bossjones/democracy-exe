@@ -96,13 +96,13 @@ def is_mlx_array(x): # -> bool:
     """
     ...
 
-def to_py_obj(obj): # -> dict[Any, Any] | list[Any] | Any:
+def to_py_obj(obj): # -> dict[Any, dict[Any, Any] | list[dict[Any, Any] | list[Any] | Any] | Any] | list[dict[Any, Any] | list[Any] | Any] | Any:
     """
     Convert a TensorFlow tensor, PyTorch tensor, Numpy array or python list to a python list.
     """
     ...
 
-def to_numpy(obj): # -> dict[Any, Any] | NDArray[Any]:
+def to_numpy(obj): # -> dict[Any, dict[Any, Any] | NDArray[Any] | Any] | NDArray[Any]:
     """
     Convert a TensorFlow tensor, PyTorch tensor, Numpy array or python list to a Numpy array.
     """

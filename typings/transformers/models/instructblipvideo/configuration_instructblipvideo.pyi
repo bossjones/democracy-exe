@@ -10,8 +10,8 @@ logger = ...
 class InstructBlipVideoVisionConfig(PretrainedConfig):
     r"""
     This is the configuration class to store the configuration of a [`InstructBlipVideoVisionModel`]. It is used to
-    instantiate a InstructBlipVideo vision encoder according to the specified arguments, defining the model architecture.
-    Instantiating a configuration defaults will yield a similar configuration to that of the InstructBlipVideo
+    instantiate a Instructblipvideo vision encoder according to the specified arguments, defining the model architecture.
+    Instantiating a configuration defaults will yield a similar configuration to that of the Instructblipvideo
     [Salesforce/instruct-blip-flan-t5](https://huggingface.co/Salesforce/instruct-blip-flan-t5) architecture.
 
     Configuration objects inherit from [`PretrainedConfig`] and can be used to control the model outputs. Read the
@@ -32,7 +32,7 @@ class InstructBlipVideoVisionConfig(PretrainedConfig):
             The size (resolution) of each patch.
         hidden_act (`str` or `function`, *optional*, defaults to `"gelu"`):
             The non-linear activation function (function or string) in the encoder and pooler. If string, `"gelu"`,
-            `"relu"`, `"selu"` and `"gelu_new"` `"gelu"` are supported. to 1e-5): The epsilon used by the layer
+            `"relu"`, `"selu"` and `"gelu_new"` ``"gelu"` are supported. to 1e-5): The epsilon used by the layer
             normalization layers.
         layer_norm_eps (`float`, *optional*, defaults to 1e-06):
             The epsilon used by the layer normalization layers.
@@ -70,9 +70,9 @@ class InstructBlipVideoVisionConfig(PretrainedConfig):
 class InstructBlipVideoQFormerConfig(PretrainedConfig):
     r"""
     This is the configuration class to store the configuration of a [`InstructBlipVideoQFormerModel`]. It is used to
-    instantiate a InstructBlipVideo Querying Transformer (Q-Former) model according to the specified arguments, defining the
+    instantiate a Instructblipvideo Querying Transformer (Q-Former) model according to the specified arguments, defining the
     model architecture. Instantiating a configuration with the defaults will yield a similar configuration to that of
-    the InstructBlipVideo [Salesforce/instruct-blip-flan-t5](https://huggingface.co/Salesforce/instruct-blip-flan-t5)
+    the Instructblipvideo [Salesforce/instruct-blip-flan-t5](https://huggingface.co/Salesforce/instruct-blip-flan-t5)
     architecture. Configuration objects inherit from [`PretrainedConfig`] and can be used to control the model outputs.
     Read the documentation from [`PretrainedConfig`] for more information.
 
@@ -122,7 +122,7 @@ class InstructBlipVideoQFormerConfig(PretrainedConfig):
     ```python
     >>> from transformers import InstructBlipVideoQFormerConfig, InstructBlipVideoQFormerModel
 
-    >>> # Initializing a InstructBlipVideo Salesforce/instruct-blip-flan-t5 style configuration
+    >>> # Initializing a Instructblipvideo Salesforce/instruct-blip-flan-t5 style configuration
     >>> configuration = InstructBlipVideoQFormerConfig()
 
     >>> # Initializing a model (with random weights) from the Salesforce/instruct-blip-flan-t5 style configuration
@@ -161,8 +161,6 @@ class InstructBlipVideoConfig(PretrainedConfig):
         num_query_tokens (`int`, *optional*, defaults to 32):
             The number of query tokens passed through the Transformer.
 
-        video_token_index (`int`, *optional*):
-            Token index of special video token.
         kwargs (*optional*):
             Dictionary of keyword arguments.
 
@@ -196,13 +194,13 @@ class InstructBlipVideoConfig(PretrainedConfig):
     >>> config = InstructBlipVideoConfig.from_text_vision_configs(vision_config, qformer_config, text_config)
     ```"""
     model_type = ...
-    def __init__(self, vision_config=..., qformer_config=..., text_config=..., num_query_tokens=..., video_token_index=..., **kwargs) -> None:
+    def __init__(self, vision_config=..., qformer_config=..., text_config=..., num_query_tokens=..., **kwargs) -> None:
         ...
     
     @classmethod
     def from_vision_qformer_text_configs(cls, vision_config: InstructBlipVideoVisionConfig, qformer_config: InstructBlipVideoQFormerConfig, text_config: PretrainedConfig, **kwargs): # -> Self:
         r"""
-        Instantiate a [`InstructBlipVideoConfig`] (or a derived class) from a InstructBlipVideo vision model, Q-Former and
+        Instantiate a [`InstructBlipVideoConfig`] (or a derived class) from a Instructblipvideo vision model, Q-Former and
         language model configurations.
 
         Returns:

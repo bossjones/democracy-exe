@@ -6,7 +6,6 @@ import os
 import torch
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, CausalLMOutputWithCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_end_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -309,7 +308,7 @@ class BlenderbotModel(BlenderbotPreTrainedModel):
 
 
 @add_start_docstrings("The Blenderbot Model with a language modeling head. Can be used for summarization.", BLENDERBOT_START_DOCSTRING)
-class BlenderbotForConditionalGeneration(BlenderbotPreTrainedModel, GenerationMixin):
+class BlenderbotForConditionalGeneration(BlenderbotPreTrainedModel):
     base_model_prefix = ...
     _keys_to_ignore_on_load_missing = ...
     _tied_weights_keys = ...
@@ -349,6 +348,9 @@ class BlenderbotForConditionalGeneration(BlenderbotPreTrainedModel, GenerationMi
         """
         ...
     
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., head_mask=..., decoder_head_mask=..., cross_attn_head_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
+        ...
+    
 
 
 class BlenderbotDecoderWrapper(BlenderbotPreTrainedModel):
@@ -364,7 +366,7 @@ class BlenderbotDecoderWrapper(BlenderbotPreTrainedModel):
     
 
 
-class BlenderbotForCausalLM(BlenderbotPreTrainedModel, GenerationMixin):
+class BlenderbotForCausalLM(BlenderbotPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -473,6 +475,9 @@ class BlenderbotForCausalLM(BlenderbotPreTrainedModel, GenerationMixin):
         >>> list(logits.shape) == expected_shape
         True
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

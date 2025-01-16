@@ -69,10 +69,3 @@ def post_init_awq_exllama_modules(model, exllama_config):
     """
     ...
 
-def post_init_awq_ipex_modules(model):
-    """
-    Runs post init for IPEX layers which performs:
-        - Weights packing, reordering and repacking
-    """
-    ...
-

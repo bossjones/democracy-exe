@@ -8,7 +8,7 @@ from ...configuration_utils import PretrainedConfig
 logger = ...
 class DepthAnythingConfig(PretrainedConfig):
     r"""
-    This is the configuration class to store the configuration of a [`DepthAnythingModel`]. It is used to instantiate a DepthAnything
+    This is the configuration class to store the configuration of a [`DepthAnythingModel`]. It is used to instantiate an DepthAnything
     model according to the specified arguments, defining the model architecture. Instantiating a configuration with the
     defaults will yield a similar configuration to that of the DepthAnything
     [LiheYoung/depth-anything-small-hf](https://huggingface.co/LiheYoung/depth-anything-small-hf) architecture.
@@ -48,11 +48,6 @@ class DepthAnythingConfig(PretrainedConfig):
             The index of the features to use in the depth estimation head.
         head_hidden_size (`int`, *optional*, defaults to 32):
             The number of output channels in the second convolution of the depth estimation head.
-        depth_estimation_type (`str`, *optional*, defaults to `"relative"`):
-            The type of depth estimation to use. Can be one of `["relative", "metric"]`.
-        max_depth (`float`, *optional*):
-            The maximum depth to use for the "metric" depth estimation head. 20 should be used for indoor models
-            and 80 for outdoor models. For "relative" depth estimation, this value is ignored.
 
     Example:
 
@@ -69,7 +64,7 @@ class DepthAnythingConfig(PretrainedConfig):
     >>> configuration = model.config
     ```"""
     model_type = ...
-    def __init__(self, backbone_config=..., backbone=..., use_pretrained_backbone=..., use_timm_backbone=..., backbone_kwargs=..., patch_size=..., initializer_range=..., reassemble_hidden_size=..., reassemble_factors=..., neck_hidden_sizes=..., fusion_hidden_size=..., head_in_index=..., head_hidden_size=..., depth_estimation_type=..., max_depth=..., **kwargs) -> None:
+    def __init__(self, backbone_config=..., backbone=..., use_pretrained_backbone=..., use_timm_backbone=..., backbone_kwargs=..., patch_size=..., initializer_range=..., reassemble_hidden_size=..., reassemble_factors=..., neck_hidden_sizes=..., fusion_hidden_size=..., head_in_index=..., head_hidden_size=..., **kwargs) -> None:
         ...
     
     def to_dict(self): # -> dict[str, Any]:

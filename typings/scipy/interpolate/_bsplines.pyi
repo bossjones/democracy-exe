@@ -369,7 +369,7 @@ class BSpline:
         """
         ...
     
-    def integrate(self, a, b, extrapolate=...): # -> list[Any] | tuple[Any, ...] | Any:
+    def integrate(self, a, b, extrapolate=...): # -> list[list[list[Any] | tuple[Any, Any] | Any] | tuple[Any, Any] | Any] | tuple[Any, ...] | Any:
         """Compute a definite integral of the spline.
 
         Parameters

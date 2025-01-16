@@ -468,7 +468,7 @@ def group_delay(system, w=..., whole=..., fs=...): # -> tuple[NDArray[floating[A
     When such a case arises the warning is raised and the group delay
     is set to 0 at those frequencies.
 
-    For the details of numerical computation of the group delay refer to [1]_ or [2]_.
+    For the details of numerical computation of the group delay refer to [1]_.
 
     .. versionadded:: 0.16.0
 
@@ -476,10 +476,6 @@ def group_delay(system, w=..., whole=..., fs=...): # -> tuple[NDArray[floating[A
     ----------
     .. [1] Richard G. Lyons, "Understanding Digital Signal Processing,
            3rd edition", p. 830.
-    .. [2] Julius O. Smith III, "Numerical Computation of Group Delay",
-           in "Introduction to Digital Filters with Audio Applications",
-           online book, 2007,
-           https://ccrma.stanford.edu/~jos/fp/Numerical_Computation_Group_Delay.html
 
     Examples
     --------
@@ -3013,7 +3009,7 @@ def ellipap(N, rp, rs): # -> tuple[NDArray[Any], NDArray[Any], Any]:
 
     References
     ----------
-    .. [1] Lutovac, Tosic, and Evans, "Filter Design for Signal Processing",
+    .. [1] Lutova, Tosic, and Evans, "Filter Design for Signal Processing",
            Chapters 5 and 12.
 
     .. [2] Orfanidis, "Lecture Notes on Elliptic Filter Design",

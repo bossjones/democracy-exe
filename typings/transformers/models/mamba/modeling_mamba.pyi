@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import MambaCache
-from ...generation import GenerationMixin
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward
 from ...utils.import_utils import is_causal_conv1d_available, is_mamba_ssm_available, is_mambapy_available
@@ -41,13 +40,13 @@ class MambaMixer(nn.Module):
     def __init__(self, config: MambaConfig, layer_idx: int) -> None:
         ...
     
-    def cuda_kernels_forward(self, hidden_states: torch.Tensor, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ...): # -> Any:
+    def cuda_kernels_forward(self, hidden_states: torch.Tensor, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ...): # -> Any:
         ...
     
-    def slow_forward(self, input_states, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ...): # -> Any:
+    def slow_forward(self, input_states, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ...): # -> Any:
         ...
     
-    def forward(self, hidden_states, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ...): # -> Any:
+    def forward(self, hidden_states, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ...): # -> Any:
         ...
     
 
@@ -71,7 +70,7 @@ class MambaBlock(nn.Module):
     def __init__(self, config, layer_idx) -> None:
         ...
     
-    def forward(self, hidden_states, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ...):
+    def forward(self, hidden_states, cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ...):
         ...
     
 
@@ -157,7 +156,7 @@ class MambaModel(MambaPreTrainedModel):
     
     @add_start_docstrings_to_model_forward(MAMBA_INPUTS_DOCSTRING)
     @add_code_sample_docstrings(checkpoint=_CHECKPOINT_FOR_DOC, output_type=MambaOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., inputs_embeds: Optional[torch.LongTensor] = ..., cache_params: Optional[MambaCache] = ..., use_cache: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ...) -> Union[Tuple, MambaOutput]:
+    def forward(self, input_ids: Optional[torch.LongTensor] = ..., inputs_embeds: Optional[torch.LongTensor] = ..., cache_params: Optional[MambaCache] = ..., use_cache: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., **kwargs) -> Union[Tuple, MambaOutput]:
         ...
     
 
@@ -166,7 +165,7 @@ class MambaModel(MambaPreTrainedModel):
     The MAMBA Model transformer with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, MAMBA_START_DOCSTRING)
-class MambaForCausalLM(MambaPreTrainedModel, GenerationMixin):
+class MambaForCausalLM(MambaPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -183,12 +182,12 @@ class MambaForCausalLM(MambaPreTrainedModel, GenerationMixin):
     def set_input_embeddings(self, new_embeddings): # -> None:
         ...
     
-    def prepare_inputs_for_generation(self, input_ids, inputs_embeds=..., use_cache=..., cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ..., **kwargs): # -> dict[str, Any]:
+    def prepare_inputs_for_generation(self, input_ids, inputs_embeds=..., use_cache=..., cache_params: Optional[MambaCache] = ..., cache_position: Optional[torch.LongTensor] = ..., **kwargs): # -> dict[str, Any]:
         ...
     
     @add_start_docstrings_to_model_forward(MAMBA_INPUTS_DOCSTRING)
     @add_code_sample_docstrings(checkpoint=_CHECKPOINT_FOR_DOC, output_type=MambaCausalLMOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., cache_params: Optional[MambaCache] = ..., labels: Optional[torch.LongTensor] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.Tensor] = ..., **kwargs) -> Union[Tuple, MambaCausalLMOutput]:
+    def forward(self, input_ids: Optional[torch.LongTensor] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., cache_params: Optional[MambaCache] = ..., labels: Optional[torch.LongTensor] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.Tensor] = ..., **kwargs) -> Union[Tuple, MambaCausalLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
             Labels for language modeling. Note that the labels **are shifted** inside the model, i.e. you can set

@@ -171,26 +171,26 @@ def fltr(node: dict[Any, Any] | list[Any], whitelist: list[Any]) -> dict[Any, An
         {'a': 1, 'b': {'c': 2}, 'e': [{'f': 4}]}
     """
     if isinstance(node, dict):
-        retVal = {}
+        retval = {}
         for key in node:
             if key in whitelist:
-                retVal[key] = copy.deepcopy(node[key])
+                retval[key] = copy.deepcopy(node[key])
             elif isinstance(node[key], list) or isinstance(node[key], dict):
                 child = fltr(node[key], whitelist)
                 if child:
-                    retVal[key] = child
-        if retVal:
-            return retVal
+                    retval[key] = child
+        if retval:
+            return retval
         else:
             return None
     elif isinstance(node, list):
-        retVal = []
+        retval = []
         for entry in node:
             child = fltr(entry, whitelist)
             if child:
-                retVal.append(child)
-        if retVal:
-            return retVal
+                retval.append(child)
+        if retval:
+            return retval
         else:
             return None
 
@@ -329,26 +329,26 @@ def dict_merge(dct: dict[Any, Any], merge_dct: dict[Any, Any], add_keys: bool = 
 #     Example Usage: `fltr(x, ['dropdown_value', 'nm_field', 'url_app', 'dt_reg'])`
 #     """
 #     if isinstance(node, dict):
-#         retVal = {}
+#         retval = {}
 #         for key in node:
 #             if key in whitelist:
-#                 retVal[key] = copy.deepcopy(node[key])
+#                 retval[key] = copy.deepcopy(node[key])
 #             elif isinstance(node[key], list) or isinstance(node[key], dict):
 #                 child = fltr(node[key], whitelist)
 #                 if child:
-#                     retVal[key] = child
-#         if retVal:
-#             return retVal
+#                     retval[key] = child
+#         if retval:
+#             return retval
 #         else:
 #             return None
 #     elif isinstance(node, list):
-#         retVal = []
+#         retval = []
 #         for entry in node:
 #             child = fltr(entry, whitelist)
 #             if child:
-#                 retVal.append(child)
-#         if retVal:
-#             return retVal
+#                 retval.append(child)
+#         if retval:
+#             return retval
 #         else:
 #             return None
 

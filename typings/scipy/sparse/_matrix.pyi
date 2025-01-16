@@ -13,7 +13,7 @@ class spmatrix:
     def __rmul__(self, other):
         ...
     
-    def __pow__(self, power): # -> coo_array | coo_matrix | dia_array | Any | dia_matrix:
+    def __pow__(self, power): # -> coo_array | coo_matrix | dia_array | Any | dia_matrix | _NotImplementedType:
         ...
     
     def set_shape(self, shape): # -> None:

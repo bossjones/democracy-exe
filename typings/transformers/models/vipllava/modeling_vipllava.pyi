@@ -6,9 +6,8 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
+from ... import PreTrainedModel
 from ...modeling_outputs import ModelOutput
-from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
 from .configuration_vipllava import VipLlavaConfig
 
@@ -42,16 +41,18 @@ class VipLlavaCausalLMOutputWithPast(ModelOutput):
 
             Attentions weights after the attention softmax, used to compute the weighted average in the self-attention
             heads.
-        image_hidden_states (`torch.FloatTensor`, *optional*):
-            A `torch.FloatTensor` of size (batch_size, num_images, sequence_length, hidden_size)`.
-            image_hidden_states of the model produced by the vision encoder and after projecting the last hidden state.
+        image_hidden_states (`tuple(torch.FloatTensor)`, *optional*):
+            Tuple of `torch.FloatTensor` (one for the output of the image embeddings, `(batch_size, num_images,
+            sequence_length, hidden_size)`.
+
+            image_hidden_states of the model produced by the vision encoder, and optionally by the perceiver
     """
     loss: Optional[torch.FloatTensor] = ...
     logits: torch.FloatTensor = ...
     past_key_values: Optional[List[torch.FloatTensor]] = ...
     hidden_states: Optional[Tuple[torch.FloatTensor]] = ...
     attentions: Optional[Tuple[torch.FloatTensor]] = ...
-    image_hidden_states: Optional[torch.FloatTensor] = ...
+    image_hidden_states: Optional[Tuple[torch.FloatTensor]] = ...
 
 
 class VipLlavaMultiModalProjector(nn.Module):
@@ -71,14 +72,13 @@ class VipLlavaPreTrainedModel(PreTrainedModel):
     supports_gradient_checkpointing = ...
     _no_split_modules = ...
     _skip_keys_device_placement = ...
-    _supports_cache_class = ...
     _supports_flash_attn_2 = ...
-    _supports_sdpa = ...
+    _supports_cache_class = ...
 
 
 VIPLLAVA_INPUTS_DOCSTRING = ...
 @add_start_docstrings("""The VIPLLAVA model which consists of a vision backbone and a language model.""", VIPLLAVA_START_DOCSTRING)
-class VipLlavaForConditionalGeneration(VipLlavaPreTrainedModel, GenerationMixin):
+class VipLlavaForConditionalGeneration(VipLlavaPreTrainedModel):
     def __init__(self, config: VipLlavaConfig) -> None:
         ...
     
@@ -106,35 +106,15 @@ class VipLlavaForConditionalGeneration(VipLlavaPreTrainedModel, GenerationMixin)
     def resize_token_embeddings(self, new_num_tokens: Optional[int] = ..., pad_to_multiple_of=...) -> nn.Embedding:
         ...
     
-    def get_image_features(self, pixel_values: torch.FloatTensor, vision_feature_layers: List[int]): # -> Any:
-        """
-        Obtains image last hidden states from the vision tower and apply multimodal projection.
-
-        Args:
-            pixel_values (`torch.FloatTensor]` of shape `(batch_size, channels, height, width)`)
-               The tensors corresponding to the input images.
-            vision_feature_layers (`List[int]`):
-                The list og indexes of the layers to select the vision feature.
-        Returns:
-            image_features (`torch.Tensor`): Image feature tensor of shape `(num_images, image_length, embed_dim)`).
-        """
-        ...
-    
     @add_start_docstrings_to_model_forward(VIPLLAVA_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=VipLlavaCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., pixel_values: torch.FloatTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., vision_feature_layers: Optional[List[int]] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, VipLlavaCausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., pixel_values: torch.FloatTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., vision_feature_layers: Optional[List[int]] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, VipLlavaCausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
-
 
         Returns:
 
@@ -164,7 +144,7 @@ class VipLlavaForConditionalGeneration(VipLlavaPreTrainedModel, GenerationMixin)
         ```"""
         ...
     
-    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., inputs_embeds=..., pixel_values=..., attention_mask=..., cache_position=..., num_logits_to_keep=..., **kwargs):
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., inputs_embeds=..., pixel_values=..., attention_mask=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

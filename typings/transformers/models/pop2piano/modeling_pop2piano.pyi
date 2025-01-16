@@ -6,7 +6,6 @@ import torch
 from typing import Optional, Tuple, Union
 from torch import nn
 from transformers.generation import GenerationConfig
-from ...generation import GenerationMixin
 from ...modeling_outputs import Seq2SeqLMOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -61,17 +60,17 @@ class Pop2PianoLayerFF(nn.Module):
 
 
 class Pop2PianoAttention(nn.Module):
-    def __init__(self, config: Pop2PianoConfig, has_relative_attention_bias=..., layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config: Pop2PianoConfig, has_relative_attention_bias=...) -> None:
         ...
     
     def prune_heads(self, heads): # -> None:
         ...
     
-    def compute_bias(self, query_length, key_length, device=..., cache_position=...): # -> Any:
+    def compute_bias(self, query_length, key_length, device=...): # -> Any:
         """Compute binned relative position bias"""
         ...
     
-    def forward(self, hidden_states, mask=..., key_value_states=..., position_bias=..., past_key_value=..., layer_head_mask=..., query_length=..., use_cache=..., output_attentions=..., cache_position=...): # -> tuple[Any, Any | None, Any | Tensor, Any | Tensor] | tuple[Any, Any | None, Any | Tensor]:
+    def forward(self, hidden_states, mask=..., key_value_states=..., position_bias=..., past_key_value=..., layer_head_mask=..., query_length=..., use_cache=..., output_attentions=...): # -> tuple[Any, tuple[Tensor | Any, Tensor | Any] | None, Any | Tensor, Any | Tensor] | tuple[Any, tuple[Tensor | Any, Tensor | Any] | None, Any | Tensor]:
         """
         Self-attention (if key_value_states is None) or attention over source sentence (provided by key_value_states).
         """
@@ -80,28 +79,28 @@ class Pop2PianoAttention(nn.Module):
 
 
 class Pop2PianoLayerSelfAttention(nn.Module):
-    def __init__(self, config, has_relative_attention_bias=..., layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config, has_relative_attention_bias=...) -> None:
         ...
     
-    def forward(self, hidden_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=..., cache_position=...): # -> Any:
+    def forward(self, hidden_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=...): # -> Any:
         ...
     
 
 
 class Pop2PianoLayerCrossAttention(nn.Module):
-    def __init__(self, config, layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config) -> None:
         ...
     
-    def forward(self, hidden_states, key_value_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., query_length=..., output_attentions=..., cache_position=...): # -> Any:
+    def forward(self, hidden_states, key_value_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., query_length=..., output_attentions=...): # -> Any:
         ...
     
 
 
 class Pop2PianoBlock(nn.Module):
-    def __init__(self, config, has_relative_attention_bias=..., layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config, has_relative_attention_bias=...) -> None:
         ...
     
-    def forward(self, hidden_states, attention_mask=..., position_bias=..., encoder_hidden_states=..., encoder_attention_mask=..., encoder_decoder_position_bias=..., layer_head_mask=..., cross_attn_layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=..., return_dict=..., cache_position=...): # -> Any:
+    def forward(self, hidden_states, attention_mask=..., position_bias=..., encoder_hidden_states=..., encoder_attention_mask=..., encoder_decoder_position_bias=..., layer_head_mask=..., cross_attn_layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=..., return_dict=...): # -> Any:
         ...
     
 
@@ -115,8 +114,6 @@ class Pop2PianoPreTrainedModel(PreTrainedModel):
     base_model_prefix = ...
     is_parallelizable = ...
     supports_gradient_checkpointing = ...
-    _supports_cache_class = ...
-    _supports_static_cache = ...
     _no_split_modules = ...
     _keep_in_fp32_modules = ...
 
@@ -131,7 +128,7 @@ class Pop2PianoStack(Pop2PianoPreTrainedModel):
     def set_input_embeddings(self, new_embeddings): # -> None:
         ...
     
-    def forward(self, input_ids=..., attention_mask=..., encoder_hidden_states=..., encoder_attention_mask=..., inputs_embeds=..., head_mask=..., cross_attn_head_mask=..., past_key_values=..., use_cache=..., output_attentions=..., output_hidden_states=..., return_dict=..., cache_position=...):
+    def forward(self, input_ids=..., attention_mask=..., encoder_hidden_states=..., encoder_attention_mask=..., inputs_embeds=..., head_mask=..., cross_attn_head_mask=..., past_key_values=..., use_cache=..., output_attentions=..., output_hidden_states=..., return_dict=...):
         ...
     
 
@@ -148,7 +145,7 @@ class Pop2PianoConcatEmbeddingToMel(nn.Module):
 
 Pop2Piano_START_DOCSTRING = ...
 @add_start_docstrings("""Pop2Piano Model with a `language modeling` head on top.""", Pop2Piano_START_DOCSTRING)
-class Pop2PianoForConditionalGeneration(Pop2PianoPreTrainedModel, GenerationMixin):
+class Pop2PianoForConditionalGeneration(Pop2PianoPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config: Pop2PianoConfig) -> None:
         ...
@@ -193,7 +190,7 @@ class Pop2PianoForConditionalGeneration(Pop2PianoPreTrainedModel, GenerationMixi
     
     @add_start_docstrings_to_model_forward(POP2PIANO_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=Seq2SeqLMOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.FloatTensor] = ..., decoder_input_ids: Optional[torch.LongTensor] = ..., decoder_attention_mask: Optional[torch.BoolTensor] = ..., head_mask: Optional[torch.FloatTensor] = ..., decoder_head_mask: Optional[torch.FloatTensor] = ..., cross_attn_head_mask: Optional[torch.Tensor] = ..., encoder_outputs: Optional[Tuple[Tuple[torch.Tensor]]] = ..., past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., input_features: Optional[torch.FloatTensor] = ..., decoder_inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple[torch.FloatTensor], Seq2SeqLMOutput]:
+    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.FloatTensor] = ..., decoder_input_ids: Optional[torch.LongTensor] = ..., decoder_attention_mask: Optional[torch.BoolTensor] = ..., head_mask: Optional[torch.FloatTensor] = ..., decoder_head_mask: Optional[torch.FloatTensor] = ..., cross_attn_head_mask: Optional[torch.Tensor] = ..., encoder_outputs: Optional[Tuple[Tuple[torch.Tensor]]] = ..., past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., input_features: Optional[torch.FloatTensor] = ..., decoder_inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple[torch.FloatTensor], Seq2SeqLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
             Labels for computing the sequence classification/regression loss. Indices should be in `[-100, 0, ...,
@@ -249,6 +246,9 @@ class Pop2PianoForConditionalGeneration(Pop2PianoPreTrainedModel, GenerationMixi
                     - [`~generation.GenerateEncoderDecoderOutput`],
                     - [`~generation.GenerateBeamEncoderDecoderOutput`]
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., head_mask=..., decoder_head_mask=..., cross_attn_head_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor): # -> Tensor:

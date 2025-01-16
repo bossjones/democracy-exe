@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import Tensor, nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -561,7 +560,7 @@ class ProphetNetModel(ProphetNetPreTrainedModel):
 
 
 @add_start_docstrings("The ProphetNet Model with a language modeling head. Can be used for sequence generation tasks.", PROPHETNET_START_DOCSTRING)
-class ProphetNetForConditionalGeneration(ProphetNetPreTrainedModel, GenerationMixin):
+class ProphetNetForConditionalGeneration(ProphetNetPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config: ProphetNetConfig) -> None:
         ...
@@ -605,6 +604,9 @@ class ProphetNetForConditionalGeneration(ProphetNetPreTrainedModel, GenerationMi
         ```"""
         ...
     
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., head_mask=..., decoder_head_mask=..., cross_attn_head_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
+        ...
+    
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor): # -> Tensor:
         ...
     
@@ -617,7 +619,7 @@ class ProphetNetForConditionalGeneration(ProphetNetPreTrainedModel, GenerationMi
 
 
 @add_start_docstrings("The standalone decoder part of the ProphetNetModel with a lm head on top. The model can be used for causal" " language modeling.", PROPHETNET_START_DOCSTRING)
-class ProphetNetForCausalLM(ProphetNetPreTrainedModel, GenerationMixin):
+class ProphetNetForCausalLM(ProphetNetPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config: ProphetNetConfig) -> None:
         ...

@@ -371,7 +371,7 @@ class gaussian_kde:
         ...
     
     @property
-    def inv_cov(self): # -> NDArray[floating[Any]] | NDArray[complexfloating[Any, Any]] | Any:
+    def inv_cov(self):
         ...
     
     def pdf(self, x):

@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward
 from ...utils.import_utils import is_causal_conv1d_available, is_mamba_2_ssm_available
@@ -215,7 +214,7 @@ class Mamba2Model(Mamba2PreTrainedModel):
     The MAMBA2 Model transformer with a language modeling head on top (linear layer with weights not tied to the input
     embeddings).
     """, MAMBA2_START_DOCSTRING)
-class Mamba2ForCausalLM(Mamba2PreTrainedModel, GenerationMixin):
+class Mamba2ForCausalLM(Mamba2PreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...

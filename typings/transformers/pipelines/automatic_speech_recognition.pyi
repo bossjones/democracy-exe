@@ -25,7 +25,7 @@ def rescale_stride(stride, ratio): # -> list[Any]:
     """
     ...
 
-def chunk_iter(inputs, feature_extractor, chunk_len, stride_left, stride_right, dtype=...): # -> Generator[dict[str, Any], Any, None]:
+def chunk_iter(inputs, feature_extractor, chunk_len, stride_left, stride_right, dtype=...): # -> Generator[dict[Any, Any], Any, None]:
     ...
 
 class AutomaticSpeechRecognitionPipeline(ChunkPipeline):
@@ -145,6 +145,8 @@ class AutomaticSpeechRecognitionPipeline(ChunkPipeline):
                 The dictionary of ad-hoc parametrization of `generate_config` to be used for the generation call. For a
                 complete overview of generate, check the [following
                 guide](https://huggingface.co/docs/transformers/en/main_classes/text_generation).
+            max_new_tokens (`int`, *optional*):
+                The maximum numbers of tokens to generate, ignoring the number of tokens in the prompt.
 
         Return:
             `Dict`: A dictionary with the following keys:
@@ -157,10 +159,10 @@ class AutomaticSpeechRecognitionPipeline(ChunkPipeline):
         """
         ...
     
-    def preprocess(self, inputs, chunk_length_s=..., stride_length_s=...): # -> Generator[dict[str, Any] | dict[str | Any, Any], Any, None]:
+    def preprocess(self, inputs, chunk_length_s=..., stride_length_s=...): # -> Generator[dict[Any, Any], Any, None]:
         ...
     
-    def postprocess(self, model_outputs, decoder_kwargs: Optional[Dict] = ..., return_timestamps=..., return_language=...): # -> dict[str | Any, Any]:
+    def postprocess(self, model_outputs, decoder_kwargs: Optional[Dict] = ..., return_timestamps=..., return_language=...): # -> dict[Any, Any]:
         ...
     
 

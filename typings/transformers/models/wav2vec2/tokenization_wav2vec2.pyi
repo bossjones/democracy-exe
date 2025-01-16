@@ -330,7 +330,7 @@ class Wav2Vec2Tokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(WAV2VEC2_KWARGS_DOCSTRING)
-    def __call__(self, raw_speech: Union[np.ndarray, List[float], List[np.ndarray], List[List[float]]], padding: Union[bool, str, PaddingStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
+    def __call__(self, raw_speech: Union[np.ndarray, List[float], List[np.ndarray], List[List[float]]], padding: Union[bool, str, PaddingStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
         """
         Main method to tokenize and prepare for the model one or several sequence(s) or one or several pair(s) of
         sequences.
@@ -340,10 +340,6 @@ class Wav2Vec2Tokenizer(PreTrainedTokenizer):
                 The sequence or batch of sequences to be padded. Each sequence can be a numpy array, a list of float
                 values, a list of numpy array or a list of list of float values. Must be mono channel audio, not
                 stereo, i.e. single float per timestep.
-
-            padding_side (`str`, *optional*):
-                The side on which the model should have padding applied. Should be selected between ['right', 'left'].
-                Default value is picked from the class attribute of the same name.
         """
         ...
     

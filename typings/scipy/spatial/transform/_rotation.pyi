@@ -22,7 +22,7 @@ class Rotation:
         ...
     
     @classmethod
-    def from_quat(cls, quat: npt.ArrayLike, *, scalar_first: bool = ...) -> Rotation:
+    def from_quat(cls, quat: npt.ArrayLike) -> Rotation:
         ...
     
     @classmethod
@@ -45,7 +45,7 @@ class Rotation:
     def from_mrp(cls, mrp: npt.ArrayLike) -> Rotation:
         ...
     
-    def as_quat(self, canonical: bool = ..., *, scalar_first: bool = ...) -> np.ndarray:
+    def as_quat(self, canonical: bool) -> np.ndarray:
         ...
     
     def as_matrix(self) -> np.ndarray:

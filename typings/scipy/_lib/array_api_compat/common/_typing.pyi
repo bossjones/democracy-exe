@@ -16,5 +16,3 @@ class NestedSequence(Protocol[_T_co]):
 
 
 SupportsBufferProtocol = Any
-Array = Any
-Device = Any

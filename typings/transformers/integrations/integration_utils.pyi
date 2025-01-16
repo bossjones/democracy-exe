@@ -234,9 +234,6 @@ class CometCallback(TrainerCallback):
     def on_train_end(self, args, state, control, **kwargs): # -> None:
         ...
     
-    def on_predict(self, args, state, control, metrics, **kwargs): # -> None:
-        ...
-    
 
 
 class AzureMLCallback(TrainerCallback):
@@ -291,8 +288,6 @@ class MLflowCallback(TrainerCallback):
             and other parameters are ignored.
         - **MLFLOW_FLATTEN_PARAMS** (`str`, *optional*, defaults to `False`):
             Whether to flatten the parameters dictionary before logging.
-        - **MLFLOW_MAX_LOG_PARAMS** (`int`, *optional*):
-            Set the maximum number of parameters to log in the run.
         """
         ...
     

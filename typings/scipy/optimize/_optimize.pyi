@@ -389,7 +389,7 @@ def approx_fprime(xk, f, epsilon=..., *args): # -> LinearOperator | NDArray[floa
     >>> c0, c1 = (1, 200)
     >>> eps = np.sqrt(np.finfo(float).eps)
     >>> optimize.approx_fprime(x, func, [eps, np.sqrt(200) * eps], c0, c1)
-    array([   2.        ,  400.00004208])
+    array([   2.        ,  400.00004198])
 
     """
     ...
@@ -1504,7 +1504,6 @@ def show_options(solver=..., method=..., disp=...): # -> str | LiteralString | N
     - :ref:`L-BFGS-B    <optimize.minimize-lbfgsb>`
     - :ref:`TNC         <optimize.minimize-tnc>`
     - :ref:`COBYLA      <optimize.minimize-cobyla>`
-    - :ref:`COBYQA      <optimize.minimize-cobyqa>`
     - :ref:`SLSQP       <optimize.minimize-slsqp>`
     - :ref:`dogleg      <optimize.minimize-dogleg>`
     - :ref:`trust-ncg   <optimize.minimize-trustncg>`
