@@ -93,6 +93,8 @@ class StreamHandler:
                     yield chunk
 
             if interruptable and self._interrupt_event.is_set():
+                # Log interruption
+                self._logger.info("Stream interrupted")
                 # Get user feedback
                 user_approval = await asyncio.to_thread(
                     input,
