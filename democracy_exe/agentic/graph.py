@@ -31,9 +31,9 @@ import rich
 import structlog
 import tiktoken
 
-from langchain.vectorstores import SKLearnVectorStore
 from langchain_anthropic import ChatAnthropic
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.vectorstores import SKLearnVectorStore
 from langchain_core.messages.utils import get_buffer_string
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig, ensure_config, get_executor_for_config
