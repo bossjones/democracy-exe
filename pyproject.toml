@@ -118,6 +118,7 @@ dependencies = [
     "typing-extensions>=4.12.2",
     "psutil>=6.1.1",
     "aider-chat",
+    "pyarrow>=19.0.0",
 ]
 
 [project.urls]
