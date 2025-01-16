@@ -150,29 +150,39 @@ def extract_local_directory(directory_path: str) -> str:
     Returns:
         str: Name of the output file containing extracted code
     """
-    repo_name = os.path.basename(directory_path)
+    # Get absolute paths
+    abs_directory_path = os.path.abspath(directory_path)
+    repo_name = os.path.basename(abs_directory_path)
     output_file = f"{repo_name}_code.txt"
 
     with open(output_file, "w", encoding="utf-8") as outfile:
-        for root, _, files in os.walk(directory_path):
+        for root, _, files in os.walk(abs_directory_path):
             for file in files:
-                file_path = os.path.join(root, file)
+                abs_file_path = os.path.join(root, file)
+                # Get path relative to the repository root
+                rel_file_path = os.path.relpath(abs_file_path, abs_directory_path)
+
                 # Skip directories, non-code files, less likely useful files, hidden directories, and test files
                 if (
-                    file_path.endswith("/")
-                    or not is_desired_file(file_path)
-                    or not is_likely_useful_file(file_path)
+                    rel_file_path.endswith("/")
+                    or not is_desired_file(rel_file_path)
+                    or not is_likely_useful_file(rel_file_path)
                 ):
                     continue
-                with open(file_path, encoding="utf-8") as file_content:
-                    # Skip test files based on content and files with insufficient substantive content
-                    file_lines = file_content.readlines()
-                    if is_desired_file(file_path) and has_sufficient_content(
-                        file_lines
-                    ):
-                        outfile.write(f"# File: {file_path}\n")
-                        outfile.writelines(file_lines)
-                        outfile.write("\n\n")
+
+                try:
+                    with open(abs_file_path, encoding="utf-8") as file_content:
+                        file_lines = file_content.readlines()
+
+                        # For code files, check content length. For config files, always include
+                        is_config = rel_file_path.lower() in ["package.json", "pyproject.toml"]
+                        if is_config or has_sufficient_content(file_lines):
+                            outfile.write(f"# File: {rel_file_path}\n")
+                            outfile.writelines(file_lines)
+                            outfile.write("\n\n")
+                except (OSError, UnicodeDecodeError) as e:
+                    print(f"Error processing file {rel_file_path}: {e}")
+                    continue
 
     return output_file
 
