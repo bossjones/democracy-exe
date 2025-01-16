@@ -4,22 +4,23 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 import time
 import uuid
 
 from functools import lru_cache
-from typing import TYPE_CHECKING, Union
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, Union
 
 import langsmith
 import structlog
 
 from langchain_anthropic import ChatAnthropic
+from langchain_community.vectorstores import SKLearnVectorStore
 from langchain_core.runnables import RunnableConfig
 from langchain_fireworks import FireworksEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-
-
-logger = structlog.get_logger(__name__)
 
 import democracy_exe.agentic._schemas as schemas
 
@@ -28,10 +29,74 @@ from democracy_exe.aio_settings import aiosettings
 
 if TYPE_CHECKING:
     from langchain_anthropic import ChatAnthropic
+    from langchain_core.embeddings import Embeddings
     from langchain_openai import ChatOpenAI
 
     # Type alias for chat models
     ChatModelLike = Union[ChatOpenAI, ChatAnthropic]
+
+logger = structlog.get_logger(__name__)
+
+def get_or_create_sklearn_index(
+    embeddings: Embeddings,
+    persist_path: str | Path | None = None,
+    serializer: str = "parquet"
+) -> SKLearnVectorStore:
+    """Get or create a SKLearnVectorStore instance.
+
+    This function checks if a vector store exists at the specified path,
+    loads it if it does, or creates a new one if it doesn't.
+
+    Args:
+        embeddings (Embeddings): The embeddings model to use
+        persist_path (Optional[Union[str, Path]], optional): Path to save/load the vector store.
+            If None, creates one in a temporary directory. Defaults to None.
+        serializer (str, optional): Serialization format ('json', 'bson', or 'parquet').
+            Defaults to "parquet".
+
+    Returns:
+        SKLearnVectorStore: A configured vector store instance.
+
+    Note:
+        If persist_path is not provided, creates a temporary file with format:
+        /tmp/sklearn_vector_store_{uuid}.{serializer}
+    """
+    # If no persist_path provided, create one in temp directory
+    if persist_path is None:
+        temp_dir = tempfile.gettempdir()
+        persist_path = os.path.join(
+            temp_dir,
+            f"sklearn_vector_store_{uuid.uuid4()}.{serializer}"
+        )
+        logger.info(f"Created temporary persist path: {persist_path}")
+
+    # Convert to Path object for easier handling
+    persist_path = Path(persist_path)
+
+    # Check if vector store exists at path
+    if persist_path.exists():
+        logger.info(f"Loading existing vector store from: {persist_path}")
+        return SKLearnVectorStore(
+            embedding=embeddings,
+            persist_path=str(persist_path),
+            serializer=serializer
+        )
+
+    # Create new vector store if doesn't exist
+    logger.info(f"Creating new vector store at: {persist_path}")
+    vector_store = SKLearnVectorStore(
+        embedding=embeddings,
+        persist_path=str(persist_path),
+        serializer=serializer
+    )
+
+    # Ensure directory exists
+    persist_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Persist empty vector store
+    vector_store.persist()
+
+    return vector_store
 
 _DEFAULT_DELAY = 60  # seconds
 
@@ -182,4 +247,4 @@ def get_chat_model(
     return ChatOpenAI(model=model_name, temperature=temperature)
 
 
-__all__ = ["ensure_configurable", "get_embeddings", "get_chat_model"]
+__all__ = ["ensure_configurable", "get_embeddings", "get_chat_model", "get_or_create_sklearn_index"]
