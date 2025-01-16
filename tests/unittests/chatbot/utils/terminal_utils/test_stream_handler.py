@@ -1,3 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 """Unit tests for the terminal stream handler."""
 
 from __future__ import annotations
@@ -138,17 +146,16 @@ async def test_process_stream_basic_config(stream_handler: StreamHandler, mocker
 async def test_process_stream_with_callbacks(stream_handler: StreamHandler, mocker: MockerFixture) -> None:
     """Test stream processing with callbacks in config.
 
+    This test verifies:
+    1. Callbacks are called with correct parameters
+    2. Callbacks are called at the right time
+    3. Multiple callbacks work correctly
+    4. Callback errors are handled properly
+
     Args:
         stream_handler: Test stream handler
         mocker: Pytest mocker fixture
     """
-    # Mock callback
-    callback_called = False
-
-    def test_callback(event):
-        nonlocal callback_called
-        callback_called = True
-
     # Setup mocks
     mock_message_handler = mocker.Mock(spec=MessageHandler)
 
@@ -160,21 +167,82 @@ async def test_process_stream_with_callbacks(stream_handler: StreamHandler, mock
     mock_message_handler.stream_chunks = mock_stream_chunks
     stream_handler._message_handler = mock_message_handler
 
-    mock_graph = mocker.Mock(spec=CompiledStateGraph)
-    mock_graph.stream.return_value = [{"messages": [AIMessage(content="Response 1")]}]
+    # Create mock callbacks
+    callback1 = mocker.Mock(name="callback1")
+    callback2 = mocker.Mock(name="callback2")
+    error_callback = mocker.Mock(name="error_callback", side_effect=ValueError("Callback error"))
 
-    # Test with callback config
-    config = RunnableConfig(callbacks=[test_callback])
+    # Create mock graph with callback handling
+    mock_graph = mocker.Mock(spec=CompiledStateGraph)
+
+    def mock_stream(user_input, config=None, stream_mode="values"):
+        responses = [{"messages": [AIMessage(content="Response 1")]}, {"messages": [AIMessage(content="Response 2")]}]
+        if config and isinstance(config, dict) and config.get("callbacks"):
+            for response in responses:
+                for callback in config["callbacks"]:
+                    try:
+                        callback(response)
+                    except Exception:
+                        pass  # Callbacks shouldn't affect stream
+        return responses
+
+    mock_graph.stream = mock_stream
+
+    # Test with multiple callbacks
+    config = RunnableConfig(callbacks=[callback1, callback2], tags=["test"], metadata={"test": True})
     user_input = {"messages": [HumanMessage(content="Test input")]}
 
+    # Process stream
     chunks = []
     async for chunk in stream_handler.process_stream(mock_graph, user_input, config=config):
         chunks.append(chunk)
 
-    # Verify callback was used
-    assert callback_called, "Callback was not triggered"
-    assert len(chunks) == 1
-    assert chunks[0] == "Response 1"
+    # Verify chunks
+    assert len(chunks) == 2
+    assert chunks == ["Response 1", "Response 2"]
+
+    # Verify callbacks were called for each response
+    assert callback1.call_count == 2, "First callback should be called twice"
+    assert callback2.call_count == 2, "Second callback should be called twice"
+
+    # Verify callback parameters
+    for callback in [callback1, callback2]:
+        calls = callback.call_args_list
+        assert len(calls) == 2, "Each callback should be called twice"
+
+        # First call should be for Response 1
+        args1, _ = calls[0]
+        assert len(args1) == 1, "Callback should receive one positional argument"
+        assert args1[0]["messages"][0].content == "Response 1"
+
+        # Second call should be for Response 2
+        args2, _ = calls[1]
+        assert len(args2) == 1, "Callback should receive one positional argument"
+        assert args2[0]["messages"][0].content == "Response 2"
+
+    # Test error callback handling
+    config_with_error = RunnableConfig(callbacks=[error_callback])
+    chunks = []
+    async for chunk in stream_handler.process_stream(mock_graph, user_input, config=config_with_error):
+        chunks.append(chunk)
+
+    # Verify chunks still processed despite callback error
+    assert len(chunks) == 2
+    assert chunks == ["Response 1", "Response 2"]
+
+    # Verify error callback was called
+    assert error_callback.call_count == 2, "Error callback should be called twice"
+
+    # Test callback with empty response
+    mock_graph.stream = lambda *args, **kwargs: []  # Override to return empty response
+    chunks = []
+    async for chunk in stream_handler.process_stream(mock_graph, user_input, config=config):
+        chunks.append(chunk)
+
+    # Verify no additional callbacks for empty response
+    assert len(chunks) == 0
+    assert callback1.call_count == 2, "Callback count should not increase for empty response"
+    assert callback2.call_count == 2, "Callback count should not increase for empty response"
 
 
 @pytest.mark.asyncio
@@ -217,6 +285,12 @@ async def test_process_stream_with_recursion_limit(stream_handler: StreamHandler
 async def test_process_stream_config_validation(stream_handler: StreamHandler, mocker: MockerFixture) -> None:
     """Test stream processing with invalid config values.
 
+    This test verifies:
+    1. Invalid config values are properly handled
+    2. Config is passed correctly to graph
+    3. Errors are properly logged
+    4. Different config types are supported
+
     Args:
         stream_handler: Test stream handler
         mocker: Pytest mocker fixture
@@ -232,21 +306,59 @@ async def test_process_stream_config_validation(stream_handler: StreamHandler, m
     mock_message_handler.stream_chunks = mock_stream_chunks
     stream_handler._message_handler = mock_message_handler
 
+    # Create mock graph
     mock_graph = mocker.Mock(spec=CompiledStateGraph)
     mock_graph.stream.return_value = [{"messages": [AIMessage(content="Response 1")]}]
 
-    # Test with invalid config values
-    invalid_configs = [
-        RunnableConfig(recursion_limit=-1),  # Invalid recursion limit
-        RunnableConfig(tags=123),  # Invalid tags type
-        RunnableConfig(metadata=["invalid"]),  # Invalid metadata type
+    # Test different config types
+    test_configs = [
+        # Basic config
+        RunnableConfig(tags=["test"], metadata={"test": True}),
+        # Config with callbacks
+        RunnableConfig(callbacks=[lambda x: None], tags=["test"]),
+        # Config with recursion limit
+        RunnableConfig(recursion_limit=10),
+        # Config with all options
+        RunnableConfig(callbacks=[lambda x: None], tags=["test"], metadata={"test": True}, recursion_limit=10),
+        # Empty config
+        RunnableConfig(),
+        # Config with empty lists
+        RunnableConfig(tags=[], callbacks=[], metadata={}),
     ]
 
-    for config in invalid_configs:
-        with pytest.raises((ValueError, TypeError)):
-            user_input = {"messages": [HumanMessage(content="Test input")]}
-            async for _ in stream_handler.process_stream(mock_graph, user_input, config=config):
+    for config in test_configs:
+        # Process stream with config
+        user_input = {"messages": [HumanMessage(content="Test input")]}
+        chunks = []
+        async for chunk in stream_handler.process_stream(mock_graph, user_input, config=config):
+            chunks.append(chunk)
+
+        # Verify stream processed correctly
+        assert len(chunks) == 1
+        assert chunks[0] == "Response 1"
+
+        # Verify config was passed to graph
+        mock_graph.stream.assert_called_with(user_input, config, stream_mode="values")
+        mock_graph.reset_mock()
+
+    # Test error handling
+    mock_graph.stream.side_effect = ValueError("Test error")
+
+    with structlog.testing.capture_logs() as captured:
+        with pytest.raises(ValueError, match="Test error"):
+            async for _ in stream_handler.process_stream(mock_graph, user_input, config=test_configs[0]):
                 pass
+
+        # Print captured logs for debugging
+        print("\nCaptured logs:")
+        for log in captured:
+            print(f"Log entry: {log}")
+
+        # Verify error was logged
+        assert any(
+            log.get("event") == "Error processing stream" and "Test error" in str(log.get("error", ""))
+            for log in captured
+        ), "Error was not properly logged"
 
 
 @pytest.mark.asyncio

@@ -1046,6 +1046,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/aio_settings.py" = ["N805"]
 "democracy_exe/utils/aiotweetpik.py" = ["N815", "B005", "RUF005", "N818"]
 "democracy_exe/utils/repo_typing.py" = ["N815", "B005", "RUF005", "N818", "N806"]
+"tests/unittests/chatbot/utils/terminal_utils/*" = ["N815", "B005", "RUF005", "S110"]
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
 [tool.ruff.lint.isort]
