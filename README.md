@@ -15,6 +15,18 @@ democracy_exe is an advanced, agentic Python application leveraging LangChain an
 
 ![LangGraph Architecture](@langgraph.png)
 
+# Agentic Workflow
+
+## Let The Code Write Itself
+> Self Directed AI Coding
+
+## Setup
+
+- Install dependencies: `uv sync --all-extras`
+- Run director
+  - `uv run python director.py --config specs/director_version_bump.yaml`
+
+
 
 ### 1. Create a New Repository
 
