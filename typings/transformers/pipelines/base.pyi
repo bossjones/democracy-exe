@@ -12,7 +12,6 @@ from ..feature_extraction_utils import PreTrainedFeatureExtractor
 from ..image_processing_utils import BaseImageProcessor
 from ..modelcard import ModelCard
 from ..models.auto.configuration_auto import AutoConfig
-from ..processing_utils import ProcessorMixin
 from ..tokenization_utils import PreTrainedTokenizer
 from ..utils import ModelOutput, PushToHubMixin, add_end_docstrings, is_tf_available, is_torch_available
 from torch.utils.data import Dataset
@@ -320,13 +319,13 @@ class _ScikitCompat(ABC):
     
 
 
-def build_pipeline_init_args(has_tokenizer: bool = ..., has_feature_extractor: bool = ..., has_image_processor: bool = ..., has_processor: bool = ..., supports_binary_output: bool = ...) -> str:
+def build_pipeline_init_args(has_tokenizer: bool = ..., has_feature_extractor: bool = ..., has_image_processor: bool = ..., supports_binary_output: bool = ...) -> str:
     ...
 
 PIPELINE_INIT_ARGS = ...
 if is_torch_available():
     ...
-@add_end_docstrings(build_pipeline_init_args(has_tokenizer=True, has_feature_extractor=True, has_image_processor=True, has_processor=True))
+@add_end_docstrings(build_pipeline_init_args(has_tokenizer=True, has_feature_extractor=True, has_image_processor=True))
 class Pipeline(_ScikitCompat, PushToHubMixin):
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
@@ -343,12 +342,8 @@ class Pipeline(_ScikitCompat, PushToHubMixin):
     as nested-lists. In order to avoid dumping such large structure as textual data we provide the `binary_output`
     constructor argument. If set to `True`, the output will be stored in the pickle format.
     """
-    _load_processor = ...
-    _load_image_processor = ...
-    _load_feature_extractor = ...
-    _load_tokenizer = ...
     default_input_names = ...
-    def __init__(self, model: Union[PreTrainedModel, TFPreTrainedModel], tokenizer: Optional[PreTrainedTokenizer] = ..., feature_extractor: Optional[PreTrainedFeatureExtractor] = ..., image_processor: Optional[BaseImageProcessor] = ..., processor: Optional[ProcessorMixin] = ..., modelcard: Optional[ModelCard] = ..., framework: Optional[str] = ..., task: str = ..., args_parser: ArgumentHandler = ..., device: Union[int, torch.device] = ..., torch_dtype: Optional[Union[str, torch.dtype]] = ..., binary_output: bool = ..., **kwargs) -> None:
+    def __init__(self, model: Union[PreTrainedModel, TFPreTrainedModel], tokenizer: Optional[PreTrainedTokenizer] = ..., feature_extractor: Optional[PreTrainedFeatureExtractor] = ..., image_processor: Optional[BaseImageProcessor] = ..., modelcard: Optional[ModelCard] = ..., framework: Optional[str] = ..., task: str = ..., args_parser: ArgumentHandler = ..., device: Union[int, torch.device] = ..., torch_dtype: Optional[Union[str, torch.dtype]] = ..., binary_output: bool = ..., **kwargs) -> None:
         ...
     
     def save_pretrained(self, save_directory: Union[str, os.PathLike], safe_serialization: bool = ..., **kwargs): # -> None:
@@ -403,7 +398,7 @@ class Pipeline(_ScikitCompat, PushToHubMixin):
         ```"""
         ...
     
-    def ensure_tensor_on_device(self, **inputs): # -> ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor:
+    def ensure_tensor_on_device(self, **inputs): # -> ModelOutput | dict[Any, ModelOutput | dict[Any, Any] | UserDict[Any, ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | UserDict[Any, ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor:
         """
         Ensure PyTorch tensors are on the specified device.
 
@@ -447,7 +442,7 @@ class Pipeline(_ScikitCompat, PushToHubMixin):
     def get_inference_context(self): # -> type[no_grad]:
         ...
     
-    def forward(self, model_inputs, **forward_params): # -> ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor:
+    def forward(self, model_inputs, **forward_params): # -> ModelOutput | dict[Any, ModelOutput | dict[Any, Any] | UserDict[Any, ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | UserDict[Any, ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | list[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor | Any] | tuple[ModelOutput | dict[Any, Any] | UserDict[Any, Any] | list[Any] | tuple[Any, ...] | Tensor | Any, ...] | Tensor:
         ...
     
     def get_iterator(self, inputs, num_workers: int, batch_size: int, preprocess_params, forward_params, postprocess_params): # -> PipelineIterator:

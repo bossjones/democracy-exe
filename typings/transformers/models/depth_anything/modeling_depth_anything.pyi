@@ -130,8 +130,7 @@ class DepthAnythingDepthEstimationHead(nn.Module):
     """
     Output head consisting of 3 convolutional layers. It progressively halves the feature dimension and upsamples
     the predictions to the input resolution after the first convolutional layer (details can be found in the DPT paper's
-    supplementary material). The final activation function is either ReLU or Sigmoid, depending on the depth estimation
-    type (relative or metric). For metric depth estimation, the output is scaled by the maximum depth used during pretraining.
+    supplementary material).
     """
     def __init__(self, config) -> None:
         ...
@@ -177,18 +176,20 @@ class DepthAnythingForDepthEstimation(DepthAnythingPreTrainedModel):
 
         >>> with torch.no_grad():
         ...     outputs = model(**inputs)
+        ...     predicted_depth = outputs.predicted_depth
 
         >>> # interpolate to original size
-        >>> post_processed_output = image_processor.post_process_depth_estimation(
-        ...     outputs,
-        ...     target_sizes=[(image.height, image.width)],
+        >>> prediction = torch.nn.functional.interpolate(
+        ...     predicted_depth.unsqueeze(1),
+        ...     size=image.size[::-1],
+        ...     mode="bicubic",
+        ...     align_corners=False,
         ... )
 
         >>> # visualize the prediction
-        >>> predicted_depth = post_processed_output[0]["predicted_depth"]
-        >>> depth = predicted_depth * 255 / predicted_depth.max()
-        >>> depth = depth.detach().cpu().numpy()
-        >>> depth = Image.fromarray(depth.astype("uint8"))
+        >>> output = prediction.squeeze().cpu().numpy()
+        >>> formatted = (output * 255 / np.max(output)).astype("uint8")
+        >>> depth = Image.fromarray(formatted)
         ```"""
         ...
     

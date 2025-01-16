@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import Tensor, nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPastAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput, Wav2Vec2BaseModelOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward
@@ -573,7 +572,7 @@ class SeamlessM4Tv2TextToUnitModel(SeamlessM4Tv2PreTrainedModel):
 @add_start_docstrings("Transformer text-to-unit encoder-decoder with a language model head. The base encoder-decoder model is a [`SeamlessM4Tv2TextToUnitModel`].", SEAMLESS_M4T_V2_START_DOCSTRING, """
         embed_tokens_decoder (`nn.Embedding`, *optional*): input embedding of the decoder.
     """)
-class SeamlessM4Tv2TextToUnitForConditionalGeneration(SeamlessM4Tv2PreTrainedModel, GenerationMixin):
+class SeamlessM4Tv2TextToUnitForConditionalGeneration(SeamlessM4Tv2PreTrainedModel):
     _keys_to_ignore_on_load_missing = ...
     _tied_weights_keys = ...
     def __init__(self, config: SeamlessM4Tv2Config, embed_tokens_decoder: Optional[nn.Embedding] = ...) -> None:
@@ -687,7 +686,7 @@ class SeamlessM4Tv2CodeHifiGan(PreTrainedModel):
 
 
 @add_start_docstrings("The text-to-text SeamlessM4Tv2 Model transformer which can be used for T2TT.", SEAMLESS_M4T_V2_START_DOCSTRING)
-class SeamlessM4Tv2ForTextToText(SeamlessM4Tv2PreTrainedModel, GenerationMixin):
+class SeamlessM4Tv2ForTextToText(SeamlessM4Tv2PreTrainedModel):
     _keys_to_ignore_on_load_missing = ...
     main_input_name = ...
     _tied_weights_keys = ...
@@ -764,8 +763,7 @@ class SeamlessM4Tv2ForTextToText(SeamlessM4Tv2PreTrainedModel, GenerationMixin):
                 for constrained generation conditioned on the prefix, as described in [Autoregressive Entity
                 Retrieval](https://arxiv.org/abs/2010.00904).
             synced_gpus (`bool`, *optional*, defaults to `False`):
-                Whether to continue running the while loop until max_length (needed to avoid deadlocking with
-                `FullyShardedDataParallel` and DeepSpeed ZeRO Stage 3).
+                Whether to continue running the while loop until max_length (needed for ZeRO stage 3)
             kwargs (`Dict[str, Any]`, *optional*):
                 Ad hoc parametrization of `generate_config` and/or additional model-specific kwargs that will be
                 forwarded to the `forward` function of the model.
@@ -777,6 +775,9 @@ class SeamlessM4Tv2ForTextToText(SeamlessM4Tv2PreTrainedModel, GenerationMixin):
                 - [`~generation.GenerateEncoderDecoderOutput`],
                 - [`~generation.GenerateBeamEncoderDecoderOutput`]
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -856,8 +857,7 @@ class SeamlessM4Tv2ForSpeechToText(SeamlessM4Tv2PreTrainedModel):
                 for constrained generation conditioned on the prefix, as described in [Autoregressive Entity
                 Retrieval](https://arxiv.org/abs/2010.00904).
             synced_gpus (`bool`, *optional*, defaults to `False`):
-                Whether to continue running the while loop until max_length (needed to avoid deadlocking with
-                `FullyShardedDataParallel` and DeepSpeed ZeRO Stage 3).
+                Whether to continue running the while loop until max_length (needed for ZeRO stage 3)
             kwargs (`Dict[str, Any]`, *optional*):
                 Ad hoc parametrization of `generate_config` and/or additional model-specific kwargs that will be
                 forwarded to the `forward` function of the model.
@@ -869,6 +869,9 @@ class SeamlessM4Tv2ForSpeechToText(SeamlessM4Tv2PreTrainedModel):
                 - [`~generation.GenerateEncoderDecoderOutput`],
                 - [`~generation.GenerateBeamEncoderDecoderOutput`]
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -958,6 +961,9 @@ class SeamlessM4Tv2ForTextToSpeech(SeamlessM4Tv2PreTrainedModel):
         """
         ...
     
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
+        ...
+    
 
 
 @add_start_docstrings("The speech-to-speech SeamlessM4Tv2 Model transformer which can be used for S2ST.", SEAMLESS_M4T_V2_START_DOCSTRING)
@@ -1040,6 +1046,9 @@ class SeamlessM4Tv2ForSpeechToSpeech(SeamlessM4Tv2PreTrainedModel):
             - If not `return_intermediate_token_ids`, returns a tuple composed of waveforms of shape `(batch_size,
               sequence_length)`and and `waveform_lengths` which gives the length of each sample.
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -1137,6 +1146,9 @@ class SeamlessM4Tv2Model(SeamlessM4Tv2PreTrainedModel):
               shape `(batch_size, sequence_length)`and and `waveform_lengths` which gives the length of each sample.
             - If `generate_speech=False`, it will returns `ModelOutput`.
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, decoder_input_ids, past_key_values=..., attention_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

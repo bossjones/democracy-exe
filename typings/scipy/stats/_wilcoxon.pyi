@@ -9,10 +9,10 @@ class WilcoxonDistribution:
     def mean(self): # -> NDArray[floating[Any]]:
         ...
     
-    def cdf(self, k): # -> Any:
+    def cdf(self, k):
         ...
     
-    def sf(self, k): # -> Any:
+    def sf(self, k):
         ...
     
 

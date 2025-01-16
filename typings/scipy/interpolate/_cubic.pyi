@@ -176,7 +176,7 @@ class PchipInterpolator(CubicHermiteSpline):
     
 
 
-def pchip_interpolate(xi, yi, x, der=..., axis=...): # -> ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]] | list[ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]] | Any]:
+def pchip_interpolate(xi, yi, x, der=..., axis=...): # -> ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]] | list[ndarray[Any, dtype[complexfloating[_64Bit, _64Bit] | floating[_64Bit]]]]:
     """
     Convenience function for pchip interpolation.
 
@@ -268,11 +268,6 @@ class Akima1DInterpolator(CubicHermiteSpline):
 
         .. versionadded:: 1.13.0
 
-    extrapolate : {bool, None}, optional
-        If bool, determines whether to extrapolate to out-of-bounds points 
-        based on first and last intervals, or to return NaNs. If None, 
-        ``extrapolate`` is set to False.
-        
     Methods
     -------
     __call__
@@ -353,7 +348,7 @@ class Akima1DInterpolator(CubicHermiteSpline):
            https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/
 
     """
-    def __init__(self, x, y, axis=..., *, method: Literal["akima", "makima"] = ..., extrapolate: bool | None = ...) -> None:
+    def __init__(self, x, y, axis=..., *, method: Literal["akima", "makima"] = ...) -> None:
         ...
     
     def extend(self, c, x, right=...):

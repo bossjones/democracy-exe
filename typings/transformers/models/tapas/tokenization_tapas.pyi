@@ -135,12 +135,9 @@ class TapasTokenizer(PreTrainedTokenizer):
             Minimum length of each question in terms of tokens (will be skipped otherwise).
         max_question_length (`int`, *optional*):
             Maximum length of each question in terms of tokens (will be skipped otherwise).
-        clean_up_tokenization_spaces (`bool`, *optional*, defaults to `True`):
-            Whether or not to cleanup spaces after decoding, cleanup consists in removing potential artifacts like
-            extra spaces.
     """
     vocab_files_names = ...
-    def __init__(self, vocab_file, do_lower_case=..., do_basic_tokenize=..., never_split=..., unk_token=..., sep_token=..., pad_token=..., cls_token=..., mask_token=..., empty_token=..., tokenize_chinese_chars=..., strip_accents=..., cell_trim_length: int = ..., max_column_id: int = ..., max_row_id: int = ..., strip_column_names: bool = ..., update_answer_coordinates: bool = ..., min_question_length=..., max_question_length=..., model_max_length: int = ..., additional_special_tokens: Optional[List[str]] = ..., clean_up_tokenization_spaces=..., **kwargs) -> None:
+    def __init__(self, vocab_file, do_lower_case=..., do_basic_tokenize=..., never_split=..., unk_token=..., sep_token=..., pad_token=..., cls_token=..., mask_token=..., empty_token=..., tokenize_chinese_chars=..., strip_accents=..., cell_trim_length: int = ..., max_column_id: int = ..., max_row_id: int = ..., strip_column_names: bool = ..., update_answer_coordinates: bool = ..., min_question_length=..., max_question_length=..., model_max_length: int = ..., additional_special_tokens: Optional[List[str]] = ..., **kwargs) -> None:
         ...
     
     @property
@@ -250,7 +247,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(TAPAS_ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING)
-    def __call__(self, table: pd.DataFrame, queries: Optional[Union[TextInput, PreTokenizedInput, EncodedInput, List[TextInput], List[PreTokenizedInput], List[EncodedInput],]] = ..., answer_coordinates: Optional[Union[List[Tuple], List[List[Tuple]]]] = ..., answer_text: Optional[Union[List[TextInput], List[List[TextInput]]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
+    def __call__(self, table: pd.DataFrame, queries: Optional[Union[TextInput, PreTokenizedInput, EncodedInput, List[TextInput], List[PreTokenizedInput], List[EncodedInput],]] = ..., answer_coordinates: Optional[Union[List[Tuple], List[List[Tuple]]]] = ..., answer_text: Optional[Union[List[TextInput], List[List[TextInput]]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
         """
         Main method to tokenize and prepare for the model one or several sequence(s) related to a table.
 
@@ -278,7 +275,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(ENCODE_KWARGS_DOCSTRING, TAPAS_ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING)
-    def batch_encode_plus(self, table: pd.DataFrame, queries: Optional[Union[List[TextInput], List[PreTokenizedInput], List[EncodedInput],]] = ..., answer_coordinates: Optional[List[List[Tuple]]] = ..., answer_text: Optional[List[List[TextInput]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
+    def batch_encode_plus(self, table: pd.DataFrame, queries: Optional[Union[List[TextInput], List[PreTokenizedInput], List[EncodedInput],]] = ..., answer_coordinates: Optional[List[List[Tuple]]] = ..., answer_text: Optional[List[List[TextInput]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
         """
         Prepare a table and a list of strings for the model.
 
@@ -324,7 +321,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(ENCODE_KWARGS_DOCSTRING, TAPAS_ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING)
-    def encode_plus(self, table: pd.DataFrame, query: Optional[Union[TextInput, PreTokenizedInput, EncodedInput,]] = ..., answer_coordinates: Optional[List[Tuple]] = ..., answer_text: Optional[List[TextInput]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
+    def encode_plus(self, table: pd.DataFrame, query: Optional[Union[TextInput, PreTokenizedInput, EncodedInput,]] = ..., answer_coordinates: Optional[List[Tuple]] = ..., answer_text: Optional[List[TextInput]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
         """
         Prepare a table and a string for the model.
 
@@ -345,7 +342,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(ENCODE_KWARGS_DOCSTRING, TAPAS_ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING)
-    def prepare_for_model(self, raw_table: pd.DataFrame, raw_query: Union[TextInput, PreTokenizedInput, EncodedInput,], tokenized_table: Optional[TokenizedTable] = ..., query_tokens: Optional[TokenizedTable] = ..., answer_coordinates: Optional[List[Tuple]] = ..., answer_text: Optional[List[TextInput]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., prepend_batch_axis: bool = ..., **kwargs) -> BatchEncoding:
+    def prepare_for_model(self, raw_table: pd.DataFrame, raw_query: Union[TextInput, PreTokenizedInput, EncodedInput,], tokenized_table: Optional[TokenizedTable] = ..., query_tokens: Optional[TokenizedTable] = ..., answer_coordinates: Optional[List[Tuple]] = ..., answer_text: Optional[List[TextInput]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TapasTruncationStrategy] = ..., max_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., prepend_batch_axis: bool = ..., **kwargs) -> BatchEncoding:
         """
         Prepares a sequence of input id so that it can be used by the model. It adds special tokens, truncates
         sequences if overflowing while taking into account the special tokens.

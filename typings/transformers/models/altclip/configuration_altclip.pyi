@@ -212,4 +212,3 @@ class AltCLIPConfig(PretrainedConfig):
     
 
 
-__all__ = ["AltCLIPTextConfig", "AltCLIPVisionConfig", "AltCLIPConfig"]

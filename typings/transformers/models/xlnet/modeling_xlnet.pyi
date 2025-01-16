@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
 from .configuration_xlnet import XLNetConfig
@@ -394,7 +393,7 @@ class XLNetModel(XLNetPreTrainedModel):
 @add_start_docstrings("""
     XLNet Model with a language modeling head on top (linear layer with weights tied to the input embeddings).
     """, XLNET_START_DOCSTRING)
-class XLNetLMHeadModel(XLNetPreTrainedModel, GenerationMixin):
+class XLNetLMHeadModel(XLNetPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...

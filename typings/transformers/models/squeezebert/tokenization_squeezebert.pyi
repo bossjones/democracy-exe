@@ -56,12 +56,9 @@ class SqueezeBertTokenizer(PreTrainedTokenizer):
         strip_accents (`bool`, *optional*):
             Whether or not to strip all accents. If this option is not specified, then it will be determined by the
             value for `lowercase` (as in the original SqueezeBERT).
-        clean_up_tokenization_spaces (`bool`, *optional*, defaults to `True`):
-            Whether or not to cleanup spaces after decoding, cleanup consists in removing potential artifacts like
-            extra spaces.
     """
     vocab_files_names = ...
-    def __init__(self, vocab_file, do_lower_case=..., do_basic_tokenize=..., never_split=..., unk_token=..., sep_token=..., pad_token=..., cls_token=..., mask_token=..., tokenize_chinese_chars=..., strip_accents=..., clean_up_tokenization_spaces=..., **kwargs) -> None:
+    def __init__(self, vocab_file, do_lower_case=..., do_basic_tokenize=..., never_split=..., unk_token=..., sep_token=..., pad_token=..., cls_token=..., mask_token=..., tokenize_chinese_chars=..., strip_accents=..., **kwargs) -> None:
         ...
     
     @property

@@ -45,9 +45,6 @@ _tf_gpu_memory_limit = ...
 _run_pipeline_tests = ...
 _run_agent_tests = ...
 _run_third_party_device_tests = ...
-def get_device_count(): # -> int:
-    ...
-
 def is_pt_tf_cross_test(test_case):
     """
     Decorator marking a test as a test that control interactions between PyTorch and TensorFlow.
@@ -108,15 +105,6 @@ def tooslow(test_case):
     """
     ...
 
-def skip_if_not_implemented(test_func): # -> _Wrapped[Callable[..., Any], Any, Callable[..., Any], Any]:
-    ...
-
-def apply_skip_if_not_implemented(cls):
-    """
-    Class decorator to apply @skip_if_not_implemented to all test methods.
-    """
-    ...
-
 def custom_tokenizers(test_case):
     """
     Decorator marking a test for a custom tokenizer.
@@ -143,19 +131,6 @@ def require_lomo(test_case):
     """
     Decorator marking a test that requires LOMO. These tests are skipped when LOMO-optim isn't installed.
     https://github.com/OpenLMLab/LOMO
-    """
-    ...
-
-def require_grokadamw(test_case):
-    """
-    Decorator marking a test that requires GrokAdamW. These tests are skipped when GrokAdamW isn't installed.
-    """
-    ...
-
-def require_schedulefree(test_case):
-    """
-    Decorator marking a test that requires schedulefree. These tests are skipped when schedulefree isn't installed.
-    https://github.com/facebookresearch/schedule_free
     """
     ...
 
@@ -192,7 +167,7 @@ def require_accelerate(test_case, min_version: str = ...):
     """
     ...
 
-def require_gguf(test_case, min_version: str = ...):
+def require_gguf(test_case):
     """
     Decorator marking a test that requires ggguf. These tests are skipped when gguf isn't installed.
     """
@@ -435,6 +410,12 @@ def require_spacy(test_case):
     """
     ...
 
+def require_decord(test_case):
+    """
+    Decorator marking a test that requires decord. These tests are skipped when decord isn't installed.
+    """
+    ...
+
 def require_torch_multi_gpu(test_case):
     """
     Decorator marking a test that requires a multi-GPU setup (in PyTorch). These tests are skipped on a machine without
@@ -470,7 +451,7 @@ def require_torch_up_to_2_gpus(test_case):
     """
     ...
 
-def require_torch_up_to_2_accelerators(test_case):
+def require_torch_up_to_2_accelerators(test_case): # -> Callable[[_FT], _FT]:
     """
     Decorator marking a test that requires 0 or 1 or 2 accelerator setup (in PyTorch).
     """
@@ -513,12 +494,6 @@ def require_torch_xpu(test_case):
     """
     ...
 
-def require_non_xpu(test_case):
-    """
-    Decorator marking a test that should be skipped for XPU.
-    """
-    ...
-
 def require_torch_multi_xpu(test_case):
     """
     Decorator marking a test that requires a multi-XPU setup (in PyTorch). These tests are skipped on a machine without
@@ -542,22 +517,12 @@ def require_torchdynamo(test_case):
     """Decorator marking a test that requires TorchDynamo"""
     ...
 
-def require_torchao(test_case):
-    """Decorator marking a test that requires torchao"""
-    ...
-
 def require_torch_tensorrt_fx(test_case):
     """Decorator marking a test that requires Torch-TensorRT FX"""
     ...
 
 def require_torch_gpu(test_case):
     """Decorator marking a test that requires CUDA and PyTorch."""
-    ...
-
-def require_torch_gpu_if_bnb_not_multi_backend_enabled(test_case):
-    """
-    Decorator marking a test that requires a GPU if bitsandbytes multi-backend feature is not enabled.
-    """
     ...
 
 def require_torch_accelerator(test_case):
@@ -709,15 +674,9 @@ def require_auto_awq(test_case):
     """
     ...
 
-def require_optimum_quanto(test_case):
+def require_quanto(test_case):
     """
     Decorator for quanto dependency
-    """
-    ...
-
-def require_compressed_tensors(test_case):
-    """
-    Decorator for compressed_tensors dependency
     """
     ...
 
@@ -742,12 +701,6 @@ def require_pyctcdecode(test_case):
 def require_librosa(test_case):
     """
     Decorator marking a test that requires librosa
-    """
-    ...
-
-def require_liger_kernel(test_case):
-    """
-    Decorator marking a test that requires liger_kernel
     """
     ...
 
@@ -793,12 +746,6 @@ def require_jumanpp(test_case):
 def require_cython(test_case):
     """
     Decorator marking a test that requires jumanpp
-    """
-    ...
-
-def require_tiktoken(test_case):
-    """
-    Decorator marking a test that requires TikToken. These tests are skipped when TikToken isn't installed.
     """
     ...
 
@@ -1245,7 +1192,7 @@ def get_torch_dist_unique_port(): # -> int:
     """
     ...
 
-def nested_simplify(obj, decimals=...): # -> list[Any] | tuple[Any, ...] | dict[Any, Any] | str | int | int64 | float:
+def nested_simplify(obj, decimals=...): # -> list[list[Any] | tuple[list[Any] | tuple[Any, ...] | Any | dict[list[Any] | tuple[Any, ...] | Any | dict[Any, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float, ...] | tuple[Any, ...] | Any | dict[list[Any] | tuple[Any, ...] | Any | dict[Any, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float] | tuple[list[Any] | tuple[Any, ...] | Any | dict[list[Any] | tuple[Any, ...] | Any | dict[Any, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float, ...] | list[Any] | tuple[Any, ...] | dict[list[Any] | tuple[Any, ...] | Any | dict[Any, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float, list[Any] | tuple[Any, ...] | Any | dict[Any, Any] | str | int | int64 | float] | str | int | int64 | dict[Any, Any] | float:
     """
     Simplifies an object by rounding float numbers, and downcasting tensors/numpy arrays to get simple equality test
     within tests.
@@ -1396,6 +1343,3 @@ def backend_device_count(device: str): # -> None:
 
 if is_torch_available():
     ...
-def compare_pipeline_output_to_hub_spec(output, hub_spec): # -> None:
-    ...
-

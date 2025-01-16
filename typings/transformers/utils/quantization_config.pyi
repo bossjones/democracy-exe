@@ -19,19 +19,15 @@ class QuantizationMethod(str, Enum):
     QUANTO = ...
     EETQ = ...
     HQQ = ...
-    COMPRESSED_TENSORS = ...
     FBGEMM_FP8 = ...
-    TORCHAO = ...
-    BITNET = ...
 
 
 class AWQLinearVersion(str, Enum):
     GEMM = ...
     GEMV = ...
     EXLLAMA = ...
-    IPEX = ...
     @staticmethod
-    def from_str(version: str): # -> Literal[AWQLinearVersion.GEMM, AWQLinearVersion.GEMV, AWQLinearVersion.EXLLAMA, AWQLinearVersion.IPEX]:
+    def from_str(version: str): # -> Literal[AWQLinearVersion.GEMM, AWQLinearVersion.GEMV, AWQLinearVersion.EXLLAMA]:
         ...
     
 
@@ -133,9 +129,15 @@ class HqqConfig(QuantizationConfigMixin):
             Number of bits. Supported values are (8, 4, 3, 2, 1).
         group_size (`int`, *optional*, defaults to 64):
             Group-size value. Supported values are any value that is divisble by weight.shape[axis]).
+        quant_zero (`bool`, *optional*, defaults to `True`):
+            Quantize the zero-point if set to `True`.
+        quant_scale (`bool`, *optional*, defaults to `False`):
+            Quantize the scaling if set to `True`.
+        offload_meta (`bool`, *optional*, defaults to `False`):
+            Offload the meta-data to the CPU if set to `True`.
         view_as_float (`bool`, *optional*, defaults to `False`):
             View the quantized weight as float (used in distributed training) if set to `True`.
-        axis (`Optional[int]`, *optional*):
+        axis (`int`, *optional*, defaults to 0):
             Axis along which grouping is performed. Supported values are 0 or 1.
         dynamic_config (dict, *optional*):
             Parameters for dynamic configuration. The key is the name tag of the layer and the value is a quantization config.
@@ -145,19 +147,12 @@ class HqqConfig(QuantizationConfigMixin):
         kwargs (`Dict[str, Any]`, *optional*):
             Additional parameters from which to initialize the configuration object.
     """
-    def __init__(self, nbits: int = ..., group_size: int = ..., view_as_float: bool = ..., axis: Optional[int] = ..., dynamic_config: Optional[dict] = ..., skip_modules: List[str] = ..., **kwargs) -> None:
+    def __init__(self, nbits: int = ..., group_size: int = ..., quant_zero: bool = ..., quant_scale: bool = ..., offload_meta: bool = ..., view_as_float: bool = ..., axis: int = ..., dynamic_config: Optional[dict] = ..., skip_modules: List[str] = ..., **kwargs) -> None:
         ...
     
     def post_init(self): # -> None:
         r"""
         Safety checker that arguments are correct - also replaces some NoneType arguments with their default values.
-        """
-        ...
-    
-    @classmethod
-    def from_dict(cls, config: Dict[str, Any]): # -> Self:
-        """
-        Override from_dict, used in AutoQuantizationConfig.from_dict in quantizers/auto.py
         """
         ...
     
@@ -518,69 +513,6 @@ class EetqConfig(QuantizationConfigMixin):
     
 
 
-class CompressedTensorsConfig(QuantizationConfigMixin):
-    """
-    This is a wrapper class that handles compressed-tensors quantization config options.
-    It is a wrapper around `compressed_tensors.QuantizationConfig`
-    Args:
-        config_groups (`typing.Dict[str, typing.Union[ForwardRef('QuantizationScheme'), typing.List[str]]]`, *optional*):
-            dictionary mapping group name to a quantization scheme definition
-        format (`str`, *optional*, defaults to `"dense"`):
-            format the model is represented as
-        quantization_status (`QuantizationStatus`, *optional*, defaults to `"initialized"`):
-            status of model in the quantization lifecycle, ie 'initialized', 'calibration', 'frozen'
-        kv_cache_scheme (`typing.Union[QuantizationArgs, NoneType]`, *optional*):
-            specifies quantization of the kv cache. If None, kv cache is not quantized.
-        global_compression_ratio (`typing.Union[float, NoneType]`, *optional*):
-            0-1 float percentage of model compression
-        ignore (`typing.Union[typing.List[str], NoneType]`, *optional*):
-            layer names or types to not quantize, supports regex prefixed by 're:'
-        sparsity_config (`typing.Dict[str, typing.Any]`, *optional*):
-            configuration for sparsity compression
-        quant_method (`str`, *optional*, defaults to `"compressed-tensors"`):
-            do not override, should be compressed-tensors
-    """
-    def __init__(self, config_groups: Dict[str, Union[QuantizationScheme, List[str]]] = ..., format: str = ..., quantization_status: QuantizationStatus = ..., kv_cache_scheme: Optional[QuantizationArgs] = ..., global_compression_ratio: Optional[float] = ..., ignore: Optional[List[str]] = ..., sparsity_config: Dict[str, Any] = ..., quant_method: str = ..., **kwargs) -> None:
-        ...
-    
-    @classmethod
-    def from_dict(cls, config_dict, return_unused_kwargs=..., **kwargs): # -> tuple[Self, dict[str, Any]] | Self:
-        """
-        Instantiates a [`CompressedTensorsConfig`] from a Python dictionary of parameters.
-        Optionally unwraps any args from the nested quantization_config
-
-        Args:
-            config_dict (`Dict[str, Any]`):
-                Dictionary that will be used to instantiate the configuration object.
-            return_unused_kwargs (`bool`,*optional*, defaults to `False`):
-                Whether or not to return a list of unused keyword arguments. Used for `from_pretrained` method in
-                `PreTrainedModel`.
-            kwargs (`Dict[str, Any]`):
-                Additional parameters from which to initialize the configuration object.
-
-        Returns:
-            [`QuantizationConfigMixin`]: The configuration object instantiated from those parameters.
-        """
-        ...
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Serializes this instance to a Python dictionary. Returns:
-            `Dict[str, Any]`: Dictionary of all the attributes that make up this configuration instance.
-        """
-        ...
-    
-    def to_diff_dict(self) -> Dict[str, Any]:
-        """
-        Removes all attributes from config which correspond to the default config attributes for better readability and
-        serializes to a Python dictionary.
-        Returns:
-            `Dict[str, Any]`: Dictionary of all the attributes that make up this configuration instance,
-        """
-        ...
-    
-
-
 @dataclass
 class FbgemmFp8Config(QuantizationConfigMixin):
     """
@@ -598,59 +530,6 @@ class FbgemmFp8Config(QuantizationConfigMixin):
         ...
     
     def get_loading_attributes(self): # -> dict[str, Any]:
-        ...
-    
-
-
-@dataclass
-class TorchAoConfig(QuantizationConfigMixin):
-    """This is a config class for torchao quantization/sparsity techniques.
-
-    Args:
-        quant_type (`str`):
-            The type of quantization we want to use, currently supporting: `int4_weight_only`, `int8_weight_only` and `int8_dynamic_activation_int8_weight`.
-        modules_to_not_convert (`list`, *optional*, default to `None`):
-            The list of modules to not quantize, useful for quantizing models that explicitly require to have
-            some modules left in their original precision.
-        kwargs (`Dict[str, Any]`, *optional*):
-            The keyword arguments for the chosen type of quantization, for example, int4_weight_only quantization supports two keyword arguments
-            `group_size` and `inner_k_tiles` currently. More API examples and documentation of arguments can be found in
-            https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques
-
-    Example:
-
-    ```python
-    quantization_config = TorchAoConfig("int4_weight_only", group_size=32)
-    # int4_weight_only quant is only working with *torch.bfloat16* dtype right now
-    model = AutoModelForCausalLM.from_pretrained(model_id, device_map="cuda", torch_dtype=torch.bfloat16, quantization_config=quantization_config)
-    ```
-    """
-    def __init__(self, quant_type: str, modules_to_not_convert: Optional[List] = ..., **kwargs) -> None:
-        ...
-    
-    def post_init(self): # -> None:
-        r"""
-        Safety checker that arguments are correct - also replaces some NoneType arguments with their default values.
-        """
-        ...
-    
-    def get_apply_tensor_subclass(self):
-        ...
-    
-    def __repr__(self): # -> str:
-        ...
-    
-
-
-@dataclass
-class BitNetConfig(QuantizationConfigMixin):
-    def __init__(self, modules_to_not_convert: Optional[List] = ..., **kwargs) -> None:
-        ...
-    
-    def post_init(self): # -> None:
-        r"""
-        Safety checker that arguments are correct
-        """
         ...
     
 

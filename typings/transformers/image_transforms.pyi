@@ -10,7 +10,7 @@ import jax.numpy as jnp
 from typing import Iterable, List, Optional, Tuple, Union
 from .image_utils import ChannelDimension, ImageInput, PILImageResampling
 from .utils import ExplicitEnum, TensorType
-from .utils.import_utils import is_flax_available, is_tf_available, is_torch_available, is_torchvision_v2_available, is_vision_available
+from .utils.import_utils import is_flax_available, is_tf_available, is_torch_available, is_torchvision_available, is_vision_available
 
 if is_vision_available():
     ...
@@ -20,9 +20,7 @@ if is_tf_available():
     ...
 if is_flax_available():
     ...
-if is_torchvision_v2_available():
-    ...
-else:
+if is_torchvision_available():
     ...
 def to_channel_dimension_format(image: np.ndarray, channel_dim: Union[ChannelDimension, str], input_channel_dim: Optional[Union[ChannelDimension, str]] = ...) -> np.ndarray:
     """
@@ -63,7 +61,7 @@ def rescale(image: np.ndarray, scale: float, data_format: Optional[ChannelDimens
     """
     ...
 
-def to_pil_image(image: Union[np.ndarray, PIL.Image.Image, torch.Tensor, tf.Tensor, jnp.ndarray], do_rescale: Optional[bool] = ..., image_mode: Optional[str] = ..., input_data_format: Optional[Union[str, ChannelDimension]] = ...) -> PIL.Image.Image:
+def to_pil_image(image: Union[np.ndarray, PIL.Image.Image, torch.Tensor, tf.Tensor, jnp.ndarray], do_rescale: Optional[bool] = ..., input_data_format: Optional[Union[str, ChannelDimension]] = ...) -> PIL.Image.Image:
     """
     Converts `image` to a PIL Image. Optionally rescales it and puts the channel dimension back as the last axis if
     needed.
@@ -75,8 +73,6 @@ def to_pil_image(image: Union[np.ndarray, PIL.Image.Image, torch.Tensor, tf.Tens
             Whether or not to apply the scaling factor (to make pixel values integers between 0 and 255). Will default
             to `True` if the image type is a floating type and casting to `int` would result in a loss of precision,
             and `False` otherwise.
-        image_mode (`str`, *optional*):
-            The mode to use for the PIL image. If unset, will use the default mode for the input image type.
         input_data_format (`ChannelDimension`, *optional*):
             The channel dimension format of the input image. If unset, will use the inferred format from the input.
 

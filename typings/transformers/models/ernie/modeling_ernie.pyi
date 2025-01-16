@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPoolingAndCrossAttentions, CausalLMOutputWithCrossAttentions, MaskedLMOutput, MultipleChoiceModelOutput, NextSentencePredictorOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -302,7 +301,7 @@ class ErnieForPreTraining(ErniePreTrainedModel):
 
 
 @add_start_docstrings("""Ernie Model with a `language modeling` head on top for CLM fine-tuning.""", ERNIE_START_DOCSTRING)
-class ErnieForCausalLM(ErniePreTrainedModel, GenerationMixin):
+class ErnieForCausalLM(ErniePreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -340,6 +339,9 @@ class ErnieForCausalLM(ErniePreTrainedModel, GenerationMixin):
             If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding (see
             `past_key_values`).
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., use_cache=..., **model_kwargs): # -> dict[str, Any]:
         ...
     
 

@@ -6,17 +6,15 @@ import torch
 from typing import List, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
-from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, QuestionAnsweringModelOutput, SequenceClassifierOutputWithPast, TokenClassifierOutput
+from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
-from ...utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
+from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
 from .configuration_mistral import MistralConfig
 
 """PyTorch Mistral model."""
 if is_flash_attn_2_available():
     ...
 logger = ...
-_CHECKPOINT_FOR_DOC = ...
 _CONFIG_FOR_DOC = ...
 class MistralRMSNorm(nn.Module):
     def __init__(self, hidden_size, eps=...) -> None:
@@ -190,7 +188,7 @@ class MistralModel(MistralPreTrainedModel):
     
 
 
-class MistralForCausalLM(MistralPreTrainedModel, GenerationMixin):
+class MistralForCausalLM(MistralPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -215,18 +213,13 @@ class MistralForCausalLM(MistralPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(MISTRAL_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, CausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
 
         Returns:
 
@@ -246,6 +239,9 @@ class MistralForCausalLM(MistralPreTrainedModel, GenerationMixin):
         >>> tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         "Hey, are you conscious? Can you talk to me?\nI'm not conscious, but I can talk to you."
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., position_ids=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -299,44 +295,12 @@ class MistralForTokenClassification(MistralPreTrainedModel):
         ...
     
     @add_start_docstrings_to_model_forward(MISTRAL_INPUTS_DOCSTRING)
-    @add_code_sample_docstrings(checkpoint=_CHECKPOINT_FOR_DOC, output_type=TokenClassifierOutput, config_class=_CONFIG_FOR_DOC)
     def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, TokenClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
             Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
             config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss), If
             `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
-        """
-        ...
-    
-
-
-@add_start_docstrings("""
-The Mistral Model transformer with a span classification head on top for extractive question-answering tasks like
-SQuAD (a linear layer on top of the hidden-states output to compute `span start logits` and `span end logits`).
-    """, MISTRAL_START_DOCSTRING)
-class MistralForQuestionAnswering(MistralPreTrainedModel):
-    base_model_prefix = ...
-    def __init__(self, config) -> None:
-        ...
-    
-    def get_input_embeddings(self): # -> Embedding | Module:
-        ...
-    
-    def set_input_embeddings(self, value): # -> None:
-        ...
-    
-    @add_start_docstrings_to_model_forward(MISTRAL_INPUTS_DOCSTRING)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.FloatTensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Union[Cache, List[torch.FloatTensor]]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., start_positions: Optional[torch.LongTensor] = ..., end_positions: Optional[torch.LongTensor] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., **kwargs) -> Union[Tuple, QuestionAnsweringModelOutput]:
-        r"""
-        start_positions (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
-            Labels for position (index) of the start of the labelled span for computing the token classification loss.
-            Positions are clamped to the length of the sequence (`sequence_length`). Position outside of the sequence
-            are not taken into account for computing the loss.
-        end_positions (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
-            Labels for position (index) of the end of the labelled span for computing the token classification loss.
-            Positions are clamped to the length of the sequence (`sequence_length`). Position outside of the sequence
-            are not taken into account for computing the loss.
         """
         ...
     

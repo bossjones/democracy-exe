@@ -75,7 +75,7 @@ class ImageProcessingMixin(PushToHubMixin):
 
                 <Tip>
 
-                To test a pull request you made on the Hub, you can pass `revision="refs/pr/<pr_number>"`.
+                To test a pull request you made on the Hub, you can pass `revision="refs/pr/<pr_number>".
 
                 </Tip>
 
@@ -238,7 +238,7 @@ class ImageProcessingMixin(PushToHubMixin):
         """
         ...
     
-    def fetch_images(self, image_url_or_urls: Union[str, List[str]]): # -> list[Any] | ImageFile:
+    def fetch_images(self, image_url_or_urls: Union[str, List[str]]): # -> list[list[Any] | ImageFile] | ImageFile:
         """
         Convert a single or a list of urls into the corresponding `PIL.Image` objects.
 

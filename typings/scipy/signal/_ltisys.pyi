@@ -111,7 +111,7 @@ class lti(LinearTimeInvariant):
     )
 
     """
-    def __new__(cls, *system): # -> TransferFunctionContinuous | ZerosPolesGainContinuous | StateSpaceContinuous | Self:
+    def __new__(cls, *system): # -> TransferFunctionDiscrete | TransferFunctionContinuous | ZerosPolesGainDiscrete | ZerosPolesGainContinuous | StateSpaceDiscrete | StateSpaceContinuous | Self:
         """Create an instance of the appropriate subclass."""
         ...
     
@@ -280,7 +280,7 @@ class dlti(LinearTimeInvariant):
     )
 
     """
-    def __new__(cls, *system, **kwargs): # -> TransferFunctionDiscrete | ZerosPolesGainDiscrete | StateSpaceDiscrete | Self:
+    def __new__(cls, *system, **kwargs): # -> TransferFunctionDiscrete | TransferFunctionContinuous | ZerosPolesGainDiscrete | ZerosPolesGainContinuous | StateSpaceDiscrete | StateSpaceContinuous | Self:
         """Create an instance of the appropriate subclass."""
         ...
     
@@ -441,7 +441,7 @@ class TransferFunction(LinearTimeInvariant):
     )
 
     """
-    def __new__(cls, *system, **kwargs): # -> Self:
+    def __new__(cls, *system, **kwargs): # -> TransferFunctionDiscrete | TransferFunctionContinuous | Self:
         """Handle object conversion if input is an instance of lti."""
         ...
     
@@ -483,7 +483,7 @@ class TransferFunction(LinearTimeInvariant):
         """
         ...
     
-    def to_zpk(self): # -> ZerosPolesGain:
+    def to_zpk(self): # -> ZerosPolesGainDiscrete | ZerosPolesGainContinuous | ZerosPolesGain:
         """
         Convert system representation to `ZerosPolesGain`.
 
@@ -495,7 +495,7 @@ class TransferFunction(LinearTimeInvariant):
         """
         ...
     
-    def to_ss(self): # -> StateSpace:
+    def to_ss(self): # -> StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """
         Convert system representation to `StateSpace`.
 
@@ -568,7 +568,7 @@ class TransferFunctionContinuous(TransferFunction, lti):
     )
 
     """
-    def to_discrete(self, dt, method=..., alpha=...): # -> TransferFunction:
+    def to_discrete(self, dt, method=..., alpha=...): # -> TransferFunctionDiscrete | TransferFunctionContinuous | TransferFunction:
         """
         Returns the discretized `TransferFunction` system.
 
@@ -716,7 +716,7 @@ class ZerosPolesGain(LinearTimeInvariant):
     )
 
     """
-    def __new__(cls, *system, **kwargs): # -> Self:
+    def __new__(cls, *system, **kwargs): # -> ZerosPolesGainDiscrete | ZerosPolesGainContinuous | Self:
         """Handle object conversion if input is an instance of `lti`"""
         ...
     
@@ -755,7 +755,7 @@ class ZerosPolesGain(LinearTimeInvariant):
     def gain(self, gain): # -> None:
         ...
     
-    def to_tf(self): # -> TransferFunction:
+    def to_tf(self): # -> TransferFunctionDiscrete | TransferFunctionContinuous | TransferFunction:
         """
         Convert system representation to `TransferFunction`.
 
@@ -779,7 +779,7 @@ class ZerosPolesGain(LinearTimeInvariant):
         """
         ...
     
-    def to_ss(self): # -> StateSpace:
+    def to_ss(self): # -> StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """
         Convert system representation to `StateSpace`.
 
@@ -844,7 +844,7 @@ class ZerosPolesGainContinuous(ZerosPolesGain, lti):
     )
 
     """
-    def to_discrete(self, dt, method=..., alpha=...): # -> ZerosPolesGain:
+    def to_discrete(self, dt, method=..., alpha=...): # -> ZerosPolesGainDiscrete | ZerosPolesGainContinuous | ZerosPolesGain:
         """
         Returns the discretized `ZerosPolesGain` system.
 
@@ -1015,7 +1015,7 @@ class StateSpace(LinearTimeInvariant):
     """
     __array_priority__ = ...
     __array_ufunc__ = ...
-    def __new__(cls, *system, **kwargs): # -> Self:
+    def __new__(cls, *system, **kwargs): # -> StateSpaceDiscrete | StateSpaceContinuous | Self:
         """Create new StateSpace object and settle inheritance."""
         ...
     
@@ -1027,7 +1027,7 @@ class StateSpace(LinearTimeInvariant):
         """Return representation of the `StateSpace` system."""
         ...
     
-    def __mul__(self, other): # -> _NotImplementedType | StateSpace:
+    def __mul__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """
         Post-multiply another system or a scalar
 
@@ -1044,30 +1044,30 @@ class StateSpace(LinearTimeInvariant):
         """
         ...
     
-    def __rmul__(self, other): # -> _NotImplementedType | StateSpace:
+    def __rmul__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """Pre-multiply a scalar or matrix (but not StateSpace)"""
         ...
     
-    def __neg__(self): # -> StateSpace:
+    def __neg__(self): # -> StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """Negate the system (equivalent to pre-multiplying by -1)."""
         ...
     
-    def __add__(self, other): # -> _NotImplementedType | StateSpace:
+    def __add__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """
         Adds two systems in the sense of frequency domain addition.
         """
         ...
     
-    def __sub__(self, other): # -> _NotImplementedType | StateSpace:
+    def __sub__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         ...
     
-    def __radd__(self, other): # -> _NotImplementedType | StateSpace:
+    def __radd__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         ...
     
-    def __rsub__(self, other): # -> _NotImplementedType | StateSpace:
+    def __rsub__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         ...
     
-    def __truediv__(self, other): # -> _NotImplementedType | StateSpace:
+    def __truediv__(self, other): # -> _NotImplementedType | StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """
         Divide by a scalar
         """
@@ -1109,7 +1109,7 @@ class StateSpace(LinearTimeInvariant):
     def D(self, D): # -> None:
         ...
     
-    def to_tf(self, **kwargs): # -> TransferFunction:
+    def to_tf(self, **kwargs): # -> TransferFunctionDiscrete | TransferFunctionContinuous | TransferFunction:
         """
         Convert system representation to `TransferFunction`.
 
@@ -1126,7 +1126,7 @@ class StateSpace(LinearTimeInvariant):
         """
         ...
     
-    def to_zpk(self, **kwargs): # -> ZerosPolesGain:
+    def to_zpk(self, **kwargs): # -> ZerosPolesGainDiscrete | ZerosPolesGainContinuous | ZerosPolesGain:
         """
         Convert system representation to `ZerosPolesGain`.
 
@@ -1213,7 +1213,7 @@ class StateSpaceContinuous(StateSpace, lti):
     )
 
     """
-    def to_discrete(self, dt, method=..., alpha=...): # -> StateSpace:
+    def to_discrete(self, dt, method=..., alpha=...): # -> StateSpaceDiscrete | StateSpaceContinuous | StateSpace:
         """
         Returns the discretized `StateSpace` system.
 

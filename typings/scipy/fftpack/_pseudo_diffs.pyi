@@ -7,7 +7,7 @@ Differential and pseudo-differential operators.
 """
 __all__ = ['diff', 'tilbert', 'itilbert', 'hilbert', 'ihilbert', 'cs_diff', 'cc_diff', 'sc_diff', 'ss_diff', 'shift']
 _cache = ...
-def diff(x, order=..., period=..., _cache=...): # -> NDArray[Any]:
+def diff(x, order=..., period=..., _cache=...): # -> NDArray[Any] | NDArray[complexfloating[Any, Any]]:
     """
     Return kth derivative (or integral) of a periodic sequence x.
 

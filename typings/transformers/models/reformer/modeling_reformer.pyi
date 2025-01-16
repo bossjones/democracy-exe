@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
 from torch.autograd.function import Function
-from ...generation import GenerationMixin
 from ...modeling_outputs import CausalLMOutput, MaskedLMOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -301,7 +300,7 @@ class ReformerModel(ReformerPreTrainedModel):
 
 
 @add_start_docstrings("""Reformer Model with a `language modeling` head on top.""", REFORMER_START_DOCSTRING)
-class ReformerModelWithLMHead(ReformerPreTrainedModel, GenerationMixin):
+class ReformerModelWithLMHead(ReformerPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...

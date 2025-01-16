@@ -70,7 +70,7 @@ def bayes_mvs(data, alpha=...): # -> tuple[Mean, Variance, Std_dev]:
     >>> mean
     Mean(statistic=9.0, minmax=(7.103650222612533, 10.896349777387467))
     >>> var
-    Variance(statistic=10.0, minmax=(3.176724206, 24.45910382))
+    Variance(statistic=10.0, minmax=(3.176724206..., 24.45910382...))
     >>> std
     Std_dev(statistic=2.9724954732045084,
             minmax=(1.7823367265645143, 4.945614605014631))
@@ -160,29 +160,24 @@ def mvsdist(data): # -> tuple[rv_continuous_frozen | rv_discrete_frozen, rv_cont
     ...
 
 @_axis_nan_policy_factory(lambda x: x, result_to_tuple=lambda x: (x, ), n_outputs=1, default_axis=None)
-def kstat(data, n=..., *, axis=...):
+def kstat(data, n=...): # -> float | Any:
     r"""
-    Return the `n` th k-statistic ( ``1<=n<=4`` so far).
+    Return the nth k-statistic (1<=n<=4 so far).
 
-    The `n` th k-statistic ``k_n`` is the unique symmetric unbiased estimator of the
-    `n` th cumulant :math:`\kappa_n` [1]_ [2]_.
+    The nth k-statistic k_n is the unique symmetric unbiased estimator of the
+    nth cumulant kappa_n.
 
     Parameters
     ----------
     data : array_like
-        Input array.
+        Input array. Note that n-D input gets flattened.
     n : int, {1, 2, 3, 4}, optional
         Default is equal to 2.
-    axis : int or None, default: None
-        If an int, the axis of the input along which to compute the statistic.
-        The statistic of each axis-slice (e.g. row) of the input will appear
-        in a corresponding element of the output. If ``None``, the input will
-        be raveled before computing the statistic.
 
     Returns
     -------
     kstat : float
-        The `n` th k-statistic.
+        The nth k-statistic.
 
     See Also
     --------
@@ -191,29 +186,23 @@ def kstat(data, n=..., *, axis=...):
 
     Notes
     -----
-    For a sample size :math:`n`, the first few k-statistics are given by
+    For a sample size n, the first few k-statistics are given by:
 
     .. math::
 
-        k_1 &= \frac{S_1}{n}, \\
-        k_2 &= \frac{nS_2 - S_1^2}{n(n-1)}, \\
-        k_3 &= \frac{2S_1^3 - 3nS_1S_2 + n^2S_3}{n(n-1)(n-2)}, \\
-        k_4 &= \frac{-6S_1^4 + 12nS_1^2S_2 - 3n(n-1)S_2^2 - 4n(n+1)S_1S_3
-        + n^2(n+1)S_4}{n (n-1)(n-2)(n-3)},
+        k_{1} = \mu
+        k_{2} = \frac{n}{n-1} m_{2}
+        k_{3} = \frac{ n^{2} } {(n-1) (n-2)} m_{3}
+        k_{4} = \frac{ n^{2} [(n + 1)m_{4} - 3(n - 1) m^2_{2}]} {(n-1) (n-2) (n-3)}
 
-    where
-
-    .. math::
-
-        S_r \equiv \sum_{i=1}^n X_i^r,
-
-    and :math:`X_i` is the :math:`i` th data point.
+    where :math:`\mu` is the sample mean, :math:`m_2` is the sample
+    variance, and :math:`m_i` is the i-th sample central moment.
 
     References
     ----------
-    .. [1] http://mathworld.wolfram.com/k-Statistic.html
+    http://mathworld.wolfram.com/k-Statistic.html
 
-    .. [2] http://mathworld.wolfram.com/Cumulant.html
+    http://mathworld.wolfram.com/Cumulant.html
 
     Examples
     --------
@@ -221,45 +210,40 @@ def kstat(data, n=..., *, axis=...):
     >>> from numpy.random import default_rng
     >>> rng = default_rng()
 
-    As sample size increases, `n`-th moment and `n`-th k-statistic converge to the
+    As sample size increases, n-th moment and n-th k-statistic converge to the
     same number (although they aren't identical). In the case of the normal
     distribution, they converge to zero.
 
-    >>> for i in range(2,8):
-    ...     x = rng.normal(size=10**i)
+    >>> for n in [2, 3, 4, 5, 6, 7]:
+    ...     x = rng.normal(size=10**n)
     ...     m, k = stats.moment(x, 3), stats.kstat(x, 3)
-    ...     print(f"{i=}: {m=:.3g}, {k=:.3g}, {(m-k)=:.3g}")
-    i=2: m=-0.631, k=-0.651, (m-k)=0.0194  # random
-    i=3: m=0.0282, k=0.0283, (m-k)=-8.49e-05
-    i=4: m=-0.0454, k=-0.0454, (m-k)=1.36e-05
-    i=6: m=7.53e-05, k=7.53e-05, (m-k)=-2.26e-09
-    i=7: m=0.00166, k=0.00166, (m-k)=-4.99e-09
-    i=8: m=-2.88e-06 k=-2.88e-06, (m-k)=8.63e-13
+    ...     print("%.3g %.3g %.3g" % (m, k, m-k))
+    -0.631 -0.651 0.0194  # random
+    0.0282 0.0283 -8.49e-05
+    -0.0454 -0.0454 1.36e-05
+    7.53e-05 7.53e-05 -2.26e-09
+    0.00166 0.00166 -4.99e-09
+    -2.88e-06 -2.88e-06 8.63e-13
     """
     ...
 
 @_axis_nan_policy_factory(lambda x: x, result_to_tuple=lambda x: (x, ), n_outputs=1, default_axis=None)
-def kstatvar(data, n=..., *, axis=...):
+def kstatvar(data, n=...): # -> float | Any:
     r"""Return an unbiased estimator of the variance of the k-statistic.
 
-    See `kstat` and [1]_ for more details about the k-statistic.
+    See `kstat` for more details of the k-statistic.
 
     Parameters
     ----------
     data : array_like
-        Input array.
+        Input array. Note that n-D input gets flattened.
     n : int, {1, 2}, optional
         Default is equal to 2.
-    axis : int or None, default: None
-        If an int, the axis of the input along which to compute the statistic.
-        The statistic of each axis-slice (e.g. row) of the input will appear
-        in a corresponding element of the output. If ``None``, the input will
-        be raveled before computing the statistic.
 
     Returns
     -------
     kstatvar : float
-        The `n` th k-statistic variance.
+        The nth k-statistic variance.
 
     See Also
     --------
@@ -268,17 +252,21 @@ def kstatvar(data, n=..., *, axis=...):
 
     Notes
     -----
-    Unbiased estimators of the variances of the first two k-statistics are given by
+    The variances of the first few k-statistics are given by:
 
     .. math::
 
-        \mathrm{var}(k_1) &= \frac{k_2}{n}, \\
-        \mathrm{var}(k_2) &= \frac{2k_2^2n + (n-1)k_4}{n(n - 1)}.
-
-    References
-    ----------
-    .. [1] http://mathworld.wolfram.com/k-Statistic.html
-
+        var(k_{1}) = \frac{\kappa^2}{n}
+        var(k_{2}) = \frac{\kappa^4}{n} + \frac{2\kappa^2_{2}}{n - 1}
+        var(k_{3}) = \frac{\kappa^6}{n} + \frac{9 \kappa_2 \kappa_4}{n - 1} +
+                     \frac{9 \kappa^2_{3}}{n - 1} +
+                     \frac{6 n \kappa^3_{2}}{(n-1) (n-2)}
+        var(k_{4}) = \frac{\kappa^8}{n} + \frac{16 \kappa_2 \kappa_6}{n - 1} +
+                     \frac{48 \kappa_{3} \kappa_5}{n - 1} +
+                     \frac{34 \kappa^2_{4}}{n-1} +
+                     \frac{72 n \kappa^2_{2} \kappa_4}{(n - 1) (n - 2)} +
+                     \frac{144 n \kappa_{2} \kappa^2_{3}}{(n - 1) (n - 2)} +
+                     \frac{24 (n + 1) n \kappa^4_{2}}{(n - 1) (n - 2) (n - 3)}
     """
     ...
 
@@ -643,7 +631,7 @@ def boxcox_llf(lmb, data): # -> float | Any:
     """
     ...
 
-def boxcox(x, lmbda=..., alpha=..., optimizer=...): # -> Any | NDArray[Any] | tuple[Any, ndarray[Any, Any] | Any] | tuple[Any, ndarray[Any, Any] | Any, tuple[tuple[Any, RootResults] | Any, tuple[Any, RootResults] | Any]]:
+def boxcox(x, lmbda=..., alpha=..., optimizer=...): # -> Any | NDArray[Any] | tuple[Any | NDArray[Any] | tuple[Any, ndarray[Any, Any] | Any] | tuple[Any, ndarray[Any, Any] | Any, tuple[tuple[Any, RootResults] | Any, tuple[Any, RootResults] | Any]], ndarray[Any, Any] | Any] | tuple[Any | NDArray[Any] | tuple[Any, ndarray[Any, Any] | Any] | tuple[Any, ndarray[Any, Any] | Any, tuple[tuple[Any, RootResults] | Any, tuple[Any, RootResults] | Any]], ndarray[Any, Any] | Any, tuple[tuple[Any, RootResults] | Any, tuple[Any, RootResults] | Any]]:
     r"""Return a dataset transformed by a Box-Cox power transformation.
 
     Parameters
@@ -871,7 +859,7 @@ def boxcox_normmax(x, brack=..., method=..., optimizer=..., *, ymax=...): # -> n
     ...     return optimize.minimize_scalar(fun, bounds=(6, 7),
     ...                                     method="bounded", options=options)
     >>> stats.boxcox_normmax(x, optimizer=optimizer)
-    6.000000000
+    6.000...
     """
     ...
 
@@ -1229,7 +1217,7 @@ def shapiro(x): # -> ShapiroResult:
     Parameters
     ----------
     x : array_like
-        Array of sample data. Must contain at least three observations.
+        Array of sample data.
 
     Returns
     -------
@@ -1726,7 +1714,7 @@ def ansari(x, y, alternative=...): # -> AnsariResult:
 
 BartlettResult = ...
 @_axis_nan_policy_factory(BartlettResult, n_samples=None)
-def bartlett(*samples, axis=...): # -> BartlettResult:
+def bartlett(*samples): # -> BartlettResult:
     r"""Perform Bartlett's test for equal variances.
 
     Bartlett's test tests the null hypothesis that all input samples
@@ -2399,8 +2387,7 @@ def mood(x, y, axis=..., alternative=...): # -> _:
     Parameters
     ----------
     x, y : array_like
-        Arrays of sample data. There must be at least three observations
-        total.
+        Arrays of sample data.
     axis : int, optional
         The axis along which the samples are tested.  `x` and `y` can be of
         different length along `axis`.
@@ -2851,53 +2838,31 @@ def median_test(*samples, ties=..., correction=..., lambda_=..., nan_policy=...)
     ...
 
 @_axis_nan_policy_factory(lambda x: x, n_outputs=1, default_axis=None, result_to_tuple=lambda x: (x, ))
-def circmean(samples, high=..., low=..., axis=..., nan_policy=...): # -> Any:
-    r"""Compute the circular mean of a sample of angle observations.
-
-    Given :math:`n` angle observations :math:`x_1, \cdots, x_n` measured in
-    radians, their `circular mean` is defined by ([1]_, Eq. 2.2.4)
-
-    .. math::
-
-       \mathrm{Arg} \left( \frac{1}{n} \sum_{k=1}^n e^{i x_k} \right)
-
-    where :math:`i` is the imaginary unit and :math:`\mathop{\mathrm{Arg}} z`
-    gives the principal value of the argument of complex number :math:`z`,
-    restricted to the range :math:`[0,2\pi]` by default.  :math:`z` in the
-    above expression is known as the `mean resultant vector`.
+def circmean(samples, high=..., low=..., axis=..., nan_policy=...): # -> NDArray[floating[Any]]:
+    """Compute the circular mean for samples in a range.
 
     Parameters
     ----------
     samples : array_like
-        Input array of angle observations.  The value of a full angle is
-        equal to ``(high - low)``.
-    high : float, optional
-        Upper boundary of the principal value of an angle.  Default is ``2*pi``.
-    low : float, optional
-        Lower boundary of the principal value of an angle.  Default is ``0``.
+        Input array.
+    high : float or int, optional
+        High boundary for the sample range. Default is ``2*pi``.
+    low : float or int, optional
+        Low boundary for the sample range. Default is 0.
 
     Returns
     -------
     circmean : float
-        Circular mean, restricted to the range ``[low, high]``.
-
-        If the mean resultant vector is zero, an input-dependent,
-        implementation-defined number between ``[low, high]`` is returned.
-        If the input array is empty, ``np.nan`` is returned.
+        Circular mean.
 
     See Also
     --------
     circstd : Circular standard deviation.
     circvar : Circular variance.
 
-    References
-    ----------
-    .. [1] Mardia, K. V. and Jupp, P. E. *Directional Statistics*.
-           John Wiley & Sons, 1999.
-
     Examples
     --------
-    For readability, all angles are printed out in degrees.
+    For simplicity, all angles are printed out in degrees.
 
     >>> import numpy as np
     >>> from scipy.stats import circmean
@@ -2929,36 +2894,21 @@ def circmean(samples, high=..., low=..., axis=..., nan_policy=...): # -> Any:
 
 @_axis_nan_policy_factory(lambda x: x, n_outputs=1, default_axis=None, result_to_tuple=lambda x: (x, ))
 def circvar(samples, high=..., low=..., axis=..., nan_policy=...): # -> Any:
-    r"""Compute the circular variance of a sample of angle observations.
-
-    Given :math:`n` angle observations :math:`x_1, \cdots, x_n` measured in
-    radians, their `circular variance` is defined by ([2]_, Eq. 2.3.3)
-
-    .. math::
-
-       1 - \left| \frac{1}{n} \sum_{k=1}^n e^{i x_k} \right|
-
-    where :math:`i` is the imaginary unit and :math:`|z|` gives the length
-    of the complex number :math:`z`.  :math:`|z|` in the above expression
-    is known as the `mean resultant length`.
+    """Compute the circular variance for samples assumed to be in a range.
 
     Parameters
     ----------
     samples : array_like
-        Input array of angle observations.  The value of a full angle is
-        equal to ``(high - low)``.
-    high : float, optional
-        Upper boundary of the principal value of an angle.  Default is ``2*pi``.
-    low : float, optional
-        Lower boundary of the principal value of an angle.  Default is ``0``.
+        Input array.
+    high : float or int, optional
+        High boundary for the sample range. Default is ``2*pi``.
+    low : float or int, optional
+        Low boundary for the sample range. Default is 0.
 
     Returns
     -------
     circvar : float
-        Circular variance.  The returned value is in the range ``[0, 1]``,
-        where ``0`` indicates no variance and ``1`` indicates large variance.
-
-        If the input array is empty, ``np.nan`` is returned.
+        Circular variance.
 
     See Also
     --------
@@ -2967,15 +2917,16 @@ def circvar(samples, high=..., low=..., axis=..., nan_policy=...): # -> Any:
 
     Notes
     -----
-    In the limit of small angles, the circular variance is close to
-    half the 'linear' variance if measured in radians.
+    This uses the following definition of circular variance: ``1-R``, where
+    ``R`` is the mean resultant vector. The
+    returned value is in the range [0, 1], 0 standing for no variance, and 1
+    for a large variance. In the limit of small angles, this value is similar
+    to half the 'linear' variance.
 
     References
     ----------
     .. [1] Fisher, N.I. *Statistical analysis of circular data*. Cambridge
-           University Press, 1993.
-    .. [2] Mardia, K. V. and Jupp, P. E. *Directional Statistics*.
-           John Wiley & Sons, 1999.
+          University Press, 1993.
 
     Examples
     --------
@@ -3009,42 +2960,27 @@ def circvar(samples, high=..., low=..., axis=..., nan_policy=...): # -> Any:
 
 @_axis_nan_policy_factory(lambda x: x, n_outputs=1, default_axis=None, result_to_tuple=lambda x: (x, ))
 def circstd(samples, high=..., low=..., axis=..., nan_policy=..., *, normalize=...): # -> Any:
-    r"""
-    Compute the circular standard deviation of a sample of angle observations.
-
-    Given :math:`n` angle observations :math:`x_1, \cdots, x_n` measured in
-    radians, their `circular standard deviation` is defined by
-    ([2]_, Eq. 2.3.11)
-
-    .. math::
-
-       \sqrt{ -2 \log \left| \frac{1}{n} \sum_{k=1}^n e^{i x_k} \right| }
-
-    where :math:`i` is the imaginary unit and :math:`|z|` gives the length
-    of the complex number :math:`z`.  :math:`|z|` in the above expression
-    is known as the `mean resultant length`.
+    """
+    Compute the circular standard deviation for samples assumed to be in the
+    range [low to high].
 
     Parameters
     ----------
     samples : array_like
-        Input array of angle observations.  The value of a full angle is
-        equal to ``(high - low)``.
-    high : float, optional
-        Upper boundary of the principal value of an angle.  Default is ``2*pi``.
-    low : float, optional
-        Lower boundary of the principal value of an angle.  Default is ``0``.
+        Input array.
+    high : float or int, optional
+        High boundary for the sample range. Default is ``2*pi``.
+    low : float or int, optional
+        Low boundary for the sample range. Default is 0.
     normalize : boolean, optional
-        If ``False`` (the default), the return value is computed from the
-        above formula with the input scaled by ``(2*pi)/(high-low)`` and
-        the output scaled (back) by ``(high-low)/(2*pi)``.  If ``True``,
-        the output is not scaled and is returned directly.
+        If True, the returned value is equal to ``sqrt(-2*log(R))`` and does
+        not depend on the variable units. If False (default), the returned
+        value is scaled by ``((high-low)/(2*pi))``.
 
     Returns
     -------
     circstd : float
-        Circular standard deviation, optionally normalized.
-
-        If the input array is empty, ``np.nan`` is returned.
+        Circular standard deviation.
 
     See Also
     --------
@@ -3053,15 +2989,25 @@ def circstd(samples, high=..., low=..., axis=..., nan_policy=..., *, normalize=.
 
     Notes
     -----
-    In the limit of small angles, the circular standard deviation is close
-    to the 'linear' standard deviation if ``normalize`` is ``False``.
+    This uses a definition of circular standard deviation from [1]_.
+    Essentially, the calculation is as follows.
+
+    .. code-block:: python
+
+        import numpy as np
+        C = np.cos(samples).mean()
+        S = np.sin(samples).mean()
+        R = np.sqrt(C**2 + S**2)
+        l = 2*np.pi / (high-low)
+        circstd = np.sqrt(-2*np.log(R)) / l
+
+    In the limit of small angles, it returns a number close to the 'linear'
+    standard deviation.
 
     References
     ----------
     .. [1] Mardia, K. V. (1972). 2. In *Statistics of Directional Data*
        (pp. 18-24). Academic Press. :doi:`10.1016/C2013-0-07425-7`.
-    .. [2] Mardia, K. V. and Jupp, P. E. *Directional Statistics*.
-           John Wiley & Sons, 1999.
 
     Examples
     --------

@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPoolingAndCrossAttentions, CausalLMOutputWithCrossAttentions, MaskedLMOutput, MultipleChoiceModelOutput, SequenceClassifierOutput, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -440,7 +439,7 @@ class BigBirdForMaskedLM(BigBirdPreTrainedModel):
 
 
 @add_start_docstrings("""BigBird Model with a `language modeling` head on top for CLM fine-tuning.""", BIG_BIRD_START_DOCSTRING)
-class BigBirdForCausalLM(BigBirdPreTrainedModel, GenerationMixin):
+class BigBirdForCausalLM(BigBirdPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -477,6 +476,9 @@ class BigBirdForCausalLM(BigBirdPreTrainedModel, GenerationMixin):
             If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding (see
             `past_key_values`).
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., **model_kwargs): # -> dict[str, Any]:
         ...
     
 

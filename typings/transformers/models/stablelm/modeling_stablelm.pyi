@@ -6,38 +6,35 @@ import torch
 from typing import List, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
-from ...utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
+from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
 from .configuration_stablelm import StableLmConfig
 
 """PyTorch StableLM model."""
 if is_flash_attn_2_available():
     ...
 logger = ...
-_CHECKPOINT_FOR_DOC = ...
 _CONFIG_FOR_DOC = ...
 class StableLmRotaryEmbedding(nn.Module):
-    def __init__(self, dim=..., max_position_embeddings=..., base=..., device=..., scaling_factor=..., rope_type=..., config: Optional[StableLmConfig] = ...) -> None:
+    def __init__(self, dim, max_position_embeddings=..., base=..., device=...) -> None:
         ...
     
-    @torch.no_grad()
-    def forward(self, x, position_ids): # -> tuple[Any, Any]:
+    def forward(self, x, seq_len=...): # -> tuple[Any, Any]:
         ...
     
 
 
 class StableLmLinearScalingRotaryEmbedding(StableLmRotaryEmbedding):
     """StableLmRotaryEmbedding extended with linear scaling. Credits to the Reddit user /u/kaiokendev"""
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, dim, max_position_embeddings=..., base=..., device=..., scaling_factor=...) -> None:
         ...
     
 
 
 class StableLmDynamicNTKScalingRotaryEmbedding(StableLmRotaryEmbedding):
     """StableLmRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla"""
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, dim, max_position_embeddings=..., base=..., device=..., scaling_factor=...) -> None:
         ...
     
 
@@ -46,7 +43,7 @@ def rotate_half(x): # -> Tensor:
     """Rotates half the hidden dims of the input."""
     ...
 
-def apply_rotary_pos_emb(q, k, cos, sin, position_ids=..., unsqueeze_dim=...): # -> tuple[Any, Any]:
+def apply_rotary_pos_emb(q, k, cos, sin, position_ids, unsqueeze_dim=...): # -> tuple[Any, Any]:
     """Applies Rotary Position Embedding to the query and key tensors.
 
     Args:
@@ -54,8 +51,9 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids=..., unsqueeze_dim=...): #
         k (`torch.Tensor`): The key tensor.
         cos (`torch.Tensor`): The cosine part of the rotary embedding.
         sin (`torch.Tensor`): The sine part of the rotary embedding.
-        position_ids (`torch.Tensor`, *optional*):
-            Deprecated and unused.
+        position_ids (`torch.Tensor`):
+            The position indices of the tokens corresponding to the query and key tensors. For example, this can be
+            used to pass offsetted position ids when working with a KV-cache.
         unsqueeze_dim (`int`, *optional*, defaults to 1):
             The 'unsqueeze_dim' argument specifies the dimension along which to unsqueeze cos[position_ids] and
             sin[position_ids] so that they can be properly broadcasted to the dimensions of q and k. For example, note
@@ -98,13 +96,13 @@ class StableLmAttention(nn.Module):
     def __init__(self, config: StableLmConfig, layer_idx: Optional[int] = ...) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
 
 class StableLmSdpaAttention(StableLmAttention):
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
@@ -118,7 +116,7 @@ class StableLmFlashAttention2(StableLmAttention):
     def __init__(self, *args, **kwargs) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.LongTensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ..., **kwargs) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.LongTensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Cache] = ..., output_attentions: bool = ..., use_cache: bool = ..., cache_position: Optional[torch.LongTensor] = ..., **kwargs) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         ...
     
 
@@ -128,7 +126,7 @@ class StableLmDecoderLayer(nn.Module):
     def __init__(self, config: StableLmConfig, layer_idx: int) -> None:
         ...
     
-    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = ...) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
+    def forward(self, hidden_states: torch.Tensor, attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_value: Optional[Tuple[torch.Tensor]] = ..., output_attentions: Optional[bool] = ..., use_cache: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
@@ -148,10 +146,7 @@ class StableLmDecoderLayer(nn.Module):
                 If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding
                 (see `past_key_values`).
             cache_position (`torch.LongTensor` of shape `(sequence_length)`, *optional*):
-                Indices depicting the position of the input sequence tokens in the sequence
-            position_embeddings (`Tuple[torch.FloatTensor, torch.FloatTensor]`, *optional*):
-                Tuple containing the cosine and sine positional embeddings of shape `(batch_size, seq_len, head_dim)`,
-                with `head_dim` being the embedding dimension of each attention head.
+                Indices depicting the position of the input sequence tokens in the sequence.
         """
         ...
     
@@ -169,7 +164,6 @@ class StableLmPreTrainedModel(PreTrainedModel):
     _supports_cache_class = ...
     _supports_sdpa = ...
     _supports_quantized_cache = ...
-    _supports_static_cache = ...
 
 
 STABLELM_INPUTS_DOCSTRING = ...
@@ -196,7 +190,7 @@ class StableLmModel(StableLmPreTrainedModel):
     
 
 
-class StableLmForCausalLM(StableLmPreTrainedModel, GenerationMixin):
+class StableLmForCausalLM(StableLmPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -221,18 +215,13 @@ class StableLmForCausalLM(StableLmPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(STABLELM_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, CausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
 
         Returns:
 
@@ -252,6 +241,9 @@ class StableLmForCausalLM(StableLmPreTrainedModel, GenerationMixin):
         >>> tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         'The weather is always wonderful in the summer in the city of San Diego. The city is located on the coast of the Pacific Ocean and is surrounded by'
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., position_ids=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 
@@ -305,7 +297,6 @@ class StableLmForTokenClassification(StableLmPreTrainedModel):
         ...
     
     @add_start_docstrings_to_model_forward(STABLELM_INPUTS_DOCSTRING)
-    @add_code_sample_docstrings(checkpoint=_CHECKPOINT_FOR_DOC, output_type=TokenClassifierOutput, config_class=_CONFIG_FOR_DOC)
     def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, TokenClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

@@ -6,7 +6,6 @@ import torch
 from typing import List, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import MoeCausalLMOutputWithPast, MoeModelOutputWithPast, SequenceClassifierOutputWithPast
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
@@ -18,7 +17,7 @@ if is_flash_attn_2_available():
 logger = ...
 _CHECKPOINT_FOR_DOC = ...
 _CONFIG_FOR_DOC = ...
-def load_balancing_loss_func(gate_logits: Union[torch.Tensor, Tuple[torch.Tensor], None], num_experts: Optional[int] = ..., top_k=..., attention_mask: Optional[torch.Tensor] = ...) -> Union[torch.Tensor, int]:
+def load_balancing_loss_func(gate_logits: torch.Tensor, num_experts: torch.Tensor = ..., top_k=..., attention_mask: Optional[torch.Tensor] = ...) -> float:
     r"""
     Computes auxiliary load balancing loss as in Switch Transformer - implemented in Pytorch.
 
@@ -27,17 +26,14 @@ def load_balancing_loss_func(gate_logits: Union[torch.Tensor, Tuple[torch.Tensor
     experts is too unbalanced.
 
     Args:
-        gate_logits:
+        gate_logits (Union[`torch.Tensor`, Tuple[torch.Tensor]):
             Logits from the `gate`, should be a tuple of model.config.num_hidden_layers tensors of
             shape [batch_size X sequence_length, num_experts].
-        num_experts:
-            Number of experts
-        top_k:
-            The number of experts to route per-token, can be also interpreted as the `top-k` routing
-            parameter.
         attention_mask (`torch.Tensor`, *optional*):
             The attention_mask used in forward function
             shape [batch_size X sequence_length] if not None.
+        num_experts (`int`, *optional*):
+            Number of experts
 
     Returns:
         The auxiliary loss.
@@ -322,7 +318,7 @@ class JetMoeModel(JetMoePreTrainedModel):
     
 
 
-class JetMoeForCausalLM(JetMoePreTrainedModel, GenerationMixin):
+class JetMoeForCausalLM(JetMoePreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -347,7 +343,7 @@ class JetMoeForCausalLM(JetMoePreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(JETMOE_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=MoeCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., output_router_logits: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, MoeCausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., output_router_logits: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, MoeCausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -355,13 +351,11 @@ class JetMoeForCausalLM(JetMoePreTrainedModel, GenerationMixin):
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
 
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
-
         Returns:
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., output_router_logits=..., position_ids=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

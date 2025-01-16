@@ -74,13 +74,6 @@ class OffloadedCache(metaclass=DummyObject):
     
 
 
-class OffloadedStaticCache(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class QuantizedCache(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -193,20 +186,6 @@ class AlternatingCodebooksLogitsProcessor(metaclass=DummyObject):
     
 
 
-class BayesianDetectorConfig(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class BayesianDetectorModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class BeamScorer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -306,6 +285,13 @@ class ForcedBOSTokenLogitsProcessor(metaclass=DummyObject):
 
 
 class ForcedEOSTokenLogitsProcessor(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class ForceTokensLogitsProcessor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -473,27 +459,6 @@ class SuppressTokensLogitsProcessor(metaclass=DummyObject):
     
 
 
-class SynthIDTextWatermarkDetector(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class SynthIDTextWatermarkingConfig(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class SynthIDTextWatermarkLogitsProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class TemperatureLogitsWarper(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -549,16 +514,6 @@ class WhisperTimeStampLogitsProcessor(metaclass=DummyObject):
         ...
     
 
-
-class TorchExportableModuleWithStaticCache(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-def convert_and_export_with_cache(*args, **kwargs): # -> None:
-    ...
 
 ROPE_INIT_FUNCTIONS = ...
 class PreTrainedModel(metaclass=DummyObject):
@@ -716,7 +671,6 @@ MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING = ...
 MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING = ...
 MODEL_FOR_IMAGE_MAPPING = ...
 MODEL_FOR_IMAGE_SEGMENTATION_MAPPING = ...
-MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING = ...
 MODEL_FOR_IMAGE_TO_IMAGE_MAPPING = ...
 MODEL_FOR_INSTANCE_SEGMENTATION_MAPPING = ...
 MODEL_FOR_KEYPOINT_DETECTION_MAPPING = ...
@@ -818,13 +772,6 @@ class AutoModelForImageClassification(metaclass=DummyObject):
 
 
 class AutoModelForImageSegmentation(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class AutoModelForImageTextToText(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -1230,6 +1177,13 @@ class BertForTokenClassification(metaclass=DummyObject):
     
 
 
+class BertLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class BertLMHeadModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -1321,6 +1275,13 @@ class BigBirdForSequenceClassification(metaclass=DummyObject):
 
 
 class BigBirdForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class BigBirdLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -1561,13 +1522,6 @@ class Blip2ForConditionalGeneration(metaclass=DummyObject):
     
 
 
-class Blip2ForImageTextRetrieval(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class Blip2Model(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -1589,21 +1543,7 @@ class Blip2QFormerModel(metaclass=DummyObject):
     
 
 
-class Blip2TextModelWithProjection(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class Blip2VisionModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Blip2VisionModelWithProjection(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -1807,6 +1747,13 @@ class CanineForSequenceClassification(metaclass=DummyObject):
 
 
 class CanineForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class CanineLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -2173,6 +2120,13 @@ class ConvBertForTokenClassification(metaclass=DummyObject):
     
 
 
+class ConvBertLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class ConvBertModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -2310,20 +2264,6 @@ class CvtModel(metaclass=DummyObject):
 
 
 class CvtPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class DacModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class DacPreTrainedModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -3073,6 +3013,13 @@ class QDQBertForSequenceClassification(metaclass=DummyObject):
 
 
 class QDQBertForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class QDQBertLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -3854,27 +3801,6 @@ class FalconPreTrainedModel(metaclass=DummyObject):
     
 
 
-class FalconMambaForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class FalconMambaModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class FalconMambaPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class FastSpeech2ConformerHifiGan(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -4051,6 +3977,13 @@ class FNetForSequenceClassification(metaclass=DummyObject):
 
 
 class FNetForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class FNetLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -4305,41 +4238,6 @@ class GitVisionModel(metaclass=DummyObject):
     
 
 
-class GlmForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GlmForSequenceClassification(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GlmForTokenClassification(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GlmModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GlmPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class GLPNForDepthEstimation(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -4521,6 +4419,13 @@ class GPTNeoXForTokenClassification(metaclass=DummyObject):
     
 
 
+class GPTNeoXLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class GPTNeoXModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -4536,6 +4441,13 @@ class GPTNeoXPreTrainedModel(metaclass=DummyObject):
 
 
 class GPTNeoXJapaneseForCausalLM(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class GPTNeoXJapaneseLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -4585,48 +4497,6 @@ class GPTJModel(metaclass=DummyObject):
 
 
 class GPTJPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GraniteForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GraniteModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GranitePreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GraniteMoeForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GraniteMoeModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class GraniteMoePreTrainedModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -4844,34 +4714,6 @@ class Idefics2PreTrainedModel(metaclass=DummyObject):
 
 
 class Idefics2Processor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Idefics3ForConditionalGeneration(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Idefics3Model(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Idefics3PreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Idefics3Processor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -5357,20 +5199,6 @@ class LlavaNextVideoPreTrainedModel(metaclass=DummyObject):
     
 
 
-class LlavaOnevisionForConditionalGeneration(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class LlavaOnevisionPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class LongformerForMaskedLM(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -5414,6 +5242,13 @@ class LongformerModel(metaclass=DummyObject):
 
 
 class LongformerPreTrainedModel(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class LongformerSelfAttention(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -5560,6 +5395,13 @@ class LxmertVisualFeatureEncoder(metaclass=DummyObject):
     
 
 
+class LxmertXLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class M2M100ForConditionalGeneration(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -5638,13 +5480,6 @@ class MarianModel(metaclass=DummyObject):
 
 
 class MarianMTModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MarianPreTrainedModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -5868,28 +5703,7 @@ class MgpstrPreTrainedModel(metaclass=DummyObject):
     
 
 
-class MimiModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MimiPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class MistralForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MistralForQuestionAnswering(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -5931,13 +5745,6 @@ class MixtralForCausalLM(metaclass=DummyObject):
     
 
 
-class MixtralForQuestionAnswering(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class MixtralForSequenceClassification(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -5960,48 +5767,6 @@ class MixtralModel(metaclass=DummyObject):
 
 
 class MixtralPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaForConditionalGeneration(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaTextModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaVisionModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -6051,6 +5816,13 @@ class MobileBertForSequenceClassification(metaclass=DummyObject):
 
 
 class MobileBertForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class MobileBertLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -6185,34 +5957,6 @@ class MobileViTV2PreTrainedModel(metaclass=DummyObject):
     
 
 
-class MoshiForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MoshiForConditionalGeneration(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MoshiModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MoshiPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class MPNetForMaskedLM(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -6242,6 +5986,13 @@ class MPNetForSequenceClassification(metaclass=DummyObject):
 
 
 class MPNetForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class MPNetLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -6619,6 +6370,13 @@ class NystromformerForTokenClassification(metaclass=DummyObject):
     
 
 
+class NystromformerLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class NystromformerModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -6648,41 +6406,6 @@ class OlmoModel(metaclass=DummyObject):
 
 
 class OlmoPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class OlmoeForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class OlmoeModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class OlmoePreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class OmDetTurboForObjectDetection(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class OmDetTurboPreTrainedModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -7056,6 +6779,13 @@ class PerceiverForSequenceClassification(metaclass=DummyObject):
     
 
 
+class PerceiverLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class PerceiverModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -7175,34 +6905,6 @@ class Phi3PreTrainedModel(metaclass=DummyObject):
     
 
 
-class PhimoeForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class PhimoeForSequenceClassification(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class PhimoeModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class PhimoePreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class Pix2StructForConditionalGeneration(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -7225,20 +6927,6 @@ class Pix2StructTextModel(metaclass=DummyObject):
 
 
 class Pix2StructVisionModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class PixtralPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class PixtralVisionModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -7413,13 +7101,6 @@ class Qwen2ForCausalLM(metaclass=DummyObject):
     
 
 
-class Qwen2ForQuestionAnswering(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class Qwen2ForSequenceClassification(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -7448,35 +7129,7 @@ class Qwen2PreTrainedModel(metaclass=DummyObject):
     
 
 
-class Qwen2AudioEncoder(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2AudioForConditionalGeneration(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2AudioPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class Qwen2MoeForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2MoeForQuestionAnswering(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -7505,27 +7158,6 @@ class Qwen2MoeModel(metaclass=DummyObject):
 
 
 class Qwen2MoePreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2VLForConditionalGeneration(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2VLModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2VLPreTrainedModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -7581,6 +7213,13 @@ class RecurrentGemmaPreTrainedModel(metaclass=DummyObject):
     
 
 
+class ReformerAttention(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class ReformerForMaskedLM(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -7596,6 +7235,13 @@ class ReformerForQuestionAnswering(metaclass=DummyObject):
 
 
 class ReformerForSequenceClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class ReformerLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -7680,6 +7326,13 @@ class RemBertForSequenceClassification(metaclass=DummyObject):
 
 
 class RemBertForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class RemBertLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -7892,6 +7545,13 @@ class RoCBertForTokenClassification(metaclass=DummyObject):
     
 
 
+class RoCBertLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class RoCBertModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -7945,6 +7605,13 @@ class RoFormerForSequenceClassification(metaclass=DummyObject):
 
 
 class RoFormerForTokenClassification(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class RoFormerLayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -8171,6 +7838,13 @@ class SegformerForSemanticSegmentation(metaclass=DummyObject):
     
 
 
+class SegformerLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class SegformerModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -8381,6 +8055,13 @@ class SplinterForQuestionAnswering(metaclass=DummyObject):
     
 
 
+class SplinterLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class SplinterModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -8431,6 +8112,13 @@ class SqueezeBertForTokenClassification(metaclass=DummyObject):
 
 
 class SqueezeBertModel(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class SqueezeBertModule(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -9143,6 +8831,13 @@ class ViltForTokenClassification(metaclass=DummyObject):
     
 
 
+class ViltLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class ViltModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -9220,6 +8915,13 @@ class VisualBertForVisualReasoning(metaclass=DummyObject):
     
 
 
+class VisualBertLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class VisualBertModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -9263,6 +8965,13 @@ class ViTPreTrainedModel(metaclass=DummyObject):
 
 
 class ViTMAEForPreTraining(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
+class ViTMAELayer(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -9986,6 +9695,13 @@ class YosoForTokenClassification(metaclass=DummyObject):
     
 
 
+class YosoLayer(metaclass=DummyObject):
+    _backends = ...
+    def __init__(self, *args, **kwargs) -> None:
+        ...
+    
+
+
 class YosoModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -9994,34 +9710,6 @@ class YosoModel(metaclass=DummyObject):
 
 
 class YosoPreTrainedModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class ZambaForCausalLM(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class ZambaForSequenceClassification(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class ZambaModel(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class ZambaPreTrainedModel(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...

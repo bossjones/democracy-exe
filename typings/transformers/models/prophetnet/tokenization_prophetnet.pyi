@@ -116,13 +116,10 @@ class ProphetNetTokenizer(PreTrainedTokenizer):
         strip_accents (`bool`, *optional*):
             Whether or not to strip all accents. If this option is not specified, then it will be determined by the
             value for `lowercase` (as in the original BERT).
-        clean_up_tokenization_spaces (`bool`, *optional*, defaults to `True`):
-            Whether or not to cleanup spaces after decoding, cleanup consists in removing potential artifacts like
-            extra spaces.
     """
     vocab_files_names = ...
     model_input_names: List[str] = ...
-    def __init__(self, vocab_file: str, do_lower_case: Optional[bool] = ..., do_basic_tokenize: Optional[bool] = ..., never_split: Optional[Iterable] = ..., unk_token: Optional[str] = ..., sep_token: Optional[str] = ..., x_sep_token: Optional[str] = ..., pad_token: Optional[str] = ..., mask_token: Optional[str] = ..., tokenize_chinese_chars: Optional[bool] = ..., strip_accents: Optional[bool] = ..., clean_up_tokenization_spaces: bool = ..., **kwargs) -> None:
+    def __init__(self, vocab_file: str, do_lower_case: Optional[bool] = ..., do_basic_tokenize: Optional[bool] = ..., never_split: Optional[Iterable] = ..., unk_token: Optional[str] = ..., sep_token: Optional[str] = ..., x_sep_token: Optional[str] = ..., pad_token: Optional[str] = ..., mask_token: Optional[str] = ..., tokenize_chinese_chars: Optional[bool] = ..., strip_accents: Optional[bool] = ..., **kwargs) -> None:
         ...
     
     @property

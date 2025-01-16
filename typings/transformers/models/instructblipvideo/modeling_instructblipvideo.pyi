@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling, BaseModelOutputWithPoolingAndCrossAttentions
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -46,12 +45,11 @@ class InstructBlipVideoVisionEmbeddings(nn.Module):
     
     def interpolate_pos_encoding(self, embeddings: torch.Tensor, height: int, width: int) -> torch.Tensor:
         """
-        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher resolution
-        images. This method is also adapted to support torch.jit tracing.
+        This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher
+        resolution images.
 
-        Adapted from:
-        - https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174-L194, and
-        - https://github.com/facebookresearch/dinov2/blob/e1277af2ba9496fbadf7aec6eba56e8d882d1e35/dinov2/models/vision_transformer.py#L179-L211
+        Source:
+        https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174
         """
         ...
     
@@ -111,9 +109,7 @@ class InstructBlipVideoPreTrainedModel(PreTrainedModel):
     _keep_in_fp32_modules = ...
 
 
-INSTRUCTBLIPVIDEO_START_DOCSTRING = ...
 INSTRUCTBLIPVIDEO_VISION_INPUTS_DOCSTRING = ...
-INSTRUCTBLIPVIDEO_INPUTS_DOCSTRING = ...
 class InstructBlipVideoEncoder(nn.Module):
     """
     Transformer encoder consisting of `config.num_hidden_layers` self attention layers. Each layer is a
@@ -151,6 +147,8 @@ class InstructBlipVideoEncoder(nn.Module):
     
 
 
+INSTRUCTBLIPVIDEO_START_DOCSTRING = ...
+INSTRUCTBLIPVIDEO_INPUTS_DOCSTRING = ...
 class InstructBlipVideoVisionModel(InstructBlipVideoPreTrainedModel):
     main_input_name = ...
     config_class = InstructBlipVideoVisionConfig
@@ -270,7 +268,7 @@ class InstructBlipVideoQFormerEmbeddings(nn.Module):
 
 class InstructBlipVideoQFormerModel(InstructBlipVideoPreTrainedModel):
     """
-    Querying Transformer (Q-Former), used in InstructBlipVideo. Slightly modified from BLIP-2 as it also takes the
+    Querying Transformer (Q-Former), used in Instructblipvideo. Slightly modified from BLIP-2 as it also takes the
     instruction as input.
     """
     def __init__(self, config: InstructBlipVideoQFormerConfig) -> None:
@@ -324,13 +322,13 @@ class InstructBlipVideoQFormerModel(InstructBlipVideoPreTrainedModel):
 
 
 @add_start_docstrings("""
-    InstructBlipVideo Model for generating text given an image and an optional text prompt. The model consists of a vision
+    Instructblipvideo Model for generating text given an image and an optional text prompt. The model consists of a vision
     encoder, Querying Transformer (Q-Former) and a language model.
 
     One can optionally pass `input_ids` to the model, which serve as a text prompt, to make the language model continue
     the prompt. Otherwise, the language model starts generating text from the [BOS] (beginning-of-sequence) token.
     """, INSTRUCTBLIPVIDEO_START_DOCSTRING)
-class InstructBlipVideoForConditionalGeneration(InstructBlipVideoPreTrainedModel, GenerationMixin):
+class InstructBlipVideoForConditionalGeneration(InstructBlipVideoPreTrainedModel):
     config_class = InstructBlipVideoConfig
     main_input_name = ...
     def __init__(self, config: InstructBlipVideoConfig) -> None:
@@ -426,11 +424,11 @@ class InstructBlipVideoForConditionalGeneration(InstructBlipVideoPreTrainedModel
     
     @torch.no_grad()
     def generate(self, pixel_values: torch.FloatTensor, qformer_input_ids: Optional[torch.LongTensor] = ..., qformer_attention_mask: Optional[torch.LongTensor] = ..., input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.LongTensor] = ..., interpolate_pos_encoding: bool = ..., **generate_kwargs) -> torch.LongTensor:
-        r"""
+        """
         Overrides `generate` function to be able to use the model as a conditional generator.
 
         Args:
-            pixel_values (`torch.FloatTensor` of shape (batch_size, num_channels, height, width) or
+           pixel_values (`torch.FloatTensor` of shape (batch_size, num_channels, height, width) or
                 (batch_size, num_frames, num_channels, height, width)): Input images or videos to be processed.
             qformer_input_ids (`torch.LongTensor` of shape (batch_size, sequence_length), *optional*):
                 The sequence used as a prompt to be fed to the Q-Former module.

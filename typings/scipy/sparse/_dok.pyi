@@ -100,13 +100,7 @@ class _dok_base(_spbase, IndexMixin, dict):
         ...
     
     def conjtransp(self): # -> coo_array | dok_array:
-        """DEPRECATED: Return the conjugate transpose.
-
-        .. deprecated:: 1.14.0
-
-            `conjtransp` is deprecated and will be removed in v1.16.0.
-            Use `.T.conj()` instead.
-        """
+        """Return the conjugate transpose."""
         ...
     
     def copy(self): # -> dok_array:

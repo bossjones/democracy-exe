@@ -193,13 +193,6 @@ class DetrImageProcessor(metaclass=DummyObject):
     
 
 
-class DetrImageProcessorFast(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class DonutFeatureExtractor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -305,13 +298,6 @@ class Idefics2ImageProcessor(metaclass=DummyObject):
     
 
 
-class Idefics3ImageProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class ImageGPTFeatureExtractor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -389,20 +375,6 @@ class LlavaNextVideoImageProcessor(metaclass=DummyObject):
     
 
 
-class LlavaOnevisionImageProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class LlavaOnevisionVideoProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class Mask2FormerImageProcessor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -418,13 +390,6 @@ class MaskFormerFeatureExtractor(metaclass=DummyObject):
 
 
 class MaskFormerImageProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class MllamaImageProcessor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...
@@ -529,13 +494,6 @@ class Pix2StructImageProcessor(metaclass=DummyObject):
     
 
 
-class PixtralImageProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
 class PoolFormerFeatureExtractor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
@@ -551,13 +509,6 @@ class PoolFormerImageProcessor(metaclass=DummyObject):
 
 
 class PvtImageProcessor(metaclass=DummyObject):
-    _backends = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-
-
-class Qwen2VLImageProcessor(metaclass=DummyObject):
     _backends = ...
     def __init__(self, *args, **kwargs) -> None:
         ...

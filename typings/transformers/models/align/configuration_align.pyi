@@ -228,4 +228,3 @@ class AlignConfig(PretrainedConfig):
     
 
 
-__all__ = ["AlignTextConfig", "AlignVisionConfig", "AlignConfig"]

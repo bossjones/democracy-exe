@@ -37,7 +37,7 @@ class _bsr_base(_cs_matrix, _minmax_mixin):
     def __repr__(self): # -> str:
         ...
     
-    def diagonal(self, k=...): # -> NDArray[Any] | NDArray[float64]:
+    def diagonal(self, k=...): # -> NDArray[float_] | NDArray[float64]:
         ...
     
     def __getitem__(self, key):
@@ -71,7 +71,7 @@ class _bsr_base(_cs_matrix, _minmax_mixin):
         """
         ...
     
-    def toarray(self, order=..., out=...):
+    def toarray(self, order=..., out=...): # -> ndarray[Any, dtype[float64]]:
         ...
     
     def transpose(self, axes=..., copy=...): # -> bsr_array:

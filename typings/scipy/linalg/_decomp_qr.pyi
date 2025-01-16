@@ -9,7 +9,7 @@ def safecall(f, name, *args, **kwargs):
     error return values"""
     ...
 
-def qr(a, overwrite_a=..., lwork=..., mode=..., pivoting=..., check_finite=...): # -> tuple[NDArray[Any], NDArray[signedinteger[_32Bit]]] | tuple[NDArray[Any]] | tuple[tuple[NDArray[Any], NDArray[Any]], NDArray[Any], NDArray[signedinteger[_32Bit]]] | tuple[tuple[NDArray[Any], NDArray[Any]], NDArray[Any]] | tuple[NDArray[Any], NDArray[Any], NDArray[signedinteger[_32Bit]]] | tuple[NDArray[Any], NDArray[Any]] | tuple[NDArray[Any], Any] | tuple[tuple[Any, Any], NDArray[Any], Any] | tuple[tuple[Any, Any], NDArray[Any]] | tuple[Any, NDArray[Any], Any] | tuple[Any, NDArray[Any]]:
+def qr(a, overwrite_a=..., lwork=..., mode=..., pivoting=..., check_finite=...): # -> tuple[NDArray[Any], Any] | tuple[NDArray[Any]] | tuple[tuple[Any, Any], NDArray[Any], Any] | tuple[tuple[Any, Any], NDArray[Any]] | tuple[Any, NDArray[Any], Any] | tuple[Any, NDArray[Any]]:
     """
     Compute QR decomposition of a matrix.
 
@@ -105,7 +105,7 @@ def qr(a, overwrite_a=..., lwork=..., mode=..., pivoting=..., check_finite=...):
     """
     ...
 
-def qr_multiply(a, c, mode=..., pivoting=..., conjugate=..., overwrite_a=..., overwrite_c=...): # -> tuple[NDArray[Any], NDArray[signedinteger[_32Bit]]] | tuple[NDArray[Any]] | tuple[NDArray[Any], NDArray[Any], NDArray[signedinteger[_32Bit]]] | tuple[NDArray[Any], NDArray[Any]] | tuple[NDArray[Any], Any] | tuple[NDArray[Any], NDArray[Any], Any] | tuple[Any, NDArray[signedinteger[_32Bit]]] | tuple[Any] | tuple[Any, NDArray[Any], NDArray[signedinteger[_32Bit]]] | tuple[Any, NDArray[Any]] | tuple[Any, Any] | tuple[Any, NDArray[Any], Any]:
+def qr_multiply(a, c, mode=..., pivoting=..., conjugate=..., overwrite_a=..., overwrite_c=...): # -> tuple[Any, Any] | tuple[Any] | tuple[Any, NDArray[Any], Any] | tuple[Any, NDArray[Any]]:
     """
     Calculate the QR decomposition and multiply Q with a matrix.
 
@@ -182,7 +182,7 @@ def qr_multiply(a, c, mode=..., pivoting=..., conjugate=..., overwrite_a=..., ov
     """
     ...
 
-def rq(a, overwrite_a=..., lwork=..., mode=..., check_finite=...): # -> NDArray[Any] | tuple[NDArray[Any], NDArray[Any]] | tuple[NDArray[Any], Any]:
+def rq(a, overwrite_a=..., lwork=..., mode=..., check_finite=...): # -> NDArray[Any] | tuple[NDArray[Any], Any]:
     """
     Compute RQ decomposition of a matrix.
 

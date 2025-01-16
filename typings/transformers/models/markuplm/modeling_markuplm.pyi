@@ -221,6 +221,9 @@ class MarkupLMModel(MarkupLMPreTrainedModel):
         ```"""
         ...
     
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., use_cache=..., **model_kwargs): # -> dict[str, Any]:
+        ...
+    
 
 
 @add_start_docstrings("""

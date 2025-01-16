@@ -6,7 +6,7 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationConfig, GenerationMixin
+from ...generation import GenerationConfig
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPooling, CausalLMOutputWithCrossAttentions
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -360,7 +360,7 @@ class ClvpModel(ClvpPreTrainedModel):
 
 
 @add_start_docstrings("The CLVP decoder model with a language modelling head on top.", CLVP_START_DOCSTRING)
-class ClvpForCausalLM(ClvpPreTrainedModel, GenerationMixin):
+class ClvpForCausalLM(ClvpPreTrainedModel):
     def __init__(self, config) -> None:
         ...
     
@@ -386,7 +386,7 @@ class ClvpForCausalLM(ClvpPreTrainedModel, GenerationMixin):
 
 
 @add_start_docstrings("The composite CLVP model with a text encoder, speech encoder and speech decoder model." "The speech decoder model generates the speech_ids from the text and the text encoder and speech encoder works" "together to filter out the best speech_ids.", CLVP_START_DOCSTRING)
-class ClvpModelForConditionalGeneration(ClvpPreTrainedModel, GenerationMixin):
+class ClvpModelForConditionalGeneration(ClvpPreTrainedModel):
     config_class = ClvpConfig
     def __init__(self, config: ClvpConfig) -> None:
         ...
