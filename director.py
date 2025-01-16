@@ -5,9 +5,11 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import subprocess
 import sys
 
+from datetime import datetime
 from pathlib import Path
 from typing import List, Literal, Optional
 
@@ -18,6 +20,31 @@ from aider.io import InputOutput
 from aider.models import Model
 from openai import OpenAI
 from pydantic import BaseModel
+from rich.console import Console
+from rich.logging import RichHandler
+
+
+# Configure rich console for output
+console = Console()
+
+# Configure logging with rich handler
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[
+        RichHandler(
+            rich_tracebacks=True,
+            markup=True,
+            show_time=True,
+            console=console,
+            tracebacks_show_locals=True,
+        )
+    ],
+)
+
+# Get logger for this module
+logger = logging.getLogger("director")
 
 
 # Define a model for evaluation results that includes success status and optional feedback
@@ -48,6 +75,9 @@ class Director:
         # Initialize Director with configuration from the specified path
         self.config = self.validate_config(Path(config_path))
         self.llm_client = OpenAI()
+        self.log_file = Path("director_log.log")
+        # Create or clear the log file
+        self.log_file.write_text("")
 
     @staticmethod
     def validate_config(config_path: Path) -> DirectorConfig:
@@ -98,7 +128,7 @@ class Director:
         # Handle case where response doesn't contain code blocks
         if "```" not in str:
             str = str.strip()
-            self.file_log(f"raw pre-json-parse: {str}", print_message=False)
+            logger.debug(f"Raw pre-json-parse: {str}")
             return str
 
         # Extract content from markdown code blocks by removing backticks and language identifiers
@@ -106,16 +136,27 @@ class Director:
         str = str.rsplit("```", 1)[0]
         str = str.strip()
 
-        self.file_log(f"post-json-parse: {str}", print_message=False)
+        logger.debug(f"Post-json-parse: {str}")
         return str
 
-    def file_log(self, message: str, print_message: bool = True):
-        # Print message to console if requested
-        if print_message:
-            print(message)
-        # Append message to log file for record keeping
-        with open("director_log.txt", "a+") as f:
-            f.write(message + "\n")
+    def log_message(self, message: str, level: str = "info", print_message: bool = True):
+        """Log a message with the specified level and optionally print it.
+
+        Args:
+            message: The message to log
+            level: The log level (debug, info, warning, error, critical)
+            print_message: Whether to print the message to console
+        """
+        # Get the logging method corresponding to the level
+        log_method = getattr(logger, level.lower())
+
+        # Log the message
+        log_method(message)
+
+        # Append to log file
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(self.log_file, "a+") as f:
+            f.write(f"[{timestamp}] {level.upper()}: {message}\n")
 
     # ------------- Key Director Methods -------------
 
@@ -171,10 +212,7 @@ class Director:
             text=True,
         )
         # Log the execution output for debugging
-        self.file_log(
-            f"Execution output: \n{result.stdout + result.stderr}",
-            print_message=False,
-        )
+        logger.debug(f"Execution output: \n{result.stdout + result.stderr}")
         return result.stdout + result.stderr
 
     def evaluate(self, execution_output: str) -> EvaluationResult:
@@ -225,10 +263,7 @@ Return a structured JSON response with the following structure: {{
 }}"""
 
         # Log the evaluation prompt for debugging
-        self.file_log(
-            f"Evaluation prompt: ({self.config.evaluator_model}):\n{evaluation_prompt}",
-            print_message=False,
-        )
+        logger.debug(f"Evaluation prompt: ({self.config.evaluator_model}):\n{evaluation_prompt}")
 
         try:
             # Attempt to get evaluation from the primary model
@@ -243,9 +278,8 @@ Return a structured JSON response with the following structure: {{
             )
 
             # Log the model's response
-            self.file_log(
-                f"Evaluation response: ({self.config.evaluator_model}):\n{completion.choices[0].message.content}",
-                print_message=False,
+            logger.debug(
+                f"Evaluation response: ({self.config.evaluator_model}):\n{completion.choices[0].message.content}"
             )
 
             # Parse and validate the response as an EvaluationResult
@@ -256,7 +290,7 @@ Return a structured JSON response with the following structure: {{
             return evaluation
         except Exception as e:
             # Log the error and attempt to use fallback model
-            self.file_log(
+            logger.error(
                 f"Error evaluating execution output for '{self.config.evaluator_model}'. Error: {e}. Falling back to gpt-4o & structured output."
             )
 
@@ -287,44 +321,48 @@ Return a structured JSON response with the following structure: {{
 
         # Main iteration loop for attempting code generation
         for i in range(self.config.max_iterations):
-            self.file_log(f"\nIteration {i + 1}/{self.config.max_iterations}")
+            logger.info(f"\nIteration {i + 1}/{self.config.max_iterations}")
 
             # Step 1: Create a new prompt based on previous results
-            self.file_log("🧠 Creating new prompt...")
+            logger.info("🧠 Creating new prompt...")
             new_prompt = self.create_new_ai_coding_prompt(i, self.config.prompt, execution_output, evaluation)
 
             # Step 2: Generate code using AI
-            self.file_log("🤖 Generating AI code...")
+            logger.info("🤖 Generating AI code...")
             self.ai_code(new_prompt)
 
             # Step 3: Execute the generated code
-            self.file_log(f"💻 Executing code... '{self.config.execution_command}'")
+            logger.info(f"💻 Executing code... '{self.config.execution_command}'")
             execution_output = self.execute()
 
             # Step 4: Evaluate the results
-            self.file_log(f"🔍 Evaluating results... '{self.config.evaluator_model}' + '{self.config.evaluator}'")
+            logger.info(f"🔍 Evaluating results... '{self.config.evaluator_model}' + '{self.config.evaluator}'")
             evaluation = self.evaluate(execution_output)
 
             # Log evaluation results
-            self.file_log(f"🔍 Evaluation result: {'✅ Success' if evaluation.success else '❌ Failed'}")
+            if evaluation.success:
+                logger.info("✅ Success: Evaluation passed")
+            else:
+                logger.warning("❌ Failed: Evaluation did not pass")
+
             if evaluation.feedback:
-                self.file_log(f"💬 Feedback: \n{evaluation.feedback}")
+                logger.info(f"💬 Feedback: \n{evaluation.feedback}")
 
             # Break loop if successful
             if evaluation.success:
                 success = True
-                self.file_log(f"\n🎉 Success achieved after {i + 1} iterations! Breaking out of iteration loop.")
+                logger.info(f"\n🎉 Success achieved after {i + 1} iterations! Breaking out of iteration loop.")
                 break
             else:
-                self.file_log(
+                logger.warning(
                     f"\n🔄 Continuing with next iteration... Have {self.config.max_iterations - i - 1} attempts remaining."
                 )
 
         # Log final status if not successful
         if not success:
-            self.file_log("\n🚫 Failed to achieve success within the maximum number of iterations.")
+            logger.error("\n🚫 Failed to achieve success within the maximum number of iterations.")
 
-        self.file_log("\nDone.")
+        logger.info("\nDone.")
 
 
 # Entry point for command line execution
