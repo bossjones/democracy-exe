@@ -21,62 +21,41 @@ SIGNATURE = """
 """
 
 
-def _extend_docs(repo_name: str, messages: list[dict[str, str]], message: str) -> NoReturn:
+async def _extend_docs(repo_name: str, messages: list[dict[str, str]], message: str) -> None:
     """Prompt further to refine the documentation for niche insights.
 
     Args:
         repo_name: Name of the repository
         messages: List of message dictionaries containing role and content
         message: Current documentation message to extend
-
-    Raises:
-        SystemExit: If user chooses not to proceed with refinement
     """
-    proceed_check = input(
-        f"Please check the file generated at: {repo_name}-docs.md. Do you wish to further refine documentation? (Y/N)"
-    )
-    if str(proceed_check).upper() != "Y":
-        print("Exiting")
-        sys.exit(1)
-
     messages.extend(
         [
             {"role": "assistant", "content": message},
             {"role": "user", "content": REFINED_DOCS_FOLLOW_UP_PROMPT},
         ]
     )
-    response = request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
+    response = await request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
 
     message = response.content[0].text
     with open(f"{repo_name}-further-docs.md", "w", encoding="utf-8") as file:
         file.write(message)
 
 
-def generate_docs_from_local_repo(directory_path: str) -> None:
+async def generate_docs_from_local_repo(directory_path: str) -> None:
     """Generate docs for the provided repo using Claude Opus.
 
     Args:
         directory_path: Path to the local repository directory
-
-    Raises:
-        SystemExit: If user chooses not to proceed with doc generation
     """
     code_file_path = extract_local_directory(directory_path)
     file_content = read_file(code_file_path)
     input_prompt = f"Given this repo. \n{file_content}\ncomplete your instruction"
-    token_size = check_prompt_token_size(input_prompt)
-
-    proceed_check = input(
-        f"Input token size is: {token_size}. Do you wish to proceed? (Y/N)"
-    )
-    if str(proceed_check).upper() != "Y":
-        print("Exiting")
-        sys.exit(1)
 
     messages = [
         {"role": "user", "content": input_prompt},
     ]
-    response = request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
+    response = await request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
 
     message = response.content[0].text
     readme_text = SIGNATURE + message

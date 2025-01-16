@@ -217,6 +217,9 @@ class Director:
             fnames=self.config.context_editable,
             read_only_fnames=self.config.context_read_only,
             auto_commits=False,
+            detect_urls=False,
+            editor="code",
+            sonnet=True,
             suggest_shell_commands=False,
         )
         # Run the code generation with the provided prompt

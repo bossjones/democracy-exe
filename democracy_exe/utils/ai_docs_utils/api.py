@@ -123,7 +123,7 @@ def check_prompt_token_size(prompt: str) -> int:
     return len(tokens)
 
 
-def request_message(
+async def request_message(
     system_prompt: str, messages: list[dict[str, str]]
 ) -> anthropic.types.Message:
     """Send message to Anthropic.
@@ -135,7 +135,7 @@ def request_message(
     Returns:
         anthropic.types.Message: Response from the Anthropic API
     """
-    response = CLIENT.messages.create(
+    response = await CLIENT.messages.create(
         model="claude-3-opus-20240229",
         system=system_prompt,
         max_tokens=4096,
