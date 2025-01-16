@@ -513,30 +513,109 @@ async def test_stream_handler_context(stream_handler: StreamHandler) -> None:
 async def test_message_handler_interaction(stream_handler: StreamHandler, mocker: MockerFixture) -> None:
     """Test interaction with message handler.
 
+    This test verifies:
+    1. Message handler processes chunks correctly
+    2. Errors from message handler are handled
+    3. Empty chunks are handled
+    4. Logging is correct
+
     Args:
         stream_handler: Test stream handler
         mocker: Pytest mocker fixture
     """
-    # Mock message handler
+    # Setup mock message handler
     mock_message_handler = mocker.Mock(spec=MessageHandler)
-    mock_message_handler.stream_chunks.return_value = AsyncGenerator[str, None](
-        lambda: (yield from ["Chunk 1", "Chunk 2"])
-    )
 
-    # Replace message handler
+    # Create async generator class for chunks
+    class AsyncChunkGenerator:
+        def __init__(self, chunks):
+            self.chunks = chunks
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.chunks:
+                raise StopAsyncIteration
+            chunk = self.chunks.pop(0)
+            if chunk.get("messages"):
+                await asyncio.sleep(0)  # Simulate async behavior
+                return chunk["messages"][0].content
+            elif isinstance(chunk, str):
+                await asyncio.sleep(0)  # Simulate async behavior
+                return chunk
+            return None
+
+    def mock_stream_chunks(chunks):
+        return AsyncChunkGenerator(list(chunks))
+
+    mock_message_handler.stream_chunks = mock_stream_chunks
     stream_handler._message_handler = mock_message_handler
 
-    # Test stream processing
-    mock_graph = MockGraph([{"messages": [AIMessage(content="Test")]}])
+    # Create mock graph with different response types
+    mock_graph = mocker.Mock(spec=CompiledStateGraph)
+    responses = [
+        {"messages": [AIMessage(content="Response 1")]},
+        {"messages": [AIMessage(content="Response 2")]},
+        {"messages": []},  # Empty messages
+        {"other_key": "value"},  # Wrong key
+        {"messages": [AIMessage(content="Response 3")]},
+    ]
+    mock_graph.stream.return_value = responses
+
+    # Test normal processing
     user_input = {"messages": [HumanMessage(content="Test input")]}
+    chunks = []
+    async for chunk in stream_handler.process_stream(mock_graph, user_input):
+        if chunk is not None:
+            chunks.append(chunk)
+
+    # Verify chunks
+    assert len(chunks) == 3, "Should process valid messages only"
+    assert chunks == ["Response 1", "Response 2", "Response 3"]
+
+    # Test error in message handler
+    class ErrorGenerator:
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            await asyncio.sleep(0)  # Simulate async behavior
+            raise ValueError("Message handler error")
+
+    mock_message_handler.stream_chunks = lambda chunks: ErrorGenerator()
+
+    with structlog.testing.capture_logs() as captured:
+        with pytest.raises(ValueError, match="Message handler error"):
+            async for _ in stream_handler.process_stream(mock_graph, user_input):
+                pass
+
+        # Verify error was logged
+        assert any(
+            log.get("event") == "Error processing stream" and "Message handler error" in str(log.get("error", ""))
+            for log in captured
+        ), "Error was not properly logged"
+
+    # Test empty response
+    mock_graph.stream.return_value = []
+    mock_message_handler.stream_chunks = mock_stream_chunks  # Reset to working version
 
     chunks = []
     async for chunk in stream_handler.process_stream(mock_graph, user_input):
-        chunks.append(chunk)
+        if chunk is not None:
+            chunks.append(chunk)
 
-    assert len(chunks) == 2
-    assert chunks == ["Chunk 1", "Chunk 2"]
-    mock_message_handler.stream_chunks.assert_called_once()
+    assert len(chunks) == 0, "Should handle empty response"
+
+    # Test direct string chunks
+    mock_graph.stream.return_value = ["Direct 1", "Direct 2"]
+    chunks = []
+    async for chunk in stream_handler.process_stream(mock_graph, user_input):
+        if chunk is not None:
+            chunks.append(chunk)
+
+    assert len(chunks) == 2, "Should handle direct string chunks"
+    assert chunks == ["Direct 1", "Direct 2"]
 
 
 @pytest.mark.asyncio
