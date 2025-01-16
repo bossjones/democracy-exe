@@ -140,8 +140,10 @@ class ThreadSafeTerminalBot:
             RuntimeError: If memory limit is exceeded or task limit is reached
             ValueError: If no response is generated
         """
+
+
         # Check memory usage
-        if not await self._resource_manager.check_memory():
+        if (aiosettings.enable_resource_management) and not await self._resource_manager.check_memory():
             raise RuntimeError("Memory limit exceeded")
 
         # Create and track task

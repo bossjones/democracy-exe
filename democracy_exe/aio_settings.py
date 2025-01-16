@@ -627,9 +627,13 @@ class AioSettings(BaseSettings):
         description="Number of worker threads"
     )
 
+    enable_resource_management: bool = Field(
+        default=False,
+        description="Enable resource management"
+    )
     # Resource management settings
     max_memory_mb: int = Field(
-        default=4096,
+        default=8192,
         description="Maximum memory usage in megabytes"
     )
     max_tasks: int = Field(
@@ -641,7 +645,7 @@ class AioSettings(BaseSettings):
         description="Maximum response size in megabytes"
     )
     max_buffer_size_kb: int = Field(
-        default=64,
+        default=128,
         description="Maximum buffer size in kilobytes"
     )
     task_timeout_seconds: int = Field(
