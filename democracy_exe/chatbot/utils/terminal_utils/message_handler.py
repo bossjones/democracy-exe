@@ -41,7 +41,7 @@ from __future__ import annotations
 
 import asyncio
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterable, Iterable
 from typing import Any, Optional, Union
 
 import structlog
@@ -54,28 +54,28 @@ logger = structlog.get_logger(__name__)
 
 
 class MessageHandler:
-    """Handles message processing and formatting for the terminal bot."""
+    """Handles message processing for the terminal bot."""
 
     def __init__(self) -> None:
         """Initialize the message handler."""
         self._logger = logger.bind(module="MessageHandler")
 
-    async def format_message(self, content: str) -> HumanMessage:
-        """Format user input as a HumanMessage.
+    async def format_message(self, content: str) -> BaseMessage:
+        """Format user input as a message.
 
         Args:
-            content: Raw user input string
+            content: Raw user input
 
         Returns:
-            HumanMessage: Formatted message object
+            BaseMessage: Formatted message
         """
         return HumanMessage(content=content)
 
     async def format_response(self, message: BaseMessage) -> None:
-        """Format and display an AI response message.
+        """Format and display a response message.
 
         Args:
-            message: The message to format and display
+            message: Message to format and display
         """
         try:
             if isinstance(message, AIMessage):
@@ -87,31 +87,50 @@ class MessageHandler:
             self._logger.error("Error formatting response", error=str(e))
             raise
 
-    async def create_input_dict(self, message: HumanMessage) -> dict[str, list[BaseMessage]]:
-        """Create input dictionary for graph processing.
+    async def create_input_dict(self, message: BaseMessage) -> dict[str, list[BaseMessage]]:
+        """Create input dictionary for the graph.
 
         Args:
-            message: The human message to process
+            message: Message to include
 
         Returns:
-            dict: Input dictionary with messages list
+            dict[str, list[BaseMessage]]: Input dictionary
         """
         return {"messages": [message]}
 
+    async def _convert_to_async_iterable(
+        self,
+        chunks: AsyncIterable[Any] | Iterable[Any]
+    ) -> AsyncGenerator[Any, None]:
+        """Convert chunks to async iterable.
+
+        Args:
+            chunks: Input chunks (async iterable or regular iterable)
+
+        Yields:
+            Chunk values
+        """
+        if isinstance(chunks, AsyncIterable):
+            async for chunk in chunks:
+                yield chunk
+        else:
+            for chunk in chunks:
+                yield chunk
+
     async def stream_chunks(
         self,
-        chunks: AsyncGenerator[Any, None]
+        chunks: AsyncIterable[Any] | Iterable[Any]
     ) -> AsyncGenerator[str, None]:
         """Stream and format message chunks.
 
         Args:
-            chunks: Generator of message chunks
+            chunks: Generator of message chunks (async or regular)
 
         Yields:
             Formatted message chunks
         """
         try:
-            async for chunk in chunks:
+            async for chunk in self._convert_to_async_iterable(chunks):
                 if isinstance(chunk, dict) and "messages" in chunk:
                     message = chunk["messages"][-1]
                     await self.format_response(message)

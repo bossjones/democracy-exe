@@ -120,3 +120,22 @@ async def test_stream_chunks_error(message_handler: MessageHandler) -> None:
     with pytest.raises(ValueError, match="Test error"):
         async for _ in message_handler.stream_chunks(mock_chunks()):
             pass
+
+
+@pytest.mark.asyncio
+async def test_stream_chunks_list(message_handler: MessageHandler) -> None:
+    """Test chunk streaming with regular list input.
+
+    Args:
+        message_handler: Test message handler
+    """
+    # Test with regular list
+    chunks_list = [{"messages": [AIMessage(content="List Chunk 1")]}, {"messages": [AIMessage(content="List Chunk 2")]}]
+
+    chunks = []
+    async for chunk in message_handler.stream_chunks(chunks_list):
+        chunks.append(chunk)
+
+    assert len(chunks) == 2
+    assert chunks[0] == "List Chunk 1"
+    assert chunks[1] == "List Chunk 2"
