@@ -14,7 +14,6 @@ import os
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, MagicMock
 
 from typer.testing import CliRunner, Result
 
@@ -179,6 +178,7 @@ async def test_aio_cli_generate_docs(
     async_runner: AsyncCliRunner,
     mock_repo_directory: Path,
     monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
 ) -> None:
     """Test the generate-async command.
 
@@ -187,15 +187,23 @@ async def test_aio_cli_generate_docs(
         mock_repo_directory: Mock repository directory
         monkeypatch: Pytest monkeypatch fixture
     """
-    mock_generate = AsyncMock(return_value="Generated docs")
+    mock_generate = mocker.AsyncMock(return_value="Generated docs")
     monkeypatch.setattr(
         "democracy_exe.utils.ai_docs_utils.generate_docs.generate_docs_from_local_repo",
         mock_generate,
     )
 
-    result = async_runner.invoke(APP, ["generate-async", str(mock_repo_directory)])
+    # result = async_runner.invoke(APP, ["generate-async", str(mock_repo_directory)])
+    # assert result.exit_code == 0
+    # assert "Documentation generated" in result.stdout
+
+    # Use asyncio.create_task to ensure the coroutine is properly scheduled
+    result = await asyncio.create_task(async_runner.invoke(APP, ["generate-async", str(mock_repo_directory)]))
+
     assert result.exit_code == 0
     assert "Documentation generated" in result.stdout
+    # Verify the mock was called
+    mock_generate.assert_called_once()
 
 
 @pytest.mark.asyncio

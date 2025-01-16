@@ -379,3 +379,6 @@ ai_docs/gitdiffs/
 diffs.xml
 diffs/
 feature-still-looking.diff
+
+# temporary ignore this.
+ai_docs/
