@@ -1,5 +1,11 @@
 """Tests for AI docs generation commands"""
 
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
+# pyright: reportAttributeAccessIssue=false
+
 from __future__ import annotations
 
 import asyncio
@@ -7,15 +13,17 @@ import os
 
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock, MagicMock
 
-import structlog
-
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 import pytest
 
+from democracy_exe.asynctyper_testing import AsyncCliRunner
 from democracy_exe.subcommands.ai_docs_cmd import APP
+from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
+from democracy_exe.utils.ai_docs_utils.generate_docs import generate_docs_from_local_repo
 
 
 if TYPE_CHECKING:
@@ -26,75 +34,68 @@ if TYPE_CHECKING:
 
     from pytest_mock.plugin import MockerFixture
 
-logger = structlog.get_logger(__name__)
+
+@pytest.fixture
+def runner() -> CliRunner:
+    """Create a CLI runner for testing.
+
+    Returns:
+        CliRunner: The test runner
+    """
+    return CliRunner()
 
 
 @pytest.fixture
-def runner() -> Generator[CliRunner, None, None]:
-    """Get a Typer CLI test runner.
+def async_runner() -> AsyncCliRunner:
+    """Create an async CLI runner for testing.
 
     Returns:
-        Generator[CliRunner, None, None]: CLI runner instance
+        AsyncCliRunner: The async test runner
     """
-    yield CliRunner()
+    return AsyncCliRunner()
 
 
 @pytest.fixture
 def mock_repo_directory(tmp_path: Path) -> Generator[Path, None, None]:
-    """Create a mock repository directory structure.
+    """Create a mock repository directory for testing.
 
     Args:
         tmp_path: Pytest temporary path fixture
 
-    Returns:
-        Generator[Path, None, None]: Path to mock repository
+    Yields:
+        Path: Path to the mock repository
     """
     repo_dir = tmp_path / "mock_repo"
     repo_dir.mkdir()
-
-    # Create some mock files
-    (repo_dir / "main.py").write_text("def main(): pass")
-    (repo_dir / "README.md").write_text("# Mock Repo")
-
     yield repo_dir
 
 
 @pytest.fixture
-def mock_docs_output(tmp_path: Path) -> Generator[Path, None, None]:
-    """Create a mock docs output directory.
-
-    Args:
-        tmp_path: Pytest temporary path fixture
+def mock_docs_output() -> str:
+    """Create mock documentation output.
 
     Returns:
-        Generator[Path, None, None]: Path to mock docs directory
+        str: Mock documentation string
     """
-    docs_dir = tmp_path / "docs"
-    docs_dir.mkdir()
-    yield docs_dir
+    return "Generated docs"
 
 
 @pytest.fixture
-def mock_extract_output(tmp_path: Path) -> Generator[Path, None, None]:
-    """Create a mock extract output directory.
-
-    Args:
-        tmp_path: Pytest temporary path fixture
+def mock_extract_output() -> str:
+    """Create mock extraction output.
 
     Returns:
-        Generator[Path, None, None]: Path to mock extract directory
+        str: Mock extraction string
     """
-    extract_dir = tmp_path / "extract"
-    extract_dir.mkdir()
-    yield extract_dir
+    return "output.txt"
 
 
 @pytest.fixture(autouse=True)
 def setup_event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create and set a new event loop for each test.
 
-    Returns:
-        Generator[asyncio.AbstractEventLoop, None, None]: Event loop for test
+    Yields:
+        asyncio.AbstractEventLoop: The event loop for testing
     """
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -102,97 +103,147 @@ def setup_event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     loop.close()
 
 
-def test_cli_generate_docs(runner: CliRunner, mock_repo_directory: Path) -> None:
-    """Test the generate docs command with valid input.
+def test_cli_generate_docs(
+    runner: CliRunner,
+    mock_repo_directory: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the generate command.
 
     Args:
-        runner: Typer CLI test runner
+        runner: CLI test runner
         mock_repo_directory: Mock repository directory
+        monkeypatch: Pytest monkeypatch fixture
     """
+    mock_generate = AsyncMock(return_value="Generated docs")
+    monkeypatch.setattr(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.generate_docs_from_local_repo",
+        mock_generate,
+    )
+
     result = runner.invoke(APP, ["generate", str(mock_repo_directory)])
     assert result.exit_code == 0
     assert "Documentation generated" in result.stdout
 
 
 def test_cli_generate_docs_invalid_path(runner: CliRunner) -> None:
-    """Test the generate docs command with invalid path.
+    """Test generate command with invalid path.
 
     Args:
-        runner: Typer CLI test runner
+        runner: CLI test runner
     """
-    result = runner.invoke(APP, ["generate", "/nonexistent/path"])
+    result = runner.invoke(APP, ["generate", "invalid/path"])
     assert result.exit_code == 1
     assert "Directory does not exist" in result.stdout
 
 
-def test_cli_extract_repo(runner: CliRunner, mock_repo_directory: Path) -> None:
-    """Test the extract repo command with valid input.
+def test_cli_extract_repo(
+    runner: CliRunner,
+    mock_repo_directory: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the extract command.
 
     Args:
-        runner: Typer CLI test runner
+        runner: CLI test runner
         mock_repo_directory: Mock repository directory
+        monkeypatch: Pytest monkeypatch fixture
     """
+
+    def mock_extract(repo_dir: str) -> str:
+        return "output.txt"
+
+    monkeypatch.setattr(
+        "democracy_exe.utils.ai_docs_utils.extract_repo.extract_local_directory",
+        mock_extract,
+    )
+
     result = runner.invoke(APP, ["extract", str(mock_repo_directory)])
     assert result.exit_code == 0
     assert "Repository extracted" in result.stdout
 
 
 def test_cli_extract_repo_invalid_path(runner: CliRunner) -> None:
-    """Test the extract repo command with invalid path.
+    """Test extract command with invalid path.
 
     Args:
-        runner: Typer CLI test runner
+        runner: CLI test runner
     """
-    result = runner.invoke(APP, ["extract", "/nonexistent/path"])
+    result = runner.invoke(APP, ["extract", "invalid/path"])
     assert result.exit_code == 1
     assert "Directory does not exist" in result.stdout
 
 
 @pytest.mark.asyncio
-async def test_aio_cli_generate_docs(runner: CliRunner, mock_repo_directory: Path) -> None:
-    """Test the async generate docs command with valid input.
+async def test_aio_cli_generate_docs(
+    async_runner: AsyncCliRunner,
+    mock_repo_directory: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the generate-async command.
 
     Args:
-        runner: Typer CLI test runner
+        async_runner: Async CLI test runner
         mock_repo_directory: Mock repository directory
+        monkeypatch: Pytest monkeypatch fixture
     """
-    result = runner.invoke(APP, ["generate-async", str(mock_repo_directory)])
+    mock_generate = AsyncMock(return_value="Generated docs")
+    monkeypatch.setattr(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.generate_docs_from_local_repo",
+        mock_generate,
+    )
+
+    result = async_runner.invoke(APP, ["generate-async", str(mock_repo_directory)])
     assert result.exit_code == 0
     assert "Documentation generated" in result.stdout
 
 
 @pytest.mark.asyncio
-async def test_aio_cli_generate_docs_invalid_path(runner: CliRunner) -> None:
-    """Test the async generate docs command with invalid path.
+async def test_aio_cli_generate_docs_invalid_path(async_runner: AsyncCliRunner) -> None:
+    """Test generate-async command with invalid path.
 
     Args:
-        runner: Typer CLI test runner
+        async_runner: Async CLI test runner
     """
-    result = runner.invoke(APP, ["generate-async", "/nonexistent/path"])
+    result = async_runner.invoke(APP, ["generate-async", "invalid/path"])
     assert result.exit_code == 1
     assert "Directory does not exist" in result.stdout
 
 
 @pytest.mark.asyncio
-async def test_aio_cli_extract_repo(runner: CliRunner, mock_repo_directory: Path) -> None:
-    """Test the async extract repo command with valid input.
+async def test_aio_cli_extract_repo(
+    async_runner: AsyncCliRunner,
+    mock_repo_directory: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the extract-async command.
 
     Args:
-        runner: Typer CLI test runner
+        async_runner: Async CLI test runner
         mock_repo_directory: Mock repository directory
+        monkeypatch: Pytest monkeypatch fixture
     """
-    result = runner.invoke(APP, ["extract-async", str(mock_repo_directory)])
+
+    def mock_extract(repo_dir: str) -> str:
+        return "output.txt"
+
+    monkeypatch.setattr(
+        "democracy_exe.utils.ai_docs_utils.extract_repo.extract_local_directory",
+        mock_extract,
+    )
+
+    result = async_runner.invoke(APP, ["extract-async", str(mock_repo_directory)])
     assert result.exit_code == 0
     assert "Repository extracted" in result.stdout
 
 
 @pytest.mark.asyncio
-async def test_aio_cli_extract_repo_invalid_path(runner: CliRunner) -> None:
-    """Test the async extract repo command with invalid path.
+async def test_aio_cli_extract_repo_invalid_path(async_runner: AsyncCliRunner) -> None:
+    """Test extract-async command with invalid path.
 
     Args:
-        runner: Typer CLI test runner
+        async_runner: Async CLI test runner
     """
-    result = runner.invoke(APP, ["extract-async", "/nonexistent/path"])
+    result = async_runner.invoke(APP, ["extract-async", "invalid/path"])
     assert result.exit_code == 1
     assert "Directory does not exist" in result.stdout
