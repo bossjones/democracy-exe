@@ -488,6 +488,16 @@ class AioSettings(BaseSettings):
         },
     )
 
+    # Initial extensions to load
+    initial_extensions: list[str] = Field(
+        default=[
+            "democracy_exe.chatbot.cogs.twitter",
+            "democracy_exe.chatbot.cogs.imagecaption",
+            "democracy_exe.chatbot.cogs.autocrop"
+        ],
+        description="List of extensions to load on startup"
+    )
+
     # Monitor settings
     monitor_host: str = Field(
         default="localhost",

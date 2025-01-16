@@ -281,6 +281,7 @@ class DemocracyBot(commands.Bot):
         self.session = aiohttp.ClientSession()
         self.prefixes: list[str] = [aiosettings.prefix]
         self.version = democracy_exe.__version__
+        self.max_retries: int = aiosettings.max_retries
 
 
     async def get_context(self, origin: discord.Interaction | Message, /, *, cls=Context) -> Context:
@@ -303,7 +304,7 @@ class DemocracyBot(commands.Bot):
         # Add size checks for message content
         if isinstance(origin, Message):
             content_size = len(origin.content.encode('utf-8'))
-            if content_size > self.resource_manager.limits.max_response_size_mb * 1024 * 1024:
+            if aiosettings.enable_resource_management and content_size > self.resource_manager.limits.max_response_size_mb * 1024 * 1024:
                 logger.error("Message size exceeds limit",
                            size=content_size,
                            limit=self.resource_manager.limits.max_response_size_mb * 1024 * 1024)
@@ -316,7 +317,7 @@ class DemocracyBot(commands.Bot):
             # Check attachments
             if origin.attachments:
                 total_attachment_size = sum(a.size for a in origin.attachments)
-                if total_attachment_size > self.resource_manager.limits.max_response_size_mb * 1024 * 1024:
+                if aiosettings.enable_resource_management and total_attachment_size > self.resource_manager.limits.max_response_size_mb * 1024 * 1024:
                     logger.error("Total attachment size exceeds limit",
                                size=total_attachment_size,
                                limit=self.resource_manager.limits.max_response_size_mb * 1024 * 1024)
@@ -346,17 +347,18 @@ class DemocracyBot(commands.Bot):
                 self.intents.message_content = True
                 self.bot_app_info = await self.application_info()
 
-
                 if hasattr(self.bot_app_info, "owner") and self.bot_app_info.owner:
                     self.owner_id = self.bot_app_info.owner.id
 
 
-                # self.owner_id = self.bot_app_info.owner.id
+                # # self.owner_id = self.bot_app_info.owner.id
 
-                # Load extensions in dependency order
-                extension_order = get_extension_load_order(aiosettings.initial_extensions)
-                for extension in extension_order:
-                    await load_extension_with_retry(self, extension, self.max_retries)
+                # # Load extensions in dependency order
+                # extension_order = get_extension_load_order(aiosettings.initial_extensions)
+                # for extension in extension_order:
+                #     await load_extension_with_retry(self, extension, self.max_retries)
+                # Load extensions
+                await self._load_extensions()
 
                 # Initialize invite link
                 app = await self.application_info()

@@ -56,36 +56,35 @@ def extensions() -> Iterable[str]:
     Raises:
         FileNotFoundError: If cogs directory doesn't exist
     """
-    alt_cogs_dir = Path(__file__).parent.parent / "cogs"
-    cogs_dir = Path(__file__) / "cogs"
+    # Get the path to the chatbot directory (two levels up from this file)
+    chatbot_dir = Path(__file__).parent.parent
+    cogs_dir = chatbot_dir / "cogs"
+
     print(f"cogs_dir: {cogs_dir}")
-    print(f"alt_cogs_dir: {alt_cogs_dir}")
-    logger.error(f"Cogs directory: {cogs_dir}")
+    logger.info(f"Looking for extensions in: {cogs_dir}")
+
     if not cogs_dir.exists():
         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
 
     for file in cogs_dir.rglob("*.py"):
-        logger.error(f"file: {file}")
-        logger.error(f"file.name: {file.name}")
-        logger.error(f"aiosettings.extension_allowlist: {aiosettings.extension_allowlist}")
         module_name = file.name.replace(".py", "")
-        logger.error(f"module_name: {module_name}")
-        logger.error(f"file.name != '__init__.py': {file.name != '__init__.py'}")
-        logger.error(f"module_name in aiosettings.extension_allowlist: {module_name in aiosettings.extension_allowlist}")
-        is_allowed = any(module_name in item for item in aiosettings.extension_allowlist)
-        logger.error(f"is_allowed: {is_allowed}")
-        if file.name != "__init__.py" and is_allowed:
-            # Get path relative to the module root
-            base_module_dir = Path(__file__).parent.parent
+        if file.name != "__init__.py" and any(module_name in item for item in aiosettings.extension_allowlist):
+            # Get path relative to the workspace root to ensure proper module path
+            try:
+                # Walk up until we find the democracy_exe directory
+                current_dir = chatbot_dir
+                while current_dir.name != "democracy_exe":
+                    current_dir = current_dir.parent
+                    if current_dir == current_dir.parent:  # Reached root without finding democracy_exe
+                        raise ValueError("Could not find democracy_exe directory in path")
 
-            # relative_path = file.relative_to(pathlib.Path(HERE))
-            relative_path = file.relative_to(base_module_dir)
-            logger.error(f"Relative path: {relative_path}")
-            extension_path = str(relative_path)[:-3].replace(os.sep, ".")
-            logger.error(f"Extension path: {extension_path}")
-            logger.debug(f"Found extension file: {file}")
-            logger.debug(f"Converting to module path: {extension_path}")
-            yield extension_path
+                relative_path = file.relative_to(current_dir.parent)
+                extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+                logger.debug(f"Found extension: {extension_path}")
+                yield extension_path
+            except Exception as e:
+                logger.error(f"Error processing extension {file}: {e}")
+                continue
 
 async def aio_extensions(bot: commands.Bot) -> None:
     """Load Discord bot extensions from the cogs directory.
@@ -96,7 +95,9 @@ async def aio_extensions(bot: commands.Bot) -> None:
     Raises:
         FileNotFoundError: If cogs directory is not found
     """
-    cogs_dir = pathlib.Path(__file__).parent.parent / "cogs"
+    # Get the path to the chatbot directory (two levels up from this file)
+    chatbot_dir = pathlib.Path(__file__).parent.parent
+    cogs_dir = chatbot_dir / "cogs"
 
     if not cogs_dir.exists():
         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
@@ -111,12 +112,17 @@ async def aio_extensions(bot: commands.Bot) -> None:
         if not any(module_name in item for item in aiosettings.extension_allowlist):
             continue
 
-        # Get path relative to the module root
-        base_module_dir = pathlib.Path(__file__).parent.parent
-        relative_path = file.relative_to(base_module_dir)
-        extension_path = str(relative_path)[:-3].replace(os.sep, ".")
-
         try:
+            # Walk up until we find the democracy_exe directory
+            current_dir = chatbot_dir
+            while current_dir.name != "democracy_exe":
+                current_dir = current_dir.parent
+                if current_dir == current_dir.parent:  # Reached root without finding democracy_exe
+                    raise ValueError("Could not find democracy_exe directory in path")
+
+            relative_path = file.relative_to(current_dir.parent)
+            extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+
             await bot.load_extension(extension_path)
             logger.info("Successfully loaded extension", extension=extension_path)
         except Exception as e:
