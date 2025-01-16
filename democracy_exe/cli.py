@@ -6,13 +6,7 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pylint: disable=no-member
-# pylint: disable=no-name-in-module
-# pylint: disable=no-value-for-parameter
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportInvalidTypeForm=false
-# pyright: reportMissingTypeStubs=false
-# pyright: reportUndefinedVariable=false
+# SOURCE: https://github.com/tiangolo/typer/issues/88#issuecomment-1732469681
 
 """democracy_exe.cli
 
@@ -48,14 +42,7 @@ Usage:
     $ democracyctl version --verbose
 """
 
-# pylint: disable=no-name-in-module
-# pyright: reportInvalidTypeForm=false
-# pyright: reportUndefinedVariable=false
-# pyright: reportMissingTypeStubs=false
-# pylint: disable=no-member
-# pylint: disable=no-value-for-parameter
-# pyright: reportAttributeAccessIssue=false
-# SOURCE: https://github.com/tiangolo/typer/issues/88#issuecomment-1732469681
+
 from __future__ import annotations
 
 import asyncio

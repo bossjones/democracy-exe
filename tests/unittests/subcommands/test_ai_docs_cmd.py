@@ -22,7 +22,7 @@ import pytest
 from democracy_exe.asynctyper_testing import AsyncCliRunner
 from democracy_exe.subcommands.ai_docs_cmd import APP
 from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
-from democracy_exe.utils.ai_docs_utils.generate_docs import generate_docs_from_local_repo
+from democracy_exe.utils.ai_docs_utils.generate_docs import agenerate_docs_from_local_repo
 
 
 if TYPE_CHECKING:
@@ -106,6 +106,7 @@ def test_cli_generate_docs(
     runner: CliRunner,
     mock_repo_directory: Path,
     monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
 ) -> None:
     """Test the generate command.
 
@@ -113,10 +114,11 @@ def test_cli_generate_docs(
         runner: CLI test runner
         mock_repo_directory: Mock repository directory
         monkeypatch: Pytest monkeypatch fixture
+        mocker: MockerFixture
     """
-    mock_generate = AsyncMock(return_value="Generated docs")
+    mock_generate = mocker.AsyncMock(return_value="Generated docs")
     monkeypatch.setattr(
-        "democracy_exe.utils.ai_docs_utils.generate_docs.generate_docs_from_local_repo",
+        "democracy_exe.utils.ai_docs_utils.generate_docs.agenerate_docs_from_local_repo",
         mock_generate,
     )
 
@@ -189,7 +191,7 @@ async def test_aio_cli_generate_docs(
     """
     mock_generate = mocker.AsyncMock(return_value="Generated docs")
     monkeypatch.setattr(
-        "democracy_exe.utils.ai_docs_utils.generate_docs.generate_docs_from_local_repo",
+        "democracy_exe.utils.ai_docs_utils.generate_docs.agenerate_docs_from_local_repo",
         mock_generate,
     )
 

@@ -16,12 +16,15 @@ from typing import Dict, List, Optional
 
 import anthropic
 
+from anthropic.types import Message as AnthropicMessage
 from dotenv import find_dotenv, load_dotenv
-from transformers import GPT2Tokenizer
+from transformers.models.gpt2 import GPT2Tokenizer
+from transformers.tokenization_utils import PreTrainedTokenizer
 
 from democracy_exe.aio_settings import aiosettings
 
 
+# from transformers import GPT2Tokenizer
 # SOURCE: https://github.com/connor-john/ai-docs
 
 load_dotenv(find_dotenv())
@@ -119,11 +122,15 @@ def check_prompt_token_size(prompt: str) -> int:
         int: Number of tokens in the prompt
     """
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    print(f"tokenizer: {tokenizer}")
+    print(f"tokenizer type: {type(tokenizer)}")
     tokens = tokenizer.encode(prompt, add_special_tokens=False)
+    print(f"tokens: {tokens}")
+    print(f"tokens type: {type(tokens)}")
     return len(tokens)
 
 
-async def request_message(
+async def arequest_message(
     system_prompt: str, messages: list[dict[str, str]]
 ) -> anthropic.types.Message:
     """Send message to Anthropic.
@@ -135,7 +142,29 @@ async def request_message(
     Returns:
         anthropic.types.Message: Response from the Anthropic API
     """
-    response = await CLIENT.messages.create(
+    response: AnthropicMessage = await CLIENT.messages.create(
+        model="claude-3-opus-20240229",
+        system=system_prompt,
+        max_tokens=4096,
+        messages=messages,
+    )
+
+    return response
+
+
+def request_message(
+    system_prompt: str, messages: list[dict[str, str]]
+) -> anthropic.types.Message:
+    """Send message to Anthropic synchronously.
+
+    Args:
+        system_prompt: The system prompt to use for the message
+        messages: List of message dictionaries containing role and content
+
+    Returns:
+        anthropic.types.Message: Response from the Anthropic API
+    """
+    response: AnthropicMessage = CLIENT.messages.create(
         model="claude-3-opus-20240229",
         system=system_prompt,
         max_tokens=4096,
@@ -193,7 +222,7 @@ def _generate_docs(file_path: str) -> None:
     messages = [
         {"role": "user", "content": input_prompt},
     ]
-    response = request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
+    response: AnthropicMessage = request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
 
     message = response.content[0].text
     with open(f"{repo_name}-docs.md", "w", encoding="utf-8") as file:

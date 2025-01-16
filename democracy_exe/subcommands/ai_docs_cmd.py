@@ -15,7 +15,7 @@ from rich import print as rprint
 
 from democracy_exe.asynctyper import AsyncTyperImproved
 from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
-from democracy_exe.utils.ai_docs_utils.generate_docs import generate_docs_from_local_repo
+from democracy_exe.utils.ai_docs_utils.generate_docs import agenerate_docs_from_local_repo
 
 
 logger = structlog.get_logger(__name__)
@@ -44,7 +44,7 @@ def cli_generate_docs(
         # Run in event loop
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(generate_docs_from_local_repo(str(path)))
+        loop.run_until_complete(agenerate_docs_from_local_repo(str(path)))
         loop.close()
 
         rprint(f"[green]Documentation generated for {directory_path}[/green]")
@@ -98,7 +98,7 @@ async def aio_cli_generate_docs(
         raise typer.Exit(1)
 
     try:
-        await generate_docs_from_local_repo(str(path))
+        await agenerate_docs_from_local_repo(str(path))
         rprint(f"[green]Documentation generated for {directory_path}[/green]")
     except Exception as ex:
         logger.error("Error generating documentation", error=str(ex))

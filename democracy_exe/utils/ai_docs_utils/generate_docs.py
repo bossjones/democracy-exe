@@ -8,6 +8,7 @@ from typing import Dict, List, NoReturn
 from democracy_exe.utils.ai_docs_utils.api import (
     BASIC_DOCS_SYSTEM_PROMPT,
     REFINED_DOCS_FOLLOW_UP_PROMPT,
+    arequest_message,
     check_prompt_token_size,
     read_file,
     request_message,
@@ -36,14 +37,14 @@ async def _extend_docs(repo_name: str, messages: list[dict[str, str]], message: 
             {"role": "user", "content": REFINED_DOCS_FOLLOW_UP_PROMPT},
         ]
     )
-    response = await request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
+    response = await arequest_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
 
     message = response.content[0].text
     with open(f"{repo_name}-further-docs.md", "w", encoding="utf-8") as file:
         file.write(message)
 
 
-async def generate_docs_from_local_repo(directory_path: str) -> None:
+async def agenerate_docs_from_local_repo(directory_path: str) -> None:
     """Generate docs for the provided repo using Claude Opus.
 
     Args:
@@ -56,7 +57,29 @@ async def generate_docs_from_local_repo(directory_path: str) -> None:
     messages = [
         {"role": "user", "content": input_prompt},
     ]
-    response = await request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
+    response = await arequest_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
+
+    message = response.content[0].text
+    readme_text = SIGNATURE + message
+    readme_path = f"{directory_path}/README.md"
+    with open(readme_path, "w", encoding="utf-8") as file:
+        file.write(readme_text)
+
+
+def generate_docs_from_local_repo(directory_path: str) -> None:
+    """Generate docs for the provided repo using Claude Opus.
+
+    Args:
+        directory_path: Path to the local repository directory
+    """
+    code_file_path = extract_local_directory(directory_path)
+    file_content = read_file(code_file_path)
+    input_prompt = f"Given this repo. \n{file_content}\ncomplete your instruction"
+
+    messages = [
+        {"role": "user", "content": input_prompt},
+    ]
+    response = request_message(BASIC_DOCS_SYSTEM_PROMPT, messages)
 
     message = response.content[0].text
     readme_text = SIGNATURE + message
