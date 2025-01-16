@@ -42,20 +42,7 @@ from democracy_exe.utils import async_, shell
 
 
 logger = structlog.get_logger(__name__)
-# def extensions() -> list[str]:
-#     """Get list of extension paths.
 
-#     Returns:
-#         List of extension paths as strings
-#     """
-#     cogs_dir = Path(__file__).parent.parent / "cogs"
-#     if not cogs_dir.exists():
-#         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
-#     return [
-#         f"chatbot.cogs.{f.stem}"
-#         for f in cogs_dir.glob("**/*.py")
-#         if not f.name.startswith("_") and f.name != "__init__.py"
-#     ]
 
 def extensions() -> Iterable[str]:
     """Yield extension module paths.
@@ -100,13 +87,42 @@ def extensions() -> Iterable[str]:
             logger.debug(f"Converting to module path: {extension_path}")
             yield extension_path
 
-async def aio_extensions() -> list[str]:
-    """Get list of extension paths asynchronously.
+async def aio_extensions(bot: commands.Bot) -> None:
+    """Load Discord bot extensions from the cogs directory.
 
-    Returns:
-        List of extension paths as strings
+    Args:
+        bot: The Discord bot instance to load extensions into
+
+    Raises:
+        FileNotFoundError: If cogs directory is not found
     """
-    return extensions()
+    cogs_dir = pathlib.Path(__file__).parent.parent / "cogs"
+
+    if not cogs_dir.exists():
+        raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
+
+    logger.info("Loading extensions from cogs directory", cogs_dir=str(cogs_dir))
+
+    for file in cogs_dir.rglob("*.py"):
+        if file.name == "__init__.py":
+            continue
+
+        module_name = file.stem
+        if not any(module_name in item for item in aiosettings.extension_allowlist):
+            continue
+
+        # Get path relative to the module root
+        base_module_dir = pathlib.Path(__file__).parent.parent
+        relative_path = file.relative_to(base_module_dir)
+        extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+
+        try:
+            await bot.load_extension(extension_path)
+            logger.info("Successfully loaded extension", extension=extension_path)
+        except Exception as e:
+            logger.error("Failed to load extension",
+                        extension=extension_path,
+                        error=str(e))
 
 
 def has_required_permissions(

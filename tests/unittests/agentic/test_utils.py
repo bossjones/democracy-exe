@@ -1,3 +1,12 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportConstantRedefinition=true
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 from __future__ import annotations
 
 import logging
@@ -191,7 +200,7 @@ def test_different_serializer_formats(mock_embeddings: Embeddings, temp_persist_
         # Verify
         assert isinstance(vector_store, SKLearnVectorStore)
         assert vector_store._persist_path == str(path)
-        assert vector_store.serializer == serializer
+        assert vector_store._serializer == serializer
 
         # Cleanup
         if path.exists():

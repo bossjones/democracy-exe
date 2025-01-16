@@ -164,7 +164,13 @@ async def test_invoke_terminal_bot_size_limit(terminal_bot: ThreadSafeTerminalBo
         mocker: Pytest mocker
     """
     # Set small response size limit
-    terminal_bot._resource_manager.limits = ResourceLimits(max_response_size_mb=0.000001)
+    terminal_bot._resource_manager.limits = ResourceLimits(
+        max_memory_mb=128,
+        max_tasks=5,
+        max_response_size_mb=0.000001,  # Very small limit
+        max_buffer_size_kb=32,
+        task_timeout_seconds=1,
+    )
 
     # Create large test prompt
     large_prompt = "x" * 1024 * 1024  # 1MB

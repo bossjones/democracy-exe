@@ -35,41 +35,6 @@ def mock_file(tmp_path: pathlib.Path) -> pathlib.Path:
     return test_file
 
 
-# def test_unlink_orig_file(
-#     mock_file: pathlib.Path,
-#     capsys: CaptureFixture,
-#     mocker: MockerFixture,
-# ) -> None:
-#     """Test the unlink_orig_file function.
-
-#     This test verifies that:
-#     1. The function correctly deletes the specified file
-#     2. The function returns the file path
-#     3. The function prints the expected deletion message
-
-#     Args:
-#         mock_file: Fixture providing path to temporary test file
-#         capsys: Pytest fixture for capturing stdout/stderr
-#         mocker: Pytest fixture for mocking
-#     """
-#     # Verify file exists before deletion
-#     assert mock_file.exists()
-
-#     # Call the function
-#     result = unlink_orig_file(str(mock_file))
-
-#     # Verify the function returned the correct path
-#     assert result == str(mock_file)
-
-#     # Verify file was deleted
-#     assert not mock_file.exists()
-
-#     # Verify correct message was printed
-#     captured = capsys.readouterr()
-#     assert "deleting ... " in captured.out
-#     assert str(mock_file) in captured.out
-
-
 def test_unlink_orig_file(tmp_path: pathlib.PosixPath):
     test_file = tmp_path / "test.txt"
     test_file.write_text("Test content")

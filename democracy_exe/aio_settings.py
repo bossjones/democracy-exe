@@ -3,16 +3,10 @@
 # pylint: disable=no-value-for-parameter
 # pylint: disable=possibly-used-before-assignment
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportConstantRedefinition=true
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pylint: disable=no-name-in-module
-# pylint: disable=no-member
-# pyright: reportInvalidTypeForm=false
-# pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportConstantRedefinition=true
-
 """Settings for the Discord bot and AI components.
 
 This module manages configuration settings with comprehensive validation,
