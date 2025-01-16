@@ -68,20 +68,35 @@ def is_likely_useful_file(file_path: str) -> bool:
     utility_or_config_files = ["hubconf.py", "setup.py", "package-lock.json"]
     github_workflow_or_docs = ["stale.py", "gen-card-", "write_model_card"]
 
+    # Normalize path separators
     check_path = file_path.replace("\\", "/")
-    parts = check_path.split(os.sep)[1:]
+
+    # Split path into components
+    parts = check_path.split("/")
+
+    # Check for hidden files/directories (starting with .)
     if any(part.startswith(".") for part in parts):
         return False
-    if "test" in check_path.lower():
+
+    # Check for test-related paths more precisely
+    check_path_lower = check_path.lower()
+    if any(
+        part.startswith("test") or part.endswith("test")
+        for part in check_path_lower.split("/")
+    ):
         return False
+
+    # Check excluded directories
     for excluded_dir in excluded_dirs:
-        if f"/{excluded_dir}/" in check_path or check_path.startswith(
-            f"{excluded_dir}/"
-        ):
+        if f"/{excluded_dir}/" in check_path or check_path.startswith(f"{excluded_dir}/"):
             return False
+
+    # Check utility/config files
     for file_name in utility_or_config_files:
         if file_name in check_path:
             return False
+
+    # Check GitHub workflow files
     if not all(doc_file not in check_path for doc_file in github_workflow_or_docs):
         return False
 

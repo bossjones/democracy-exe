@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from democracy_exe.utils.ai_docs_utils.extract_repo import is_desired_file, make_zip_file
+from democracy_exe.utils.ai_docs_utils.extract_repo import is_desired_file, is_likely_useful_file, make_zip_file
 
 
 if TYPE_CHECKING:
@@ -103,3 +103,60 @@ def test_is_desired_file(file_path: str, expected: bool) -> None:
     """
     result = is_desired_file(file_path)
     assert result == expected, f"Expected is_desired_file('{file_path}') to be {expected}, got {result}"
+
+
+@pytest.mark.parametrize(
+    "file_path,expected,reason",
+    [
+        # Hidden directories/files (should be excluded)
+        (".git/file.py", False, "Hidden directory"),
+        ("src/.hidden/file.py", False, "Hidden directory"),
+        (".env", False, "Hidden file"),
+        # Test-related paths (should be excluded)
+        ("tests/test_file.py", False, "Test directory"),
+        ("src/tests/file.py", False, "Test directory"),
+        ("src/test_utils.py", False, "Test file"),
+        ("src/utils/test_helpers.py", False, "Test file"),
+        # Excluded directories
+        ("docs/api.md", False, "Docs directory"),
+        ("examples/demo.py", False, "Examples directory"),
+        ("__pycache__/module.pyc", False, "Pycache directory"),
+        ("scripts/build.sh", False, "Scripts directory"),
+        ("benchmarks/perf.py", False, "Benchmarks directory"),
+        ("node_modules/package/index.js", False, "Node modules directory"),
+        (".venv/lib/python3.8/site-packages/pkg.py", False, "Venv directory"),
+        # Utility/config files
+        ("src/hubconf.py", False, "Utility file"),
+        ("setup.py", False, "Config file"),
+        ("package-lock.json", False, "Lock file"),
+        # GitHub workflow files
+        ("workflows/stale.py", False, "GitHub workflow file"),
+        ("docs/gen-card-model.py", False, "Card generation file"),
+        ("scripts/write_model_card.py", False, "Model card file"),
+        # Valid paths (should be included)
+        ("src/main.py", True, "Source file"),
+        ("lib/utils.py", True, "Library file"),
+        ("app/components/Button.tsx", True, "Component file"),
+        ("src/nested/deep/file.py", True, "Nested source file"),
+        # Path separator handling
+        (os.path.join("src", "utils", "file.py"), True, "OS-specific path separator"),
+        (os.path.join("tests", "file.py"), False, "OS-specific excluded path"),
+        # Edge cases
+        ("test.py", False, "File with test in name"),
+        ("contest.py", True, "File with test as substring"),
+        ("src/testing.txt", False, "Non-code file with test in name"),
+        ("src/latest.py", True, "File with test as substring"),
+    ],
+)
+def test_is_likely_useful_file(file_path: str, expected: bool, reason: str) -> None:
+    """Test is_likely_useful_file function correctly identifies useful files.
+
+    Args:
+        file_path: Path to test file
+        expected: Expected result for the given file path
+        reason: Description of what the test case is checking
+    """
+    result = is_likely_useful_file(file_path)
+    assert result == expected, (
+        f"Failed case: {reason} - Expected is_likely_useful_file('{file_path}') to be {expected}, got {result}"
+    )
