@@ -24,7 +24,10 @@ democracy_exe is an advanced, agentic Python application leveraging LangChain an
 
 - Install dependencies: `uv sync --all-extras`
 - Run director
-  - `uv run python director.py --config specs/director_version_bump.yaml`
+  - Version bump: `uv run python director.py --config specs/director_version_bump.yaml`
+  - Create AI docs typer subcommand: `uv run python director.py --config specs/director_create_ai_docs_typer_subcommand.yaml`
+  - Slider output format with two charts: `uv run python director.py --config specs/director_slider_output_format_two_charts.yaml`
+  - Green output format: `uv run python director.py --config specs/director_green_output_format.yaml`
 
 
 
