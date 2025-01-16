@@ -2,6 +2,46 @@
 
 This module provides utilities for managing system resources,
 including memory usage and task tracking.
+
+<structlog_practices>
+    <concurrency>
+        - Use contextvars instead of bind() for thread/async-safe context management
+        - Clear context at start and end of each method using clear_contextvars()
+        - Bind context using bind_contextvars() for thread/async safety
+        - Context is automatically isolated between different async tasks
+        - Storage mechanics differ between concurrency methods (threads vs async)
+    </concurrency>
+
+    <performance>
+        - Cache loggers on first use with cache_logger_on_first_use=True
+        - Create local logger instances for frequent logging
+        - Use native BoundLogger with make_filtering_bound_logger() for level filtering
+        - Avoid sending logs through stdlib if possible
+        - Consider using faster JSON serializers (orjson, msgspec)
+        - Be conscious about asyncio support usage and performance impact
+    </performance>
+
+    <context_management>
+        - Use merge_contextvars processor in configuration
+        - Clear context at start of request/method handlers
+        - Use bound_contextvars context manager for temporary bindings
+        - Access context storage with get_contextvars/get_merged_contextvars
+        - Context is isolated between sync and async code
+    </context_management>
+
+    <example_configuration>
+        structlog.configure(
+            cache_logger_on_first_use=True,
+            wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.processors.add_log_level,
+                structlog.processors.TimeStamper(fmt="iso", utc=True),
+                structlog.processors.JSONRenderer(serializer=orjson.dumps),
+            ],
+            logger_factory=structlog.BytesLoggerFactory(),
+        )
+    </example_configuration>
 """
 from __future__ import annotations
 
@@ -79,11 +119,41 @@ class ResourceManager:
         memory_info = self._process.memory_info()
         memory_mb = memory_info.rss / 1024 / 1024
 
+        # Clear any existing context and bind new context vars
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(
+            memory_mb=f"{memory_mb:.1f}",
+            limit_mb=self._limits.max_memory_mb,
+            process_id=self._process.pid
+        )
+
+        # Add detailed system metrics at debug level
+        logger.debug(
+            "Checking memory usage",
+            memory_bytes=memory_info.rss,
+            virtual_memory=memory_info.vms,
+            num_threads=self._process.num_threads(),
+            cpu_percent=self._process.cpu_percent(),
+            memory_percent=f"{(memory_mb / self._limits.max_memory_mb * 100):.1f}%"
+        )
+
         if memory_mb > self._limits.max_memory_mb:
-            logger.error("Memory usage exceeds limit",
-                        memory_mb=memory_mb,
-                        limit=self._limits.max_memory_mb)
+            # Context vars are automatically included
+            logger.error(
+                "Memory usage exceeds limit",
+                memory_info=memory_info._asdict(),
+                headroom_mb=f"{(self._limits.max_memory_mb - memory_mb):.1f}"
+            )
             raise RuntimeError(f"Memory usage {memory_mb:.1f}MB exceeds limit {self._limits.max_memory_mb}MB")
+
+        # Context vars are automatically included
+        logger.debug(
+            "Memory check passed",
+            headroom_mb=f"{(self._limits.max_memory_mb - memory_mb):.1f}"
+        )
+
+        # Clean up context vars at the end
+        structlog.contextvars.clear_contextvars()
 
     def track_task(self, task: asyncio.Task) -> None:
         """Track a new task.
@@ -100,17 +170,24 @@ class ResourceManager:
         # Clean up completed tasks
         self._tasks = {t for t in self._tasks if not t.done()}
 
+        # Set context for all log messages in this method
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(
+            active_tasks=len(self._tasks),
+            limit=self._limits.max_tasks,
+            task_id=id(task)
+        )
+
         # Check task limit
         if len(self._tasks) >= self._limits.max_tasks:
-            logger.error("Max concurrent tasks limit reached",
-                        active_tasks=len(self._tasks),
-                        limit=self._limits.max_tasks)
+            logger.error("Max concurrent tasks limit reached")
             raise RuntimeError(f"Max concurrent tasks limit {self._limits.max_tasks} reached")
 
         self._tasks.add(task)
-        logger.debug("Task added to tracking",
-                    task_id=id(task),
-                    active_tasks=len(self._tasks))
+        logger.debug("Task added to tracking")
+
+        # Clean up context
+        structlog.contextvars.clear_contextvars()
 
     async def cleanup_tasks(self, tasks: set[asyncio.Task] | None = None) -> None:
         """Clean up tasks.
@@ -123,24 +200,32 @@ class ResourceManager:
         """
         tasks_to_cleanup = tasks or self._tasks.copy()
 
+        # Set initial context for the cleanup operation
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(
+            num_tasks=len(tasks_to_cleanup),
+            remaining_tasks=len(self._tasks)
+        )
+
         for task in tasks_to_cleanup:
+            # Update context for each task
+            structlog.contextvars.bind_contextvars(task_id=id(task))
+
             if not task.done():
                 task.cancel()
                 try:
                     await asyncio.wait_for(task, timeout=5.0)
                 except (TimeoutError, asyncio.CancelledError):
-                    logger.warning("Task cleanup timed out or cancelled",
-                                 task_id=id(task))
+                    logger.warning("Task cleanup timed out or cancelled")
                 except Exception as e:
-                    logger.error("Task cleanup failed",
-                               task_id=id(task),
-                               error=str(e))
+                    logger.error("Task cleanup failed", error=str(e))
 
             self._tasks.discard(task)
 
-        logger.debug("Tasks cleaned up",
-                    num_tasks=len(tasks_to_cleanup),
-                    remaining_tasks=len(self._tasks))
+        logger.debug("Tasks cleaned up")
+
+        # Clean up context at the end
+        structlog.contextvars.clear_contextvars()
 
     def track_memory(self, size: int) -> None:
         """Track memory allocation.
