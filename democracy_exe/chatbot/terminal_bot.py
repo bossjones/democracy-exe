@@ -73,7 +73,7 @@ class ThreadSafeTerminalBot:
         """Initialize the terminal bot."""
         # Get resource limits from settings or use defaults
         limits = ResourceLimits(
-            max_memory_mb=getattr(aiosettings, "max_memory_mb", 512),
+            max_memory_mb=getattr(aiosettings, "max_memory_mb", 4096),
             max_tasks=getattr(aiosettings, "max_tasks", 100),
             max_response_size_mb=getattr(aiosettings, "max_response_size_mb", 1),
             max_buffer_size_kb=getattr(aiosettings, "max_buffer_size_kb", 64),

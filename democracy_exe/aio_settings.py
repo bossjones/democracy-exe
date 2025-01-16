@@ -629,7 +629,7 @@ class AioSettings(BaseSettings):
 
     # Resource management settings
     max_memory_mb: int = Field(
-        default=512,
+        default=4096,
         description="Maximum memory usage in megabytes"
     )
     max_tasks: int = Field(
