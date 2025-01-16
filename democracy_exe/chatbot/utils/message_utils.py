@@ -6,7 +6,6 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
 """Message handling utilities for Discord bot.
 
 This module provides utilities for handling Discord messages, including
