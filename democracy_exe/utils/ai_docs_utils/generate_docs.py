@@ -5,8 +5,11 @@ import sys
 
 from typing import Dict, List, NoReturn
 
+import structlog
+
 from democracy_exe.utils.ai_docs_utils.api import (
     BASIC_DOCS_SYSTEM_PROMPT,
+    PYTHON_MODULE_DOCS_PROMPT,
     REFINED_DOCS_FOLLOW_UP_PROMPT,
     arequest_message,
     check_prompt_token_size,
@@ -16,6 +19,8 @@ from democracy_exe.utils.ai_docs_utils.api import (
 from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
 from democracy_exe.utils.file_functions import tilda
 
+
+logger = structlog.get_logger(__name__)
 
 SIGNATURE = """
 > [!NOTE]
@@ -89,6 +94,106 @@ def generate_docs_from_local_repo(directory_path: str) -> None:
     readme_path = f"{expanded_path}/README.md"
     with open(readme_path, "w", encoding="utf-8") as file:
         file.write(readme_text)
+
+
+async def agenerate_module_docs(module_path: str) -> None:
+    """Generate detailed documentation for a Python module including test examples.
+
+    This function analyzes a Python module and generates comprehensive documentation
+    including usage examples and test cases using Claude Opus.
+
+    Args:
+        module_path: Path to the Python module file or directory
+    """
+    logger.info("Starting module documentation generation", module_path=module_path)
+    expanded_path = str(tilda(module_path))
+    logger.debug("Expanded module path", expanded_path=expanded_path)
+
+    # If directory, extract contents, if file just read it
+    if expanded_path.endswith(".py"):
+        logger.debug("Processing single Python file")
+        file_content = read_file(expanded_path)
+    else:
+        logger.debug("Processing directory", path=expanded_path)
+        code_file_path = extract_local_directory(expanded_path)
+        logger.debug("Extracted code file path", code_file_path=code_file_path)
+        file_content = read_file(code_file_path)
+
+    input_prompt = f"Given this Python module:\n{file_content}\nPlease provide comprehensive documentation and test examples."
+    logger.debug("Prepared input prompt", prompt_length=len(input_prompt))
+
+    messages = [
+        {"role": "user", "content": input_prompt},
+    ]
+    logger.info("Requesting documentation from Claude Opus")
+    response = request_message(PYTHON_MODULE_DOCS_PROMPT, messages)
+    logger.debug("Received response from Claude Opus", response_length=len(response.content[0].text))
+
+    message = response.content[0].text
+    docs_text = SIGNATURE + message
+
+    # Generate docs in same directory as module
+    module_name = expanded_path.split("/")[-1].replace(".py", "")
+    docs_path = f"{'/'.join(expanded_path.split('/')[:-1])}/{module_name}_docs.md"
+    logger.info("Writing documentation", docs_path=docs_path, content_length=len(docs_text))
+
+    try:
+        with open(docs_path, "w", encoding="utf-8") as file:
+            file.write(docs_text)
+        logger.info("Successfully generated module documentation", module_name=module_name, docs_path=docs_path)
+    except Exception as e:
+        logger.error("Failed to write documentation", error=str(e), module_name=module_name, docs_path=docs_path)
+        raise
+
+
+def generate_module_docs(module_path: str) -> None:
+    """Generate detailed documentation for a Python module including test examples.
+
+    This function analyzes a Python module and generates comprehensive documentation
+    including usage examples and test cases using Claude Opus.
+
+    Args:
+        module_path: Path to the Python module file or directory
+    """
+    logger.info("Starting module documentation generation", module_path=module_path)
+    expanded_path = str(tilda(module_path))
+    logger.debug("Expanded module path", expanded_path=expanded_path)
+
+    # If directory, extract contents, if file just read it
+    if expanded_path.endswith(".py"):
+        logger.debug("Processing single Python file")
+        file_content = read_file(expanded_path)
+    else:
+        logger.debug("Processing directory", path=expanded_path)
+        code_file_path = extract_local_directory(expanded_path)
+        logger.debug("Extracted code file path", code_file_path=code_file_path)
+        file_content = read_file(code_file_path)
+
+    input_prompt = f"Given this Python module:\n{file_content}\nPlease provide comprehensive documentation and test examples."
+    logger.debug("Prepared input prompt", prompt_length=len(input_prompt))
+
+    messages = [
+        {"role": "user", "content": input_prompt},
+    ]
+    logger.info("Requesting documentation from Claude Opus")
+    response = request_message(PYTHON_MODULE_DOCS_PROMPT, messages)
+    logger.debug("Received response from Claude Opus", response_length=len(response.content[0].text))
+
+    message = response.content[0].text
+    docs_text = SIGNATURE + message
+
+    # Generate docs in same directory as module
+    module_name = expanded_path.split("/")[-1].replace(".py", "")
+    docs_path = f"{'/'.join(expanded_path.split('/')[:-1])}/{module_name}_docs.md"
+    logger.info("Writing documentation", docs_path=docs_path, content_length=len(docs_text))
+
+    try:
+        with open(docs_path, "w", encoding="utf-8") as file:
+            file.write(docs_text)
+        logger.info("Successfully generated module documentation", module_name=module_name, docs_path=docs_path)
+    except Exception as e:
+        logger.error("Failed to write documentation", error=str(e), module_name=module_name, docs_path=docs_path)
+        raise
 
 
 if __name__ == "__main__":

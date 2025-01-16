@@ -114,6 +114,126 @@ Developer Onboarding:
 - Include a glossary of terms, acronyms, and jargon used within the project to aid in understanding the documentation and codebase.
 """
 
+PYTHON_MODULE_DOCS_PROMPT = """Your task is to create comprehensive documentation for a Python module, focusing on practical usage, implementation details, and testing examples. Structure your response using the following sections:
+
+Module Overview:
+- Explain the module's purpose, core functionality, and key features
+- Describe the problems it solves and its target use cases
+- List any key dependencies or requirements
+
+Installation and Setup:
+- Provide step-by-step installation instructions
+- Detail any environment setup requirements
+- List all required dependencies with version specifications
+- Include any necessary configuration steps
+
+Usage Guide:
+- Provide detailed examples of common use cases
+- Include code snippets demonstrating key functionality
+- Explain important classes, methods, and functions
+- Document any configuration options or settings
+- Show example outputs where relevant
+
+Testing Guide:
+For each test case, provide:
+1. Test purpose and description
+2. Required test fixtures and their setup
+3. Complete test implementation
+4. Expected outcomes and assertions
+
+Example Test Case Format:
+```python
+# Example test file: test_module.py
+from __future__ import annotations
+
+import pytest
+from typing import AsyncGenerator, Generator
+from pytest_mock import MockerFixture
+from _pytest.logging import LogCaptureFixture
+
+@pytest.fixture
+def sample_fixture() -> Generator[dict, None, None]:
+    \"\"\"Provide test data for sample tests.
+
+    Returns:
+        Generator[dict, None, None]: Test data dictionary
+    \"\"\"
+    data = {"key": "value"}
+    yield data
+
+@pytest.mark.asyncio
+async def test_sample_async_function(
+    mocker: MockerFixture,
+    sample_fixture: dict,
+    caplog: LogCaptureFixture
+) -> None:
+    \"\"\"Test async function behavior.
+
+    Args:
+        mocker: Pytest mocker fixture
+        sample_fixture: Sample test data
+        caplog: Log capture fixture
+    \"\"\"
+    # Test setup
+    mock_dependency = mocker.patch("module.dependency")
+    mock_dependency.return_value = "mocked_value"
+
+    # Execute test
+    result = await my_async_function(sample_fixture["key"])
+
+    # Assertions
+    assert result == "expected_value"
+    assert "Expected log message" in caplog.text
+```
+
+Testing Best Practices:
+- Use pytest as the primary testing framework
+- Implement proper type annotations in all tests
+- Create reusable fixtures for common test data
+- Use appropriate pytest markers (e.g., @pytest.mark.asyncio)
+- Implement proper mocking strategies
+- Use structlog's capture_logs for testing log output
+- Test both success and error cases
+- Include edge case testing
+- Document test coverage requirements
+
+Common Test Fixtures:
+- Document standard fixtures (tmp_path, caplog, etc.)
+- Explain custom fixtures and their purposes
+- Show fixture factory patterns when needed
+- Demonstrate fixture scope usage
+
+Error Handling and Edge Cases:
+- Document expected exceptions and error states
+- Show how to test error conditions
+- Provide examples of boundary testing
+- Include validation testing examples
+
+Performance Testing:
+- Show examples of performance test cases
+- Document benchmarking approaches
+- Include load testing examples if relevant
+
+Integration Testing:
+- Demonstrate testing with external dependencies
+- Show database integration testing
+- Include API integration test examples
+- Document mock vs. real dependency testing
+
+Debugging and Troubleshooting:
+- Provide debugging strategies
+- Document common issues and solutions
+- Include logging and monitoring guidance
+- Show debugging tool usage (pdb, ipdb, etc.)
+
+Remember to:
+- Include docstrings for all test functions
+- Add type annotations for all parameters
+- Document fixture dependencies
+- Show proper assertion patterns
+- Include cleanup handling
+- Demonstrate proper test isolation
+"""
 
 def check_prompt_token_size(prompt: str) -> int:
     """Use GPT-2 to check the approximate number of tokens in a prompt.

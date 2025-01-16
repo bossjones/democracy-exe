@@ -15,6 +15,7 @@ from democracy_exe.utils.ai_docs_utils.generate_docs import (
     _extend_docs,
     agenerate_docs_from_local_repo,
     generate_docs_from_local_repo,
+    generate_module_docs,
 )
 from democracy_exe.utils.file_functions import tilda
 
@@ -249,7 +250,6 @@ async def test_extend_docs(
     mock_request = mocker.patch(
         "democracy_exe.utils.ai_docs_utils.generate_docs.arequest_message", return_value=mock_refined_response
     )
-
     # Change to temp directory for file operations
     os.chdir(tmp_path)
 
@@ -274,3 +274,107 @@ async def test_extend_docs(
         content = f.read()
         assert "Extended Documentation" in content
         assert "This is extended documentation with more details." in content
+
+
+def test_generate_module_docs(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    mock_response: AnthropicMessage,
+) -> None:
+    """Test generating module documentation from a Python file.
+
+    Args:
+        tmp_path: Pytest fixture for temporary directory
+        mocker: Pytest mocker fixture
+        mock_response: Mock API response fixture
+    """
+    # Create test Python file
+    test_file = tmp_path / "test_module.py"
+    test_file.write_text("def test_function():\n    pass")
+
+    # Mock dependencies
+    mock_read = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.read_file", return_value="test code content"
+    )
+    mock_request = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.request_message", return_value=mock_response
+    )
+
+    # Run function with file path
+    generate_module_docs(str(test_file))
+
+    # Verify calls
+    mock_read.assert_called_once_with(str(test_file))
+    mock_request.assert_called_once()
+
+    # Verify request message construction
+    messages = mock_request.call_args[0][1]
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    assert "test code content" in messages[0]["content"]
+    assert "Please provide comprehensive documentation" in messages[0]["content"]
+
+    # Verify docs file creation
+    docs_path = tmp_path / "test_module_docs.md"
+    assert docs_path.exists()
+
+    with open(docs_path, encoding="utf-8") as f:
+        content = f.read()
+        assert content.startswith(SIGNATURE)
+        assert "Test Repository" in content
+        assert "This is a test repository documentation." in content
+
+
+def test_generate_module_docs_directory(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    mock_response: AnthropicMessage,
+) -> None:
+    """Test generating module documentation from a directory.
+
+    Args:
+        tmp_path: Pytest fixture for temporary directory
+        mocker: Pytest mocker fixture
+        mock_response: Mock API response fixture
+    """
+    # Create test directory with Python files
+    test_dir = tmp_path / "test_module"
+    test_dir.mkdir()
+    (test_dir / "main.py").write_text("def main():\n    pass")
+
+    # Mock dependencies
+    mock_extract = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.extract_local_directory", return_value="test_code.txt"
+    )
+    mock_read = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.read_file", return_value="test code content"
+    )
+    mock_request = mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.generate_docs.request_message", return_value=mock_response
+    )
+
+    # Run function with directory path
+    generate_module_docs(str(test_dir))
+
+    # Verify calls
+    mock_extract.assert_called_once_with(str(test_dir))
+    mock_read.assert_called_once_with("test_code.txt")
+    mock_request.assert_called_once()
+
+    # Verify request message construction
+    messages = mock_request.call_args[0][1]
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    assert "test code content" in messages[0]["content"]
+    assert "Please provide comprehensive documentation" in messages[0]["content"]
+
+    # Verify docs file creation
+    # The docs file should be created in the parent directory with the directory name
+    docs_path = tmp_path / "test_module_docs.md"
+    assert docs_path.exists()
+
+    with open(docs_path, encoding="utf-8") as f:
+        content = f.read()
+        assert content.startswith(SIGNATURE)
+        assert "Test Repository" in content
+        assert "This is a test repository documentation." in content
