@@ -9,7 +9,9 @@
 from __future__ import annotations
 
 import json
+import os
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import httpx
@@ -22,6 +24,7 @@ from democracy_exe.utils.ai_docs_utils.api import (
     CLIENT,
     arequest_message,
     check_prompt_token_size,
+    read_file,
     request_message,
 )
 
@@ -35,6 +38,56 @@ if TYPE_CHECKING:
     from respx import MockRouter
 
     from pytest_mock.plugin import MockerFixture
+
+
+@pytest.fixture
+def temp_test_file(tmp_path: Path) -> Path:
+    """Create a temporary test file.
+
+    Args:
+        tmp_path: Pytest fixture providing temporary directory path
+
+    Returns:
+        Path: Path to the temporary test file
+    """
+    test_file = tmp_path / "test.txt"
+    test_content = "Test file content\nLine 2\nLine 3"
+    test_file.write_text(test_content)
+    return test_file
+
+
+def test_read_file_success(temp_test_file: Path) -> None:
+    """Test read_file function with a valid file.
+
+    This test verifies that the function correctly reads a file's contents
+    when the file exists.
+
+    Args:
+        temp_test_file: Path to temporary test file
+    """
+    # Read the test file
+    content = read_file(str(temp_test_file))
+
+    # Verify the content
+    assert content is not None
+    assert "Test file content" in content
+    assert "Line 2" in content
+    assert "Line 3" in content
+
+
+def test_read_file_not_found() -> None:
+    """Test read_file function with a non-existent file.
+
+    This test verifies that the function raises FileNotFoundError
+    when the file does not exist.
+    """
+    # Try to read a non-existent file
+    with pytest.raises(FileNotFoundError) as exc_info:
+        read_file("nonexistent_file.txt")
+
+    # Verify the error message
+    assert "File not found" in str(exc_info.value)
+    assert "nonexistent_file.txt" in str(exc_info.value)
 
 
 def _low_retry_timeout(*_args: Any, **_kwargs: Any) -> float:
