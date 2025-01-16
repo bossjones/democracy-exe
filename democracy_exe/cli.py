@@ -93,14 +93,6 @@ import typer
 
 from langchain.globals import set_debug, set_verbose
 from langchain_chroma import Chroma as ChromaVectorStore
-
-
-logger = structlog.get_logger(__name__)
-from pinecone import ServerlessSpec
-from pinecone.core.openapi.data.model.describe_index_stats_response import DescribeIndexStatsResponse
-from pinecone.core.openapi.data.model.query_response import QueryResponse
-from pinecone.core.openapi.data.model.upsert_response import UpsertResponse
-from pinecone.data.index import Index
 from redis.asyncio import ConnectionPool, Redis
 from rich import print_json
 from rich.console import Console
@@ -121,6 +113,7 @@ from democracy_exe.utils.base import print_line_seperator
 from democracy_exe.utils.file_functions import fix_path
 
 
+logger = structlog.get_logger(__name__)
 # from democracy_exe.utils.files_import import index_file_folder
 
 
