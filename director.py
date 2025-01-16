@@ -1,12 +1,11 @@
-#!/usr
+#!/usr/bin/env python3
+# pyright: reportInvalidTypeForm=false
 
 # Import required libraries for data validation and typing
 from __future__ import annotations
 
 import argparse
 import subprocess
-
-# Import standard library modules for system operations and data handling
 import sys
 
 from pathlib import Path
@@ -14,8 +13,6 @@ from typing import List, Literal, Optional
 
 import yaml
 
-
-# Import aider-related modules for AI code generation
 from aider.coders import Coder
 from aider.io import InputOutput
 from aider.models import Model

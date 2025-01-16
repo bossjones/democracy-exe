@@ -23,8 +23,8 @@ def is_video_file(path: Path) -> bool:
         >>> is_video_file(Path("image.jpg"))
         False
     """
-    VIDEO_EXTENSIONS: set[str] = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.m4v'}
-    return path.is_file() and path.suffix.lower() in VIDEO_EXTENSIONS
+    video_extensions: set[str] = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.m4v'}
+    return path.is_file() and path.suffix.lower() in video_extensions
 
 def find_video_files(path: Path) -> Iterator[Path]:
     """Recursively find all video files in the given directory.

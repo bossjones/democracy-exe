@@ -123,6 +123,7 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = embeddings.embed_query(query)
     with langsmith.trace("query", inputs={"query": query, "top_k": top_k}) as rt:
+        # TODO: fix this to work with chroma/scikitlearn
         response = agentic_utils.get_index().query(
             vector=vector,
             filter={
@@ -152,6 +153,7 @@ def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
     """
     path: str = constants.PATCH_PATH.format(user_id=user_id)
     logger.error(f"path: {path}")
+    # TODO: fix this to work with chroma/scikitlearn
     response = agentic_utils.get_index().fetch(
         ids=[path], namespace=aiosettings.pinecone_namespace
     )
@@ -196,10 +198,11 @@ def store_core_memory(memory: str, index: int | None = None) -> str:
             },
         }
     ]
-    agentic_utils.get_index().upsert(
-        vectors=documents,
-        namespace=aiosettings.pinecone_namespace,
-    )
+    # TODO: fix this to work with chroma/scikitlearn
+    # agentic_utils.get_index().upsert(
+    #     vectors=documents,
+    #     namespace=aiosettings.pinecone_namespace,
+    # )
     return "Memory stored."
 
 
