@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from democracy_exe.utils.ai_docs_utils.extract_repo import make_zip_file
+from democracy_exe.utils.ai_docs_utils.extract_repo import is_desired_file, make_zip_file
 
 
 if TYPE_CHECKING:
@@ -67,3 +67,39 @@ def test_make_zip_file(test_directory: Path, tmp_path: Path) -> None:
         # Verify file contents
         assert zip_ref.read("file1.txt").decode() == "Test content 1"
         assert zip_ref.read("file2.txt").decode() == "Test content 2"
+
+
+@pytest.mark.parametrize(
+    "file_path,expected",
+    [
+        # Test file extensions
+        ("src/file.ts", True),
+        ("app/component.tsx", True),
+        ("schema.prisma", True),
+        ("script.py", True),
+        # Test specific file names
+        ("package.json", True),
+        ("pyproject.toml", True),
+        # Test negative cases
+        ("file.txt", False),
+        ("script.js", False),
+        ("readme.md", False),
+        ("requirements.txt", False),
+        # Test with different path formats
+        (os.path.join("src", "utils", "file.ts"), True),
+        (os.path.join("src", "components", "file.jsx"), False),
+        # Test case sensitivity
+        ("FILE.PY", True),
+        ("PACKAGE.JSON", True),
+        ("file.TS", True),
+    ],
+)
+def test_is_desired_file(file_path: str, expected: bool) -> None:
+    """Test is_desired_file function correctly identifies desired files.
+
+    Args:
+        file_path: Path to test file
+        expected: Expected result for the given file path
+    """
+    result = is_desired_file(file_path)
+    assert result == expected, f"Expected is_desired_file('{file_path}') to be {expected}, got {result}"

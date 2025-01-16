@@ -31,12 +31,15 @@ def is_desired_file(file_path: str) -> bool:
     Returns:
         bool: True if file is a desired type, False otherwise
     """
-    # Check for specific file types
-    if file_path.endswith((".ts", ".tsx", ".prisma", ".py")):
+    # Convert to lowercase for case-insensitive comparison
+    file_path_lower = file_path.lower()
+
+    # Check for specific file types (case-insensitive)
+    if file_path_lower.endswith((".ts", ".tsx", ".prisma", ".py")):
         return True
 
-    # Check for specific file names
-    if os.path.basename(file_path) in ("package.json", "pyproject.toml"):
+    # Check for specific file names (case-insensitive)
+    if os.path.basename(file_path_lower) in ("package.json", "pyproject.toml"):
         return True
 
     return False
