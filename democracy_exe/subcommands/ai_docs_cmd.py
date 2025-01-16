@@ -15,7 +15,11 @@ from rich import print as rprint
 
 from democracy_exe.asynctyper import AsyncTyperImproved
 from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
-from democracy_exe.utils.ai_docs_utils.generate_docs import agenerate_docs_from_local_repo
+from democracy_exe.utils.ai_docs_utils.generate_docs import (
+    agenerate_docs_from_local_repo,
+    agenerate_module_docs,
+    generate_module_docs,
+)
 
 
 logger = structlog.get_logger(__name__)
@@ -128,6 +132,58 @@ async def aio_cli_extract_repo(
         rprint(f"[green]Repository extracted to {output_file}[/green]")
     except Exception as ex:
         logger.error("Error extracting repository", error=str(ex))
+        rprint(f"[red]Error: {ex!s}[/red]")
+        raise typer.Exit(1)
+
+
+@APP.command("generate-module")
+def cli_generate_module_docs(
+    module_path: Annotated[str, typer.Argument(help="Path to Python module file or directory")]
+) -> None:
+    """Generate detailed documentation for a Python module including test examples.
+
+    Args:
+        module_path: Path to the Python module file or directory
+    """
+    path = Path(module_path)
+    if not path.exists():
+        rprint(f"[red]Path does not exist: {module_path}[/red]")
+        raise typer.Exit(1)
+    if not (path.is_dir() or path.suffix == '.py'):
+        rprint(f"[red]Path must be a Python file or directory: {module_path}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        generate_module_docs(str(path))
+        rprint(f"[green]Module documentation generated for {module_path}[/green]")
+    except Exception as ex:
+        logger.error("Error generating module documentation", error=str(ex))
+        rprint(f"[red]Error: {ex!s}[/red]")
+        raise typer.Exit(1)
+
+
+@APP.command("generate-module-async")
+async def aio_cli_generate_module_docs(
+    module_path: Annotated[str, typer.Argument(help="Path to Python module file or directory")]
+) -> None:
+    """Generate detailed documentation for a Python module including test examples asynchronously.
+
+    Args:
+        module_path: Path to the Python module file or directory
+    """
+    path = Path(module_path)
+    if not path.exists():
+        rprint(f"[red]Path does not exist: {module_path}[/red]")
+        raise typer.Exit(1)
+    if not (path.is_dir() or path.suffix == '.py'):
+        rprint(f"[red]Path must be a Python file or directory: {module_path}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        await agenerate_module_docs(str(path))
+        rprint(f"[green]Module documentation generated for {module_path}[/green]")
+    except Exception as ex:
+        logger.error("Error generating module documentation", error=str(ex))
         rprint(f"[red]Error: {ex!s}[/red]")
         raise typer.Exit(1)
 

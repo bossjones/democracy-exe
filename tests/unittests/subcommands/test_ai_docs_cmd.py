@@ -15,12 +15,15 @@ from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import structlog
+import typer
+
 from typer.testing import CliRunner, Result
 
 import pytest
 
 from democracy_exe.asynctyper_testing import AsyncCliRunner
-from democracy_exe.subcommands.ai_docs_cmd import APP
+from democracy_exe.subcommands.ai_docs_cmd import APP, cli_generate_module_docs
 from democracy_exe.utils.ai_docs_utils.extract_repo import extract_local_directory
 from democracy_exe.utils.ai_docs_utils.generate_docs import agenerate_docs_from_local_repo
 
@@ -257,3 +260,156 @@ async def test_aio_cli_extract_repo_invalid_path(async_runner: AsyncCliRunner) -
     result = async_runner.invoke(APP, ["extract-async", "invalid/path"])
     assert result.exit_code == 1
     assert "Directory does not exist" in result.stdout
+
+
+@pytest.fixture
+def mock_module_file(tmp_path: Path) -> Generator[Path, None, None]:
+    """Create a temporary Python module file for testing.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture
+
+    Yields:
+        Path to temporary Python file
+    """
+    file_path = tmp_path / "test_module.py"
+    file_path.write_text("def test_function():\n    pass\n")
+    yield file_path
+    if file_path.exists():
+        file_path.unlink()
+
+
+@pytest.fixture
+def mock_module_dir(tmp_path: Path) -> Generator[Path, None, None]:
+    """Create a temporary directory with Python modules for testing.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture
+
+    Yields:
+        Path to temporary directory
+    """
+    dir_path = tmp_path / "test_module_dir"
+    dir_path.mkdir()
+    (dir_path / "module1.py").write_text("def test_function1():\n    pass\n")
+    (dir_path / "module2.py").write_text("def test_function2():\n    pass\n")
+    yield dir_path
+    if dir_path.exists():
+        for file in dir_path.glob("*.py"):
+            file.unlink()
+        dir_path.rmdir()
+
+
+def test_cli_generate_module_docs_file(
+    mock_module_file: Path, mocker: MockerFixture, capsys: CaptureFixture[str]
+) -> None:
+    """Test generating docs for a Python file.
+
+    Args:
+        mock_module_file: Path to test Python file
+        mocker: Pytest mocker fixture
+        capsys: Pytest capture fixture
+    """
+    # Mock the generate_module_docs function
+    mock_generate = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.generate_module_docs")
+    mock_rprint = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.rprint")
+
+    # Run the command
+    cli_generate_module_docs(str(mock_module_file))
+
+    # Verify generate_module_docs was called with correct path
+    mock_generate.assert_called_once_with(str(mock_module_file))
+
+    # Verify success message was printed
+    mock_rprint.assert_called_with(f"[green]Module documentation generated for {mock_module_file}[/green]")
+
+
+def test_cli_generate_module_docs_directory(
+    mock_module_dir: Path, mocker: MockerFixture, capsys: CaptureFixture[str]
+) -> None:
+    """Test generating docs for a directory of Python files.
+
+    Args:
+        mock_module_dir: Path to test directory
+        mocker: Pytest mocker fixture
+        capsys: Pytest capture fixture
+    """
+    # Mock the generate_module_docs function
+    mock_generate = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.generate_module_docs")
+    mock_rprint = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.rprint")
+
+    # Run the command
+    cli_generate_module_docs(str(mock_module_dir))
+
+    # Verify generate_module_docs was called with correct path
+    mock_generate.assert_called_once_with(str(mock_module_dir))
+
+    # Verify success message was printed
+    mock_rprint.assert_called_with(f"[green]Module documentation generated for {mock_module_dir}[/green]")
+
+
+def test_cli_generate_module_docs_nonexistent_path(tmp_path: Path, mocker: MockerFixture) -> None:
+    """Test handling of nonexistent path.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture
+        mocker: Pytest mocker fixture
+    """
+    nonexistent_path = tmp_path / "nonexistent.py"
+    mock_rprint = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.rprint")
+
+    # Verify it raises typer.Exit
+    with pytest.raises(typer.Exit):
+        cli_generate_module_docs(str(nonexistent_path))
+
+    # Verify error message was printed
+    mock_rprint.assert_called_with(f"[red]Path does not exist: {nonexistent_path}[/red]")
+
+
+def test_cli_generate_module_docs_invalid_file_type(tmp_path: Path, mocker: MockerFixture) -> None:
+    """Test handling of invalid file type.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture
+        mocker: Pytest mocker fixture
+    """
+    invalid_file = tmp_path / "test.txt"
+    invalid_file.write_text("test content")
+    mock_rprint = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.rprint")
+
+    # Verify it raises typer.Exit
+    with pytest.raises(typer.Exit):
+        cli_generate_module_docs(str(invalid_file))
+
+    # Verify error message was printed
+    mock_rprint.assert_called_with(f"[red]Path must be a Python file or directory: {invalid_file}[/red]")
+
+
+def test_cli_generate_module_docs_generation_error(
+    mock_module_file: Path,
+    mocker: MockerFixture,
+) -> None:
+    """Test handling of documentation generation error.
+
+    Args:
+        mock_module_file: Path to test Python file
+        mocker: Pytest mocker fixture
+    """
+    # Mock generate_module_docs to raise an exception
+    mock_generate = mocker.patch(
+        "democracy_exe.subcommands.ai_docs_cmd.generate_module_docs", side_effect=Exception("Test error")
+    )
+    mock_rprint = mocker.patch("democracy_exe.subcommands.ai_docs_cmd.rprint")
+
+    # Use structlog's testing context manager
+    with structlog.testing.capture_logs() as captured:
+        # Verify it raises typer.Exit
+        with pytest.raises(typer.Exit):
+            cli_generate_module_docs(str(mock_module_file))
+
+        # Verify error was logged
+        assert any("Error generating module documentation" in log.get("event", "") for log in captured)
+        assert any("Test error" in str(log.get("error", "")) for log in captured)
+
+    # Verify error message was printed
+    mock_rprint.assert_called_with("[red]Error: Test error[/red]")
