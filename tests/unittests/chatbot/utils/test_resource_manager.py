@@ -92,7 +92,7 @@ async def test_track_task(resource_manager: ResourceManager) -> None:
     assert resource_manager.active_tasks == 5
 
     # Test task limit exceeded
-    with pytest.raises(RuntimeError, match="Task limit exceeded"):
+    with pytest.raises(RuntimeError, match="Max concurrent tasks limit"):
         task = asyncio.create_task(asyncio.sleep(0.1))
         await resource_manager.track_task(task)
 

@@ -115,7 +115,7 @@ class AttachmentHandler:
         """
         task = asyncio.current_task()
         if task:
-            self._resource_manager.track_task(task)
+            await self._resource_manager.track_task(task)
 
         try:
             timeout = self._resource_manager.limits.task_timeout_seconds
@@ -183,7 +183,7 @@ class AttachmentHandler:
         """
         task = asyncio.current_task()
         if task:
-            self._resource_manager.track_task(task)
+            await self._resource_manager.track_task(task)
 
         path = None
         try:
@@ -297,7 +297,7 @@ class AttachmentHandler:
         """
         task = asyncio.current_task()
         if task:
-            self._resource_manager.track_task(task)
+            await self._resource_manager.track_task(task)
 
         try:
             if not all(key in attm_data_dict for key in ["id", "filename", "attachment_obj"]):

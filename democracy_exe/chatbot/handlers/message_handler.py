@@ -68,7 +68,7 @@ class MessageHandler:
         """
         task = asyncio.current_task()
         if task:
-            self._resource_manager.track_task(task)
+            await self._resource_manager.track_task(task)
 
         try:
             attachments = message.attachments
@@ -114,7 +114,7 @@ class MessageHandler:
         """
         task = asyncio.current_task()
         if task:
-            self._resource_manager.track_task(task)
+            await self._resource_manager.track_task(task)
 
         try:
             timeout = getattr(aiosettings, "task_timeout_seconds", 30.0)

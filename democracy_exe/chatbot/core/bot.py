@@ -383,7 +383,7 @@ class DemocracyBot(commands.Bot):
         """
         # Track task in resource manager
         task_id = id(coro)
-        self.resource_manager.track_task(task_id)
+        await self.resource_manager.track_task(task_id)
 
         try:
             # Create and add new task with timeout

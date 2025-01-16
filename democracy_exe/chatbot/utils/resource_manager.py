@@ -155,7 +155,7 @@ class ResourceManager:
         # Clean up context vars at the end
         structlog.contextvars.clear_contextvars()
 
-    def track_task(self, task: asyncio.Task) -> None:
+    async def track_task(self, task: asyncio.Task) -> None:
         """Track a new task.
 
         This method adds a task to the set of tracked tasks and checks if the

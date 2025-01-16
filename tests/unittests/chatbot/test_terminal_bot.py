@@ -99,7 +99,9 @@ async def test_stream_terminal_bot(terminal_bot: ThreadSafeTerminalBot, mocker: 
     """
     # Mock resource manager methods
     mock_check = mocker.patch.object(terminal_bot._resource_manager, "check_memory", return_value=True)
-    mock_track = mocker.patch.object(terminal_bot._resource_manager, "track_task")
+    mock_track = mocker.patch.object(terminal_bot._resource_manager, "track_task", autospec=True)
+    mock_track.return_value = asyncio.Future()
+    mock_track.return_value.set_result(None)
     mock_track_mem = mocker.patch.object(terminal_bot._resource_manager, "track_memory")
     mock_release = mocker.patch.object(terminal_bot._resource_manager, "release_memory")
 
@@ -143,7 +145,9 @@ async def test_invoke_terminal_bot(terminal_bot: ThreadSafeTerminalBot, mocker: 
     """
     # Mock resource manager methods
     mock_check = mocker.patch.object(terminal_bot._resource_manager, "check_memory", return_value=True)
-    mock_track = mocker.patch.object(terminal_bot._resource_manager, "track_task")
+    mock_track = mocker.patch.object(terminal_bot._resource_manager, "track_task", autospec=True)
+    mock_track.return_value = asyncio.Future()
+    mock_track.return_value.set_result(None)
 
     # Test invocation
     response, steps = await terminal_bot.invoke_terminal_bot("test prompt")

@@ -175,7 +175,9 @@ async def test_add_task_tracking(bot: DemocracyBot, mocker: MockerFixture) -> No
         bot: The bot instance
         mocker: The pytest mocker fixture
     """
-    mock_track = mocker.patch.object(bot.resource_manager, "track_task")
+    mock_track = mocker.patch.object(bot.resource_manager, "track_task", autospec=True)
+    mock_track.return_value = asyncio.Future()
+    mock_track.return_value.set_result(None)
     mock_cleanup = mocker.patch.object(bot.resource_manager, "cleanup_tasks")
 
     async def test_coro() -> None:
