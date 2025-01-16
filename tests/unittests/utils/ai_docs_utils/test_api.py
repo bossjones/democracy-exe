@@ -19,8 +19,10 @@ import pytest
 from democracy_exe.utils.ai_docs_utils.api import (
     ASYNC_CLIENT,
     BASIC_DOCS_SYSTEM_PROMPT,
+    CLIENT,
     arequest_message,
     check_prompt_token_size,
+    request_message,
 )
 
 
@@ -169,3 +171,82 @@ async def test_arequest_message(respx_mock: MockRouter, mocker: MockerFixture) -
 
     # Verify no connection leaks
     assert _get_open_connections(ASYNC_CLIENT) == 0
+
+
+@pytest.mark.respx
+def test_request_message(respx_mock: MockRouter, mocker: MockerFixture) -> None:
+    """Test request_message function.
+
+    This test verifies that the function correctly sends messages to Anthropic API
+    and returns the expected response.
+
+    Args:
+        respx_mock: Respx mock router for HTTP mocking
+        mocker: Pytest mocker fixture
+    """
+    # Patch retry timeout
+    mocker.patch(
+        "anthropic._base_client.BaseClient._calculate_retry_timeout",
+        _low_retry_timeout,
+    )
+
+    # Mock response data matching Anthropic API structure
+    mock_response_data = {
+        "id": "msg_123",
+        "type": "message",
+        "role": "assistant",
+        "content": [{"type": "text", "text": "Test response"}],
+        "model": "claude-3-opus-20240229",
+        "stop_reason": "end_turn",
+        "stop_sequence": None,
+        "usage": {"input_tokens": 50, "output_tokens": 100},
+    }
+
+    # Get the base URL from the sync client
+    base_url = str(CLIENT.base_url).rstrip("/")
+
+    # Setup mock response with proper headers
+    respx_mock.post(f"{base_url}/v1/messages").mock(
+        return_value=httpx.Response(
+            200,
+            json=mock_response_data,
+            headers={
+                "Content-Type": "application/json",
+                "X-Anthropic-Version": "2023-06-01",
+                "anthropic-version": "2023-06-01",
+                "anthropic-beta": "messages-2024-02-29",
+            },
+        )
+    )
+
+    # Test data
+    system_prompt = BASIC_DOCS_SYSTEM_PROMPT
+    messages = [{"role": "user", "content": "Test message"}]
+
+    # Call the function
+    response = request_message(system_prompt, messages)
+
+    # Verify the response structure
+    assert response.id.startswith("msg_")
+    assert response.role == "assistant"
+    assert response.content[0].text == "Test response"
+    assert response.model == "claude-3-opus-20240229"
+
+    # Verify the request was made with correct parameters
+    assert len(respx_mock.calls) == 1
+    request = respx_mock.calls[0].request
+    assert request.method == "POST"
+    assert request.url.path == "/v1/messages"
+
+    # Verify request headers
+    assert request.headers["anthropic-version"] == "2023-06-01"
+
+    # Verify request body
+    request_body = json.loads(request.read().decode())
+    assert request_body["messages"] == messages
+    assert request_body["system"] == system_prompt
+    assert request_body["model"] == "claude-3-opus-20240229"
+    assert request_body["max_tokens"] == 4096
+
+    # Verify no connection leaks
+    assert _get_open_connections(CLIENT) == 0
