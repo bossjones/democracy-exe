@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -22,6 +23,7 @@ from democracy_exe.utils.ai_docs_utils.api import (
     ASYNC_CLIENT,
     BASIC_DOCS_SYSTEM_PROMPT,
     CLIENT,
+    _generate_docs,
     arequest_message,
     check_prompt_token_size,
     read_file,
@@ -303,3 +305,142 @@ def test_request_message(respx_mock: MockRouter, mocker: MockerFixture) -> None:
 
     # Verify no connection leaks
     assert _get_open_connections(CLIENT) == 0
+
+
+@pytest.mark.respx
+def test_generate_docs(
+    respx_mock: MockRouter,
+    mocker: MockerFixture,
+    temp_test_file: Path,
+    capsys: CaptureFixture[str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test _generate_docs function.
+
+    This test verifies that the function correctly generates documentation
+    from a file and handles user input.
+
+    Args:
+        respx_mock: Respx mock router for HTTP mocking
+        mocker: Pytest mocker fixture
+        temp_test_file: Temporary test file
+        capsys: Fixture to capture stdout/stderr
+        monkeypatch: Pytest monkeypatch fixture
+    """
+    # Create a test file with _code in the name
+    test_file = temp_test_file.parent / f"{temp_test_file.stem}_code{temp_test_file.suffix}"
+    test_file.write_text(temp_test_file.read_text())
+
+    # Mock token size to return a small number
+    def mock_token_size(prompt: str) -> int:
+        print("Input token size is: 10")
+        return 10
+
+    mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.api.check_prompt_token_size",
+        side_effect=mock_token_size,
+    )
+
+    # Mock user input to proceed
+    monkeypatch.setattr("builtins.input", lambda _: "Y")
+
+    # Mock response data matching Anthropic API structure
+    mock_response_data = {
+        "id": "msg_123",
+        "type": "message",
+        "role": "assistant",
+        "content": [{"type": "text", "text": "# Generated Documentation\n\nTest content"}],
+        "model": "claude-3-opus-20240229",
+        "stop_reason": "end_turn",
+        "stop_sequence": None,
+        "usage": {"input_tokens": 50, "output_tokens": 100},
+    }
+
+    # Get the base URL from the sync client
+    base_url = str(CLIENT.base_url).rstrip("/")
+
+    # Setup mock response with proper headers
+    respx_mock.post(f"{base_url}/v1/messages").mock(
+        return_value=httpx.Response(
+            200,
+            json=mock_response_data,
+            headers={
+                "Content-Type": "application/json",
+                "X-Anthropic-Version": "2023-06-01",
+                "anthropic-version": "2023-06-01",
+                "anthropic-beta": "messages-2024-02-29",
+            },
+        )
+    )
+
+    # Call the function
+    _generate_docs(str(test_file))
+
+    # Verify output file was created
+    output_file = test_file.parent / f"{test_file.stem.replace('_code', '')}{test_file.suffix}-docs.md"
+    assert output_file.exists(), f"Output file not found at {output_file}"
+
+    # Verify file content
+    content = output_file.read_text()
+    assert "# Generated Documentation" in content
+    assert "Test content" in content
+
+    # Verify console output
+    captured = capsys.readouterr()
+    assert "Input token size is: 10" in captured.out
+
+    # Clean up the generated files
+    test_file.unlink()
+    output_file.unlink()
+
+
+def test_generate_docs_user_abort(
+    mocker: MockerFixture,
+    temp_test_file: Path,
+    capsys: CaptureFixture[str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test _generate_docs function when user aborts.
+
+    This test verifies that the function correctly handles user abort
+    and exits gracefully.
+
+    Args:
+        mocker: Pytest mocker fixture
+        temp_test_file: Temporary test file
+        capsys: Fixture to capture stdout/stderr
+        monkeypatch: Pytest monkeypatch fixture
+    """
+    # Create a test file with _code in the name
+    test_file = temp_test_file.parent / f"{temp_test_file.stem}_code{temp_test_file.suffix}"
+    test_file.write_text(temp_test_file.read_text())
+
+    # Mock token size to return a small number
+    def mock_token_size(prompt: str) -> int:
+        print("Input token size is: 10")
+        return 10
+
+    mocker.patch(
+        "democracy_exe.utils.ai_docs_utils.api.check_prompt_token_size",
+        side_effect=mock_token_size,
+    )
+
+    # Mock user input to abort
+    monkeypatch.setattr("builtins.input", lambda _: "N")
+
+    # Mock sys.exit to prevent actual exit
+    mock_exit = mocker.patch("sys.exit")
+
+    # Call the function
+    _generate_docs(str(test_file))
+
+    # Verify sys.exit was called with code 1
+    mock_exit.assert_called_once_with(1)
+
+    # Verify console output
+    captured = capsys.readouterr()
+    assert "Input token size is: 10" in captured.out
+    assert "Exiting" in captured.out
+
+    # Clean up test file
+    test_file.unlink()
