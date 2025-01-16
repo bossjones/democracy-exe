@@ -291,7 +291,7 @@ class TestMessageHandler:
         surface_info = {"platform": "discord"}
         result = message_handler.prepare_agent_input(mock_message, "Real User Name", surface_info)
 
-        assert result["user name"] == "Real User Name"
+        assert result["user name"] == "Real User Name"  # type: ignore
         assert result["message"] == mock_message.content
         assert result["surface_info"] == surface_info
 
@@ -305,7 +305,7 @@ class TestMessageHandler:
         surface_info = {"platform": "discord"}
         result = message_handler.prepare_agent_input(mock_thread, "Real User Name", surface_info)
 
-        assert result["user name"] == "Real User Name"
+        assert result["user name"] == "Real User Name"  # type: ignore
         assert result["message"] == mock_thread.starter_message.content
         assert result["surface_info"] == surface_info
 

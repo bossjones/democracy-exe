@@ -86,7 +86,47 @@ class ThreadSafeTerminalBot:
         self._message_handler = MessageHandler()
         self._stream_handler = StreamHandler()
         self._ui_manager = UIManager()
+        self._base_config = self._create_base_config()
         self._setup_signal_handlers()
+
+    def _create_base_config(self) -> RunnableConfig:
+        """Create base configuration for the bot.
+
+        This creates the standard configuration required by LangGraph with
+        the necessary configurable fields for checkpointing and persistence.
+
+        Returns:
+            RunnableConfig: Base configuration with required fields
+        """
+        return {
+            "configurable": {
+                "thread_id": "1",  # Default thread ID
+                "user_id": "1",    # Default user ID
+            }
+        }
+
+    def _merge_config(self, config: RunnableConfig | None = None) -> RunnableConfig:
+        """Merge provided config with base config.
+
+        Args:
+            config: Optional configuration to merge with base config
+
+        Returns:
+            RunnableConfig: Merged configuration
+        """
+        if config is None:
+            return self._base_config.copy()
+
+        merged_config = self._base_config.copy()
+        if "configurable" in config:
+            merged_config["configurable"].update(config["configurable"])
+
+        # Add any other config keys
+        for key, value in config.items():
+            if key != "configurable":
+                merged_config[key] = value
+
+        return merged_config
 
     def _setup_signal_handlers(self) -> None:
         """Set up signal handlers for graceful shutdown."""
@@ -141,7 +181,6 @@ class ThreadSafeTerminalBot:
             ValueError: If no response is generated
         """
 
-
         # Check memory usage
         if (aiosettings.enable_resource_management) and not await self._resource_manager.check_memory():
             raise RuntimeError("Memory limit exceeded")
@@ -157,12 +196,15 @@ class ThreadSafeTerminalBot:
             message = await self._message_handler.format_message(prompt)
             input_dict = await self._message_handler.create_input_dict(message)
 
+            # Use merged config
+            merged_config = self._merge_config(config)
+
             # Process stream
             async with self._stream_handler as handler:
                 async for chunk in handler.process_stream(
                     graph,
                     input_dict,
-                    config,
+                    merged_config,
                     interruptable
                 ):
                     yield chunk
@@ -194,8 +236,11 @@ class ThreadSafeTerminalBot:
             RuntimeError: If memory limit is exceeded or task limit is reached
             ValueError: If no response is generated
         """
+        # Use merged config
+        merged_config = self._merge_config(config)
+
         response_chunks = []
-        async for chunk in self.stream_terminal_bot(prompt, graph, config):
+        async for chunk in self.stream_terminal_bot(prompt, graph, merged_config):
             response_chunks.append(chunk)
 
         response = ''.join(response_chunks)
