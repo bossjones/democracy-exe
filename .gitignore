@@ -562,3 +562,12 @@ ai_docs/gitdiffs/
 diffs.xml
 diffs/
 feature-still-looking.diff
+
+apps/marimo-prompt-library/prompt_executions
+
+prompt_executions/
+
+apps/ada/personalization.json
+apps/ada/runtime_time_table.jsonl
+
+session_dir/

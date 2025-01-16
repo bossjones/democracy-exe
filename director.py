@@ -218,8 +218,10 @@ class Director:
             read_only_fnames=self.config.context_read_only,
             auto_commits=False,
             detect_urls=False,
-            editor="code",
-            sonnet=True,
+            map_tokens=1024,  # Default value for repo mapping
+            stream=True,
+            verbose=False,
+            cache_prompts=False,
             suggest_shell_commands=False,
         )
         # Run the code generation with the provided prompt

@@ -78,10 +78,11 @@ context_read_only:
   - democracy_exe/utils/ai_docs_utils/extract_repo.py
   - democracy_exe/utils/ai_docs_utils/generate_docs.py
   - democracy_exe/subcommands/dummy_cmd.py
+  - democracy_exe/asynctyper.py
   - tests/unittests/subcommands/test_dummy_cmd.py
 
 # Command to run tests/validation
-execution_command: uv run pytest -s --verbose --showlocals --tb=short tests/unittests/subcommands/test_ai_docs_cmd.py
+execution_command: uv run pytest -s --verbose --showlocals --tb=short --disable-warnings tests/unittests/subcommands/test_ai_docs_cmd.py
 
 # Maximum number of attempts to generate correct code
 max_iterations: 5
