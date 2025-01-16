@@ -123,21 +123,20 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
     vector = embeddings.embed_query(query)
     with langsmith.trace("query", inputs={"query": query, "top_k": top_k}) as rt:
-        # TODO: fix this to work with chroma/scikitlearn
-        response = agentic_utils.get_index().query(
-            vector=vector,
-            filter={
-                "user_id": {"$eq": configurable["user_id"]}, # pyright: ignore[reportUndefinedVariable]
-                constants.TYPE_KEY: {"$eq": "recall"},
-            },
-            namespace=aiosettings.pinecone_namespace,
-            include_metadata=True,
-            top_k=top_k,
+        # Get the sklearn vector store
+        vector_store = agentic_utils.get_or_create_sklearn_index(embeddings=embeddings)
+
+        # Use similarity search with metadata filter
+        response = vector_store.similarity_search_with_score_by_vector(
+            embedding=vector,
+            k=top_k,
+            filter={"user_id": configurable["user_id"], "type": "recall"}  # type: ignore
         )
         rt.end(outputs={"response": response})
+
     memories = []
-    if matches := response.get("matches"):
-        memories = [m["metadata"][constants.PAYLOAD_KEY] for m in matches] # pyright: ignore[reportUndefinedVariable]
+    if response:
+        memories = [doc.page_content for doc, _ in response]
     return memories
 
 
@@ -153,15 +152,27 @@ def fetch_core_memories(user_id: str) -> tuple[str, list[str]]:
     """
     path: str = constants.PATCH_PATH.format(user_id=user_id)
     logger.error(f"path: {path}")
-    # TODO: fix this to work with chroma/scikitlearn
-    response = agentic_utils.get_index().fetch(
-        ids=[path], namespace=aiosettings.pinecone_namespace
+
+    # Get the sklearn vector store
+    embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
+    vector_store = agentic_utils.get_or_create_sklearn_index(embeddings=embeddings)
+
+    # Search for core memories
+    response = vector_store.similarity_search_with_score_by_vector(
+        embedding=[0.0] * 768,  # Use zero vector to match exact metadata
+        k=1,
+        filter={"user_id": user_id, "type": "core", "path": path}  # type: ignore
     )
+
     memories = []
-    if vectors := response.get("vectors"):
-        document = vectors[path]
-        payload = document["metadata"][constants.PAYLOAD_KEY]
-        memories = json.loads(payload)["memories"]
+    if response:
+        doc, _ = response[0]
+        try:
+            payload = json.loads(doc.page_content)
+            memories = payload.get("memories", [])
+        except json.JSONDecodeError:
+            logger.error("Failed to decode core memories JSON", error=True)
+
     return path, memories
 
 
@@ -185,24 +196,27 @@ def store_core_memory(memory: str, index: int | None = None) -> str:
         memories[index] = memory
     else:
         memories.insert(0, memory)
-    documents = [
-        {
-            "id": path,
-            "values": _EMPTY_VEC,
-            "metadata": {
-                constants.PAYLOAD_KEY: json.dumps({"memories": memories}),
-                constants.PATH_KEY: path,
-                constants.TIMESTAMP_KEY: datetime.now(tz=UTC),
-                constants.TYPE_KEY: "recall",
-                "user_id": configurable["user_id"], # pyright: ignore[reportUndefinedVariable]
-            },
-        }
-    ]
-    # TODO: fix this to work with chroma/scikitlearn
-    # agentic_utils.get_index().upsert(
-    #     vectors=documents,
-    #     namespace=aiosettings.pinecone_namespace,
-    # )
+
+    # Get the sklearn vector store
+    embeddings = agentic_utils.get_embeddings(model_name=aiosettings.openai_embeddings_model)
+    vector_store = agentic_utils.get_or_create_sklearn_index(embeddings=embeddings)
+
+    # Create the document with metadata
+    document = json.dumps({"memories": memories})
+    metadata = {
+        constants.PATH_KEY: path,
+        constants.TIMESTAMP_KEY: datetime.now(tz=UTC).isoformat(),
+        constants.TYPE_KEY: "core",
+        "user_id": configurable["user_id"], # pyright: ignore[reportUndefinedVariable]
+    }
+
+    # Add or update the document
+    vector_store.add_texts(
+        texts=[document],
+        metadatas=[metadata],
+        embeddings=[[0.0] * 768]  # Use zero vector for exact metadata matching
+    )
+
     return "Memory stored."
 
 
