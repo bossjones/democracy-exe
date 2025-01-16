@@ -98,10 +98,11 @@ async def save_recall_memory(memory: str) -> str:
     logger.error(f"vector: {vector}")
     logger.error(f"embeddings: {embeddings}")
 
-    agentic_utils.get_index().upsert(
-        vectors=documents,
-        namespace=aiosettings.pinecone_namespace,
-    )
+    # TODO: fix this to work with chroma/scikitlearn
+    # agentic_utils.get_index().upsert(
+    #     vectors=documents,
+    #     namespace=aiosettings.pinecone_namespace,
+    # )
     # await logger.complete()
     return memory
 

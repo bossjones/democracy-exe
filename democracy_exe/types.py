@@ -51,11 +51,11 @@ from pydantic import BaseModel, Field
 
 
 if TYPE_CHECKING:
-    from democracy_exe.gen_ai.vectorstore import ChromaDatabase, PGVectorDatabase, PineconeDatabase
-    from democracy_exe.models.vectorstores import ChromaIntegration, PgvectorIntegration, PineconeIntegration
+    from democracy_exe.gen_ai.vectorstore import ChromaDatabase, PGVectorDatabase
+    from democracy_exe.models.vectorstores import ChromaIntegration, PgvectorIntegration
 
-    ActorInputsDb: TypeAlias = ChromaIntegration | PgvectorIntegration | PineconeIntegration
-    VectorDb: TypeAlias = ChromaDatabase | PGVectorDatabase | PineconeDatabase
+    ActorInputsDb: TypeAlias = ChromaIntegration | PgvectorIntegration
+    VectorDb: TypeAlias = ChromaDatabase | PGVectorDatabase
 
 
 T = TypeVar("T")
