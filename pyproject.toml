@@ -1897,6 +1897,7 @@ reportUnusedImport = "none"
 reportMissingImports = "error"
 reportImportCycles = "error"
 reportUnusedVariable = "none"
+reportInvalidFormatString = "none"
 # reportMissingTypeStubs = "warning"
 
 reportUnusedFunction = "warning" # this is what we use in ad

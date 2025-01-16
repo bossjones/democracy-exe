@@ -30,6 +30,9 @@ from democracy_exe.aio_settings import aiosettings
 load_dotenv(find_dotenv())
 
 CLIENT = anthropic.Anthropic(api_key=aiosettings.anthropic_api_key.get_secret_value())
+ASYNC_CLIENT = anthropic.AsyncAnthropic(
+    api_key=aiosettings.anthropic_api_key.get_secret_value()
+)
 
 PULL_REQUEST_SYSTEM_PROMPT = """Your job is to act as a expert software engineer and provide outlined comprehensive feedback for merge requests in a appraochable and understanding way.
 Key criteria outlined are:
@@ -142,7 +145,7 @@ async def arequest_message(
     Returns:
         anthropic.types.Message: Response from the Anthropic API
     """
-    response: AnthropicMessage = await CLIENT.messages.create(
+    response: AnthropicMessage = await ASYNC_CLIENT.messages.create(
         model="claude-3-opus-20240229",
         system=system_prompt,
         max_tokens=4096,
