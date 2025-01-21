@@ -108,12 +108,14 @@ async def test_process_stream(stream_handler: StreamHandler, mocker: MockerFixtu
             chunk = self.chunks.pop(0)
             if chunk is None:
                 return None
+            # Handle string chunks first
+            if isinstance(chunk, str):
+                await asyncio.sleep(0)  # Simulate async behavior
+                return chunk
+            # Then handle dictionary chunks
             if chunk.get("messages"):
                 await asyncio.sleep(0)  # Simulate async behavior
                 return chunk["messages"][0].content
-            elif isinstance(chunk, str):
-                await asyncio.sleep(0)  # Simulate async behavior
-                return chunk
             return None
 
     def mock_stream_chunks(chunks):
@@ -517,12 +519,14 @@ async def test_process_stream_interruptible(stream_handler: StreamHandler, mocke
             chunk = self.chunks.pop(0)
             if chunk is None:
                 return None
+            # Handle string chunks first
+            if isinstance(chunk, str):
+                await asyncio.sleep(0)  # Simulate async behavior
+                return chunk
+            # Then handle dictionary chunks
             if chunk.get("messages"):
                 await asyncio.sleep(0)  # Simulate async behavior
                 return chunk["messages"][0].content
-            elif isinstance(chunk, str):
-                await asyncio.sleep(0)  # Simulate async behavior
-                return chunk
             return None
 
     def mock_stream_chunks(chunks):
@@ -601,11 +605,13 @@ async def test_process_stream_interrupt_cancel(
         mocker.patch("asyncio.to_thread", return_value="n")
 
         user_input = {"messages": [HumanMessage(content="Test input")]}
-        stream_handler.interrupt()  # Trigger interruption
-
         chunks = []
+
         async for chunk in stream_handler.process_stream(mock_graph, user_input, interruptable=True):
             chunks.append(chunk)
+            # Interrupt after first response
+            if len(chunks) == 1:
+                stream_handler.interrupt()
 
         assert len(chunks) == 2
         assert chunks[0] == "Response 1"

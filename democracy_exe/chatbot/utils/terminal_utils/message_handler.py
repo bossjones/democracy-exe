@@ -132,9 +132,11 @@ class MessageHandler:
         try:
             async for chunk in self._convert_to_async_iterable(chunks):
                 if isinstance(chunk, dict) and "messages" in chunk:
-                    message = chunk["messages"][-1]
-                    await self.format_response(message)
-                    yield str(message.content)
+                    messages = chunk["messages"]
+                    if messages and isinstance(messages[-1], BaseMessage):  # Validate message type
+                        message = messages[-1]
+                        await self.format_response(message)
+                        yield str(message.content)
         except Exception as e:
             self._logger.error("Error streaming chunks", error=str(e))
             raise

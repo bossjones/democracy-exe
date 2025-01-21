@@ -107,6 +107,7 @@ class StreamHandler:
                         async for chunk in self._message_handler.stream_chunks([event]):
                             yield chunk
                 else:
+                    self._logger.info("Stream cancelled by user")
                     yield "Operation cancelled by user."
 
         except Exception as e:
@@ -128,6 +129,7 @@ class StreamHandler:
             StreamHandler: This instance
         """
         self.reset()
+        self._logger.info("Stream handler initialized")
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -139,3 +141,4 @@ class StreamHandler:
             exc_tb: Exception traceback if an error occurred
         """
         self.reset()
+        self._logger.info("Stream handler reset")
