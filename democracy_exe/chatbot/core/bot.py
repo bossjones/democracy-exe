@@ -1266,3 +1266,15 @@ class DemocracyBot(commands.Bot):
         if len(content) > 2000:
             raise ValueError("Message too long")
         return await channel.send(content)
+
+    async def process_attachment(self, attachment: discord.Attachment) -> None:
+        """Process a Discord attachment with size validation.
+
+        Args:
+            attachment: The Discord attachment to process
+
+        Raises:
+            ValueError: If the attachment size exceeds Discord's upload limit
+        """
+        if attachment.size > self.attachment_handler._max_total_size:
+            raise ValueError("Attachment too large")

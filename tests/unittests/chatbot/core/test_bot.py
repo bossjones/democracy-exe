@@ -463,14 +463,24 @@ async def test_bot_message_size_limit(bot: DemocracyBot, mocker: MockerFixture) 
 async def test_bot_attachment_size_limit(bot: DemocracyBot, mocker: MockerFixture) -> None:
     """Test bot attachment size limit handling.
 
+    This test verifies that:
+    1. Attachments exceeding Discord's size limit are rejected
+    2. Attachments within the limit are processed normally
+
     Args:
         bot: The bot instance to test
         mocker: Pytest mocker fixture
     """
-    # Create an attachment that's too large
-    mock_attachment = mocker.Mock()
-    mock_attachment.size = bot.MAX_ATTACHMENT_SIZE + 1
+    # Create a mock attachment that's too large
+    mock_attachment = mocker.Mock(spec=discord.Attachment)
+    mock_attachment.size = bot.attachment_handler._max_total_size + 1
 
-    # Processing should raise
+    # Processing should raise ValueError
     with pytest.raises(ValueError, match="Attachment too large"):
         await bot.process_attachment(mock_attachment)
+
+    # Create a mock attachment within size limit
+    mock_attachment.size = bot.attachment_handler._max_total_size - 1024
+
+    # Should process without error
+    await bot.process_attachment(mock_attachment)
