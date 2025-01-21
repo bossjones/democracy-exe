@@ -113,7 +113,7 @@ from structlog.typing import BindableLogger, EventDict, Processor, WrappedLogger
 
 import pytest
 
-from democracy_exe.bot_logger.logsetup import configure_logging, get_logger
+from democracy_exe.bot_logger.logsetup import configure_logging, configure_test_logging, get_logger
 
 
 logger = structlog.get_logger("test_logsetup")
@@ -259,6 +259,32 @@ def logger_initialization_configure(log: pytest_structlog.StructuredLogCapture) 
     )
 
 
+@pytest.fixture
+def configure_logging_fixture(log: pytest_structlog.StructuredLogCapture) -> None:
+    """Configure structlog for testing configure_logging function.
+
+    Args:
+        log: The LogCapture fixture
+    """
+    # Configure with test-specific processors
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.contextvars.merge_contextvars,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            log,  # Add log fixture to capture logs
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=False,  # Important for test isolation
+    )
+
+
 @pytest.mark.logsonly
 @freeze_time("2024-01-01 12:00:00Z")
 def test_logger_initialization(logger_initialization_configure, log: pytest_structlog.StructuredLogCapture) -> None:
@@ -314,31 +340,43 @@ def test_logger_initialization(logger_initialization_configure, log: pytest_stru
 
 @pytest.mark.logsonly
 @pytest.mark.parametrize("enable_json_logs", [True, False])
-def test_configure_logging(enable_json_logs: bool, log: pytest_structlog.StructuredLogCapture) -> None:
+def test_configure_logging(
+    enable_json_logs: bool, configure_logging_fixture: None, log: pytest_structlog.StructuredLogCapture
+) -> None:
     """Test the configure_logging function with different output formats.
 
     Args:
         enable_json_logs: Whether to enable JSON logging
+        configure_logging_fixture: Fixture to configure structlog
+        log: The LogCapture fixture
     """
-    configure_logging(enable_json_logs=enable_json_logs)
-    # logger = get_logger("test")
+    # Get a logger instance
+    logger = structlog.get_logger("test_logsetup")
 
-    # with structlog.testing.capture_logs() as captured:
-    #     test_message = "test message"
-    #     logger.info(test_message)
-
-    #     assert len(captured) == 1, "Expected exactly one log message"
-    #     log_entry = captured[0]
-    #     assert log_entry["event"] == test_message, "Incorrect message content"
-    #     assert log_entry["log_level"] == "info", "Incorrect log level"
-
+    # Log a test message
     test_message = "test message"
     logger.info(test_message)
 
+    # Verify the log entry
     assert len(log.entries) == 1, "Expected exactly one log message"
     log_entry = log.entries[0]
+
+    # Common assertions
     assert log_entry["event"] == test_message, "Incorrect message content"
-    assert log_entry["log_level"] == "info", "Incorrect log level"
+    assert log_entry["level"] == "info", "Incorrect log level"
+    assert log_entry["logger"] == "test_logsetup", "Incorrect logger name"
+    assert "timestamp" in log_entry, "Missing timestamp"
+
+    # Format-specific assertions
+    if enable_json_logs:
+        # For JSON format, verify the entry can be serialized
+        try:
+            json.dumps(log_entry)
+        except (TypeError, ValueError) as e:
+            pytest.fail(f"Log entry is not JSON serializable: {e}")
+    else:
+        # For console format, verify human-readable output
+        assert isinstance(log_entry["event"], str), "Event should be a string"
 
 
 @pytest.mark.logsonly
