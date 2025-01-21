@@ -466,6 +466,8 @@ class DemocracyBot(commands.Bot):
                             logger.error(f"{handler_name} cleanup failed",
                                        error=str(e))
 
+                logger.info("Cleanup completed successfully")
+
         except TimeoutError:
             logger.error("Cleanup timed out")
             raise

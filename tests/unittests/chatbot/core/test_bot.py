@@ -72,25 +72,58 @@ async def test_bot_initialization(bot: DemocracyBot) -> None:
 
 @pytest.mark.asyncio
 async def test_bot_cleanup(bot: DemocracyBot, mocker: MockerFixture) -> None:
-    """Test bot cleanup.
+    """Test bot cleanup functionality.
+
+    This test verifies that the bot properly cleans up all resources including:
+    - Resource manager cleanup is called to handle tasks
+    - Redis pool is disconnected if present
+    - Message and attachment handlers are cleaned up
+    - Garbage collection is triggered
 
     Args:
         bot: The bot instance to test
         mocker: Pytest mocker fixture
     """
-    # Create a mock task
+    # Mock resource manager and handlers
+    mock_resource_manager = mocker.AsyncMock()
+    mock_resource_manager.force_cleanup = mocker.AsyncMock()
+    bot.resource_manager = mock_resource_manager
+
+    mock_message_handler = mocker.AsyncMock()
+    mock_message_handler.cleanup = mocker.AsyncMock()
+    bot.message_handler = mock_message_handler
+
+    mock_attachment_handler = mocker.AsyncMock()
+    mock_attachment_handler.cleanup = mocker.AsyncMock()
+    bot.attachment_handler = mock_attachment_handler
+
+    # Create a mock task and add it to tasks list
     mock_task = mocker.Mock()
-    mock_task.cancel = mocker.AsyncMock()
-    mock_task.wait = mocker.AsyncMock()
-    bot.active_tasks.add(mock_task)
+    bot.tasks.append(mock_task)
 
-    # Run cleanup
-    await bot.cleanup()
+    # Mock Redis pool
+    mock_pool = mocker.AsyncMock()
+    mock_pool.disconnect = mocker.AsyncMock()
+    bot.pool = mock_pool
 
-    # Task should be cancelled and waited for
-    mock_task.cancel.assert_called_once()
-    mock_task.wait.assert_called_once()
-    assert len(bot.active_tasks) == 0
+    # Run cleanup with structlog capture
+    with structlog.testing.capture_logs() as captured:
+        await bot.cleanup()
+
+        # Verify resource manager cleanup was called
+        mock_resource_manager.force_cleanup.assert_awaited_once()
+
+        # Verify Redis pool disconnect was called
+        mock_pool.disconnect.assert_awaited_once()
+
+        # Verify handlers were cleaned up
+        mock_message_handler.cleanup.assert_awaited_once()
+        mock_attachment_handler.cleanup.assert_awaited_once()
+
+        # Verify cleanup was logged
+        assert any(log.get("event") == "Cleanup completed successfully" for log in captured), (
+            "Expected cleanup completion log not found"
+        )
 
 
 @pytest.mark.asyncio
@@ -103,15 +136,15 @@ async def test_bot_task_limit(bot: DemocracyBot) -> None:
     # Create tasks up to limit
     for _ in range(bot.MAX_CONCURRENT_TASKS):
         task = asyncio.create_task(asyncio.sleep(0.1))
-        bot.active_tasks.add(task)
+        bot.tasks.append(task)
 
     # Adding one more should raise
     with pytest.raises(RuntimeError, match="Too many concurrent tasks"):
         task = asyncio.create_task(asyncio.sleep(0.1))
-        bot.active_tasks.add(task)
+        bot.tasks.append(task)
 
     # Cleanup tasks
-    for task in list(bot.active_tasks):
+    for task in list(bot.tasks):
         task.cancel()
         try:
             await task
