@@ -59,40 +59,25 @@ def set_logging_environment(monkeypatch: MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def stdlib_bound_logger_configure():
-    """
-    From the original structlog issue: https://github.com/hynek/structlog/issues/584#issue-2063338394
+def stdlib_bound_logger_configure(log: pytest_structlog.StructuredLogCapture) -> None:
+    """Configure structlog with stdlib and LogCapture for testing.
+
+    Args:
+        log: The LogCapture fixture
     """
     structlog.configure(
         processors=[
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.format_exc_info,
+            log,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=False,
     )
-
-    logging_config = {
-        "version": 1,
-        "formatters": {
-            "json": {
-                "()": structlog.stdlib.ProcessorFormatter,
-                "processors": [
-                    structlog.processors.add_log_level,
-                    structlog.processors.JSONRenderer(),
-                ],
-            }
-        },
-        "handlers": {
-            "json": {
-                "class": "logging.StreamHandler",
-                "formatter": "json",
-            },
-        },
-        "root": {
-            "handlers": ["json"],
-        },
-    }
-    logging.config.dictConfig(logging_config)
 
 
 @pytest.fixture
@@ -248,11 +233,24 @@ def log_exception():
         logger_exc.exception("event_name")
 
 
-def test_exception_level(stdlib_bound_logger_configure, log: pytest_structlog.StructuredLogCapture):
+def test_exception_level(stdlib_bound_logger_configure, log: pytest_structlog.StructuredLogCapture) -> None:
+    """Test that exception logging works correctly.
+
+    Args:
+        stdlib_bound_logger_configure: Fixture to configure structlog
+        log: The LogCapture fixture
+    """
     log_exception()
-    assert log.entries == [
-        {"event": "event_name", "exc_info": True, "level": "error"},
-    ]
+
+    # Verify the log entry
+    assert len(log.entries) == 1, "Expected exactly one log entry"
+    entry = log.entries[0]
+    assert entry["event"] == "event_name"
+    assert "exception" in entry, "Missing exception information"
+    assert "ZeroDivisionError: division by zero" in entry["exception"]
+    assert entry["level"] == "error"
+    assert entry["log_level"] == "error"
+    assert entry["logger"] == "test_exception_level"
 
 
 def log_test_message():
