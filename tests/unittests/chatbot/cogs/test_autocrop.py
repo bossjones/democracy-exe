@@ -6,7 +6,6 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
 """Tests for Autocrop cog functionality."""
 
 from __future__ import annotations
@@ -31,9 +30,6 @@ from structlog.testing import capture_logs
 import pytest
 
 from democracy_exe.aio_settings import aiosettings
-
-
-logger = structlog.get_logger(__name__)
 from democracy_exe.chatbot.cogs.autocrop import HELP_MESSAGE, AutocropError
 from democracy_exe.chatbot.cogs.autocrop import Autocrop as AutocropCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
@@ -47,7 +43,7 @@ if TYPE_CHECKING:
     from pytest_mock.plugin import MockerFixture
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, scope="function")
 async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
     """Create a DemocracyBot instance with Autocrop cog for testing.
 
@@ -102,8 +98,8 @@ async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
     #     await asyncio.gather(*asyncio.all_tasks(), return_exceptions=True)
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def cleanup_global_message_queue() -> AsyncGenerator[None, None]:
+@pytest_asyncio.fixture(autouse=True, scope="function")
+async def cleanup_global_message_queue_autocrop() -> AsyncGenerator[None, None]:
     """Clean up the global message queue after each test.
 
     This fixture ensures that no messages from previous tests remain in the queue,

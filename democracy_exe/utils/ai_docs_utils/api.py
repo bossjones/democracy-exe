@@ -19,8 +19,8 @@ import anthropic
 from anthropic.types import Message as AnthropicMessage
 from dotenv import find_dotenv, load_dotenv
 from transformers.models.gpt2 import GPT2Tokenizer
-from transformers.tokenization_utils import PreTrainedTokenizer
 
+# from transformers.tokenization_utils import PreTrainedTokenizer
 from democracy_exe.aio_settings import aiosettings
 
 

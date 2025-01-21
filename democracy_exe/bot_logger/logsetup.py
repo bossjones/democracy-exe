@@ -241,7 +241,6 @@ def configure_logging(
         processors=shared_processors + [
             renderer,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-            log if environment == "testing" else None,  # Add log fixture in testing mode
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.make_filtering_bound_logger(get_log_level(log_level)),
