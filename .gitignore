@@ -571,3 +571,9 @@ apps/ada/personalization.json
 apps/ada/runtime_time_table.jsonl
 
 session_dir/
+
+ai_docs/for_claude/
+dpytest_code.txt
+files-to-prompt_code.txt
+mock_repo_code.txt
+test-docs.md

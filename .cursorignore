@@ -423,3 +423,10 @@ ai_docs/uv_docker.xml
 ai_docs/uv_docker_example_repo.xml
 ai_docs/vcrpy_docs.xml
 ai_docs/xml_structure_prompts.md
+
+
+ai_docs/for_claude/
+dpytest_code.txt
+files-to-prompt_code.txt
+mock_repo_code.txt
+test-docs.md
