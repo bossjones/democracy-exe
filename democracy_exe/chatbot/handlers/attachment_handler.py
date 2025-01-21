@@ -280,6 +280,42 @@ class AttachmentHandler:
 
         return file_path
 
+    def file_to_local_data_dict(self, file_path: str, dir_name: str) -> dict[str, Any]:
+        """Convert a local file to a metadata dictionary.
+
+        Args:
+            file_path: Path to the local file
+            dir_name: Directory name for the file
+
+        Returns:
+            A dictionary containing file metadata
+
+        Raises:
+            ValueError: If the file path is invalid or file doesn't exist
+            OSError: If there's an error accessing the file
+        """
+        try:
+            path = pathlib.Path(file_path)
+            if not path.exists():
+                raise ValueError(f"File not found: {file_path}")
+
+            # Get file stats
+            stats = path.stat()
+
+            # Create metadata dictionary
+            result = {
+                "filename": f"{dir_name}/{path.name}",
+                "size": stats.st_size,
+                "ext": path.suffix,
+                "api": path
+            }
+
+            return result
+
+        except Exception as e:
+            logger.error("Error creating file metadata", error=str(e), file_path=file_path)
+            raise
+
     async def handle_save_attachment_locally(self, attm_data_dict: dict[str, Any], dir_root: str) -> str:
         """Save a Discord attachment locally.
 
@@ -379,3 +415,64 @@ class AttachmentHandler:
         except Exception as e:
             logger.error(f"Error getting attachments: {e}")
             return [], [], [], []
+
+    async def file_to_data_uri(self, file: File) -> str:
+        """Convert a Discord File to a data URI.
+
+        Args:
+            file: The Discord File to convert
+
+        Returns:
+            A data URI string containing the file data
+
+        Raises:
+            ValueError: If file is not readable
+            IOError: If there's an error reading the file
+        """
+        try:
+            if not file.fp.readable():
+                raise ValueError("File is not readable")
+
+            # Read file data
+            data = file.fp.read()
+            if isinstance(data, str):
+                data = data.encode('utf-8')
+
+            # Convert to base64
+            base64_data = base64.b64encode(data).decode('ascii')
+            return f"data:image;base64,{base64_data}"
+
+        except Exception as e:
+            logger.error("Error converting file to data URI", error=str(e))
+            raise
+
+    async def data_uri_to_file(self, data_uri: str, filename: str, spoiler: bool = False) -> File:
+        """Convert a data URI to a Discord File.
+
+        Args:
+            data_uri: The data URI string
+            filename: Name for the output file
+            spoiler: Whether the file should be marked as a spoiler
+
+        Returns:
+            A Discord File object
+
+        Raises:
+            ValueError: If data URI format is invalid
+        """
+        try:
+            # Parse data URI
+            if not data_uri.startswith('data:'):
+                raise ValueError("Invalid data URI format")
+
+            # Extract base64 data
+            base64_data = data_uri.split(',')[1]
+            file_data = base64.b64decode(base64_data)
+
+            # Create file object
+            fp = io.BytesIO(file_data)
+            return File(fp=fp, filename=filename, spoiler=spoiler)
+
+        except Exception as e:
+            logger.error("Error converting data URI to file", error=str(e))
+            raise
