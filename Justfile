@@ -1175,6 +1175,9 @@ test-logsetup:
 # error: Recipe `test-logsetup-and-bot` failed on line 1170 with exit code 1
 
 # run structlog tests and bot tests
+test-oneonly:
+	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/unittests/agentic/test_utils.py
+
 test-logsetup-oneonly:
 	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py -k  test_twitter_cog_on_guild_join
 
