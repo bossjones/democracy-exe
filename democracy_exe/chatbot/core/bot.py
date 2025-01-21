@@ -327,6 +327,25 @@ class DemocracyBot(commands.Bot):
         ctx.prefix = self._command_prefix
         return ctx
 
+    async def _async_setup_hook(self) -> None:
+        """Internal setup hook with timeout handling.
+
+        This method wraps the setup_hook with proper timeout handling and logging.
+        """
+        try:
+            async with asyncio.timeout(aiosettings.setup_timeout):
+                await self.setup_hook()
+        except TimeoutError:
+            logger.error("Bot setup timed out", error="Setup hook exceeded timeout limit")
+            if self.resource_manager:
+                await self.resource_manager.force_cleanup()
+            raise
+        except Exception as e:
+            logger.error("Bot setup failed", error=str(e))
+            if self.resource_manager:
+                await self.resource_manager.force_cleanup()
+            raise
+
     async def setup_hook(self) -> None:
         """Asynchronous setup hook for initializing the bot.
 
@@ -340,32 +359,23 @@ class DemocracyBot(commands.Bot):
             ValueError: If extension dependencies are not met
         """
         try:
-            # Add timeout for setup tasks
-            async with asyncio.timeout(30.0):
-                # Initialize bot application info
-                self.intents.members = True
-                self.intents.message_content = True
-                self.bot_app_info = await self.application_info()
+            # Initialize bot application info
+            self.intents.members = True
+            self.intents.message_content = True
+            self.bot_app_info = await self.application_info()
 
-                if hasattr(self.bot_app_info, "owner") and self.bot_app_info.owner:
-                    self.owner_id = self.bot_app_info.owner.id
+            if hasattr(self.bot_app_info, "owner") and self.bot_app_info.owner:
+                self.owner_id = self.bot_app_info.owner.id
 
+            # Load extensions
+            await self._load_extensions()
 
-                # # self.owner_id = self.bot_app_info.owner.id
-
-                # # Load extensions in dependency order
-                # extension_order = get_extension_load_order(aiosettings.initial_extensions)
-                # for extension in extension_order:
-                #     await load_extension_with_retry(self, extension, self.max_retries)
-                # Load extensions
-                await self._load_extensions()
-
-                # Initialize invite link
-                app = await self.application_info()
-                self.invite = discord.utils.oauth_url(
-                    app.id,
-                    permissions=discord.Permissions(administrator=True)
-                )
+            # Initialize invite link
+            app = await self.application_info()
+            self.invite = discord.utils.oauth_url(
+                app.id,
+                permissions=discord.Permissions(administrator=True)
+            )
 
         except TimeoutError:
             logger.error("Setup hook timed out")
@@ -1239,3 +1249,20 @@ class DemocracyBot(commands.Bot):
         # Send each chunk as a separate message in the thread
         for chunk in chunks:
             await thread.send(chunk)
+
+    async def send_message(self, channel: discord.abc.Messageable, content: str) -> discord.Message:
+        """Send a message to a channel with size limit validation.
+
+        Args:
+            channel: The channel to send the message to
+            content: The message content to send
+
+        Returns:
+            The sent message
+
+        Raises:
+            ValueError: If the message content exceeds Discord's 2000 character limit
+        """
+        if len(content) > 2000:
+            raise ValueError("Message too long")
+        return await channel.send(content)

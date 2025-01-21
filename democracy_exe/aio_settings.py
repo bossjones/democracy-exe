@@ -1467,6 +1467,11 @@ class AioSettings(BaseSettings):
 
     vector_store_type: Literal["pgvector", "chroma", "pinecone", "sklearn"] = "pgvector"
 
+    setup_timeout: float = Field(
+        default=30.0,
+        description="Timeout in seconds for bot setup"
+    )
+
 
 
 
