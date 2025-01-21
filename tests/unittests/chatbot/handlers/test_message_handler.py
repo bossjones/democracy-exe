@@ -116,10 +116,10 @@ def mock_dm_channel(mocker: MockerFixture) -> DMChannel:
     return mock_dm
 
 
-@pytest.mark.asyncio
 class TestMessageHandler:
     """Test suite for MessageHandler class."""
 
+    @pytest.mark.asyncio
     async def test_get_thread_dm_channel(
         self, message_handler: MessageHandler, mock_message: Message, mock_dm_channel: DMChannel
     ) -> None:
@@ -134,6 +134,7 @@ class TestMessageHandler:
         result = await message_handler.get_thread(mock_message)
         assert result == mock_dm_channel
 
+    @pytest.mark.asyncio
     async def test_get_thread_text_channel(
         self, message_handler: MessageHandler, mock_message: Message, mocker: MockerFixture
     ) -> None:
@@ -165,7 +166,7 @@ class TestMessageHandler:
         assert result.name == "TestUser"
         assert result.id == "123456789"
         assert "Test message" in result.content
-        assert "Test Guild" in result.content  # Check for guild name instead of mock string representation
+        assert "Test Guild" in result.content
         assert "test-channel" in result.content
 
     @pytest.mark.skip_until(
@@ -190,6 +191,7 @@ class TestMessageHandler:
         assert result == "Test response chunk 1Test response chunk 2"
         mock_graph.stream.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_check_for_attachments_tenor(self, message_handler: MessageHandler, mock_message: Message) -> None:
         """Test checking for Tenor GIF attachments.
 
@@ -205,6 +207,7 @@ class TestMessageHandler:
         assert "funny cat dance" in result.lower()
         assert "[TestUser posts an animated funny cat dance]" in result
 
+    @pytest.mark.asyncio
     async def test_check_for_attachments_url_image(
         self, message_handler: MessageHandler, mock_message: Message, mocker: MockerFixture
     ) -> None:
@@ -223,6 +226,7 @@ class TestMessageHandler:
 
         assert result == "https://example.com/test.jpg"
 
+    @pytest.mark.asyncio
     async def test_check_for_attachments_discord_image(
         self, message_handler: MessageHandler, mock_message: Message, mocker: MockerFixture
     ) -> None:
@@ -234,7 +238,7 @@ class TestMessageHandler:
             mocker: Pytest mocker fixture
         """
         mock_attachment = mocker.Mock()
-        mock_attachment.size = 1000  # Set a reasonable size
+        mock_attachment.size = 1000
         mock_attachment.url = "https://discord.com/attachments/image.jpg"
         mock_message.attachments = [mock_attachment]
         mock_response = BytesIO(b"test image data")
@@ -288,7 +292,7 @@ class TestMessageHandler:
         surface_info = {"platform": "discord"}
         result = message_handler.prepare_agent_input(mock_message, "Real User Name", surface_info)
 
-        assert result["user name"] == "Real User Name"  # type: ignore
+        assert result["user name"] == "Real User Name"
         assert result["message"] == mock_message.content
         assert result["surface_info"] == surface_info
 
@@ -302,7 +306,7 @@ class TestMessageHandler:
         surface_info = {"platform": "discord"}
         result = message_handler.prepare_agent_input(mock_thread, "Real User Name", surface_info)
 
-        assert result["user name"] == "Real User Name"  # type: ignore
+        assert result["user name"] == "Real User Name"
         assert result["message"] == mock_thread.starter_message.content
         assert result["surface_info"] == surface_info
 
