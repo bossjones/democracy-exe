@@ -234,6 +234,7 @@ dev-dependencies = [
     "pytest-freezegun",
     "better-exceptions>=0.3.3",
     "cogapp>=3.4.1",
+    "pytest-structlog>=1.1",
 ]
 
 [tool.uv.sources]
@@ -1048,6 +1049,7 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/utils/repo_typing.py" = ["N815", "B005", "RUF005", "N818", "N806"]
 "tests/unittests/chatbot/utils/terminal_utils/*" = ["N815", "B005", "RUF005", "S110"]
 "democracy_exe/chatbot/terminal_bot.py" = ["N815", "B005", "RUF005", "S110", "SIM105", "SIM102", "SIM103"]
+"tests/test_logsetup.py" = ["N815", "B005", "RUF005", "S110", "SIM105", "SIM102", "SIM103", "RUF005"]
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
 [tool.ruff.lint.isort]
@@ -1399,6 +1401,7 @@ output = "cov.xml"
 
 # =========================[ PYTEST INI OPTIONS ]========================
 [tool.pytest.ini_options]
+structlog_keep=["add_logger_name", "StackInfoRenderer", "TimeStamper", "ConsoleRenderer"]
 testpaths = ["tests"]
 
 filterwarnings = [

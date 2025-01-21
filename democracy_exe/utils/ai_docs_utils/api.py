@@ -266,7 +266,7 @@ async def arequest_message(
         anthropic.types.Message: Response from the Anthropic API
     """
     response: AnthropicMessage = await ASYNC_CLIENT.messages.create(
-        model="claude-3-opus-20240229",
+        model=aiosettings.ai_docs_model,
         system=system_prompt,
         max_tokens=4096,
         messages=messages,
@@ -288,7 +288,7 @@ def request_message(
         anthropic.types.Message: Response from the Anthropic API
     """
     response: AnthropicMessage = CLIENT.messages.create(
-        model="claude-3-opus-20240229",
+        model=aiosettings.ai_docs_model,
         system=system_prompt,
         max_tokens=4096,
         messages=messages,

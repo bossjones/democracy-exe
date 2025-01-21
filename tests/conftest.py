@@ -1,20 +1,14 @@
+# mypy: disable-error-code="index"
+# mypy: disable-error-code="no-redef"
 # pylint: disable=no-member
 # pylint: disable=no-name-in-module
 # pylint: disable=no-value-for-parameter
 # pylint: disable=possibly-used-before-assignment
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportImportCycles=false
 # pyright: reportInvalidTypeForm=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUndefinedVariable=false
-# pylint: disable=no-member
-# pylint: disable=no-member
-# pylint: disable=possibly-used-before-assignment
-# pyright: reportImportCycles=false
-# pyright: reportUndefinedVariable=false
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportInvalidTypeForm=false
-# mypy: disable-error-code="index"
-# mypy: disable-error-code="no-redef"
 """Global test fixtures definitions."""
 
 from __future__ import annotations
@@ -24,7 +18,6 @@ import copy
 import datetime
 import functools
 import glob
-import io
 import os
 import posixpath
 import re
@@ -35,13 +28,12 @@ from collections.abc import AsyncGenerator, Generator, Iterable, Iterator
 from concurrent.futures import Executor, Future
 from dataclasses import dataclass
 from http import client
-from pathlib import Path, PosixPath
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union
 
 import discord
 import discord.ext.test as dpytest  # type: ignore
 import pytest_asyncio
-import structlog
 
 from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
@@ -50,11 +42,6 @@ from discord.ext import commands
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai.embeddings import OpenAIEmbeddings
-from rich.console import Console
-from rich.markdown import Markdown
-from structlog.testing import LogCapture
 from vcr import filters
 
 import pytest
@@ -724,53 +711,6 @@ def mock_text_documents(mock_ebook_txt_file: FixtureRequest) -> list[Document]:
 
 
 # @pytest.fixture
-# async def bot(event_loop) -> AsyncGenerator[DemocracyBot, None]:
-#     """Create a DemocracyBot instance for testing.
-
-#     Args:
-#         event_loop: The event loop fixture
-
-#     Returns:
-#         AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
-#     """
-#     # Configure intents
-#     intents = discord.Intents.default()
-#     intents.members = True
-#     intents.message_content = True
-#     intents.messages = True
-#     intents.guilds = True
-
-#     # set up the loop
-#     if isinstance(test_bot.loop, _LoopSentinel):  # type: ignore
-#         await test_bot._async_setup_hook()  # type: ignore
-
-#     # Create DemocracyBot with test configuration
-#     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance", loop=event_loop)
-
-#     # Add test-specific error handling
-#     @bot.event
-#     async def on_command_error(ctx: commands.Context, error: Exception) -> None:  # type: ignore
-#         """Handle command errors in test environment."""
-#         raise error  # Re-raise for pytest to catch
-
-#     # Setup and cleanup
-#     await bot._async_setup_hook()  # Required for proper initialization
-#     dpytest.configure(bot)
-#     yield bot
-#     await dpytest.empty_queue()
-
-
-@pytest.fixture(name="log_output")
-def fixture_log_output():
-    return LogCapture()
-
-
-@pytest.fixture(autouse=True)
-def fixture_configure_structlog(log_output):
-    structlog.configure(processors=[log_output])
-
-
-# @pytest.fixture
 @pytest_asyncio.fixture
 async def bot() -> AsyncGenerator[DemocracyBot, None]:
     """Create a DemocracyBot instance for testing.
@@ -914,44 +854,3 @@ def test_data() -> dict[str, Any]:
         "test_message": "Hello, bot!",
         "test_embed": discord.Embed(title="Test Embed", description="Test description"),
     }
-
-
-# @pytest.fixture(autouse=True)
-# def setup_logging(caplog: LogCaptureFixture) -> None:
-#     """Configure logging for test environment.
-
-#     Args:
-#         caplog: Pytest log capture fixture
-#     """
-#     import logging
-
-#     caplog.set_level(logging.DEBUG)
-
-#     # Add test-specific logging format
-#     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-#     for handler in logging.getLogger().handlers:
-#         handler.setFormatter(formatter)
-
-
-# @pytest.fixture(autouse=True)
-# def setup_test_state() -> Generator[None, None, None]:
-#     """Setup test state for all tests."""
-#     global is_dpytest, is_test_environment
-#     is_dpytest = True
-#     is_test_environment = True
-#     yield
-#     is_dpytest = False
-#     is_test_environment = False
-
-
-# @pytest.fixture
-# def event_loop():
-#     """Create an event loop for testing.
-
-#     Returns:
-#         AbstractEventLoop: The event loop
-#     """
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     yield loop
-#     loop.close()

@@ -1154,6 +1154,19 @@ class AioSettings(BaseSettings):
     #     default="instagramFeed"
     # )
 
+    ai_docs_model: str = Field(
+        env="AI_DOCS_MODEL",
+        description="AI Docs model",
+        # default="claude-3-opus-20240229"
+        default="claude-3-5-sonnet-20241022"
+    )
+
+    logging_environment: Literal["testing", "development", "production"] = Field(
+        env="LOGGING_ENVIRONMENT",
+        description="Logging environment",
+        default="development"
+    )
+
     tool_allowlist: list[str] = ["tavily_search", "magic_function"]
     extension_allowlist: list[str] = ["democracy_exe.chatbot.cogs.twitter"]
     tavily_search_max_results: int = 3

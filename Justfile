@@ -858,12 +858,7 @@ pyright-verify-types:
 
 # Create stubs for missing packages
 pyright-createstubs-missing:
-	#!/usr/bin/env bash
-	# Run pyright and capture output
-	uv run pyright . | grep -E "warning: Stub file not found for \"[^\"]+\"" | sed -E 's/.*"([^"]+)".*/\1/' | sort -u | while read package; do
-		echo "Creating stub for package: $package"
-		uv run pyright --createstub "$package"
-	done
+	./scripts/pyright_createstub_missing.sh
 
 # Generate AI documentation from source files
 generate-ai-docs:
@@ -955,19 +950,21 @@ generate-ai-docs:
 	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/cerebro.xml"
 	uv run files-to-prompt /Users/malcolm/dev/universityofprofessorex/cerebro-bot/cerebro_bot/cogs/autoresize.py --cxml -o ~/dev/bossjones/democracy-exe/ai_docs/cerebro_bot/autoresize_cog.xml
 
-	# Democracy-exe logsetup documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/democracy_exe_logsetup.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/bossjones/democracy-exe/tests/test_logsetup.py \
 			/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/bot_logger/logsetup.py \
 			--cxml -o ai_docs/prompts/democracy_exe_logsetup.xml
 
-	# Structlog test examples
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/structlog_test_examples.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/bot_logger/logsetup.py \
 			/Users/malcolm/dev/bossjones/democracy-exe/democracy_exe/bot_logger/logsetup.py \
 			--cxml -o ai_docs/prompts/structlog_test_examples.xml
 
-	# DPyTest documentation
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/dpytest_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/dpytest/discord \
 			/Users/malcolm/dev/dpytest/tests \
@@ -975,13 +972,14 @@ generate-ai-docs:
 			--cxml -o ai_docs/prompts/dpytest_docs_test_and_code.xml
 
 	# KoalaBot documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/KoalaBot_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/KoalaBot/koalabot.py \
 			/Users/malcolm/dev/KoalaBot/tests \
 			/Users/malcolm/dev/KoalaBot/koala \
 			--cxml -o ai_docs/prompts/data/KoalaBot_docs_test_and_code.xml
 
-	# ClassMateBot documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/ClassMateBot_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/ClassMateBot/conftest.py \
 			/Users/malcolm/dev/ClassMateBot/bot.py \
@@ -989,7 +987,7 @@ generate-ai-docs:
 			/Users/malcolm/dev/ClassMateBot/cogs \
 			--cxml -o ai_docs/prompts/data/ClassMateBot_docs_test_and_code.xml
 
-	# TeachersPetBot documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/TeachersPetBot_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/TeachersPetBot/src \
 			/Users/malcolm/dev/TeachersPetBot/test \
@@ -1002,49 +1000,57 @@ generate-ai-docs:
 			/Users/malcolm/dev/TeachersPetBot/initialize_db_script.py \
 			--cxml -o ai_docs/prompts/data/TeachersPetBot_docs_test_and_code.xml
 
-	# Democracy-exe full documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/democracy_exe_with_segfault.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/bossjones/democracy-exe \
 			--cxml -o ai_docs/prompts/data/democracy_exe_with_segfault.xml
 
-	# CPython asyncio tests documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/cpython_test_asyncio.xml"
+
 	uv run files-to-prompt \
 			/Users/malcolm/dev/cpython/Lib/test/test_asyncio \
 			--cxml -o ai_docs/prompts/data/cpython_test_asyncio.xml
 
-	# VCRpy documentation
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/vcrpy_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/vcrpy/vcr \
 			/Users/malcolm/dev/vcrpy/tests \
 			/Users/malcolm/dev/vcrpy/docs \
 			--cxml -o ai_docs/prompts/data/vcrpy_docs_test_and_code.xml
 
-	# Pytest-recording documentation
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/pytest_recording_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/pytest-recording/src \
 			/Users/malcolm/dev/pytest-recording/tests \
 			/Users/malcolm/dev/pytest-recording/docs \
 			--cxml -o ai_docs/prompts/data/pytest_recording_docs_test_and_code.xml
 
-	# Langgraph documentation
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/langgraph_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/langgraph/langgraph \
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/langgraph/tests \
 			--cxml -o ai_docs/prompts/data/langgraph_docs_test_and_code.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/langgraph_sdk_docs_test_and_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/sdk-py/langgraph_sdk \
 			--cxml -o ai_docs/prompts/data/langgraph_sdk_docs_test_and_code.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/langsmith_sdk_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/langchain-ai/langsmith-sdk/python/langsmith \
 			--cxml -o ai_docs/prompts/data/langsmith_sdk_code.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/langgraph_cli_code.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/tests \
 			/Users/malcolm/dev/langchain-ai/langgraph/libs/cli/langgraph_cli \
 			--cxml -o ai_docs/prompts/data/langgraph_cli_code.xml
 
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/home_assistant_code.xml"
 	uv run files-to-prompt  /Users/malcolm/dev/home-assistant/core/homeassistant/core.py \
 		/Users/malcolm/dev/home-assistant/core/homeassistant/block_async_io.py \
 		/Users/malcolm/dev/home-assistant/core/homeassistant/util/async_.py \
@@ -1052,6 +1058,8 @@ generate-ai-docs:
 		/Users/malcolm/dev/home-assistant/core/homeassistant/util/loop.py \
 		--cxml -o ai_docs/prompts/data/home_assistant_code.xml
 
+
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/home_assistant_bootstrap_and_thread.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/home-assistant/core/homeassistant/__main__.py \
 			/Users/malcolm/dev/home-assistant/core/homeassistant/bootstrap.py \
@@ -1060,12 +1068,14 @@ generate-ai-docs:
 			/Users/malcolm/dev/home-assistant/core/homeassistant/util/executor.py \
 			--cxml -o ai_docs/prompts/data/home_assistant_bootstrap_and_thread.xml
 
+	@echo "🔥🔥 Rendering: ~/dev/bossjones/democracy-exe/ai_docs/home_assistant_profiler.xml"
 	uv run files-to-prompt \
 			/Users/malcolm/dev/home-assistant/core/homeassistant/components/profiler \
 			--cxml -o ai_docs/prompts/data/home_assistant_profiler.xml
 
 	@echo "🔥🔥 Rendering: democracy_exe main branch with tests"
 	uv run files-to-prompt /Users/malcolm/dev/bossjones/democracy-exe-main/democracy_exe /Users/malcolm/dev/bossjones/democracy-exe-main/tests --cxml -o ai_docs/prompts/data/democracy_exe_main_branch_with_tests.xml
+
 	@echo "AI documentation generation complete"
 
 # Regenerate democracy-exe ai docs
@@ -1078,16 +1088,15 @@ regenerate-democracy-exe-ai-docs:
 
 # Run unit tests in debug mode with extended output
 test-twitter-cog-debug:
-	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
-
+	uv run pytest -s --verbose --showlocals --tb=short --disable-warnings --pdb --pdbcls bpdb:BPdb --showlocals tests/cogs/test_twitter_cog.py
+# {{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals --full-trace -k  test_download_tweet_success_twitter_cog
 # {{UV_RUN}} pytest -s --verbose  --showlocals --tb=short -k  test_download_tweet_success_twitter_cog
 # {{UV_RUN}} pytest -k  test_download_tweet_success_twitter_cog
 
 # Run unit tests specifically for twitter cog
 test-twitter-cog:
-	{{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
-
-
+	uv run pytest -s --verbose --showlocals --tb=short --disable-warnings tests/cogs/test_twitter_cog.py
+# {{UV_RUN}} pytest --capture=tee-sys -k  test_download_tweet_success_twitter_cog
 
 # In order to properly create new cassette files, you must first delete the existing cassette files and directories. This will regenerate all cassette files and rerun tests.
 
@@ -1145,11 +1154,24 @@ test-toolsonly-cog:
 
 # Run unit tests in debug mode with extended output
 test-logsetup-debug:
-	{{UV_RUN}} pytest --capture=tee-sys -vvvv --pdb --pdbcls bpdb:BPdb --showlocals tests/test_logsetup.py
+	uv run pytest -s --verbose --showlocals --tb=short -p no:warnings --pdb --pdbcls bpdb:BPdb tests/test_logsetup.py
 
 # Run unit tests specifically for tools
 test-logsetup:
-	{{UV_RUN}} pytest --showlocals --tb=short --capture=tee-sys tests/test_logsetup.py
+	uv run pytest -s --verbose --showlocals --tb=short -p no:warnings tests/test_logsetup.py
+
+
+# run structlog tests and bot tests
+test-logsetup-exception:
+	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py -k test_exception_level
+
+# run structlog tests and bot tests
+test-logsetup-and-bot:
+	uv run pytest -s --verbose --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py
+
+# run structlog tests in debug mode
+test-logsetup-and-bot-debug:
+	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings --pdb --pdbcls bpdb:BPdb tests/test_logsetup.py tests/cogs/test_twitter_cog.py
 
 # DISABLED: uv run pytest --capture=tee-sys tests/unittests/utils/test_utils_dropbox_.py
 # use this with aider to fix tests incrementally

@@ -147,27 +147,27 @@ def test_image(tmp_path: pathlib.Path) -> pathlib.Path:
     return img_path
 
 
-@pytest.fixture(autouse=True)
-def configure_structlog() -> None:
-    """Configure structlog for testing.
+# @pytest.fixture(autouse=True)
+# def configure_structlog() -> None:
+#     """Configure structlog for testing.
 
-    This fixture ensures each test has a clean, properly configured structlog setup.
-    It disables caching and configures appropriate processors for testing.
-    """
-    structlog.reset_defaults()
-    structlog.configure(
-        processors=[
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.add_log_level,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.testing.LogCapture(),
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        logger_factory=structlog.PrintLoggerFactory,
-        context_class=dict,
-        cache_logger_on_first_use=False,  # Important: Disable caching for tests
-    )
+#     This fixture ensures each test has a clean, properly configured structlog setup.
+#     It disables caching and configures appropriate processors for testing.
+#     """
+#     structlog.reset_defaults()
+#     structlog.configure(
+#         processors=[
+#             structlog.processors.TimeStamper(fmt="iso"),
+#             structlog.processors.add_log_level,
+#             structlog.processors.StackInfoRenderer(),
+#             structlog.processors.format_exc_info,
+#             structlog.testing.LogCapture(),
+#         ],
+#         wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+#         logger_factory=structlog.PrintLoggerFactory,
+#         context_class=dict,
+#         cache_logger_on_first_use=False,  # Important: Disable caching for tests
+#     )
 
 
 @pytest.mark.asyncio

@@ -14,9 +14,11 @@ import sys
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any, Dict, cast
 
+import pytest_structlog
 import structlog
 
 from freezegun import freeze_time
+from pytest_structlog import StructuredLogCapture
 from structlog.processors import TimeStamper, add_log_level
 from structlog.stdlib import BoundLogger
 from structlog.testing import CapturingLogger, LogCapture
@@ -27,6 +29,9 @@ import pytest
 from democracy_exe.bot_logger.logsetup import configure_logging, get_logger
 
 
+logger = structlog.get_logger("test_logsetup")
+
+
 if TYPE_CHECKING:
     from _pytest.capture import CaptureFixture
     from _pytest.fixtures import FixtureRequest
@@ -34,6 +39,90 @@ if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
 
     from pytest_mock.plugin import MockerFixture
+
+
+@pytest.fixture(autouse=True, scope="function")
+def set_logging_environment(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("LOGGING_ENVIRONMENT", "testing")
+
+
+# @pytest.fixture(name="log")
+# def fixture_log():
+#     return LogCapture()
+
+
+# @pytest.fixture(autouse=True, scope="function")
+# def fixture_configure_structlog_simple(log: pytest_structlog.StructuredLogCapture) -> Generator[None, None, None]:
+#     structlog.configure(processors=[log])
+#     yield
+#     structlog.reset_defaults()
+
+
+@pytest.fixture
+def stdlib_bound_logger_configure():
+    """
+    From the original structlog issue: https://github.com/hynek/structlog/issues/584#issue-2063338394
+    """
+    structlog.configure(
+        processors=[
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+    )
+
+    logging_config = {
+        "version": 1,
+        "formatters": {
+            "json": {
+                "()": structlog.stdlib.ProcessorFormatter,
+                "processors": [
+                    structlog.processors.add_log_level,
+                    structlog.processors.JSONRenderer(),
+                ],
+            }
+        },
+        "handlers": {
+            "json": {
+                "class": "logging.StreamHandler",
+                "formatter": "json",
+            },
+        },
+        "root": {
+            "handlers": ["json"],
+        },
+    }
+    logging.config.dictConfig(logging_config)
+
+
+@pytest.fixture
+def inject_logger_name(log: pytest_structlog.StructuredLogCapture) -> Generator[None, None, None]:
+    # SOURCE: https://github.com/wimglenn/pytest-structlog/blob/1bbad6194989374967c53ff720e36931b15d3081/tests/test_issue22.py#L12
+    original_processors = structlog.get_config().get("processors", [])
+    if structlog.stdlib.add_logger_name not in original_processors:
+        processors = [structlog.stdlib.add_logger_name] + original_processors
+        log.original_configure(processors=processors)
+        yield
+        log.original_configure(processors=original_processors)
+
+
+@pytest.fixture
+def stdlib_configure():
+    # SOURCE: https://github.com/wimglenn/pytest-structlog/blob/1bbad6194989374967c53ff720e36931b15d3081/tests/test_issue18.py#L15
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.dev.ConsoleRenderer(),
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+    )
 
 
 def _add_process_info(
@@ -79,8 +168,8 @@ def _add_module_name(
     return event_dict
 
 
-@pytest.fixture(name="log_output")
-def fixture_log_output() -> LogCapture:
+@pytest.fixture(name="log")
+def fixture_log() -> LogCapture:
     """Create a LogCapture fixture for testing.
 
     Returns:
@@ -89,71 +178,96 @@ def fixture_log_output() -> LogCapture:
     return LogCapture()
 
 
-@pytest.fixture(autouse=True)
-def fixture_configure_structlog(log_output: LogCapture) -> Generator[None, None, None]:
-    """Configure structlog for testing with the LogCapture processor.
+# @pytest.fixture(autouse=True, scope="function")
+# def fixture_configure_structlog(log: pytest_structlog.StructuredLogCapture) -> Generator[None, None, None]:
+#     """Configure structlog for testing with the LogCapture processor.
 
-    Args:
-        log_output: The LogCapture fixture
+#     Args:
+#         log: The LogCapture fixture
 
-    Yields:
-        None
-    """
-    # Reset structlog to defaults before configuring
-    structlog.reset_defaults()
+#     Yields:
+#         None
+#     """
+#     # Reset structlog to defaults before configuring
+#     structlog.reset_defaults()
 
-    # Configure structlog for testing
-    structlog.configure(
-        processors=[
-            # Add stdlib processors first
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            # Add structlog processors
-            structlog.processors.TimeStamper(fmt="iso", utc=True),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            # LogCapture must be last to capture processed events
-            log_output,
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=False,  # Important: disable caching for tests
-    )
-    yield
-    structlog.reset_defaults()
-
-
-@pytest.fixture(autouse=True)
-def clean_logging() -> Generator[None, None, None]:
-    """Reset logging configuration before and after each test.
-
-    This fixture ensures a clean logging state for each test by:
-    1. Resetting root handlers
-    2. Clearing structlog defaults
-    3. Resetting context variables
-
-    Yields:
-        None
-    """
-    # Reset before test
-    logging.root.handlers = []
-    structlog.reset_defaults()
-    structlog.contextvars.clear_contextvars()
-
-    yield
-
-    # Reset after test
-    logging.root.handlers = []
-    structlog.reset_defaults()
-    structlog.contextvars.clear_contextvars()
+#     # Configure structlog for testing
+#     structlog.configure(
+#         processors=[
+#             # Add stdlib processors first
+#             structlog.stdlib.filter_by_level,
+#             structlog.stdlib.add_logger_name,
+#             structlog.stdlib.add_log_level,
+#             structlog.stdlib.PositionalArgumentsFormatter(),
+#             # Add structlog processors
+#             structlog.processors.TimeStamper(fmt="iso", utc=True),
+#             structlog.processors.StackInfoRenderer(),
+#             structlog.processors.format_exc_info,
+#             # LogCapture must be last to capture processed events
+#             log,
+#         ],
+#         wrapper_class=structlog.stdlib.BoundLogger,
+#         context_class=dict,
+#         logger_factory=structlog.stdlib.LoggerFactory(),
+#         cache_logger_on_first_use=False,  # Important: disable caching for tests
+#     )
+#     yield
+#     structlog.reset_defaults()
 
 
+# @pytest.fixture(autouse=True, scope="function")
+# def clean_logging() -> Generator[None, None, None]:
+#     """Reset logging configuration before and after each test.
+
+#     This fixture ensures a clean logging state for each test by:
+#     1. Resetting root handlers
+#     2. Clearing structlog defaults
+#     3. Resetting context variables
+
+#     Yields:
+#         None
+#     """
+#     # Reset before test
+#     logging.root.handlers = []
+#     structlog.reset_defaults()
+#     structlog.contextvars.clear_contextvars()
+
+#     yield
+
+#     # Reset after test
+#     logging.root.handlers = []
+#     structlog.reset_defaults()
+#     structlog.contextvars.clear_contextvars()
+
+
+def log_exception():
+    logger_exc = structlog.get_logger("test_exception_level")
+    try:
+        1 / 0
+    except ZeroDivisionError:
+        logger_exc.exception("event_name")
+
+
+def test_exception_level(stdlib_bound_logger_configure, log: pytest_structlog.StructuredLogCapture):
+    log_exception()
+    assert log.entries == [
+        {"event": "event_name", "exc_info": True, "level": "error"},
+    ]
+
+
+def log_test_message():
+    logger = structlog.get_logger("test_logger_initialization")
+    logger.info("test message")
+
+
+# @pytest.mark.skip_until(
+#     deadline=datetime.datetime(2025, 1, 25),
+#     strict=True,
+#     msg="This test can be better",
+# )
 @pytest.mark.logsonly
 @freeze_time("2024-01-01 12:00:00Z")
-def test_logger_initialization(log_output: LogCapture) -> None:
+def test_logger_initialization(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that the logger is properly initialized.
 
     This test verifies:
@@ -165,21 +279,22 @@ def test_logger_initialization(log_output: LogCapture) -> None:
     6. Log level is properly set
 
     Args:
-        log_output: The LogCapture fixture for verifying log output
+        log: The LogCapture fixture for verifying log output
     """
+    logger = structlog.get_logger("test_logger_initialization")
     # Configure logging first with test-specific processors
-    structlog.configure(
-        processors=[
-            TimeStamper(fmt="iso", utc=True),
-            add_log_level,
-            log_output,
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        cache_logger_on_first_use=False,
-    )
+    # structlog.configure(
+    #     processors=[
+    #         TimeStamper(fmt="iso", utc=True),
+    #         add_log_level,
+    #         log,
+    #     ],
+    #     wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+    #     cache_logger_on_first_use=False,
+    # )
 
     # Get a logger instance
-    logger = get_logger("test")
+    # logger = get_logger("test")
 
     # Verify logger is not None and properly typed
     assert logger is not None
@@ -187,11 +302,13 @@ def test_logger_initialization(log_output: LogCapture) -> None:
 
     # Log a test message
     test_message = "test message"
-    logger.info(test_message)
+    # logger.info(test_message)
+
+    log_test_message()
 
     # Get the captured logs
-    assert len(log_output.entries) == 1, "Expected exactly one log message"
-    log_entry = log_output.entries[0]
+    assert len(log.entries) == 1, "Expected exactly one log message"
+    log_entry = log.entries[0]
 
     # Verify message content
     assert log_entry["event"] == test_message, "Incorrect message content"
@@ -213,23 +330,31 @@ def test_logger_initialization(log_output: LogCapture) -> None:
 
 @pytest.mark.logsonly
 @pytest.mark.parametrize("enable_json_logs", [True, False])
-def test_configure_logging(enable_json_logs: bool) -> None:
+def test_configure_logging(enable_json_logs: bool, log: pytest_structlog.StructuredLogCapture) -> None:
     """Test the configure_logging function with different output formats.
 
     Args:
         enable_json_logs: Whether to enable JSON logging
     """
     configure_logging(enable_json_logs=enable_json_logs)
-    logger = get_logger("test")
+    # logger = get_logger("test")
 
-    with structlog.testing.capture_logs() as captured:
-        test_message = "test message"
-        logger.info(test_message)
+    # with structlog.testing.capture_logs() as captured:
+    #     test_message = "test message"
+    #     logger.info(test_message)
 
-        assert len(captured) == 1, "Expected exactly one log message"
-        log_entry = captured[0]
-        assert log_entry["event"] == test_message, "Incorrect message content"
-        assert log_entry["log_level"] == "info", "Incorrect log level"
+    #     assert len(captured) == 1, "Expected exactly one log message"
+    #     log_entry = captured[0]
+    #     assert log_entry["event"] == test_message, "Incorrect message content"
+    #     assert log_entry["log_level"] == "info", "Incorrect log level"
+
+    test_message = "test message"
+    logger.info(test_message)
+
+    assert len(log.entries) == 1, "Expected exactly one log message"
+    log_entry = log.entries[0]
+    assert log_entry["event"] == test_message, "Incorrect message content"
+    assert log_entry["log_level"] == "info", "Incorrect log level"
 
 
 @pytest.mark.logsonly
@@ -327,7 +452,7 @@ def test_logging_to_correct_streams() -> None:
 
 
 @pytest.mark.logsonly
-def test_module_name_processor(log_output: LogCapture) -> None:
+def test_module_name_processor(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that the module name processor adds correct module information.
 
     This test verifies both:
@@ -335,7 +460,7 @@ def test_module_name_processor(log_output: LogCapture) -> None:
     2. Integration with the logging system
 
     Args:
-        log_output: The LogCapture fixture for verifying log output
+        log: The LogCapture fixture for verifying log output
     """
     # Test the processor function directly
     test_event = {"event": "test message"}
@@ -345,26 +470,26 @@ def test_module_name_processor(log_output: LogCapture) -> None:
     assert processed_event["module"] == "test_module", "Processor added incorrect module name"
     assert processed_event["event"] == "test message", "Processor modified event message"
 
-    # Test the processor integrated in the logging system
-    structlog.configure(
-        processors=[
-            TimeStamper(fmt="iso", utc=True),
-            add_log_level,
-            structlog.stdlib.add_logger_name,
-            _add_module_name,
-            log_output,
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=False,
-    )
+    # # Test the processor integrated in the logging system
+    # structlog.configure(
+    #     processors=[
+    #         TimeStamper(fmt="iso", utc=True),
+    #         add_log_level,
+    #         structlog.stdlib.add_logger_name,
+    #         _add_module_name,
+    #         log,
+    #     ],
+    #     wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+    #     logger_factory=structlog.stdlib.LoggerFactory(),
+    #     cache_logger_on_first_use=False,
+    # )
 
     logger = get_logger("test_module")
     test_message = "integration test message"
     logger.info(test_message)
 
-    assert len(log_output.entries) == 1, "Expected exactly one log message"
-    log_entry = log_output.entries[0]
+    assert len(log.entries) == 1, "Expected exactly one log message"
+    log_entry = log.entries[0]
 
     # Verify logger name is preserved
     assert "logger" in log_entry, "Missing logger name"
@@ -380,7 +505,7 @@ def test_module_name_processor(log_output: LogCapture) -> None:
 
 @pytest.mark.logsonly
 @freeze_time("2024-01-01 12:00:00Z")
-def test_timestamp_formatting(log_output: LogCapture) -> None:
+def test_timestamp_formatting(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that timestamps are properly formatted.
 
     This test verifies:
@@ -389,30 +514,30 @@ def test_timestamp_formatting(log_output: LogCapture) -> None:
     3. Timestamps are added to all log entries
 
     Args:
-        log_output: The LogCapture fixture for verifying log output
+        log: The LogCapture fixture for verifying log output
     """
-    # Reset and reconfigure for this test
-    structlog.reset_defaults()
-    structlog.configure(
-        processors=[
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso", utc=True),
-            structlog.processors.StackInfoRenderer(),
-            log_output,
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=False,
-    )
+    # # Reset and reconfigure for this test
+    # structlog.reset_defaults()
+    # structlog.configure(
+    #     processors=[
+    #         structlog.stdlib.filter_by_level,
+    #         structlog.stdlib.add_logger_name,
+    #         structlog.stdlib.add_log_level,
+    #         structlog.processors.TimeStamper(fmt="iso", utc=True),
+    #         structlog.processors.StackInfoRenderer(),
+    #         log,
+    #     ],
+    #     wrapper_class=structlog.stdlib.BoundLogger,
+    #     context_class=dict,
+    #     logger_factory=structlog.stdlib.LoggerFactory(),
+    #     cache_logger_on_first_use=False,
+    # )
 
     logger = get_logger("test_timestamps")
 
     logger.info("test message")
-    assert len(log_output.entries) == 1, "Expected exactly one log message"
-    log_entry = log_output.entries[0]
+    assert len(log.entries) == 1, "Expected exactly one log message"
+    log_entry = log.entries[0]
 
     # Verify timestamp exists and format
     assert "timestamp" in log_entry, "Missing timestamp"
@@ -420,7 +545,7 @@ def test_timestamp_formatting(log_output: LogCapture) -> None:
 
 
 @pytest.mark.logsonly
-def test_error_formatting(log_output: LogCapture) -> None:
+def test_error_formatting(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that errors are properly formatted in log entries.
 
     This test verifies:
@@ -429,29 +554,29 @@ def test_error_formatting(log_output: LogCapture) -> None:
     3. Error context is preserved
 
     Args:
-        log_output: The LogCapture fixture for verifying log output
+        log: The LogCapture fixture for verifying log output
     """
-    # Reset and reconfigure for this test
-    structlog.reset_defaults()
-    structlog.configure(
-        processors=[
-            # Add stdlib processors first
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            # Add structlog processors
-            structlog.processors.TimeStamper(fmt="iso", utc=True),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            # LogCapture must be last
-            log_output,
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=False,
-    )
+    # # Reset and reconfigure for this test
+    # structlog.reset_defaults()
+    # structlog.configure(
+    #     processors=[
+    #         # Add stdlib processors first
+    #         structlog.stdlib.filter_by_level,
+    #         structlog.stdlib.add_logger_name,
+    #         structlog.stdlib.add_log_level,
+    #         structlog.stdlib.PositionalArgumentsFormatter(),
+    #         # Add structlog processors
+    #         structlog.processors.TimeStamper(fmt="iso", utc=True),
+    #         structlog.processors.StackInfoRenderer(),
+    #         structlog.processors.format_exc_info,
+    #         # LogCapture must be last
+    #         log,
+    #     ],
+    #     wrapper_class=structlog.stdlib.BoundLogger,
+    #     context_class=dict,
+    #     logger_factory=structlog.stdlib.LoggerFactory(),
+    #     cache_logger_on_first_use=False,
+    # )
 
     logger = get_logger("test_errors")
 
@@ -460,8 +585,8 @@ def test_error_formatting(log_output: LogCapture) -> None:
     except ValueError:
         logger.exception("error occurred")
 
-    assert len(log_output.entries) == 1, "Expected exactly one log message"
-    log_entry = log_output.entries[0]
+    assert len(log.entries) == 1, "Expected exactly one log message"
+    log_entry = log.entries[0]
 
     # Verify error details
     assert "exception" in log_entry, "Missing exception info"
@@ -472,7 +597,7 @@ def test_error_formatting(log_output: LogCapture) -> None:
 
 
 @pytest.mark.logsonly
-def test_context_preservation(log_output: LogCapture) -> None:
+def test_context_preservation(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that context is properly preserved across log entries.
 
     This test verifies:
@@ -481,7 +606,7 @@ def test_context_preservation(log_output: LogCapture) -> None:
     3. Context doesn't leak between loggers
 
     Args:
-        log_output: The LogCapture fixture for verifying log output
+        log: The LogCapture fixture for verifying log output
     """
     configure_logging(enable_json_logs=True)
     logger = get_logger("test_context")
@@ -505,7 +630,7 @@ def test_context_preservation(log_output: LogCapture) -> None:
 
 
 @pytest.mark.logsonly
-def test_processor_chain_ordering(log_output: LogCapture) -> None:
+def test_processor_chain_ordering(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that the processor chain executes in the correct order.
 
     This test verifies:
@@ -514,55 +639,55 @@ def test_processor_chain_ordering(log_output: LogCapture) -> None:
     3. Final output contains all expected fields
 
     Args:
-        log_output: The LogCapture fixture for verifying log output
+        log: The LogCapture fixture for verifying log output
     """
 
-    # Create processors that track execution order
-    def first_processor(
-        logger_name: str | None,
-        method_name: str | None,
-        event_dict: EventDict,
-    ) -> EventDict:
-        """Add first processor tracking."""
-        event_dict.setdefault("processor_order", []).append("first")
-        return event_dict
+    # # Create processors that track execution order
+    # def first_processor(
+    #     logger_name: str | None,
+    #     method_name: str | None,
+    #     event_dict: EventDict,
+    # ) -> EventDict:
+    #     """Add first processor tracking."""
+    #     event_dict.setdefault("processor_order", []).append("first")
+    #     return event_dict
 
-    def second_processor(
-        logger_name: str | None,
-        method_name: str | None,
-        event_dict: EventDict,
-    ) -> EventDict:
-        """Add second processor tracking."""
-        event_dict.setdefault("processor_order", []).append("second")
-        return event_dict
+    # def second_processor(
+    #     logger_name: str | None,
+    #     method_name: str | None,
+    #     event_dict: EventDict,
+    # ) -> EventDict:
+    #     """Add second processor tracking."""
+    #     event_dict.setdefault("processor_order", []).append("second")
+    #     return event_dict
 
-    # Reset and reconfigure for this test
-    structlog.reset_defaults()
-    structlog.configure(
-        processors=[
-            # Our tracking processors
-            first_processor,
-            second_processor,
-            # Standard processors
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(fmt="iso", utc=True),
-            # LogCapture must be last
-            log_output,
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=False,
-    )
+    # # Reset and reconfigure for this test
+    # structlog.reset_defaults()
+    # structlog.configure(
+    #     processors=[
+    #         # Our tracking processors
+    #         first_processor,
+    #         second_processor,
+    #         # Standard processors
+    #         structlog.stdlib.filter_by_level,
+    #         structlog.stdlib.add_logger_name,
+    #         structlog.stdlib.add_log_level,
+    #         structlog.stdlib.PositionalArgumentsFormatter(),
+    #         structlog.processors.TimeStamper(fmt="iso", utc=True),
+    #         # LogCapture must be last
+    #         log,
+    #     ],
+    #     wrapper_class=structlog.stdlib.BoundLogger,
+    #     context_class=dict,
+    #     logger_factory=structlog.stdlib.LoggerFactory(),
+    #     cache_logger_on_first_use=False,
+    # )
 
     logger = get_logger("test_processors")
     logger.info("test message")
 
-    assert len(log_output.entries) == 1, "Expected exactly one log message"
-    log_entry = log_output.entries[0]
+    assert len(log.entries) == 1, "Expected exactly one log message"
+    log_entry = log.entries[0]
 
     # Verify processor execution order
     assert "processor_order" in log_entry, "Missing processor order tracking"

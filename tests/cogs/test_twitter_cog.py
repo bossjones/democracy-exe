@@ -31,10 +31,6 @@ import structlog
 
 from discord.client import _LoopSentinel
 from discord.ext import commands
-
-
-logger = structlog.get_logger(__name__)
-
 from structlog.testing import capture_logs
 
 import pytest
@@ -58,11 +54,63 @@ if TYPE_CHECKING:
 
     from democracy_exe.chatbot.core.bot import DemocracyBot
 
+logger = structlog.get_logger(__name__)
+
 # Constants for testing
 TEST_TWEET_URL = "https://x.com/bancodevideo/status/1699925133194858974"
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture
+async def mock_tweet_info_data() -> AsyncGenerator[dict[str, Any], None]:
+    """Load mock tweet info data from fixture file.
+
+    Yields:
+        dict[str, Any]: Mock tweet info data
+    """
+    async with aiofiles.open("tests/fixtures/info.json", encoding="utf-8") as f:
+        content = await f.read()
+        data = json.loads(content)
+        yield data
+
+
+@pytest_asyncio.fixture
+async def mock_tweet_media_data() -> AsyncGenerator[dict[str, Any], None]:
+    """Load mock tweet media data from fixture file.
+
+    Yields:
+        dict[str, Any]: Mock tweet media data
+    """
+    async with aiofiles.open(
+        "tests/fixtures/Eminitybaba_-1868256259251863704-(20241215_112617)-img1.mp4.json", encoding="utf-8"
+    ) as f:
+        content = await f.read()
+        data = json.loads(content)
+        yield data
+
+
+@pytest_asyncio.fixture
+async def mock_tweet_metadata(mock_tweet_info_data: dict[str, Any]) -> AsyncGenerator[TweetMetadata, None]:
+    """Convert mock tweet info data into TweetMetadata object.
+
+    Args:
+        mock_tweet_info_data: Mock tweet info data from fixture
+
+    Yields:
+        TweetMetadata: Converted tweet metadata object
+    """
+    data_model = TweetInfo(**mock_tweet_info_data)
+    metadata = TweetMetadata(
+        id=str(data_model.tweet_id),
+        url=TEST_TWEET_URL,  # Using the test URL constant
+        author=data_model.author.name,  # pylint: disable=no-member
+        content=data_model.content,
+        media_urls=[],  # This would typically come from _get_media_urls
+        created_at=data_model.date,
+    )
+    yield metadata
+
+
+@pytest_asyncio.fixture(autouse=True, scope="function")
 async def bot_with_twitter_cog() -> AsyncGenerator[DemocracyBot, None]:
     # async def bot_with_twitter_cog() -> DemocracyBot:
     """Create a DemocracyBot instance for testing.
@@ -132,7 +180,7 @@ async def bot_with_twitter_cog() -> AsyncGenerator[DemocracyBot, None]:
         pass
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, scope="function")
 async def cleanup_global_message_queue() -> AsyncGenerator[None, None]:
     """
     Fixture to clean up the global message queue after each test.
@@ -807,53 +855,3 @@ async def test_download_tweet_success_twitter_cog(
                 await dpytest.empty_queue()  # empty the global message queue as test teardown
             finally:
                 pass
-
-
-@pytest_asyncio.fixture
-async def mock_tweet_info_data() -> AsyncGenerator[dict[str, Any], None]:
-    """Load mock tweet info data from fixture file.
-
-    Yields:
-        dict[str, Any]: Mock tweet info data
-    """
-    async with aiofiles.open("tests/fixtures/info.json", encoding="utf-8") as f:
-        content = await f.read()
-        data = json.loads(content)
-        yield data
-
-
-@pytest_asyncio.fixture
-async def mock_tweet_media_data() -> AsyncGenerator[dict[str, Any], None]:
-    """Load mock tweet media data from fixture file.
-
-    Yields:
-        dict[str, Any]: Mock tweet media data
-    """
-    async with aiofiles.open(
-        "tests/fixtures/Eminitybaba_-1868256259251863704-(20241215_112617)-img1.mp4.json", encoding="utf-8"
-    ) as f:
-        content = await f.read()
-        data = json.loads(content)
-        yield data
-
-
-@pytest_asyncio.fixture
-async def mock_tweet_metadata(mock_tweet_info_data: dict[str, Any]) -> AsyncGenerator[TweetMetadata, None]:
-    """Convert mock tweet info data into TweetMetadata object.
-
-    Args:
-        mock_tweet_info_data: Mock tweet info data from fixture
-
-    Yields:
-        TweetMetadata: Converted tweet metadata object
-    """
-    data_model = TweetInfo(**mock_tweet_info_data)
-    metadata = TweetMetadata(
-        id=str(data_model.tweet_id),
-        url=TEST_TWEET_URL,  # Using the test URL constant
-        author=data_model.author.name,  # pylint: disable=no-member
-        content=data_model.content,
-        media_urls=[],  # This would typically come from _get_media_urls
-        created_at=data_model.date,
-    )
-    yield metadata

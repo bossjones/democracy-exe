@@ -278,7 +278,7 @@ class DemocracyBot(commands.Bot):
         self.client_id: int | str = aiosettings.discord_client_id
         self.enable_ai = aiosettings.enable_ai
 
-        self.session = aiohttp.ClientSession()
+        # self.session = aiohttp.ClientSession()
         self.prefixes: list[str] = [aiosettings.prefix]
         self.version = democracy_exe.__version__
         self.max_retries: int = aiosettings.max_retries
@@ -802,8 +802,9 @@ class DemocracyBot(commands.Bot):
         try:
             await super().close()
         finally:
-            if hasattr(self, "session") and not self.session.closed:
-                await self.session.close()
+            logger.info("Closing bot...")
+            # if hasattr(self, "session") and not self.session.closed:
+            #     await self.session.close()
 
     async def start(self, *args: Any, **kwargs: Any) -> None:
         """Start the bot and connect to Discord."""

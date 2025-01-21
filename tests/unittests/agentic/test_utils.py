@@ -58,24 +58,24 @@ class TestLogCapture:
         return self
 
 
-@pytest.fixture(autouse=True)
-def setup_test_logging() -> None:
-    """Configure structlog for testing.
+# @pytest.fixture(autouse=True)
+# def setup_test_logging() -> None:
+#     """Configure structlog for testing.
 
-    This fixture runs automatically before each test.
-    """
-    structlog.configure(
-        processors=[
-            structlog.processors.add_log_level,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.testing.capture_logs,
-        ],
-        context_class=dict,
-        logger_factory=TestLogCapture,
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        cache_logger_on_first_use=False,
-    )
+#     This fixture runs automatically before each test.
+#     """
+#     structlog.configure(
+#         processors=[
+#             structlog.processors.add_log_level,
+#             structlog.processors.StackInfoRenderer(),
+#             structlog.processors.format_exc_info,
+#             structlog.testing.capture_logs,
+#         ],
+#         context_class=dict,
+#         logger_factory=TestLogCapture,
+#         wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+#         cache_logger_on_first_use=False,
+#     )
 
 
 @pytest.fixture

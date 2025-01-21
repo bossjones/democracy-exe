@@ -119,7 +119,7 @@ def mock_extract_output() -> str:
     return "output.txt"
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="function")
 def setup_event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create and set a new event loop for each test.
 
