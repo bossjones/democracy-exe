@@ -30,7 +30,9 @@ from discord.ext import commands
 
 import pytest
 
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.chatbot.core.bot import DemocracyBot
+from democracy_exe.chatbot.utils.discord_utils import extensions as discord_extensions
 from democracy_exe.chatbot.utils.extension_utils import get_extension_load_order, load_extension_with_retry
 
 
@@ -127,47 +129,104 @@ async def test_bot_cleanup(bot: DemocracyBot, mocker: MockerFixture) -> None:
 
 
 @pytest.mark.asyncio
-async def test_bot_task_limit(bot: DemocracyBot) -> None:
+async def test_bot_task_limit(bot: DemocracyBot, mocker: MockerFixture) -> None:
     """Test bot task limit enforcement.
 
-    Args:
-        bot: The bot instance to test
-    """
-    # Create tasks up to limit
-    for _ in range(bot.MAX_CONCURRENT_TASKS):
-        task = asyncio.create_task(asyncio.sleep(0.1))
-        bot.tasks.append(task)
-
-    # Adding one more should raise
-    with pytest.raises(RuntimeError, match="Too many concurrent tasks"):
-        task = asyncio.create_task(asyncio.sleep(0.1))
-        bot.tasks.append(task)
-
-    # Cleanup tasks
-    for task in list(bot.tasks):
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
-
-
-@pytest.mark.asyncio
-async def test_bot_setup_hook(bot: DemocracyBot, mocker: MockerFixture) -> None:
-    """Test bot setup hook.
+    This test verifies that the bot properly enforces task limits through
+    the resource manager, including:
+    - Task tracking via resource manager
+    - Task limit enforcement
+    - Proper error handling when limit is exceeded
+    - Proper cleanup of tasks
 
     Args:
         bot: The bot instance to test
         mocker: Pytest mocker fixture
     """
+    # Mock resource manager
+    mock_resource_manager = mocker.AsyncMock()
+    bot.resource_manager = mock_resource_manager
+
+    # Configure resource manager to raise on task limit
+    mock_resource_manager.track_task = mocker.AsyncMock()
+    mock_resource_manager.track_task.side_effect = [
+        None,  # First call succeeds
+        RuntimeError("Too many concurrent tasks"),  # Second call fails
+    ]
+
+    # Create and track first task - should succeed
+    task1 = asyncio.create_task(asyncio.sleep(0.1))
+    await bot.add_task(task1)
+
+    # Verify task was tracked
+    mock_resource_manager.track_task.assert_awaited_once()
+
+    # Try to add another task - should fail
+    task2 = asyncio.create_task(asyncio.sleep(0.1))
+    with pytest.raises(RuntimeError, match="Too many concurrent tasks"):
+        await bot.add_task(task2)
+
+    # Clean up tasks
+    for task in [task1, task2]:
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+
+@pytest.mark.asyncio
+async def test_bot_setup_hook(mocker: MockerFixture) -> None:
+    """Test the bot's setup_hook method.
+
+    This test verifies that:
+    1. The bot's application info is properly fetched and owner ID is set
+    2. The resource manager is initialized
+    3. Extensions are discovered and loaded correctly
+    4. The invite link is generated with proper permissions
+
+    Args:
+        mocker: Pytest mocker fixture
+    """
+    # Mock application info
+    mock_app_info = mocker.Mock()
+    mock_app_info.owner.id = 123456789
+    mock_app_info.id = 987654321
+
+    # Create bot instance
+    bot = DemocracyBot()
+    bot.application_info = mocker.AsyncMock(return_value=mock_app_info)
+
+    # Mock resource manager
+    mock_resource_manager = mocker.AsyncMock()
+    mocker.patch("democracy_exe.chatbot.core.bot.ResourceManager", return_value=mock_resource_manager)
+
     # Mock extension loading
-    mock_load = mocker.patch("democracy_exe.chatbot.utils.extension_utils.load_extension_with_retry")
+    mock_load = mocker.AsyncMock()
+    bot.load_extension = mock_load
 
-    # Run setup hook
-    await bot._async_setup_hook()
+    # Mock extensions function to return initial_extensions
+    mock_extensions = mocker.patch("democracy_exe.chatbot.utils.discord_utils.extensions")
+    mock_extensions.return_value = aiosettings.initial_extensions
 
-    # Should attempt to load extensions
-    assert mock_load.call_count > 0
+    # Call setup hook
+    await bot.setup_hook()
+
+    # Verify application info was fetched and owner ID set
+    assert bot.owner_id == 123456789
+
+    # Verify resource manager was initialized
+    assert bot.resource_manager is not None
+
+    # Verify invite link was generated
+    assert bot.invite is not None
+    assert "987654321" in bot.invite
+
+    # Verify extensions were loaded
+    assert mock_load.call_count == len(aiosettings.initial_extensions)
+    for ext in aiosettings.initial_extensions:
+        mock_load.assert_any_call(ext)
 
 
 @pytest.mark.asyncio
