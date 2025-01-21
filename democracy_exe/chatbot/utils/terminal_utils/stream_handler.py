@@ -89,6 +89,11 @@ class StreamHandler:
                 if interruptable and self._interrupt_event.is_set():
                     break
 
+                # Handle direct string chunks
+                if isinstance(event, str):
+                    yield event
+                    continue
+
                 async for chunk in self._message_handler.stream_chunks([event]):
                     yield chunk
 

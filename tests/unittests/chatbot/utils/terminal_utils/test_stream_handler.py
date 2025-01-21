@@ -782,6 +782,12 @@ async def test_message_handler_interaction(stream_handler: StreamHandler, mocker
 async def test_cleanup_on_error(stream_handler: StreamHandler, mock_graph: MockGraph) -> None:
     """Test cleanup when error occurs during streaming.
 
+    This test verifies:
+    1. Stream handler is properly initialized
+    2. Interrupt event is cleared on cleanup
+    3. Proper logging occurs during initialization and cleanup
+    4. Cleanup happens even when an error occurs
+
     Args:
         stream_handler: Test stream handler
         mock_graph: Test mock graph
@@ -789,7 +795,13 @@ async def test_cleanup_on_error(stream_handler: StreamHandler, mock_graph: MockG
     with structlog.testing.capture_logs() as captured:
         try:
             async with stream_handler:
+                # Verify initialization
+                assert any(log.get("event") == "Stream handler initialized" for log in captured)
+                assert not stream_handler._interrupt_event.is_set()
+
+                # Simulate error during streaming
                 stream_handler.interrupt()
+                assert stream_handler._interrupt_event.is_set()
                 raise ValueError("Test error")
         except ValueError:
             pass
@@ -797,3 +809,9 @@ async def test_cleanup_on_error(stream_handler: StreamHandler, mock_graph: MockG
         # Verify proper cleanup
         assert not stream_handler._interrupt_event.is_set()
         assert any(log.get("event") == "Stream handler reset" for log in captured)
+
+        # Verify log order
+        log_events = [log.get("event") for log in captured]
+        assert log_events.index("Stream handler initialized") < log_events.index("Stream handler reset"), (
+            "Initialization should occur before reset"
+        )
