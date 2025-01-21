@@ -87,6 +87,8 @@ class SupportedEmbeddings(str, enum.Enum):
     openai = "OpenAI"
     cohere = "Cohere"
 
+
+# FIXME: THIS IS NOT CONCURRENCY SAFE
 # Ensure directories exist
 for directory in [CONFIG_DIR, DATA_DIR, LOGS_DIR, CACHE_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
