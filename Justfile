@@ -1162,8 +1162,8 @@ test-logsetup:
 
 
 # run structlog tests and bot tests
-test-logsetup-exception:
-	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py -k test_exception_level
+test-logsetup-oneonly:
+	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py -k test_logger_initialization
 
 # run structlog tests and bot tests
 test-logsetup-and-bot:

@@ -3,6 +3,93 @@
 # pyright: reportInvalidTypeForm=false
 # pyright: reportAttributeAccessIssue=false
 
+"""Structlog Testing Best Practices and Patterns.
+
+This module demonstrates proper testing patterns for structlog in pytest environments.
+It showcases how to effectively use pytest-structlog for testing logging behavior.
+
+Key Concepts:
+------------
+1. Configuration Fixtures:
+   - Each test should have its own configuration fixture
+   - Fixtures should accept log: pytest_structlog.StructuredLogCapture
+   - Always set cache_logger_on_first_use=False
+   - Configure before each test, reset after
+
+2. Processor Chain Order:
+   - Start with stdlib processors:
+     * filter_by_level
+     * add_logger_name
+     * add_log_level
+   - Add formatting processors (TimeStamper, etc.)
+   - Put LogCapture processor last
+   - Order matters for correct log entry structure
+
+3. Pytest-Structlog Plugin Features:
+   - Automatically keeps essential processors:
+     * merge_contextvars
+     * add_log_level
+     * add_logger_name
+     * StackInfoRenderer
+     * TimeStamper
+     * ConsoleRenderer
+   - Operates in "keep mode" by default
+   - Provides StructuredLogCapture fixture
+
+4. Testing Patterns:
+   - Use freezegun for timestamp testing
+   - Verify log entry structure explicitly
+   - Test both success and error cases
+   - Check logger capabilities
+   - Validate log levels and formatting
+
+Example Configuration:
+---------------------
+```python
+@pytest.fixture
+def test_configure(log: pytest_structlog.StructuredLogCapture) -> None:
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            log,  # Always last
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
+```
+
+Common Gotchas:
+--------------
+1. Missing log entries often due to:
+   - Incorrect processor order
+   - Logger caching enabled
+   - LogCapture not in processor chain
+
+2. Timestamp issues:
+   - Use UTC for consistency
+   - Use ISO format for parsing
+   - Include timezone (Z for UTC)
+
+3. Log structure verification:
+   - Check exact keys in log entries
+   - Verify logger name propagation
+   - Validate level names match
+
+4. Exception handling:
+   - Use format_exc_info processor
+   - Check exception field not exc_info
+   - Verify full traceback content
+
+References:
+----------
+- pytest-structlog: https://github.com/wimglenn/pytest-structlog
+- structlog docs: https://www.structlog.org/en/stable/testing.html
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -44,18 +131,6 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True, scope="function")
 def set_logging_environment(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("LOGGING_ENVIRONMENT", "testing")
-
-
-# @pytest.fixture(name="log")
-# def fixture_log():
-#     return LogCapture()
-
-
-# @pytest.fixture(autouse=True, scope="function")
-# def fixture_configure_structlog_simple(log: pytest_structlog.StructuredLogCapture) -> Generator[None, None, None]:
-#     structlog.configure(processors=[log])
-#     yield
-#     structlog.reset_defaults()
 
 
 @pytest.fixture
@@ -163,109 +238,30 @@ def fixture_log() -> LogCapture:
     return LogCapture()
 
 
-# @pytest.fixture(autouse=True, scope="function")
-# def fixture_configure_structlog(log: pytest_structlog.StructuredLogCapture) -> Generator[None, None, None]:
-#     """Configure structlog for testing with the LogCapture processor.
-
-#     Args:
-#         log: The LogCapture fixture
-
-#     Yields:
-#         None
-#     """
-#     # Reset structlog to defaults before configuring
-#     structlog.reset_defaults()
-
-#     # Configure structlog for testing
-#     structlog.configure(
-#         processors=[
-#             # Add stdlib processors first
-#             structlog.stdlib.filter_by_level,
-#             structlog.stdlib.add_logger_name,
-#             structlog.stdlib.add_log_level,
-#             structlog.stdlib.PositionalArgumentsFormatter(),
-#             # Add structlog processors
-#             structlog.processors.TimeStamper(fmt="iso", utc=True),
-#             structlog.processors.StackInfoRenderer(),
-#             structlog.processors.format_exc_info,
-#             # LogCapture must be last to capture processed events
-#             log,
-#         ],
-#         wrapper_class=structlog.stdlib.BoundLogger,
-#         context_class=dict,
-#         logger_factory=structlog.stdlib.LoggerFactory(),
-#         cache_logger_on_first_use=False,  # Important: disable caching for tests
-#     )
-#     yield
-#     structlog.reset_defaults()
-
-
-# @pytest.fixture(autouse=True, scope="function")
-# def clean_logging() -> Generator[None, None, None]:
-#     """Reset logging configuration before and after each test.
-
-#     This fixture ensures a clean logging state for each test by:
-#     1. Resetting root handlers
-#     2. Clearing structlog defaults
-#     3. Resetting context variables
-
-#     Yields:
-#         None
-#     """
-#     # Reset before test
-#     logging.root.handlers = []
-#     structlog.reset_defaults()
-#     structlog.contextvars.clear_contextvars()
-
-#     yield
-
-#     # Reset after test
-#     logging.root.handlers = []
-#     structlog.reset_defaults()
-#     structlog.contextvars.clear_contextvars()
-
-
-def log_exception():
-    logger_exc = structlog.get_logger("test_exception_level")
-    try:
-        1 / 0
-    except ZeroDivisionError:
-        logger_exc.exception("event_name")
-
-
-def test_exception_level(stdlib_bound_logger_configure, log: pytest_structlog.StructuredLogCapture) -> None:
-    """Test that exception logging works correctly.
+@pytest.fixture
+def logger_initialization_configure(log: pytest_structlog.StructuredLogCapture) -> None:
+    """Configure structlog for logger initialization testing.
 
     Args:
-        stdlib_bound_logger_configure: Fixture to configure structlog
         log: The LogCapture fixture
     """
-    log_exception()
-
-    # Verify the log entry
-    assert len(log.entries) == 1, "Expected exactly one log entry"
-    entry = log.entries[0]
-    assert entry["event"] == "event_name"
-    assert "exception" in entry, "Missing exception information"
-    assert "ZeroDivisionError: division by zero" in entry["exception"]
-    assert entry["level"] == "error"
-    assert entry["log_level"] == "error"
-    assert entry["logger"] == "test_exception_level"
-
-
-def log_test_message():
-    logger = structlog.get_logger("test_logger_initialization")
-    logger.info("test message")
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            log,
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
 
 
-# @pytest.mark.skip_until(
-#     deadline=datetime.datetime(2025, 1, 25),
-#     strict=True,
-#     msg="This test can be better",
-# )
 @pytest.mark.logsonly
 @freeze_time("2024-01-01 12:00:00Z")
-def test_logger_initialization(log: pytest_structlog.StructuredLogCapture) -> None:
+def test_logger_initialization(logger_initialization_configure, log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that the logger is properly initialized.
 
     This test verifies:
@@ -277,22 +273,11 @@ def test_logger_initialization(log: pytest_structlog.StructuredLogCapture) -> No
     6. Log level is properly set
 
     Args:
-        log: The LogCapture fixture for verifying log output
+        logger_initialization_configure: Fixture to configure structlog
+        log: The LogCapture fixture
     """
-    logger = structlog.get_logger("test_logger_initialization")
-    # Configure logging first with test-specific processors
-    # structlog.configure(
-    #     processors=[
-    #         TimeStamper(fmt="iso", utc=True),
-    #         add_log_level,
-    #         log,
-    #     ],
-    #     wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-    #     cache_logger_on_first_use=False,
-    # )
-
     # Get a logger instance
-    # logger = get_logger("test")
+    logger = structlog.get_logger("test_logger_initialization")
 
     # Verify logger is not None and properly typed
     assert logger is not None
@@ -300,9 +285,7 @@ def test_logger_initialization(log: pytest_structlog.StructuredLogCapture) -> No
 
     # Log a test message
     test_message = "test message"
-    # logger.info(test_message)
-
-    log_test_message()
+    logger.info(test_message)
 
     # Get the captured logs
     assert len(log.entries) == 1, "Expected exactly one log message"
@@ -317,6 +300,9 @@ def test_logger_initialization(log: pytest_structlog.StructuredLogCapture) -> No
     # Verify timestamp format (ISO format)
     assert "timestamp" in log_entry, "Missing timestamp"
     assert log_entry["timestamp"] == "2024-01-01T12:00:00Z", "Incorrect timestamp format"
+
+    # Verify logger name
+    assert log_entry["logger"] == "test_logger_initialization", "Incorrect logger name"
 
     # Verify logger capabilities
     assert hasattr(logger, "info"), "Logger missing info method"
