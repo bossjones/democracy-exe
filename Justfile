@@ -1160,10 +1160,23 @@ test-logsetup-debug:
 test-logsetup:
 	uv run pytest -s --verbose --showlocals --tb=short -p no:warnings tests/test_logsetup.py
 
+# Results (0.97s):
+#       11 passed
+#        8 failed
+#          - tests/test_logsetup.py:476 test_module_name_processor
+#          - tests/test_logsetup.py:528 test_timestamp_formatting
+#          - tests/test_logsetup.py:569 test_error_formatting
+#          - tests/test_logsetup.py:654 test_processor_chain_ordering
+#          - tests/cogs/test_twitter_cog.py:396 test_twitter_cog_on_ready
+#          - tests/cogs/test_twitter_cog.py:414 test_twitter_cog_on_guild_join
+#          - tests/cogs/test_twitter_cog.py:444 test_tweet_help_command
+#          - tests/cogs/test_twitter_cog.py:657 test_cleanup_temp_dir
+#        4 skipped
+# error: Recipe `test-logsetup-and-bot` failed on line 1170 with exit code 1
 
 # run structlog tests and bot tests
 test-logsetup-oneonly:
-	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py -k test_configure_logging
+	uv run pytest -s -vvvv --showlocals --tb=short --disable-warnings tests/test_logsetup.py tests/cogs/test_twitter_cog.py -k  test_timestamp_formatting
 
 # run structlog tests and bot tests
 test-logsetup-and-bot:

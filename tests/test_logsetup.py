@@ -492,24 +492,27 @@ def test_module_name_processor(log: pytest_structlog.StructuredLogCapture) -> No
     assert processed_event["module"] == "test_module", "Processor added incorrect module name"
     assert processed_event["event"] == "test message", "Processor modified event message"
 
-    # # Test the processor integrated in the logging system
-    # structlog.configure(
-    #     processors=[
-    #         TimeStamper(fmt="iso", utc=True),
-    #         add_log_level,
-    #         structlog.stdlib.add_logger_name,
-    #         _add_module_name,
-    #         log,
-    #     ],
-    #     wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-    #     logger_factory=structlog.stdlib.LoggerFactory(),
-    #     cache_logger_on_first_use=False,
-    # )
+    # Configure structlog for integration test
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            _add_module_name,  # Add our custom processor
+            log,  # Add log fixture to capture logs
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,  # Important for test isolation
+    )
 
-    logger = get_logger("test_module")
+    # Test the processor integrated in the logging system
+    logger = structlog.get_logger("test_module")
     test_message = "integration test message"
     logger.info(test_message)
 
+    # Verify log capture
     assert len(log.entries) == 1, "Expected exactly one log message"
     log_entry = log.entries[0]
 
@@ -538,26 +541,30 @@ def test_timestamp_formatting(log: pytest_structlog.StructuredLogCapture) -> Non
     Args:
         log: The LogCapture fixture for verifying log output
     """
-    # # Reset and reconfigure for this test
-    # structlog.reset_defaults()
-    # structlog.configure(
-    #     processors=[
-    #         structlog.stdlib.filter_by_level,
-    #         structlog.stdlib.add_logger_name,
-    #         structlog.stdlib.add_log_level,
-    #         structlog.processors.TimeStamper(fmt="iso", utc=True),
-    #         structlog.processors.StackInfoRenderer(),
-    #         log,
-    #     ],
-    #     wrapper_class=structlog.stdlib.BoundLogger,
-    #     context_class=dict,
-    #     logger_factory=structlog.stdlib.LoggerFactory(),
-    #     cache_logger_on_first_use=False,
-    # )
+    # Reset and configure for this test
+    structlog.reset_defaults()
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            log,  # Add log fixture to capture logs
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,  # Important for test isolation
+    )
 
-    logger = get_logger("test_timestamps")
+    # Get a logger instance
+    logger = structlog.get_logger("test_timestamps")
 
+    # Log a test message
     logger.info("test message")
+
+    # Verify log capture
     assert len(log.entries) == 1, "Expected exactly one log message"
     log_entry = log.entries[0]
 
