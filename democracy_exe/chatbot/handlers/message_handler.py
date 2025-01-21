@@ -78,6 +78,13 @@ class MessageHandler:
             if total_size > self._max_total_size:
                 raise RuntimeError(f"Total attachment size {total_size} exceeds {self._max_total_size} limit")
 
+            # Check for Tenor URLs first
+            tenor_pattern = r'https://tenor\.com/view/([^/\s]+)-\d+'
+            tenor_match = re.search(tenor_pattern, content)
+            if tenor_match:
+                gif_description = tenor_match.group(1).replace('-', ' ')
+                return f"[{message.author.name} posts an animated {gif_description}]"
+
             # Check for image URLs in content
             image_pattern = r'https?://[^\s<\"]+?\.(?:png|jpg|jpeg|gif|webp)'
             image_urls = re.findall(image_pattern, content)
@@ -186,6 +193,29 @@ class MessageHandler:
             if response:
                 return attachment.url
 
+    def get_session_id(self, obj: discord.Message | discord.Thread | discord.DMChannel) -> str:
+        """Get a unique session ID for a message, thread, or DM channel.
+
+        Args:
+            obj: The Discord object to get a session ID for (Message, Thread, or DMChannel)
+
+        Returns:
+            str: A unique session ID string
+
+        Raises:
+            ValueError: If the object type is not supported
+        """
+        if isinstance(obj, discord.Message):
+            if isinstance(obj.channel, discord.DMChannel):
+                return f"discord_{obj.author.id}"
+            return f"discord_{obj.channel.id}"
+        elif isinstance(obj, discord.Thread):
+            return f"discord_{obj.starter_message.channel.id}"
+        elif isinstance(obj, discord.DMChannel):
+            return f"discord_{obj.recipient.id}"
+        else:
+            raise ValueError(f"Unsupported object type for session ID: {type(obj)}")
+
     async def get_thread(self, message: discord.Message) -> discord.Thread | discord.DMChannel:
         """Get or create a thread for a message.
 
@@ -220,3 +250,44 @@ class MessageHandler:
         except Exception as e:
             logger.error("Error getting/creating thread", error=str(e))
             raise RuntimeError("Failed to get/create thread") from e
+
+    def prepare_agent_input(
+        self,
+        obj: discord.Message | discord.Thread,
+        user_name: str,
+        surface_info: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Prepare input data for the agent from a Discord object.
+
+        Args:
+            obj: The Discord object (Message or Thread) to prepare input from
+            user_name: The user's display name
+            surface_info: Additional surface-level information
+
+        Returns:
+            Dict[str, Any]: Prepared input data for the agent including:
+                - user name: The user's display name
+                - message: The message content
+                - surface_info: Additional context information
+                - file_name: Optional attachment filename
+                - image_url: Optional attachment URL
+        """
+        result: dict[str, Any] = {
+            "user name": user_name,
+            "surface_info": surface_info
+        }
+
+        # Handle different object types
+        if isinstance(obj, discord.Message):
+            result["message"] = obj.content
+            # Add attachment info if present
+            if obj.attachments:
+                attachment = obj.attachments[0]
+                result["file_name"] = attachment.filename
+                result["image_url"] = attachment.url
+        elif isinstance(obj, discord.Thread):
+            result["message"] = obj.starter_message.content
+        else:
+            raise ValueError(f"Unsupported object type for agent input: {type(obj)}")
+
+        return result
