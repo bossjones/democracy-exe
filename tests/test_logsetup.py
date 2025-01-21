@@ -286,7 +286,7 @@ def configure_logging_fixture(log: pytest_structlog.StructuredLogCapture) -> Non
 
 
 @pytest.mark.logsonly
-@freeze_time("2024-01-01 12:00:00Z")
+@freeze_time("2024-01-01 12:00:00Z", ignore=["transformers"])
 def test_logger_initialization(logger_initialization_configure, log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that the logger is properly initialized.
 
@@ -529,7 +529,7 @@ def test_module_name_processor(log: pytest_structlog.StructuredLogCapture) -> No
 
 
 @pytest.mark.logsonly
-@freeze_time("2024-01-01 12:00:00Z")
+@freeze_time("2024-01-01 12:00:00Z", ignore=["transformers"])
 def test_timestamp_formatting(log: pytest_structlog.StructuredLogCapture) -> None:
     """Test that timestamps are properly formatted.
 
