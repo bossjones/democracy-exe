@@ -15,6 +15,7 @@ import sys
 from typing import Dict, List, Optional
 
 import anthropic
+import structlog
 
 from anthropic.types import Message as AnthropicMessage
 from dotenv import find_dotenv, load_dotenv
@@ -28,6 +29,8 @@ from democracy_exe.aio_settings import aiosettings
 # SOURCE: https://github.com/connor-john/ai-docs
 
 load_dotenv(find_dotenv())
+
+logger = structlog.get_logger(__name__)
 
 CLIENT = anthropic.Anthropic(api_key=aiosettings.anthropic_api_key.get_secret_value())
 ASYNC_CLIENT = anthropic.AsyncAnthropic(
@@ -256,23 +259,64 @@ def check_prompt_token_size(prompt: str) -> int:
 async def arequest_message(
     system_prompt: str, messages: list[dict[str, str]]
 ) -> anthropic.types.Message:
-    """Send message to Anthropic.
+    """Send a message to Anthropic API asynchronously.
 
     Args:
-        system_prompt: The system prompt to use for the message
-        messages: List of message dictionaries containing role and content
+        system_prompt: The system prompt to use
+        messages: List of message dictionaries with role and content
 
     Returns:
-        anthropic.types.Message: Response from the Anthropic API
-    """
-    response: AnthropicMessage = await ASYNC_CLIENT.messages.create(
-        model=aiosettings.ai_docs_model,
-        system=system_prompt,
-        max_tokens=4096,
-        messages=messages,
-    )
+        anthropic.types.Message: The API response message
 
-    return response
+    Raises:
+        anthropic.APIError: If the API request fails
+        anthropic.APIConnectionError: If connection to API fails
+        anthropic.AuthenticationError: If authentication fails
+        anthropic.RateLimitError: If rate limit is exceeded
+        anthropic.APIStatusError: If API returns an error status
+    """
+    logger.info("Sending message to Anthropic API", num_messages=len(messages))
+
+    try:
+        response = await ASYNC_CLIENT.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            system=system_prompt,
+            messages=messages,
+            max_tokens=4096,
+        )
+
+        logger.info(
+            "Received response from Anthropic API",
+            message_id=response.id,
+            model=response.model,
+            stop_reason=response.stop_reason,
+            usage=response.usage,
+        )
+        logger.debug(
+            "Response details",
+            message_id=response.id,
+            model=response.model,
+            content=response.content,
+            role=response.role,
+            type=response.type,
+        )
+
+        return response
+
+    except (
+        anthropic.APIError,
+        anthropic.APIConnectionError,
+        anthropic.AuthenticationError,
+        anthropic.RateLimitError,
+        anthropic.APIStatusError,
+    ) as e:
+        logger.error(
+            "Anthropic API request failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            messages=messages,
+        )
+        raise
 
 
 def request_message(
@@ -286,15 +330,56 @@ def request_message(
 
     Returns:
         anthropic.types.Message: Response from the Anthropic API
-    """
-    response: AnthropicMessage = CLIENT.messages.create(
-        model=aiosettings.ai_docs_model,
-        system=system_prompt,
-        max_tokens=4096,
-        messages=messages,
-    )
 
-    return response
+    Raises:
+        anthropic.APIError: If the API request fails
+        anthropic.APIConnectionError: If connection to API fails
+        anthropic.AuthenticationError: If authentication fails
+        anthropic.RateLimitError: If rate limit is exceeded
+        anthropic.APIStatusError: If API returns an error status
+    """
+    logger.info("Sending message to Anthropic API", num_messages=len(messages))
+
+    try:
+        response: AnthropicMessage = CLIENT.messages.create(
+            model=aiosettings.ai_docs_model,
+            system=system_prompt,
+            max_tokens=4096,
+            messages=messages,
+        )
+
+        logger.info(
+            "Received response from Anthropic API",
+            message_id=response.id,
+            model=response.model,
+            stop_reason=response.stop_reason,
+            usage=response.usage,
+        )
+        logger.debug(
+            "Response details",
+            message_id=response.id,
+            model=response.model,
+            content=response.content,
+            role=response.role,
+            type=response.type,
+        )
+
+        return response
+
+    except (
+        anthropic.APIError,
+        anthropic.APIConnectionError,
+        anthropic.AuthenticationError,
+        anthropic.RateLimitError,
+        anthropic.APIStatusError,
+    ) as e:
+        logger.error(
+            "Anthropic API request failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            messages=messages,
+        )
+        raise
 
 
 def read_file(file_path: str) -> str | None:
