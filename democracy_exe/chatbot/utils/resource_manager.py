@@ -48,6 +48,8 @@ from __future__ import annotations
 import asyncio
 import gc
 import os
+import resource
+import sys
 
 from dataclasses import dataclass
 from typing import Optional, Set
@@ -107,14 +109,14 @@ class ResourceManager:
         """
         return self._limits
 
-    async def check_memory(self) -> None:
+    async def check_memory(self) -> bool:
         """Check if memory usage is within limits.
 
-        This method checks the current memory usage and raises a RuntimeError
-        if it exceeds the configured limit.
+        This method checks the current memory usage and returns True if it's within limits,
+        False otherwise.
 
-        Raises:
-            RuntimeError: If memory usage exceeds the limit
+        Returns:
+            bool: True if memory usage is within limits, False otherwise
         """
         memory_info = self._process.memory_info()
         memory_mb = memory_info.rss / 1024 / 1024
@@ -144,7 +146,7 @@ class ResourceManager:
                 memory_info=memory_info._asdict(),
                 headroom_mb=f"{(self._limits.max_memory_mb - memory_mb):.1f}"
             )
-            raise RuntimeError(f"Memory usage {memory_mb:.1f}MB exceeds limit {self._limits.max_memory_mb}MB")
+            return False
 
         # Context vars are automatically included
         logger.debug(
@@ -154,6 +156,8 @@ class ResourceManager:
 
         # Clean up context vars at the end
         structlog.contextvars.clear_contextvars()
+
+        return True
 
     async def track_task(self, task: asyncio.Task) -> None:
         """Track a new task.
@@ -269,7 +273,8 @@ class ResourceManager:
         """Force cleanup of all resources.
 
         This method performs a forced cleanup of all resources, including
-        tasks and memory tracking.
+        tasks and memory tracking. On non-Windows systems, it also sets
+        the process memory limit using setrlimit.
         """
         # Clean up all tasks
         await self.cleanup_tasks()
@@ -279,6 +284,11 @@ class ResourceManager:
 
         # Force garbage collection
         gc.collect()
+
+        # Set memory limit on non-Windows systems
+        if sys.platform != "win32":
+            memory_limit = self._limits.max_memory_mb * 1024 * 1024
+            resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
 
         logger.info("Forced cleanup completed",
                    remaining_tasks=len(self._tasks),
