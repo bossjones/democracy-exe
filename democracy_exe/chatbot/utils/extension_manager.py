@@ -224,6 +224,7 @@ async def load_extension_with_retry(bot: Bot, extension: str, max_attempts: int 
                 # Update attempt context
                 structlog.contextvars.bind_contextvars(
                     attempt=attempt + 1,
+                    remaining_attempts=max_attempts - attempt - 1,
                     backoff_seconds=attempt
                 )
 

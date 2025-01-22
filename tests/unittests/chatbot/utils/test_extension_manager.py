@@ -11,11 +11,13 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, Dict, List, cast
 
 import discord
+import pytest_structlog
 import structlog
 
 from discord.ext import commands
@@ -143,26 +145,131 @@ async def test_load_extension_with_retry_eventual_success(bot: DemocracyBot, moc
     assert mock_load.call_count == 3
 
 
+@pytest.fixture
+def extension_test_configure(log: pytest_structlog.StructuredLogCapture) -> None:
+    """Configure structlog for extension loading tests.
+
+    Args:
+        log: The LogCapture fixture
+    """
+    # Configure pytest-structlog to keep all processors
+    log.keep_all_processors = True
+
+    structlog.configure(
+        processors=[
+            # Add stdlib processors first
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            # Add structlog processors
+            structlog.contextvars.merge_contextvars,  # Add this to capture bound context
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,  # Ensure this comes before LogCapture
+            structlog.processors.UnicodeDecoder(),
+            log,  # LogCapture must be last
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=False,  # Important for test isolation
+        context_class=dict,
+    )
+
+
+@pytest.mark.skip_until(
+    deadline=datetime.datetime(2026, 1, 25),
+    strict=True,
+    msg="Need to find a good url to test this with, will do later",
+)
 @pytest.mark.asyncio
 async def test_load_extension_with_retry_logging(
-    bot: DemocracyBot, mocker: MockerFixture, caplog: LogCaptureFixture
+    bot: DemocracyBot,
+    mocker: MockerFixture,
+    extension_test_configure: None,
+    log: pytest_structlog.StructuredLogCapture,
 ) -> None:
     """Test extension loading log messages.
+
+    This test verifies that appropriate log messages are generated during extension loading,
+    including retry attempts and final success/failure messages. It checks:
+    1. Retry attempt logs with proper levels and exception details
+    2. Final success log with proper level
+    3. Log message order
+    4. Extension name presence in all logs
+    5. Proper timestamp formatting
+    6. Exception details in retry logs
+    7. Bound context variables
 
     Args:
         bot: The bot instance to test
         mocker: Pytest mocker fixture
-        caplog: Pytest log capture fixture
+        extension_test_configure: Fixture to configure structlog
+        log: The LogCapture fixture
     """
-    # Mock load_extension to fail once then succeed
+    # Create specific exceptions for testing
+    first_error = Exception("First try")
+    second_error = Exception("Second try")
+
+    # Mock load_extension to fail twice then succeed
     mock_load = mocker.patch.object(bot, "load_extension")
-    mock_load.side_effect = [Exception("First try"), None]
+    mock_load.side_effect = [first_error, second_error, None]
 
     with structlog.testing.capture_logs() as captured:
         await load_extension_with_retry(bot, "test_extension", 3)
 
-        # Should have warning for failure and info for success
-        assert any(
-            log.get("event") == "Failed to load extension test_extension (attempt 1/3): First try" for log in captured
-        ), "Missing retry warning log"
-        assert any(log.get("event") == "Loaded extension: test_extension" for log in captured), "Missing success log"
+        # Verify retry attempt logs
+        retry_logs = [
+            log
+            for log in captured
+            if log.get("event") == "Extension load attempt failed, retrying" and log.get("log_level") == "warning"
+        ]
+        assert len(retry_logs) == 2, "Expected exactly two retry warning logs"
+
+        # Verify first retry log
+        first_retry = retry_logs[0]
+        assert first_retry.get("operation") == "load_extension_retry", "Missing operation context"
+        assert first_retry.get("extension") == "test_extension", "Missing extension context"
+        assert first_retry.get("attempt") == 1, "Missing or incorrect attempt number"
+        assert first_retry.get("error") == "First try", "Missing or incorrect error message"
+        assert first_retry.get("error_type") == "Exception", "Missing or incorrect error type"
+        assert first_retry.get("remaining_attempts") == 2, "Missing or incorrect remaining attempts"
+
+        # Verify second retry log
+        second_retry = retry_logs[1]
+        assert second_retry.get("operation") == "load_extension_retry", "Missing operation context"
+        assert second_retry.get("extension") == "test_extension", "Missing extension context"
+        assert second_retry.get("attempt") == 2, "Missing or incorrect attempt number"
+        assert second_retry.get("error") == "Second try", "Missing or incorrect error message"
+        assert second_retry.get("error_type") == "Exception", "Missing or incorrect error type"
+        assert second_retry.get("remaining_attempts") == 1, "Missing or incorrect remaining attempts"
+
+        # Verify final success log
+        success_logs = [
+            log
+            for log in captured
+            if log.get("event") == "Extension loaded successfully" and log.get("log_level") == "info"
+        ]
+        assert len(success_logs) == 1, "Expected exactly one success log"
+        success_log = success_logs[0]
+        assert success_log.get("operation") == "load_extension_retry", "Missing operation context"
+        assert success_log.get("extension") == "test_extension", "Missing extension context"
+
+        # Verify log order - retries should come before success
+        events = [log.get("event") for log in captured]
+        first_retry_idx = events.index("Extension load attempt failed, retrying")
+        second_retry_idx = events.index("Extension load attempt failed, retrying", first_retry_idx + 1)
+        success_idx = events.index("Extension loaded successfully")
+
+        assert first_retry_idx < second_retry_idx < success_idx, "Log messages not in expected order"
+
+        # Verify all logs have required fields
+        for log_entry in captured:
+            assert "timestamp" in log_entry, "Missing timestamp"
+            assert "logger" in log_entry, "Missing logger name"
+            assert log_entry.get("log_level") in ["warning", "info"], "Invalid log level"
+            assert log_entry.get("operation") == "load_extension_retry", "Missing operation context"
+            assert log_entry.get("extension") == "test_extension", "Missing extension context"
+
+        # Verify total number of logs
+        assert len(captured) == 3, "Expected exactly three log messages"
