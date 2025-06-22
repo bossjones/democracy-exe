@@ -37,39 +37,6 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-# @pytest.fixture(autouse=True, scope="function")
-# def setup_loguru(caplog: LogCaptureFixture) -> Generator[None, None, None]:
-#     """Configure loguru to work with pytest's caplog.
-
-#     This fixture sets up loguru to write to pytest's caplog handler,
-#     allowing us to capture and verify log messages in tests.
-
-#     Args:
-#         caplog: Pytest log capture fixture
-
-#     Yields:
-#         None
-
-#     Example:
-#         >>> def test_something(caplog):
-#         ...     logger.error("Test message")
-#         ...     assert "Test message" in caplog.text
-#     """
-#     # Remove default handler
-#     logger.remove()
-
-#     # Add handler that writes to pytest's caplog
-#     handler_id = logger.add(
-#         logging.StreamHandler(stream=caplog.handler.stream),
-#         format="{message}",
-#         level=0,
-#     )
-
-#     yield
-
-#     # Cleanup
-#     logger.remove(handler_id)
-
 
 @pytest.fixture
 def mock_gallery_dl(mocker: MockerFixture) -> Any:

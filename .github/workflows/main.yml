@@ -23,40 +23,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number|| github.sha }}
   cancel-in-progress: true
 jobs:
-  # https://github.com/astral-sh/uv/blob/75c26229a2d8a9c2f249fd79f5fcf7b4d9ac77bb/.github/workflows/ci.yml#L88
-  determine_changes:
-    name: Determine changes
-    runs-on: ubuntu-latest
-    outputs:
-      # Flag that is raised when any code is changed
-      code: ${{ steps.changed.outputs.code_any_changed }}
-    steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref_name }} and your repository is ${{ github.repository }}."
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: tj-actions/changed-files@v45
-        id: changed
-        with:
-          files_yaml: |
-            code:
-              - "**/*"
-              - "!docs/**/*"
-              - "!mkdocs.*.yml"
-              - "!**/*.md"
-              - "!bin/**"
-              - "!assets/**"
-              # Generated markdown and JSON files are checked during test runs
-              - "docs/reference/cli.md"
-              - "docs/reference/settings.md"
-              - "docs/configuration/environment.md"
-              # - "uv.schema.json"
   quality:
     runs-on: ubuntu-latest
     steps:

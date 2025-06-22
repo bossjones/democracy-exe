@@ -182,14 +182,14 @@ def normalize_rectangle_coords(
     xmin_fullsize, ymin_fullsize, xmax_fullsize, ymax_fullsize = bboxes[0]
 
     # if we have a negative point to make a rectange with, set it to 0
-    startY = max(int(ymin_fullsize), 0)
-    endY = max(int(ymax_fullsize), 0)
-    startX = max(int(xmin_fullsize), 0)
-    endX = max(int(xmax_fullsize), 0)
+    starty = max(int(ymin_fullsize), 0)
+    endy = max(int(ymax_fullsize), 0)
+    startx = max(int(xmin_fullsize), 0)
+    endx = max(int(xmax_fullsize), 0)
 
-    rich.print(startY, endY, startX, endX)
+    rich.print(starty, endy, startx, endx)
 
-    return [startY, endY, startX, endX]
+    return [starty, endy, startx, endx]
 
 
 def display_normalized_rectangle(image, out_bbox):
