@@ -1,4 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 """Tests for Autocrop cog functionality."""
 
 from __future__ import annotations
@@ -23,9 +30,6 @@ from structlog.testing import capture_logs
 import pytest
 
 from democracy_exe.aio_settings import aiosettings
-
-
-logger = structlog.get_logger(__name__)
 from democracy_exe.chatbot.cogs.autocrop import HELP_MESSAGE, AutocropError
 from democracy_exe.chatbot.cogs.autocrop import Autocrop as AutocropCog
 from democracy_exe.chatbot.core.bot import DemocracyBot
@@ -39,7 +43,7 @@ if TYPE_CHECKING:
     from pytest_mock.plugin import MockerFixture
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, scope="function")
 async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
     """Create a DemocracyBot instance with Autocrop cog for testing.
 
@@ -94,8 +98,8 @@ async def bot_with_autocrop_cog() -> AsyncGenerator[DemocracyBot, None]:
     #     await asyncio.gather(*asyncio.all_tasks(), return_exceptions=True)
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def cleanup_global_message_queue() -> AsyncGenerator[None, None]:
+@pytest_asyncio.fixture(autouse=True, scope="function")
+async def cleanup_global_message_queue_autocrop() -> AsyncGenerator[None, None]:
     """Clean up the global message queue after each test.
 
     This fixture ensures that no messages from previous tests remain in the queue,
@@ -139,27 +143,27 @@ def test_image(tmp_path: pathlib.Path) -> pathlib.Path:
     return img_path
 
 
-@pytest.fixture(autouse=True)
-def configure_structlog() -> None:
-    """Configure structlog for testing.
+# @pytest.fixture(autouse=True)
+# def configure_structlog() -> None:
+#     """Configure structlog for testing.
 
-    This fixture ensures each test has a clean, properly configured structlog setup.
-    It disables caching and configures appropriate processors for testing.
-    """
-    structlog.reset_defaults()
-    structlog.configure(
-        processors=[
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.add_log_level,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.testing.LogCapture(),
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        logger_factory=structlog.PrintLoggerFactory,
-        context_class=dict,
-        cache_logger_on_first_use=False,  # Important: Disable caching for tests
-    )
+#     This fixture ensures each test has a clean, properly configured structlog setup.
+#     It disables caching and configures appropriate processors for testing.
+#     """
+#     structlog.reset_defaults()
+#     structlog.configure(
+#         processors=[
+#             structlog.processors.TimeStamper(fmt="iso"),
+#             structlog.processors.add_log_level,
+#             structlog.processors.StackInfoRenderer(),
+#             structlog.processors.format_exc_info,
+#             structlog.testing.LogCapture(),
+#         ],
+#         wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+#         logger_factory=structlog.PrintLoggerFactory,
+#         context_class=dict,
+#         cache_logger_on_first_use=False,  # Important: Disable caching for tests
+#     )
 
 
 @pytest.mark.asyncio

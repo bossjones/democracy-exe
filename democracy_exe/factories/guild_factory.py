@@ -1,32 +1,87 @@
-"""guild_factory.py"""
-
+"""Guild factory for creating guild instances."""
 from __future__ import annotations
 
+import asyncio
+import os
+
+from typing import Any, Dict, Optional
+
+import structlog
+
 from democracy_exe.aio_settings import aiosettings
+from democracy_exe.factories.singleton import Singleton
 
 
-# SOURCE: https://stackoverflow.com/a/63483209/814221
-class Singleton(type):
-    # Inherit from "type" in order to gain access to method __call__
-    def __init__(self, *args, **kwargs):
-        self.__instance = None  # Create a variable to store the object reference
-        super().__init__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        if self.__instance is None:
-            # if the object has not already been created
-            self.__instance = super().__call__(
-                *args, **kwargs
-            )  # Call the __init__ method of the subclass (Spam) and save the reference
-        return self.__instance
+logger = structlog.get_logger(__name__)
 
 
-# SOURCE: https://stackoverflow.com/a/63483209/814221
 class Guild(metaclass=Singleton):
-    def __init__(self, id=aiosettings.discord_server_id, prefix=aiosettings.prefix):
-        # print('Creating Guild')
-        self.id = id
-        self.prefix = prefix
+    """Guild class for managing Discord guild data."""
+
+    def __init__(self, id: int | None = None, prefix: str | None = None) -> None:
+        """Initialize the guild.
+
+        Args:
+            id: Guild ID
+            prefix: Command prefix
+        """
+        self.id = id if id is not None else getattr(aiosettings, "discord_server_id", 0)
+        self.prefix = prefix if prefix is not None else getattr(aiosettings, "prefix", "?")
+        self._lock = asyncio.Lock()
+        self._data: dict[str, Any] = {}
+
+    async def get_data(self, key: str) -> Any:
+        """Get guild data by key.
+
+        Args:
+            key: Data key
+
+        Returns:
+            Any: Data value
+        """
+        async with self._lock:
+            return self._data.get(key)
+
+    async def set_data(self, key: str, value: Any) -> None:
+        """Set guild data by key.
+
+        Args:
+            key: Data key
+            value: Data value
+        """
+        async with self._lock:
+            self._data[key] = value
+
+    async def delete_data(self, key: str) -> None:
+        """Delete guild data by key.
+
+        Args:
+            key: Data key
+        """
+        async with self._lock:
+            self._data.pop(key, None)
+
+    async def clear_data(self) -> None:
+        """Clear all guild data."""
+        async with self._lock:
+            self._data.clear()
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """Get all guild data.
+
+        Returns:
+            Dict[str, Any]: Guild data
+        """
+        return self._data.copy()
+
+    def __str__(self) -> str:
+        """Get string representation.
+
+        Returns:
+            str: String representation
+        """
+        return f"Guild(id={self.id}, prefix={self.prefix})"
 
 
 # smoke tests

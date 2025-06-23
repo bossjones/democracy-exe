@@ -1,8 +1,13 @@
 """democracy_exe.utils.dropbox_"""
-# pylint: disable=unused-import
-# pylint: disable=no-value-for-parameter
-# pyright: reportAttributeAccessIssue=false
 # pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pylint: disable=unused-import
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 from __future__ import annotations
 
 import asyncio

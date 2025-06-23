@@ -1,5 +1,6 @@
 """cerebro_bot.utils.aiotweetpik"""
 # pylint: disable=unused-import
+# pyright: reportInvalidTypeForm=false
 # NOTE: couple sources
 # https://github.com/powerfist01/hawk-eyed/blob/f340c6ff814dd3e2a3cac7a30d03b7c07d95d1e4/services/tweet_to_image/tweetpik.py
 # https://github.com/bwhli/birdcatcher/blob/a4b33feff4f2d88d5412cd50b11760312bdd4f1d/app/util/Tweet.py
@@ -106,14 +107,14 @@ def get_tweet_id(tweet_url: str) -> str:
     return re.findall(r"[http?s//]?twitter\.com\/.*\/status\/(\d+)", tweet_url)[0]
 
 
-def build_tweetpik_download_url(tweetId: str) -> str:
+def build_tweetpik_download_url(tweet_id: str) -> str:
     """Building the URL
-    The URL is predictable, so you don't have to worry about storing it. You just need to make sure you generated it before using it. The URL will always consist of your bucket ID and the tweet ID. https://ik.imagekit.io/tweetpik/323251495115948625/tweetId
+    The URL is predictable, so you don't have to worry about storing it. You just need to make sure you generated it before using it. The URL will always consist of your bucket ID and the tweet ID. https://ik.imagekit.io/tweetpik/323251495115948625/tweet_id
 
     Returns:
         str: Url of the image we plan to download
     """
-    return f"https://ik.imagekit.io/tweetpik/{TWEETPIK_BUCKET_ID}/{tweetId}"
+    return f"https://ik.imagekit.io/tweetpik/{TWEETPIK_BUCKET_ID}/{tweet_id}"
 
 
 class TweetpikAPIError(Exception):
@@ -516,7 +517,7 @@ class TweetpikHTTPClient:
         payload = {}
 
         if tweet_url:
-            payload["tweetId"] = get_tweet_id(tweet_url)
+            payload["tweet_id"] = get_tweet_id(tweet_url)
 
         if dimension_ig_feed:
             payload["dimension_ig_feed"] = dimension_ig_feed
@@ -587,7 +588,7 @@ class TweetpikHTTPClient:
         payload = {}
 
         if tweet_url:
-            payload["tweetId"] = get_tweet_id(tweet_url)
+            payload["tweet_id"] = get_tweet_id(tweet_url)
 
         if dimension_ig_feed:
             payload["dimension_ig_feed"] = dimension_ig_feed

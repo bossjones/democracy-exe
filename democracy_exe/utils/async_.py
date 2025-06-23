@@ -461,66 +461,66 @@ def to_sync(fn):
     return wrapper
 
 
-def force_async(fn):
-    """
-    Turn a sync function to async function using threads with proper resource management.
+# def force_async(fn):
+#     """
+#     Turn a sync function to async function using threads with proper resource management.
 
-    Args:
-        fn: Synchronous function to convert
+#     Args:
+#         fn: Synchronous function to convert
 
-    Returns:
-        Async version of the function
-    """
-    pool = thread_pool_manager.create_pool()
+#     Returns:
+#         Async version of the function
+#     """
+#     pool = thread_pool_manager.create_pool()
 
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        try:
-            future = pool.submit(fn, *args, **kwargs)
-            return asyncio.wrap_future(future)
-        except Exception as e:  # pylint: disable=broad-except
-            logger.error(
-                "Error in forced async execution",
-                function=fn.__name__,
-                error=str(e),
-                args=args,
-                kwargs=kwargs,
-            )
-            raise
+#     @functools.wraps(fn)
+#     def wrapper(*args, **kwargs):
+#         try:
+#             future = pool.submit(fn, *args, **kwargs)
+#             return asyncio.wrap_future(future)
+#         except Exception as e:  # pylint: disable=broad-except
+#             logger.error(
+#                 "Error in forced async execution",
+#                 function=fn.__name__,
+#                 error=str(e),
+#                 args=args,
+#                 kwargs=kwargs,
+#             )
+#             raise
 
-    return wrapper
+#     return wrapper
 
 
-def force_sync(fn):
-    """
-    Turn an async function to sync function with proper error handling.
+# def force_sync(fn):
+#     """
+#     Turn an async function to sync function with proper error handling.
 
-    Args:
-        fn: Async function to convert
+#     Args:
+#         fn: Async function to convert
 
-    Returns:
-        Sync version of the function
-    """
+#     Returns:
+#         Sync version of the function
+#     """
 
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        res = fn(*args, **kwargs)
-        if asyncio.iscoroutine(res):
-            try:
-                loop = asyncio.get_running_loop()
-                return loop.run_until_complete(res)
-            except Exception as e:  # pylint: disable=broad-except
-                logger.error(
-                    "Error in forced sync execution",
-                    function=fn.__name__,
-                    error=str(e),
-                    args=args,
-                    kwargs=kwargs,
-                )
-                raise
-        return res
+#     @functools.wraps(fn)
+#     def wrapper(*args, **kwargs):
+#         res = fn(*args, **kwargs)
+#         if asyncio.iscoroutine(res):
+#             try:
+#                 loop = asyncio.get_running_loop()
+#                 return loop.run_until_complete(res)
+#             except Exception as e:  # pylint: disable=broad-except
+#                 logger.error(
+#                     "Error in forced sync execution",
+#                     function=fn.__name__,
+#                     error=str(e),
+#                     args=args,
+#                     kwargs=kwargs,
+#                 )
+#                 raise
+#         return res
 
-    return wrapper
+#     return wrapper
 
 
 def fire_coroutine_threadsafe(coro: Coroutine, loop: AbstractEventLoop) -> asyncio.Future:

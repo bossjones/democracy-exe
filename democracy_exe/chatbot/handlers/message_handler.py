@@ -1,36 +1,36 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
 # pyright: reportAttributeAccessIssue=false
-
-"""Message processing and LangGraph integration.
-
-This module contains functionality for processing Discord messages and integrating
-with LangGraph for AI responses.
-"""
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
+"""Message handler for processing Discord messages."""
 from __future__ import annotations
 
+import asyncio
+import io
 import re
 
-from typing import Any, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import aiohttp
 import discord
 import structlog
 
-from discord import DMChannel, Message, TextChannel, Thread
-from discord.abc import Messageable
-from discord.member import Member
-from discord.user import User
-from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph  # type: ignore
+from PIL import Image
+
+from democracy_exe.aio_settings import aiosettings
+from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
+from democracy_exe.chatbot.utils.resource_manager import ResourceLimits, ResourceManager
+from democracy_exe.constants import MAX_BYTES_UPLOAD_DISCORD, MAX_FILE_UPLOAD_IMAGES_IMGUR
 
 
 logger = structlog.get_logger(__name__)
-from PIL import Image
-
-from democracy_exe.chatbot.handlers.attachment_handler import AttachmentHandler
-from democracy_exe.chatbot.utils.message_utils import format_inbound_message, get_session_id, prepare_agent_input
-
 
 class MessageHandler:
-    """Handler for processing Discord messages and integrating with LangGraph."""
+    """Handles processing of Discord messages."""
 
     def __init__(self, bot: Any) -> None:
         """Initialize the message handler.
@@ -40,219 +40,254 @@ class MessageHandler:
         """
         self.bot = bot
         self.attachment_handler = AttachmentHandler()
+        self._download_semaphore = asyncio.Semaphore(
+            getattr(aiosettings, "max_concurrent_downloads", 5)
+        )
+        limits = ResourceLimits(
+            max_memory_mb=getattr(aiosettings, "max_memory_mb", 512),
+            max_tasks=getattr(aiosettings, "max_tasks", 100),
+            max_response_size_mb=getattr(aiosettings, "max_response_size_mb", 1),
+            max_buffer_size_kb=getattr(aiosettings, "max_buffer_size_kb", 64),
+            task_timeout_seconds=getattr(aiosettings, "task_timeout_seconds", 30.0)
+        )
+        self._resource_manager = ResourceManager(limits)
+        self._max_total_size = MAX_BYTES_UPLOAD_DISCORD
+        self._max_image_size = MAX_FILE_UPLOAD_IMAGES_IMGUR
 
     async def check_for_attachments(self, message: discord.Message) -> str:
-        """Check and process message attachments.
+        """Check message for attachments and process them.
 
         Args:
-            message: The Discord message
+            message: Discord message to check
 
         Returns:
-            The processed message content
+            str: Message content or processed image URL
+
+        Raises:
+            RuntimeError: If attachment size exceeds limit
         """
+        task = asyncio.current_task()
+        if task:
+            await self._resource_manager.track_task(task)
+
         try:
-            content = cast(str, message.content)
-            attachments = cast(list[discord.Attachment], message.attachments)
+            attachments = message.attachments
+            content = message.content
+            total_size = sum(a.size for a in attachments)
 
-            # Handle Tenor GIFs
-            if "https://tenor.com/view/" in content:
-                return await self._handle_tenor_gif(message, content)
+            if total_size > self._max_total_size:
+                raise RuntimeError(f"Total attachment size {total_size} exceeds {self._max_total_size} limit")
 
-            # Handle image URLs
-            image_pattern = r"https?://[^\s<>\"]+?\.(?:png|jpg|jpeg|gif|webp)"
-            if re.search(image_pattern, content):
-                url = re.findall(image_pattern, content)[0]
-                return await self._handle_url_image(url)
+            # Check for Tenor URLs first
+            tenor_pattern = r'https://tenor\.com/view/([^/\s]+)-\d+'
+            tenor_match = re.search(tenor_pattern, content)
+            if tenor_match:
+                gif_description = tenor_match.group(1).replace('-', ' ')
+                return f"[{message.author.name} posts an animated {gif_description}]"
 
-            # Handle Discord attachments
+            # Check for image URLs in content
+            image_pattern = r'https?://[^\s<\"]+?\.(?:png|jpg|jpeg|gif|webp)'
+            image_urls = re.findall(image_pattern, content)
+
+            if image_urls:
+                return await self.handle_url_image(image_urls[0])
+
             if attachments:
-                return await self._handle_attachment_image(message)
+                return await self.handle_attachment_image(attachments[0])
 
             return content
-        except Exception as e:
-            logger.error(f"Error checking attachments: {e}")
-            return cast(str, message.content) or ""
+
+        finally:
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
 
     async def stream_bot_response(
         self,
-        graph: CompiledStateGraph,
+        graph: Any,
         input_data: dict[str, Any]
     ) -> str:
-        """Stream responses from the bot's LangGraph.
+        """Stream bot response from LangGraph.
 
         Args:
-            graph: The compiled state graph
+            graph: LangGraph instance
             input_data: Input data for the graph
 
         Returns:
-            The bot's response
+            str: Final response
 
         Raises:
-            ValueError: If response generation fails
+            RuntimeError: If response exceeds size limit or times out
         """
-        """Stream responses from the bot's LangGraph.
+        task = asyncio.current_task()
+        if task:
+            await self._resource_manager.track_task(task)
 
-        Args:
-            graph: The compiled state graph
-            input_data: Input data for the graph
-
-        Returns:
-            The bot's response
-
-        Raises:
-            ValueError: If response generation fails
-        """
         try:
-            response = graph.invoke(input_data)
-            if isinstance(response, dict) and "messages" in response:
-                messages = response.get("messages", [])
-                return "".join(msg.content for msg in messages if hasattr(msg, 'content'))
-            raise ValueError("No response generated")
+            timeout = getattr(aiosettings, "task_timeout_seconds", 30.0)
+            max_size = getattr(aiosettings, "max_response_size_mb", 2) * 1024 * 1024
+
+            response = await graph.ainvoke(input_data) if hasattr(graph, 'ainvoke') else graph.invoke(input_data)
+
+            if not response or 'messages' not in response:
+                raise RuntimeError("No response generated")
+
+            messages = response['messages']
+            combined_content = ''.join(str(m) for m in messages)
+            response_size = len(combined_content.encode('utf-8'))
+
+            if response_size > max_size:
+                raise RuntimeError("Response exceeds Discord message size limit")
+
+            return combined_content
+
+        except TimeoutError:
+            raise RuntimeError("Response generation timed out")
+
         except Exception as e:
-            logger.error(f"Error streaming bot response: {e}")
+            logger.exception("Error generating response", error=str(e))
             raise
 
-    async def _get_thread(self, message: discord.Message) -> Thread | DMChannel:
-        """Get or create a thread for the message.
+        finally:
+            if task:
+                await self._resource_manager.cleanup_tasks([task])
+                logger.info("Resource cleanup completed", task=str(task))
+
+    async def handle_url_image(self, url: str) -> str:
+        """Handle image from URL.
+
+        Args:
+            url: Image URL
+
+        Returns:
+            str: Processed image URL
+
+        Raises:
+            RuntimeError: If image size exceeds limit
+        """
+        async with self._download_semaphore:
+            response = await self.attachment_handler.download_image(url)
+            if response:
+                size = len(response.getvalue())
+                if size > self._max_image_size:
+                    raise RuntimeError(f"Image size {size} exceeds {self._max_image_size} limit")
+                return url
+
+    async def handle_attachment_image(self, attachment: discord.Attachment) -> str:
+        """Handle Discord attachment image.
+
+        Args:
+            attachment: Discord attachment
+
+        Returns:
+            str: Processed image URL
+
+        Raises:
+            RuntimeError: If image size exceeds limit
+        """
+        if attachment.size > self._max_image_size:
+            raise RuntimeError(f"Image size {attachment.size} exceeds {self._max_image_size} limit")
+
+        async with self._download_semaphore:
+            response = await self.attachment_handler.download_image(attachment.url)
+            if response:
+                return attachment.url
+
+    def get_session_id(self, obj: discord.Message | discord.Thread | discord.DMChannel) -> str:
+        """Get a unique session ID for a message, thread, or DM channel.
+
+        Args:
+            obj: The Discord object to get a session ID for (Message, Thread, or DMChannel)
+
+        Returns:
+            str: A unique session ID string
+
+        Raises:
+            ValueError: If the object type is not supported
+        """
+        if isinstance(obj, discord.Message):
+            if isinstance(obj.channel, discord.DMChannel):
+                return f"discord_{obj.author.id}"
+            return f"discord_{obj.channel.id}"
+        elif isinstance(obj, discord.Thread):
+            return f"discord_{obj.starter_message.channel.id}"
+        elif isinstance(obj, discord.DMChannel):
+            return f"discord_{obj.recipient.id}"
+        else:
+            raise ValueError(f"Unsupported object type for session ID: {type(obj)}")
+
+    async def get_thread(self, message: discord.Message) -> discord.Thread | discord.DMChannel:
+        """Get or create a thread for a message.
 
         Args:
             message: The Discord message
 
         Returns:
-            The thread or DM channel for the message
+            The thread or DM channel for the conversation
 
         Raises:
-            ValueError: If thread creation fails
+            RuntimeError: If thread creation fails
         """
         try:
-            channel = cast(Union[TextChannel, DMChannel], message.channel)
-            if isinstance(channel, DMChannel):
-                return channel
+            # For DM channels, return the channel directly
+            if isinstance(message.channel, discord.DMChannel):
+                return message.channel
 
-            if not isinstance(channel, TextChannel):
-                raise ValueError(f"Unsupported channel type: {type(channel)}")
+            # For text channels, create or get thread
+            if isinstance(message.channel, discord.TextChannel):
+                thread_name = f"Chat with {message.author.name}"
 
-            thread = await channel.create_thread(
-                name="Response",
-                message=message,
-            )
-            return thread
+                # Try to create a new thread
+                try:
+                    thread = await message.create_thread(name=thread_name)
+                    return thread
+                except discord.HTTPException as e:
+                    logger.error("Failed to create thread", error=str(e))
+                    raise RuntimeError("Failed to create thread") from e
+
+            return message.channel
+
         except Exception as e:
-            logger.error(f"Error getting thread: {e}")
-            raise
-
-    def _format_inbound_message(self, message: Message) -> HumanMessage:
-        """Format a Discord message into a HumanMessage.
-
-        Args:
-            message: The Discord message to format
-
-        Returns:
-            Formatted HumanMessage
-        """
-        return format_inbound_message(message)
-
-    def get_session_id(self, message: Message | Thread) -> str:
-        """Generate a session ID for the given message.
-
-        Args:
-            message: The message or thread
-
-        Returns:
-            The generated session ID
-        """
-        return get_session_id(message)
+            logger.error("Error getting/creating thread", error=str(e))
+            raise RuntimeError("Failed to get/create thread") from e
 
     def prepare_agent_input(
         self,
-        message: Message | Thread,
-        user_real_name: str,
+        obj: discord.Message | discord.Thread,
+        user_name: str,
         surface_info: dict[str, Any]
     ) -> dict[str, Any]:
-        """Prepare the agent input from the incoming Discord message.
+        """Prepare input data for the agent from a Discord object.
 
         Args:
-            message: The Discord message containing the user input
-            user_real_name: The real name of the user who sent the message
-            surface_info: The surface information related to the message
+            obj: The Discord object (Message or Thread) to prepare input from
+            user_name: The user's display name
+            surface_info: Additional surface-level information
 
         Returns:
-            The input dictionary to be sent to the agent
-
-        Raises:
-            ValueError: If message processing fails
+            Dict[str, Any]: Prepared input data for the agent including:
+                - user name: The user's display name
+                - message: The message content
+                - surface_info: Additional context information
+                - file_name: Optional attachment filename
+                - image_url: Optional attachment URL
         """
-        return prepare_agent_input(message, user_real_name, surface_info)
+        result: dict[str, Any] = {
+            "user name": user_name,
+            "surface_info": surface_info
+        }
 
-    async def _handle_tenor_gif(self, message: discord.Message, content: str) -> str:
-        """Handle Tenor GIF URLs in messages.
+        # Handle different object types
+        if isinstance(obj, discord.Message):
+            result["message"] = obj.content
+            # Add attachment info if present
+            if obj.attachments:
+                attachment = obj.attachments[0]
+                result["file_name"] = attachment.filename
+                result["image_url"] = attachment.url
+        elif isinstance(obj, discord.Thread):
+            result["message"] = obj.starter_message.content
+        else:
+            raise ValueError(f"Unsupported object type for agent input: {type(obj)}")
 
-        Args:
-            message: The Discord message
-            content: The message content
-
-        Returns:
-            Updated message content with GIF description
-        """
-        try:
-            start_index = content.index("https://tenor.com/view/")
-            end_index = content.find(" ", start_index)
-            tenor_url = content[start_index:] if end_index == -1 else content[start_index:end_index]
-
-            parts = tenor_url.split("/")
-            words = parts[-1].split("-")[:-1]
-            sentence = " ".join(words)
-
-            author = cast(Union[Member, User], message.author)
-            return f"{content} [{author.display_name} posts an animated {sentence}]".replace(tenor_url, "")
-        except Exception as e:
-            logger.error(f"Error processing Tenor GIF: {e}")
-            return content
-
-    async def _handle_url_image(self, url: str) -> str:
-        """Handle image URLs in messages.
-
-        Args:
-            url: The image URL
-
-        Returns:
-            The original URL
-        """
-        try:
-            logger.info(f"Processing image URL: {url}")
-            response = await self.attachment_handler.download_image(url)
-            if response:
-                image = Image.open(response).convert("RGB")
-                # Process image if needed
-            return url
-        except Exception as e:
-            logger.error(f"Error processing image URL: {e}")
-            return url
-
-    async def _handle_attachment_image(self, message: discord.Message) -> str:
-        """Handle image attachments in messages.
-
-        Args:
-            message: The Discord message with attachments
-
-        Returns:
-            The message content
-        """
-        try:
-            attachments = cast(list[discord.Attachment], message.attachments)
-            if not attachments:
-                return cast(str, message.content) or ""
-
-            attachment = attachments[0]
-            if not attachment.content_type or not attachment.content_type.startswith("image/"):
-                return cast(str, message.content) or ""
-
-            response = await self.attachment_handler.download_image(attachment.url)
-            if response:
-                image = Image.open(response).convert("RGB")
-                # Process image if needed
-
-            return cast(str, message.content) or ""
-        except Exception as e:
-            logger.error(f"Error processing attachment: {e}")
-            return cast(str, message.content) or ""
+        return result

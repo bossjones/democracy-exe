@@ -81,28 +81,16 @@ class ScalarFunction:
     def __init__(self, fun, x0, args, grad, hess, finite_diff_rel_step, finite_diff_bounds, epsilon=...) -> None:
         ...
     
-    @property
-    def nfev(self): # -> int:
-        ...
-    
-    @property
-    def ngev(self): # -> int:
-        ...
-    
-    @property
-    def nhev(self): # -> int:
-        ...
-    
-    def fun(self, x): # -> generic | bool | int | float | complex | str | bytes | memoryview[int]:
+    def fun(self, x):
         ...
     
     def grad(self, x):
         ...
     
-    def hess(self, x): # -> csr_matrix | LinearOperator | NDArray[Any] | HessianUpdateStrategy | None:
+    def hess(self, x): # -> object | csr_matrix | NDArray[Any] | HessianUpdateStrategy:
         ...
     
-    def fun_and_grad(self, x): # -> tuple[Any | generic | bool | int | float | complex | str | bytes | memoryview[int], Any]:
+    def fun_and_grad(self, x): # -> tuple[Any, Any]:
         ...
     
 
@@ -148,7 +136,7 @@ class LinearVectorFunction:
     def __init__(self, A, x0, sparse_jacobian) -> None:
         ...
     
-    def fun(self, x): # -> ndarray[Any, Any] | Any:
+    def fun(self, x): # -> ndarray[Any, Any]:
         ...
     
     def jac(self, x): # -> csr_matrix | NDArray[Any]:

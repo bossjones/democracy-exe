@@ -6,9 +6,8 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
+from ... import PreTrainedModel
 from ...modeling_outputs import ModelOutput
-from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
 from .configuration_llava_next import LlavaNextConfig
 
@@ -93,16 +92,18 @@ class LlavaNextCausalLMOutputWithPast(ModelOutput):
 
             Attentions weights after the attention softmax, used to compute the weighted average in the self-attention
             heads.
-        image_hidden_states (`torch.FloatTensor`, *optional*):
-            A `torch.FloatTensor` of size (batch_size * num_patches, num_images, sequence_length, hidden_size)`.
-            image_hidden_states of the model produced by the vision encoder and after projecting the last hidden state.
+        image_hidden_states (`tuple(torch.FloatTensor)`, *optional*):
+            Tuple of `torch.FloatTensor` (one for the output of the image embeddings, `(batch_size, num_images,
+            sequence_length, hidden_size)`.
+
+            image_hidden_states of the model produced by the vision encoder, and optionally by the perceiver
     """
     loss: Optional[torch.FloatTensor] = ...
     logits: torch.FloatTensor = ...
     past_key_values: Optional[List[torch.FloatTensor]] = ...
     hidden_states: Optional[Tuple[torch.FloatTensor]] = ...
     attentions: Optional[Tuple[torch.FloatTensor]] = ...
-    image_hidden_states: Optional[torch.FloatTensor] = ...
+    image_hidden_states: Optional[Tuple[torch.FloatTensor]] = ...
 
 
 class LlavaNextMultiModalProjector(nn.Module):
@@ -122,14 +123,13 @@ class LlavaNextPreTrainedModel(PreTrainedModel):
     supports_gradient_checkpointing = ...
     _no_split_modules = ...
     _skip_keys_device_placement = ...
-    _supports_cache_class = ...
     _supports_flash_attn_2 = ...
-    _supports_sdpa = ...
+    _supports_cache_class = ...
 
 
 LLAVA_NEXT_INPUTS_DOCSTRING = ...
 @add_start_docstrings("""The LLAVA-NeXT model which consists of a vision backbone and a language model.""", LLAVA_NEXT_START_DOCSTRING)
-class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel, GenerationMixin):
+class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel):
     def __init__(self, config: LlavaNextConfig) -> None:
         ...
     
@@ -165,7 +165,7 @@ class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel, GenerationMixi
     def resize_token_embeddings(self, new_num_tokens: Optional[int] = ..., pad_to_multiple_of=...) -> nn.Embedding:
         ...
     
-    def pack_image_features(self, image_features, image_sizes, vision_feature_select_strategy, image_newline=...): # -> tuple[Tensor, Tensor]:
+    def pack_image_features(self, image_features, image_sizes, image_newline=...): # -> tuple[Tensor, Tensor]:
         """
         Reshape, unpad and then pack each image_feature into a single image_features tensor containing all visual vectors.
 
@@ -174,8 +174,6 @@ class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel, GenerationMixi
                 List of image feature tensor, each contains all the visual feature of all patches.
             image_sizes (`torch.Tensor` of shape `(num_images, 2)`)
                 Actual image size of each images (H, W).
-            vision_feature_select_strategy (`str`)
-                The feature selection strategy used to select the vision feature from the vision backbone.
             image_newline (`torch.Tensor` of shape `(embed_dim)`)
                 New line embedding vector.
         Returns:
@@ -185,40 +183,15 @@ class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel, GenerationMixi
         """
         ...
     
-    def get_image_features(self, pixel_values: torch.FloatTensor, image_sizes: torch.Tensor, vision_feature_layer: int, vision_feature_select_strategy: str): # -> Tuple[Tensor, ...]:
-        """
-        Obtains image last hidden states from the vision tower and apply multimodal projection.
-
-        Args:
-            pixel_values (`torch.FloatTensor]` of shape `(batch_size, num_patches, channels, height, width)`)
-               The tensors corresponding to the input images.
-            image_sizes (`torch.Tensor` of shape `(num_images, 2)`)
-                Actual image size of each images (H, W).
-            vision_feature_layer (`int`):
-                The index of the layer to select the vision feature.
-            vision_feature_select_strategy (`str`):
-                The feature selection strategy used to select the vision feature from the vision backbone.
-                Can be one of `"default"` or `"full"`
-        Returns:
-            image_features (List[`torch.Tensor`]): List of image feature tensor, each contains all the visual feature of all patches
-            and are of shape `(num_patches, image_length, embed_dim)`).
-        """
-        ...
-    
     @add_start_docstrings_to_model_forward(LLAVA_NEXT_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=LlavaNextCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., pixel_values: torch.FloatTensor = ..., image_sizes: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., vision_feature_layer: Optional[int] = ..., vision_feature_select_strategy: Optional[str] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, LlavaNextCausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., pixel_values: torch.FloatTensor = ..., image_sizes: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., vision_feature_layer: Optional[int] = ..., vision_feature_select_strategy: Optional[str] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, LlavaNextCausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
 
         Returns:
 
@@ -236,7 +209,7 @@ class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel, GenerationMixi
         >>> url = "https://www.ilankelman.org/stopsigns/australia.jpg"
         >>> image = Image.open(requests.get(url, stream=True).raw)
 
-        >>> inputs = processor(images=image, text=prompt, return_tensors="pt")
+        >>> inputs = processor(text=prompt, images=image, return_tensors="pt")
 
         >>> # Generate
         >>> generate_ids = model.generate(**inputs, max_length=30)
@@ -245,7 +218,7 @@ class LlavaNextForConditionalGeneration(LlavaNextPreTrainedModel, GenerationMixi
         ```"""
         ...
     
-    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., inputs_embeds=..., pixel_values=..., image_sizes=..., attention_mask=..., cache_position=..., num_logits_to_keep=..., **kwargs):
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., inputs_embeds=..., pixel_values=..., image_sizes=..., attention_mask=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

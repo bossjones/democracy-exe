@@ -323,7 +323,7 @@ class _PageL:
         '''Relative frequency of each L value over all possible single rows'''
         ...
     
-    def pmf(self, l, n): # -> Literal[0]:
+    def pmf(self, l, n): # -> int:
         '''Recursive function to evaluate p(l, k, n); see [5] Equation 1'''
         ...
     

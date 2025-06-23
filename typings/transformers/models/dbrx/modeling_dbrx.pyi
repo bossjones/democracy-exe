@@ -6,7 +6,6 @@ import torch
 from typing import Any, Optional, Tuple, Union
 from torch import nn
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import MoeCausalLMOutputWithPast, MoeModelOutputWithPast
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
@@ -232,7 +231,7 @@ class DbrxModel(DbrxPreTrainedModel):
 
 
 @add_start_docstrings("The DBRX Model transformer for causal language modeling.", DBRX_START_DOCSTRING)
-class DbrxForCausalLM(DbrxPreTrainedModel, GenerationMixin):
+class DbrxForCausalLM(DbrxPreTrainedModel):
     def __init__(self, config: DbrxConfig) -> None:
         ...
     
@@ -256,7 +255,7 @@ class DbrxForCausalLM(DbrxPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(DBRX_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=MoeCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Cache] = ..., inputs_embeds: Optional[torch.Tensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., output_router_logits: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, MoeCausalLMOutputWithPast]:
+    def forward(self, input_ids: Optional[torch.LongTensor] = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[Cache] = ..., inputs_embeds: Optional[torch.Tensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., output_router_logits: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Union[Tuple, MoeCausalLMOutputWithPast]:
         r"""Forward function for causal language modeling.
 
         Args:
@@ -264,11 +263,6 @@ class DbrxForCausalLM(DbrxPreTrainedModel, GenerationMixin):
                 Labels for computing the masked language modeling loss. Indices should either be in `[0, ...,
                 config.vocab_size]` or -100 (see `input_ids` docstring). Tokens with indices set to `-100` are ignored
                 (masked), the loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
 
         Returns:
 
@@ -289,6 +283,9 @@ class DbrxForCausalLM(DbrxPreTrainedModel, GenerationMixin):
         "Hey, are you conscious? Can you talk to me?\nI'm not conscious, but I can talk to you."
         ```
         """
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., position_ids=..., use_cache=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

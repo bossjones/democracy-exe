@@ -54,7 +54,6 @@ dependencies = [
     "memory-profiler>=0.61.0",
     "motor>=3.6.0",
     "moviepy>=1.0.3",
-    "pinecone-client[grpc]>=5.0.1",
     "pydantic[email]>=2.9.2",
     "pydantic-settings>=2.6.1",
     "pyinstrument>=5.0.0",
@@ -107,8 +106,6 @@ dependencies = [
     "strip-tags>=0.5.1",
     "files-to-prompt>=0.4",
     "langchain-fireworks>=0.2.5",
-    "pinecone-text>=0.9.0",
-    "pinecone-notebooks>=0.1.1",
     "nest-asyncio>=1.6.0",
     "grandalf>=0.8",
     "emoji==1.7.0",
@@ -116,8 +113,12 @@ dependencies = [
     "dropbox>=12.0.2",
     "rich>=13.9.4",
     "structlog>=24.4.0",
-    "langsmith==0.1.147",
+    "langsmith>=0.1.147",
+    "langgraph-cli[inmem]>=0.1.65",
+    "typing-extensions>=4.12.2",
     "psutil>=6.1.1",
+    "aider-chat",
+    "pyarrow>=19.0.0",
 ]
 
 [project.urls]
@@ -126,6 +127,11 @@ Repository = "https://github.com/bossjones/democracy-exe"
 Documentation = "https://bossjones.github.io/democracy-exe/"
 
 [tool.uv]
+# constraint-dependencies = [
+#     "rich>=13.9.4,<14.0.0",
+#     "psutil>=6.1.0,<7.0.0",
+#     "typing-extensions>=4.12.0,<5.0.0"
+# ]
 dev-dependencies = [
     "pytest>=7.2.0",
     "pre-commit>=2.20.0",
@@ -215,7 +221,6 @@ dev-dependencies = [
     "types-tqdm>=4.66.0.20240417",
     "types-ujson>=5.10.0.20240515",
     "types-urllib3>=1.26.25.14",
-    "typing-extensions>=4.12.2",
     "validate-pyproject[all,store]>=0.22",
     "vcrpy>=6.0.2",
     "yamlfix>=1.17.0",
@@ -229,11 +234,13 @@ dev-dependencies = [
     "pytest-freezegun",
     "better-exceptions>=0.3.3",
     "cogapp>=3.4.1",
+    "pytest-structlog>=1.1",
 ]
 
 [tool.uv.sources]
 changelogs = {git = "https://github.com/bossjones/changelogs"}
 pytest-freezegun = { git = "https://github.com/parafoxia/pytest-freezegun" }
+aider-chat = { git = "https://github.com/bossjones/aider.git" }
 
 [build-system]
 requires = ["setuptools >= 61.0"]
@@ -1027,6 +1034,8 @@ max-complexity = 31 # C901: Recommended goal is 10
 "demo/*" = ["D"]
 "docs/*" = ["D"]
 "test/*" = ["D", "C410", "S311"]
+"tests/**/**/**/*.py" = ["D", "C410", "S311","S103"]
+"tests/unittests/utils/test_aiodbx.py" = ["D", "C410", "S311","S103"]
 "tests/tests_utils/*" = ["D", "C410", "S311"]
 "tests/conftest.py" = ["D", "F811"]
 "*.pyi" = ["D", "E501", "E701", "I002"]
@@ -1036,8 +1045,13 @@ max-complexity = 31 # C901: Recommended goal is 10
 "democracy_exe/bot_logger/__init__.py" = ["SIM105", "S110"]
 "democracy_exe/bot_logger/logsetup.py" = ["SIM105", "S110", "RUF005"]
 "generate_prompt.py" = ["SIM105", "S110", "RUF005", "S607"]
-
-
+"democracy_exe/chatbot/utils/resource_manager.py" = ["SIM105", "S110", "RUF005"]
+"democracy_exe/aio_settings.py" = ["N805"]
+"democracy_exe/utils/aiotweetpik.py" = ["N815", "B005", "RUF005", "N818"]
+"democracy_exe/utils/repo_typing.py" = ["N815", "B005", "RUF005", "N818", "N806"]
+"tests/unittests/chatbot/utils/terminal_utils/*" = ["N815", "B005", "RUF005", "S110"]
+"democracy_exe/chatbot/terminal_bot.py" = ["N815", "B005", "RUF005", "S110", "SIM105", "SIM102", "SIM103"]
+"tests/test_logsetup.py" = ["N815", "B005", "RUF005", "S110", "SIM105", "SIM102", "SIM103", "RUF005"]
 # ===========================[ ISORT ]========================
 # SOURCE: https://github.com/zulip/zulip/blob/f4d109c289f614273b43b411cbd8d1fad128842e/pyproject.toml#L199
 [tool.ruff.lint.isort]
@@ -1389,6 +1403,7 @@ output = "cov.xml"
 
 # =========================[ PYTEST INI OPTIONS ]========================
 [tool.pytest.ini_options]
+structlog_keep=["add_logger_name", "StackInfoRenderer", "TimeStamper", "ConsoleRenderer"]
 testpaths = ["tests"]
 
 filterwarnings = [
@@ -1890,7 +1905,8 @@ reportUnusedImport = "none"
 reportMissingImports = "error"
 reportImportCycles = "error"
 reportUnusedVariable = "none"
-reportMissingTypeStubs = "warning"
+reportInvalidFormatString = "none"
+# reportMissingTypeStubs = "warning"
 
 reportUnusedFunction = "warning" # this is what we use in ad
 reportUnusedClass = "warning"    # this is what we use in ad
@@ -1904,6 +1920,7 @@ reportUnusedCallResult = false
 reportImplicitStringConcatenation = false
 reportCallInDefaultInitializer = true
 reportAttributeAccessIssue = false
+reportMissingTypeStubs = false
 
 [tool.pydocstringformatter]
 write = false

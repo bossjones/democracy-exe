@@ -35,7 +35,7 @@ def norm(x):
     """Compute RMS norm."""
     ...
 
-def select_initial_step(fun, t0, y0, t_bound, max_step, f0, direction, order, rtol, atol): # -> float:
+def select_initial_step(fun, t0, y0, f0, direction, order, rtol, atol): # -> float:
     """Empirically select a good initial step.
 
     The algorithm is described in [1]_.
@@ -48,11 +48,6 @@ def select_initial_step(fun, t0, y0, t_bound, max_step, f0, direction, order, rt
         Initial value of the independent variable.
     y0 : ndarray, shape (n,)
         Initial value of the dependent variable.
-    t_bound : float
-        End-point of integration interval; used to ensure that t0+step<=tbound 
-        and that fun is only evaluated in the interval [t0,tbound]
-    max_step : float
-        Maximum allowable step size.
     f0 : ndarray, shape (n,)
         Initial value of the derivative, i.e., ``fun(t0, y0)``.
     direction : float

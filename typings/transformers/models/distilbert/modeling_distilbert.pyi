@@ -91,26 +91,6 @@ class DistilBertFlashAttention2(MultiHeadSelfAttention):
     
 
 
-class DistilBertSdpaAttention(MultiHeadSelfAttention):
-    def __init__(self, config: PretrainedConfig) -> None:
-        ...
-    
-    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask: torch.Tensor, head_mask: Optional[torch.Tensor] = ..., output_attentions: bool = ...) -> Tuple[torch.Tensor, ...]:
-        """
-        Parameters:
-            query: torch.tensor(bs, seq_length, dim)
-            key: torch.tensor(bs, seq_length, dim)
-            value: torch.tensor(bs, seq_length, dim)
-            mask: torch.tensor(bs, seq_length)
-
-        Returns:
-            weights: torch.tensor(bs, n_heads, seq_length, seq_length) Attention weights context: torch.tensor(bs,
-            seq_length, dim) Contextualized layer. Optional: only if `output_attentions=True`
-        """
-        ...
-    
-
-
 class FFN(nn.Module):
     def __init__(self, config: PretrainedConfig) -> None:
         ...
@@ -175,7 +155,6 @@ class DistilBertPreTrainedModel(PreTrainedModel):
     base_model_prefix = ...
     supports_gradient_checkpointing = ...
     _supports_flash_attn_2 = ...
-    _supports_sdpa = ...
 
 
 DISTILBERT_START_DOCSTRING = ...

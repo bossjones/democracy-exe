@@ -193,9 +193,7 @@ class TrainerCallback:
         model ([`PreTrainedModel`] or `torch.nn.Module`):
             The model being trained.
         tokenizer ([`PreTrainedTokenizer`]):
-            The tokenizer used for encoding the data. This is deprecated in favour of `processing_class`.
-        processing_class ([`PreTrainedTokenizer` or `BaseImageProcessor` or `ProcessorMixin` or `FeatureExtractionMixin`]):
-            The processing class used for encoding the data. Can be a tokenizer, a processor, an image processor or a feature extractor.
+            The tokenizer used for encoding the data.
         optimizer (`torch.optim.Optimizer`):
             The optimizer used for the training steps.
         lr_scheduler (`torch.optim.lr_scheduler.LambdaLR`):
@@ -266,12 +264,6 @@ class TrainerCallback:
         """
         ...
     
-    def on_pre_optimizer_step(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs): # -> None:
-        """
-        Event called before the optimizer step but after gradient clipping. Useful for monitoring gradients.
-        """
-        ...
-    
     def on_optimizer_step(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs): # -> None:
         """
         Event called after the optimizer step but before gradients are zeroed out. Useful for monitoring gradients.
@@ -325,7 +317,7 @@ class TrainerCallback:
 
 class CallbackHandler(TrainerCallback):
     """Internal class that just calls the list of callbacks in order."""
-    def __init__(self, callbacks, model, processing_class, optimizer, lr_scheduler) -> None:
+    def __init__(self, callbacks, model, tokenizer, optimizer, lr_scheduler) -> None:
         ...
     
     def add_callback(self, callback): # -> None:
@@ -357,9 +349,6 @@ class CallbackHandler(TrainerCallback):
         ...
     
     def on_step_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl): # -> Any:
-        ...
-    
-    def on_pre_optimizer_step(self, args: TrainingArguments, state: TrainerState, control: TrainerControl): # -> Any:
         ...
     
     def on_optimizer_step(self, args: TrainingArguments, state: TrainerState, control: TrainerControl): # -> Any:

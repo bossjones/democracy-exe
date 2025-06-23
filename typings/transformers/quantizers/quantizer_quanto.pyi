@@ -61,10 +61,11 @@ class QuantoHfQuantizer(HfQuantizer):
         ...
     
     @property
-    def is_trainable(self, model: Optional[PreTrainedModel] = ...): # -> Literal[True]:
+    def is_trainable(self, model: Optional[PreTrainedModel] = ...): # -> Literal[False]:
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> Literal[False]:
+    @property
+    def is_serializable(self): # -> Literal[False]:
         ...
     
 

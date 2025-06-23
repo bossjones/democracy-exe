@@ -9,7 +9,6 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from torch import Tensor, nn
 from transformers import UdopConfig
 from transformers.modeling_outputs import Seq2SeqLMOutput, Seq2SeqModelOutput
-from ...generation import GenerationMixin
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
 
@@ -95,8 +94,6 @@ class UdopPreTrainedModel(PreTrainedModel):
     config_class = UdopConfig
     base_model_prefix = ...
     supports_gradient_checkpointing = ...
-    _supports_cache_class = ...
-    _supports_static_cache = ...
     _keep_in_fp32_modules = ...
 
 
@@ -140,17 +137,17 @@ class UdopLayerFF(nn.Module):
 
 
 class UdopAttention(nn.Module):
-    def __init__(self, config: UdopConfig, has_relative_attention_bias=..., layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config: UdopConfig, has_relative_attention_bias=...) -> None:
         ...
     
     def prune_heads(self, heads): # -> None:
         ...
     
-    def compute_bias(self, query_length, key_length, device=..., cache_position=...): # -> Any:
+    def compute_bias(self, query_length, key_length, device=...): # -> Any:
         """Compute binned relative position bias"""
         ...
     
-    def forward(self, hidden_states, mask=..., key_value_states=..., position_bias=..., past_key_value=..., layer_head_mask=..., query_length=..., use_cache=..., output_attentions=..., cache_position=...): # -> tuple[Any, Any | None, Any | Tensor, Any | Tensor] | tuple[Any, Any | None, Any | Tensor]:
+    def forward(self, hidden_states, mask=..., key_value_states=..., position_bias=..., past_key_value=..., layer_head_mask=..., query_length=..., use_cache=..., output_attentions=...): # -> tuple[Any, tuple[Tensor | Any, Tensor | Any] | None, Any | Tensor, Any | Tensor] | tuple[Any, tuple[Tensor | Any, Tensor | Any] | None, Any | Tensor]:
         """
         Self-attention (if key_value_states is None) or attention over source sentence (provided by key_value_states).
         """
@@ -159,28 +156,28 @@ class UdopAttention(nn.Module):
 
 
 class UdopLayerSelfAttention(nn.Module):
-    def __init__(self, config, has_relative_attention_bias=..., layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config, has_relative_attention_bias=...) -> None:
         ...
     
-    def forward(self, hidden_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=..., cache_position=...): # -> Any:
+    def forward(self, hidden_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=...): # -> Any:
         ...
     
 
 
 class UdopLayerCrossAttention(nn.Module):
-    def __init__(self, config, layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config) -> None:
         ...
     
-    def forward(self, hidden_states, key_value_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., query_length=..., output_attentions=..., cache_position=...): # -> Any:
+    def forward(self, hidden_states, key_value_states, attention_mask=..., position_bias=..., layer_head_mask=..., past_key_value=..., use_cache=..., query_length=..., output_attentions=...): # -> Any:
         ...
     
 
 
 class UdopBlock(nn.Module):
-    def __init__(self, config, has_relative_attention_bias=..., layer_idx: Optional[int] = ...) -> None:
+    def __init__(self, config, has_relative_attention_bias=...) -> None:
         ...
     
-    def forward(self, hidden_states, attention_mask=..., position_bias=..., encoder_hidden_states=..., encoder_attention_mask=..., encoder_decoder_position_bias=..., layer_head_mask=..., cross_attn_layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=..., return_dict=..., cache_position=...): # -> Any:
+    def forward(self, hidden_states, attention_mask=..., position_bias=..., encoder_hidden_states=..., encoder_attention_mask=..., encoder_decoder_position_bias=..., layer_head_mask=..., cross_attn_layer_head_mask=..., past_key_value=..., use_cache=..., output_attentions=..., return_dict=...): # -> Any:
         ...
     
 
@@ -316,7 +313,7 @@ class UdopStack(UdopPreTrainedModel):
     def set_input_embeddings(self, new_embeddings): # -> None:
         ...
     
-    def forward(self, input_ids=..., attention_mask=..., bbox=..., encoder_hidden_states=..., encoder_attention_mask=..., inputs_embeds=..., pixel_values=..., visual_bbox=..., image_embeddings=..., position_bias=..., head_mask=..., cross_attn_head_mask=..., past_key_values=..., use_cache=..., output_attentions=..., output_hidden_states=..., return_dict=..., cache_position=...):
+    def forward(self, input_ids=..., attention_mask=..., bbox=..., encoder_hidden_states=..., encoder_attention_mask=..., inputs_embeds=..., pixel_values=..., visual_bbox=..., image_embeddings=..., position_bias=..., head_mask=..., cross_attn_head_mask=..., past_key_values=..., use_cache=..., output_attentions=..., output_hidden_states=..., return_dict=...):
         ...
     
 
@@ -341,7 +338,7 @@ class UdopModel(UdopPreTrainedModel):
     
     @add_start_docstrings_to_model_forward(UDOP_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=Seq2SeqModelOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Tensor = ..., attention_mask: Tensor = ..., bbox: Dict[str, Any] = ..., pixel_values: Optional[Tensor] = ..., visual_bbox: Dict[str, Any] = ..., decoder_input_ids: Optional[Tensor] = ..., decoder_attention_mask: Optional[Tensor] = ..., inputs_embeds: Optional[Tensor] = ..., encoder_outputs: Optional[Tensor] = ..., past_key_values: Optional[Tensor] = ..., head_mask: Optional[Tensor] = ..., decoder_inputs_embeds: Optional[Tensor] = ..., decoder_head_mask: Optional[Tensor] = ..., cross_attn_head_mask: Optional[Tensor] = ..., use_cache=..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[Tensor, ...]:
+    def forward(self, input_ids: Tensor = ..., attention_mask: Tensor = ..., bbox: Dict[str, Any] = ..., pixel_values: Optional[Tensor] = ..., visual_bbox: Dict[str, Any] = ..., decoder_input_ids: Optional[Tensor] = ..., decoder_attention_mask: Optional[Tensor] = ..., inputs_embeds: Optional[Tensor] = ..., encoder_outputs: Optional[Tensor] = ..., past_key_values: Optional[Tensor] = ..., head_mask: Optional[Tensor] = ..., decoder_inputs_embeds: Optional[Tensor] = ..., decoder_head_mask: Optional[Tensor] = ..., cross_attn_head_mask: Optional[Tensor] = ..., use_cache=..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Tuple[Tensor, ...]:
         r"""
         Returns:
 
@@ -383,7 +380,7 @@ class UdopModel(UdopPreTrainedModel):
     images and an optional prompt.
 
     This class is based on [`T5ForConditionalGeneration`], extended to deal with images and layout (2D) data.""", UDOP_START_DOCSTRING)
-class UdopForConditionalGeneration(UdopPreTrainedModel, GenerationMixin):
+class UdopForConditionalGeneration(UdopPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -408,7 +405,7 @@ class UdopForConditionalGeneration(UdopPreTrainedModel, GenerationMixin):
     
     @add_start_docstrings_to_model_forward(UDOP_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=Seq2SeqLMOutput, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: Tensor = ..., attention_mask: Tensor = ..., bbox: Dict[str, Any] = ..., pixel_values: Optional[Tensor] = ..., visual_bbox: Dict[str, Any] = ..., decoder_input_ids: Optional[Tensor] = ..., decoder_attention_mask: Optional[Tensor] = ..., inputs_embeds: Optional[Tensor] = ..., encoder_outputs: Optional[Tensor] = ..., past_key_values: Optional[Tensor] = ..., head_mask: Optional[Tensor] = ..., decoder_inputs_embeds: Optional[Tensor] = ..., decoder_head_mask: Optional[Tensor] = ..., cross_attn_head_mask: Optional[Tensor] = ..., use_cache=..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., labels: Optional[Tensor] = ..., cache_position: Optional[torch.LongTensor] = ...) -> Tuple[Tensor, ...]:
+    def forward(self, input_ids: Tensor = ..., attention_mask: Tensor = ..., bbox: Dict[str, Any] = ..., pixel_values: Optional[Tensor] = ..., visual_bbox: Dict[str, Any] = ..., decoder_input_ids: Optional[Tensor] = ..., decoder_attention_mask: Optional[Tensor] = ..., inputs_embeds: Optional[Tensor] = ..., encoder_outputs: Optional[Tensor] = ..., past_key_values: Optional[Tensor] = ..., head_mask: Optional[Tensor] = ..., decoder_inputs_embeds: Optional[Tensor] = ..., decoder_head_mask: Optional[Tensor] = ..., cross_attn_head_mask: Optional[Tensor] = ..., use_cache=..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., labels: Optional[Tensor] = ...) -> Tuple[Tensor, ...]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
             Labels for computing the language modeling loss. Indices should be in `[-100, 0, ..., config.vocab_size -
@@ -440,13 +437,16 @@ class UdopForConditionalGeneration(UdopPreTrainedModel, GenerationMixin):
         >>> # one can use the various task prefixes (prompts) used during pre-training
         >>> # e.g. the task prefix for DocVQA is "Question answering. "
         >>> question = "Question answering. What is the date on the form?"
-        >>> encoding = processor(image, question, text_pair=words, boxes=boxes, return_tensors="pt")
+        >>> encoding = processor(image, question, words, boxes=boxes, return_tensors="pt")
 
         >>> # autoregressive generation
         >>> predicted_ids = model.generate(**encoding)
         >>> print(processor.batch_decode(predicted_ids, skip_special_tokens=True)[0])
         9/30/92
         ```"""
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., head_mask=..., decoder_head_mask=..., cross_attn_head_mask=..., use_cache=..., encoder_outputs=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

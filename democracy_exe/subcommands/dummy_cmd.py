@@ -9,7 +9,6 @@ import typer
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
 
 
-# APP = AsyncTyper(help="dummy command")
 APP = AsyncTyperImproved(help="dummy command")
 
 

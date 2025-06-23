@@ -7,7 +7,7 @@ Base classes for MATLAB file stream reading.
 
 MATLAB is a registered trademark of the Mathworks inc.
 """
-__all__ = ['MatReadError', 'MatReadWarning', 'MatWriteError']
+__all__ = ['MatFileReader', 'MatReadError', 'MatReadWarning', 'MatVarReader', 'MatWriteError', 'arr_dtype_number', 'arr_to_chars', 'convert_dtypes', 'doc_dict', 'docfiller', 'get_matfile_version', 'matdims', 'read_dtype']
 class MatReadError(Exception):
     """Exception indicating a read issue."""
     ...

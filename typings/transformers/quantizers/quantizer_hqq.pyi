@@ -34,12 +34,6 @@ class HqqHfQuantizer(HfQuantizer):
     def validate_environment(self, *args, **kwargs): # -> None:
         ...
     
-    def update_missing_keys(self, model: PreTrainedModel, missing_keys: List[str], prefix: str, **kwargs) -> List[str]:
-        ...
-    
-    def update_expected_keys(self, model: PreTrainedModel, expected_keys: List[str], loaded_keys: List[str]) -> List[str]:
-        ...
-    
     def check_quantized_param(self, model: PreTrainedModel, param_value: torch.Tensor, param_name: str, state_dict: Dict[str, Any], **kwargs) -> bool:
         ...
     
@@ -51,7 +45,8 @@ class HqqHfQuantizer(HfQuantizer):
         """
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> Literal[True]:
+    @property
+    def is_serializable(self): # -> Literal[False]:
         ...
     
     @property

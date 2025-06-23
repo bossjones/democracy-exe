@@ -6,7 +6,6 @@ import torch
 from typing import Optional, Tuple, Union
 from torch import nn
 from ...file_utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions, QuestionAnsweringModelOutput, SequenceClassifierOutputWithPast, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from .configuration_mpt import MptConfig
@@ -92,7 +91,7 @@ class MptModel(MptPreTrainedModel):
     The MPT Model transformer with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, MPT_START_DOCSTRING)
-class MptForCausalLM(MptPreTrainedModel, GenerationMixin):
+class MptForCausalLM(MptPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config: MptConfig) -> None:
         ...
@@ -101,6 +100,9 @@ class MptForCausalLM(MptPreTrainedModel, GenerationMixin):
         ...
     
     def set_output_embeddings(self, new_embeddings: torch.Tensor): # -> None:
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids: torch.LongTensor, past_key_values: Optional[torch.Tensor] = ..., attention_mask: Optional[torch.Tensor] = ..., inputs_embeds: Optional[torch.Tensor] = ..., use_cache: Optional[bool] = ..., **kwargs) -> dict:
         ...
     
     @add_start_docstrings_to_model_forward(MPT_INPUTS_DOCSTRING)

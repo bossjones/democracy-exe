@@ -186,7 +186,7 @@ class UnivariateSpline:
         """
         ...
     
-    def __call__(self, x, nu=..., ext=...): # -> NDArray[Any] | list[Any]:
+    def __call__(self, x, nu=..., ext=...): # -> NDArray[Any] | list[list[list[Any] | Any] | Any]:
         """
         Evaluate spline (or its nu-th derivative) at positions x.
 
@@ -234,7 +234,7 @@ class UnivariateSpline:
         """
         ...
     
-    def integral(self, a, b): # -> list[Any] | tuple[Any, Any]:
+    def integral(self, a, b): # -> list[list[list[Any] | tuple[Any, Any] | Any] | tuple[Any, Any] | Any] | tuple[Any, Any]:
         """ Return definite integral of the spline between two given points.
 
         Parameters
@@ -273,7 +273,7 @@ class UnivariateSpline:
         """
         ...
     
-    def derivatives(self, x): # -> list[Any]:
+    def derivatives(self, x): # -> list[list[list[Any] | list[list[Any] | Any] | Any] | list[list[Any] | Any] | Any] | list[list[Any] | Any]:
         """ Return all derivatives of the spline at the point x.
 
         Parameters
@@ -299,7 +299,7 @@ class UnivariateSpline:
         """
         ...
     
-    def roots(self): # -> list[Any]:
+    def roots(self): # -> list[list[list[Any] | Any] | Any]:
         """ Return the zeros of the spline.
 
         Notes

@@ -40,12 +40,12 @@ class DepthEstimationPipeline(Pipeline):
     def __init__(self, *args, **kwargs) -> None:
         ...
     
-    def __call__(self, inputs: Union[str, List[str], Image.Image, List[Image.Image]] = ..., **kwargs): # -> list[Any] | PipelineIterator | Generator[Any, Any, None] | Tensor | Any | None:
+    def __call__(self, images: Union[str, List[str], Image.Image, List[Image.Image]], **kwargs): # -> list[Any] | PipelineIterator | Generator[Any, Any, None] | Tensor | Any | None:
         """
         Predict the depth(s) of the image(s) passed as inputs.
 
         Args:
-            inputs (`str`, `List[str]`, `PIL.Image` or `List[PIL.Image]`):
+            images (`str`, `List[str]`, `PIL.Image` or `List[PIL.Image]`):
                 The pipeline handles three types of images:
 
                 - A string containing a http link pointing to an image
@@ -55,10 +55,9 @@ class DepthEstimationPipeline(Pipeline):
                 The pipeline accepts either a single image or a batch of images, which must then be passed as a string.
                 Images in a batch must all be in the same format: all as http links, all as local paths, or all as PIL
                 images.
-            parameters (`Dict`, *optional*):
-                A dictionary of argument names to parameter values, to control pipeline behaviour.
-                The only parameter available right now is `timeout`, which is the length of time, in seconds,
-                that the pipeline should wait before giving up on trying to download an image.
+            timeout (`float`, *optional*, defaults to None):
+                The maximum time in seconds to wait for fetching images from the web. If None, no timeout is set and
+                the call may block forever.
 
         Return:
             A dictionary or a list of dictionaries containing result. If the input is a single image, will return a
@@ -75,7 +74,7 @@ class DepthEstimationPipeline(Pipeline):
     def preprocess(self, image, timeout=...): # -> transformers.feature_extraction_utils.BatchFeature | transformers.image_processing_base.BatchFeature:
         ...
     
-    def postprocess(self, model_outputs): # -> list[Any]:
+    def postprocess(self, model_outputs): # -> dict[Any, Any]:
         ...
     
 

@@ -14,7 +14,7 @@ class _csc_base(_cs_matrix):
     def transpose(self, axes=..., copy=...): # -> csr_array:
         ...
     
-    def __iter__(self): # -> Generator[Any | <subclass of _csr_base* and sparray> | _csr_base, Any, None]:
+    def __iter__(self): # -> Generator[csr_array, Any, None]:
         ...
     
     def tocsc(self, copy=...): # -> Self:

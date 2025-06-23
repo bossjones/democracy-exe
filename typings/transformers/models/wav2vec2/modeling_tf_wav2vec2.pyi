@@ -57,7 +57,7 @@ class TFWav2Vec2GroupNorm(keras.layers.Layer):
     def call(self, inputs):
         ...
     
-    def get_config(self): # -> dict[str, Any]:
+    def get_config(self): # -> dict[Any, Any]:
         ...
     
     def compute_output_shape(self, input_shape):

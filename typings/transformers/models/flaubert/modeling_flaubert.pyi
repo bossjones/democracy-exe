@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, MaskedLMOutput, MultipleChoiceModelOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, replace_return_docstrings
@@ -107,7 +106,7 @@ class FlaubertModel(FlaubertPreTrainedModel):
     The Flaubert Model transformer with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, FLAUBERT_START_DOCSTRING)
-class FlaubertWithLMHeadModel(FlaubertPreTrainedModel, GenerationMixin):
+class FlaubertWithLMHeadModel(FlaubertPreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...

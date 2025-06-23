@@ -1,8 +1,17 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
 """Unit tests for the AttachmentHandler class."""
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 import pathlib
@@ -10,6 +19,7 @@ import pathlib
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 
 import aiohttp
+import aioresponses
 import discord
 import structlog
 
@@ -65,11 +75,21 @@ def mock_attachment(mocker: MockerFixture) -> Attachment:
     return mock_attm
 
 
-@pytest.mark.asyncio
+@pytest.fixture
+async def mock_aioresponse() -> aioresponses.aioresponses:
+    """Create a mock aioresponse for testing.
+
+    Returns:
+        aioresponses.aioresponses: A mock aioresponse instance
+    """
+    with aioresponses.aioresponses() as m:
+        yield m
+
+
 class TestAttachmentHandler:
     """Test suite for AttachmentHandler class."""
 
-    async def test_attachment_to_dict(self, attachment_handler: AttachmentHandler, mock_attachment: Attachment) -> None:
+    def test_attachment_to_dict(self, attachment_handler: AttachmentHandler, mock_attachment: Attachment) -> None:
         """Test converting an attachment to a dictionary.
 
         Args:
@@ -109,31 +129,103 @@ class TestAttachmentHandler:
         assert result["ext"] == ".txt"
         assert isinstance(result["api"], pathlib.Path)
 
-    # TODO: reimplement test with dpytest
-    @pytest.mark.flaky()
-    @pytest.mark.skip(reason="Need to fix this test and make it use dpytest")
     @pytest.mark.asyncio
-    async def test_download_image(self, attachment_handler: AttachmentHandler, mocker: MockerFixture) -> None:
-        """Test downloading an image from a URL.
+    async def test_download_image_success(
+        self,
+        attachment_handler: AttachmentHandler,
+        mock_aioresponse: aioresponses.aioresponses,
+    ) -> None:
+        """Test successful image download.
 
         Args:
             attachment_handler: The AttachmentHandler instance
-            mocker: Pytest mocker fixture
+            mock_aioresponse: Mock aioresponse fixture
         """
-        # Mock aiohttp ClientSession and response
-        mock_response = mocker.Mock()
-        mock_response.status = 200
-        mock_response.read = mocker.AsyncMock(return_value=b"fake_image_data")
+        test_image_data = b"fake_image_data"
+        test_url = "https://example.com/test.png"
 
-        mock_session = mocker.AsyncMock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_aioresponse.get(
+            test_url, status=200, body=test_image_data, headers={"Content-Length": str(len(test_image_data))}
+        )
 
-        mocker.patch("aiohttp.ClientSession", return_value=mock_session)
-
-        result = await attachment_handler.download_image("https://example.com/test.png")
-
+        result = await attachment_handler.download_image(test_url)
+        assert result is not None
         assert isinstance(result, io.BytesIO)
-        assert result.getvalue() == b"fake_image_data"
+        assert result.getvalue() == test_image_data
+
+    @pytest.mark.asyncio
+    async def test_download_image_404(
+        self,
+        attachment_handler: AttachmentHandler,
+        mock_aioresponse: aioresponses.aioresponses,
+    ) -> None:
+        """Test image download with 404 response.
+
+        Args:
+            attachment_handler: The AttachmentHandler instance
+            mock_aioresponse: Mock aioresponse fixture
+        """
+        test_url = "https://example.com/nonexistent.png"
+        mock_aioresponse.get(test_url, status=404)
+
+        result = await attachment_handler.download_image(test_url)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_download_image_too_large(
+        self,
+        attachment_handler: AttachmentHandler,
+        mock_aioresponse: aioresponses.aioresponses,
+    ) -> None:
+        """Test image download with file too large.
+
+        Args:
+            attachment_handler: The AttachmentHandler instance
+            mock_aioresponse: Mock aioresponse fixture
+        """
+        test_url = "https://example.com/too_large.png"
+        mock_aioresponse.get(
+            test_url, status=200, headers={"Content-Length": str(attachment_handler._max_image_size + 1)}
+        )
+
+        with pytest.raises(RuntimeError, match="Image size .* exceeds .* limit"):
+            await attachment_handler.download_image(test_url)
+
+    @pytest.mark.asyncio
+    async def test_download_image_timeout(
+        self,
+        attachment_handler: AttachmentHandler,
+        mock_aioresponse: aioresponses.aioresponses,
+    ) -> None:
+        """Test image download with timeout.
+
+        Args:
+            attachment_handler: The AttachmentHandler instance
+            mock_aioresponse: Mock aioresponse fixture
+        """
+        test_url = "https://example.com/timeout.png"
+        mock_aioresponse.get(test_url, exception=TimeoutError())
+
+        with pytest.raises(RuntimeError, match="Image download timed out"):
+            await attachment_handler.download_image(test_url)
+
+    @pytest.mark.asyncio
+    async def test_download_image_client_error(
+        self,
+        attachment_handler: AttachmentHandler,
+        mock_aioresponse: aioresponses.aioresponses,
+    ) -> None:
+        """Test image download with client error.
+
+        Args:
+            attachment_handler: The AttachmentHandler instance
+            mock_aioresponse: Mock aioresponse fixture
+        """
+        test_url = "https://example.com/error.png"
+        mock_aioresponse.get(test_url, exception=aiohttp.ClientError("Connection failed"))
+
+        with pytest.raises(aiohttp.ClientError, match="Connection failed"):
+            await attachment_handler.download_image(test_url)
 
     @pytest.mark.asyncio
     async def test_file_to_data_uri(self, attachment_handler: AttachmentHandler, mocker: MockerFixture) -> None:
@@ -204,16 +296,25 @@ class TestAttachmentHandler:
             tmp_path: Pytest temporary directory fixture
             mocker: Pytest mocker fixture
         """
-        # Mock the save method of the attachment
-        mock_attachment.save = mocker.AsyncMock()
+        # Configure mock attachment
+        mock_attachment.content_type = "image/png"
+        mock_attachment.size = len("test content")
 
+        # Mock the save method to actually create a file
+        async def mock_save(path: str, use_cached: bool = True) -> None:
+            with open(path, "w") as f:
+                f.write("test content")
+            await asyncio.sleep(0.1)  # Small delay to ensure file is written
+
+        mock_attachment.save = mock_save
+
+        # Save the attachment
         await attachment_handler.save_attachment(mock_attachment, str(tmp_path))
 
-        # Verify save was called
-        mock_attachment.save.assert_called_once()
-        save_path = mock_attachment.save.call_args[0][0]
-        assert isinstance(save_path, pathlib.Path)
-        assert save_path.parent == tmp_path
+        # Verify file was saved
+        save_path = tmp_path / "test.png"
+        assert save_path.exists()
+        assert save_path.read_text() == "test content"
 
     @pytest.mark.asyncio
     async def test_handle_save_attachment_locally(

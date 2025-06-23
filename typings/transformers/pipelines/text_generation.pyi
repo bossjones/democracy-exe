@@ -84,19 +84,15 @@ class TextGenerationPipeline(Pipeline):
                 of dicts with "role" and "content" keys, can be passed, or a list of such chats. When chats are passed,
                 the model's chat template will be used to format them before passing them to the model.
             return_tensors (`bool`, *optional*, defaults to `False`):
-                Returns the tensors of predictions (as token indices) in the outputs. If set to
+                Whether or not to return the tensors of predictions (as token indices) in the outputs. If set to
                 `True`, the decoded text is not returned.
-            return_text (`bool`, *optional*):
-                Returns the decoded texts in the outputs.
+            return_text (`bool`, *optional*, defaults to `True`):
+                Whether or not to return the decoded texts in the outputs.
             return_full_text (`bool`, *optional*, defaults to `True`):
-                If set to `False` only added text is returned, otherwise the full text is returned. Cannot be
-                specified at the same time as `return_text`.
+                If set to `False` only added text is returned, otherwise the full text is returned. Only meaningful if
+                *return_text* is set to True.
             clean_up_tokenization_spaces (`bool`, *optional*, defaults to `True`):
                 Whether or not to clean up the potential extra spaces in the text output.
-            continue_final_message( `bool`, *optional*): This indicates that you want the model to continue the
-                last message in the input chat rather than starting a new one, allowing you to "prefill" its response.
-                By default this is `True` when the final message in the input chat has the `assistant` role and
-                `False` otherwise, but you can manually override that behaviour by setting this flag.
             prefix (`str`, *optional*):
                 Prefix added to prompt.
             handle_long_generation (`str`, *optional*):
@@ -110,7 +106,7 @@ class TextGenerationPipeline(Pipeline):
                   truncate a lot of the prompt and not suitable when generation exceed the model capacity)
             generate_kwargs (`dict`, *optional*):
                 Additional keyword arguments to pass along to the generate method of the model (see the generate method
-                corresponding to your framework [here](./text_generation)).
+                corresponding to your framework [here](./main_classes/text_generation)).
 
         Return:
             A list or a list of lists of `dict`: Returns one of the following dictionaries (cannot return a combination
@@ -122,10 +118,10 @@ class TextGenerationPipeline(Pipeline):
         """
         ...
     
-    def preprocess(self, prompt_text, prefix=..., handle_long_generation=..., add_special_tokens=..., truncation=..., padding=..., max_length=..., continue_final_message=..., **generate_kwargs): # -> str | List[int] | List[str] | List[List[int]] | BatchEncoding:
+    def preprocess(self, prompt_text, prefix=..., handle_long_generation=..., add_special_tokens=..., truncation=..., padding=..., max_length=..., **generate_kwargs): # -> str | List[int] | List[str] | List[List[int]] | BatchEncoding:
         ...
     
-    def postprocess(self, model_outputs, return_type=..., clean_up_tokenization_spaces=..., continue_final_message=...): # -> list[Any]:
+    def postprocess(self, model_outputs, return_type=..., clean_up_tokenization_spaces=...): # -> list[Any]:
         ...
     
 

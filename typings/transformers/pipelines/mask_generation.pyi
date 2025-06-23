@@ -110,10 +110,10 @@ class MaskGenerationPipeline(ChunkPipeline):
         """
         ...
     
-    def preprocess(self, image, points_per_batch=..., crops_n_layers: int = ..., crop_overlap_ratio: float = ..., points_per_crop: Optional[int] = ..., crop_n_points_downscale_factor: Optional[int] = ..., timeout: Optional[float] = ...): # -> Generator[dict[str | Any, Any], Any, None]:
+    def preprocess(self, image, points_per_batch=..., crops_n_layers: int = ..., crop_overlap_ratio: float = ..., points_per_crop: Optional[int] = ..., crop_n_points_downscale_factor: Optional[int] = ..., timeout: Optional[float] = ...): # -> Generator[dict[Any, Any], Any, None]:
         ...
     
-    def postprocess(self, model_outputs, output_rle_mask=..., output_bboxes_mask=..., crops_nms_thresh=...): # -> dict[str | Any, Any]:
+    def postprocess(self, model_outputs, output_rle_mask=..., output_bboxes_mask=..., crops_nms_thresh=...): # -> dict[Any, Any]:
         ...
     
 

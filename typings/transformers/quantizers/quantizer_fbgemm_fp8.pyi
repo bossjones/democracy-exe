@@ -41,7 +41,8 @@ class FbgemmFp8HfQuantizer(HfQuantizer):
     def update_missing_keys(self, model, missing_keys: List[str], prefix: str) -> List[str]:
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> Literal[True]:
+    @property
+    def is_serializable(self): # -> Literal[True]:
         ...
     
     @property

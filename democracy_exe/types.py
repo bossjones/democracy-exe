@@ -1,9 +1,16 @@
 # INSPIRATION  from https://github.com/RobertCraigie/prisma-client-py/blob/da53c4280756f1a9bddc3407aa3b5f296aa8cc10/src/prisma/_types.py
-# pyright: reportMissingImports=false
-# pyright: reportUnusedVariable=warning
-# pyright: reportUntypedBaseClass=error
-# pyright: reportGeneralTypeIssues=false
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportGeneralTypeIssues=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingImports=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
+# pyright: reportUntypedBaseClass=error
+# pyright: reportUnusedVariable=warning
 
 
 """democracy_exe.types"""
@@ -43,11 +50,11 @@ from pydantic import BaseModel, Field
 
 
 if TYPE_CHECKING:
-    from democracy_exe.gen_ai.vectorstore import ChromaDatabase, PGVectorDatabase, PineconeDatabase
-    from democracy_exe.models.vectorstores import ChromaIntegration, PgvectorIntegration, PineconeIntegration
+    from democracy_exe.gen_ai.vectorstore import ChromaDatabase, PGVectorDatabase
+    from democracy_exe.models.vectorstores import ChromaIntegration, PgvectorIntegration
 
-    ActorInputsDb: TypeAlias = ChromaIntegration | PgvectorIntegration | PineconeIntegration
-    VectorDb: TypeAlias = ChromaDatabase | PGVectorDatabase | PineconeDatabase
+    ActorInputsDb: TypeAlias = ChromaIntegration | PgvectorIntegration
+    VectorDb: TypeAlias = ChromaDatabase | PGVectorDatabase
 
 
 T = TypeVar("T")

@@ -1,3 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 # pyright: reportAttributeAccessIssue=false
 """Discord utility functions.
 
@@ -12,9 +20,9 @@ import pathlib
 import sys
 import uuid
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from pathlib import Path
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional, Set, Tuple, Union, cast
 
 import aiofiles
 import aiohttp
@@ -27,36 +35,100 @@ from discord import Attachment, Client, File, Guild, Member, Message, Permission
 from discord.ext import commands
 from logging_tree import printout
 
-
-logger = structlog.get_logger(__name__)
-
+from democracy_exe.aio_settings import aiosettings
 from democracy_exe.bot_logger import generate_tree, get_lm_from_tree
 from democracy_exe.models.loggers import LoggerModel
 from democracy_exe.utils import async_, shell
 
 
-def extensions() -> list[str]:
-    """Get list of extension paths.
+logger = structlog.get_logger(__name__)
 
-    Returns:
-        List of extension paths as strings
+
+def extensions() -> Iterable[str]:
+    """Yield extension module paths.
+
+    This function searches for Python files in the 'cogs' directory relative to the current file's directory.
+    It constructs the module path for each file and yields it.
+
+    Yields:
+        The module path for each Python file in the 'cogs' directory
+
+    Raises:
+        FileNotFoundError: If cogs directory doesn't exist
     """
-    cogs_dir = Path(__file__).parent.parent / "cogs"
+    # Get the path to the chatbot directory (two levels up from this file)
+    chatbot_dir = Path(__file__).parent.parent
+    cogs_dir = chatbot_dir / "cogs"
+
+    print(f"cogs_dir: {cogs_dir}")
+    logger.info(f"Looking for extensions in: {cogs_dir}")
+
     if not cogs_dir.exists():
         raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
-    return [
-        f"chatbot.cogs.{f.stem}"
-        for f in cogs_dir.glob("**/*.py")
-        if not f.name.startswith("_") and f.name != "__init__.py"
-    ]
 
-async def aio_extensions() -> list[str]:
-    """Get list of extension paths asynchronously.
+    for file in cogs_dir.rglob("*.py"):
+        module_name = file.name.replace(".py", "")
+        if file.name != "__init__.py" and any(module_name in item for item in aiosettings.extension_allowlist):
+            # Get path relative to the workspace root to ensure proper module path
+            try:
+                # Walk up until we find the democracy_exe directory
+                current_dir = chatbot_dir
+                while current_dir.name != "democracy_exe":
+                    current_dir = current_dir.parent
+                    if current_dir == current_dir.parent:  # Reached root without finding democracy_exe
+                        raise ValueError("Could not find democracy_exe directory in path")
 
-    Returns:
-        List of extension paths as strings
+                relative_path = file.relative_to(current_dir.parent)
+                extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+                logger.debug(f"Found extension: {extension_path}")
+                yield extension_path
+            except Exception as e:
+                logger.error(f"Error processing extension {file}: {e}")
+                continue
+
+async def aio_extensions(bot: commands.Bot) -> None:
+    """Load Discord bot extensions from the cogs directory.
+
+    Args:
+        bot: The Discord bot instance to load extensions into
+
+    Raises:
+        FileNotFoundError: If cogs directory is not found
     """
-    return extensions()
+    # Get the path to the chatbot directory (two levels up from this file)
+    chatbot_dir = pathlib.Path(__file__).parent.parent
+    cogs_dir = chatbot_dir / "cogs"
+
+    if not cogs_dir.exists():
+        raise FileNotFoundError(f"Cogs directory not found: {cogs_dir}")
+
+    logger.info("Loading extensions from cogs directory", cogs_dir=str(cogs_dir))
+
+    for file in cogs_dir.rglob("*.py"):
+        if file.name == "__init__.py":
+            continue
+
+        module_name = file.stem
+        if not any(module_name in item for item in aiosettings.extension_allowlist):
+            continue
+
+        try:
+            # Walk up until we find the democracy_exe directory
+            current_dir = chatbot_dir
+            while current_dir.name != "democracy_exe":
+                current_dir = current_dir.parent
+                if current_dir == current_dir.parent:  # Reached root without finding democracy_exe
+                    raise ValueError("Could not find democracy_exe directory in path")
+
+            relative_path = file.relative_to(current_dir.parent)
+            extension_path = str(relative_path)[:-3].replace(os.sep, ".")
+
+            await bot.load_extension(extension_path)
+            logger.info("Successfully loaded extension", extension=extension_path)
+        except Exception as e:
+            logger.error("Failed to load extension",
+                        extension=extension_path,
+                        error=str(e))
 
 
 def has_required_permissions(

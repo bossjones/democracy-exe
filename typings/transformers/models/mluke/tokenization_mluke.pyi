@@ -123,7 +123,7 @@ class MLukeTokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(ENCODE_KWARGS_DOCSTRING, ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING)
-    def __call__(self, text: Union[TextInput, List[TextInput]], text_pair: Optional[Union[TextInput, List[TextInput]]] = ..., entity_spans: Optional[Union[EntitySpanInput, List[EntitySpanInput]]] = ..., entity_spans_pair: Optional[Union[EntitySpanInput, List[EntitySpanInput]]] = ..., entities: Optional[Union[EntityInput, List[EntityInput]]] = ..., entities_pair: Optional[Union[EntityInput, List[EntityInput]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TruncationStrategy] = ..., max_length: Optional[int] = ..., max_entity_length: Optional[int] = ..., stride: int = ..., is_split_into_words: Optional[bool] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
+    def __call__(self, text: Union[TextInput, List[TextInput]], text_pair: Optional[Union[TextInput, List[TextInput]]] = ..., entity_spans: Optional[Union[EntitySpanInput, List[EntitySpanInput]]] = ..., entity_spans_pair: Optional[Union[EntitySpanInput, List[EntitySpanInput]]] = ..., entities: Optional[Union[EntityInput, List[EntityInput]]] = ..., entities_pair: Optional[Union[EntityInput, List[EntityInput]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TruncationStrategy] = ..., max_length: Optional[int] = ..., max_entity_length: Optional[int] = ..., stride: int = ..., is_split_into_words: Optional[bool] = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., **kwargs) -> BatchEncoding:
         """
         Main method to tokenize and prepare for the model one or several sequence(s) or one or several pair(s) of
         sequences, depending on the task you want to prepare them for.
@@ -166,7 +166,7 @@ class MLukeTokenizer(PreTrainedTokenizer):
         ...
     
     @add_end_docstrings(ENCODE_KWARGS_DOCSTRING, ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING)
-    def prepare_for_model(self, ids: List[int], pair_ids: Optional[List[int]] = ..., entity_ids: Optional[List[int]] = ..., pair_entity_ids: Optional[List[int]] = ..., entity_token_spans: Optional[List[Tuple[int, int]]] = ..., pair_entity_token_spans: Optional[List[Tuple[int, int]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TruncationStrategy] = ..., max_length: Optional[int] = ..., max_entity_length: Optional[int] = ..., stride: int = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., prepend_batch_axis: bool = ..., **kwargs) -> BatchEncoding:
+    def prepare_for_model(self, ids: List[int], pair_ids: Optional[List[int]] = ..., entity_ids: Optional[List[int]] = ..., pair_entity_ids: Optional[List[int]] = ..., entity_token_spans: Optional[List[Tuple[int, int]]] = ..., pair_entity_token_spans: Optional[List[Tuple[int, int]]] = ..., add_special_tokens: bool = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TruncationStrategy] = ..., max_length: Optional[int] = ..., max_entity_length: Optional[int] = ..., stride: int = ..., pad_to_multiple_of: Optional[int] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., return_token_type_ids: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_overflowing_tokens: bool = ..., return_special_tokens_mask: bool = ..., return_offsets_mapping: bool = ..., return_length: bool = ..., verbose: bool = ..., prepend_batch_axis: bool = ..., **kwargs) -> BatchEncoding:
         """
         Prepares a sequence of input id, entity id and entity span, or a pair of sequences of inputs ids, entity ids,
         entity spans so that it can be used by the model. It adds special tokens, truncates sequences if overflowing
@@ -193,7 +193,7 @@ class MLukeTokenizer(PreTrainedTokenizer):
         """
         ...
     
-    def pad(self, encoded_inputs: Union[BatchEncoding, List[BatchEncoding], Dict[str, EncodedInput], Dict[str, List[EncodedInput]], List[Dict[str, EncodedInput]],], padding: Union[bool, str, PaddingStrategy] = ..., max_length: Optional[int] = ..., max_entity_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., padding_side: Optional[bool] = ..., return_attention_mask: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., verbose: bool = ...) -> BatchEncoding:
+    def pad(self, encoded_inputs: Union[BatchEncoding, List[BatchEncoding], Dict[str, EncodedInput], Dict[str, List[EncodedInput]], List[Dict[str, EncodedInput]],], padding: Union[bool, str, PaddingStrategy] = ..., max_length: Optional[int] = ..., max_entity_length: Optional[int] = ..., pad_to_multiple_of: Optional[int] = ..., return_attention_mask: Optional[bool] = ..., return_tensors: Optional[Union[str, TensorType]] = ..., verbose: bool = ...) -> BatchEncoding:
         """
         Pad a single encoded input or a batch of encoded inputs up to predefined length or to the max sequence length
         in the batch. Padding side (left/right) padding token ids are defined at the tokenizer level (with
@@ -226,9 +226,6 @@ class MLukeTokenizer(PreTrainedTokenizer):
             pad_to_multiple_of (`int`, *optional*):
                 If set will pad the sequence to a multiple of the provided value. This is especially useful to enable
                 the use of Tensor Cores on NVIDIA hardware with compute capability `>= 7.5` (Volta).
-            padding_side:
-                The side on which the model should have padding applied. Should be selected between ['right', 'left'].
-                Default value is picked from the class attribute of the same name.
             return_attention_mask (`bool`, *optional*):
                 Whether to return the attention mask. If left to the default, will return the attention mask according
                 to the specific tokenizer's default, defined by the `return_outputs` attribute. [What are attention

@@ -18,7 +18,7 @@ class _DeprecatedParameter:
     ...
 
 
-def emojize(string, use_aliases=..., delimiters=..., variant=..., language=..., version=..., handle_version=...): # -> str:
+def emojize(string, use_aliases=..., delimiters=..., variant=..., language=..., version=..., handle_version=...):
     """Replace emoji names in a string with unicode codes.
         >>> import emoji
         >>> print(emoji.emojize("Python is fun :thumbsup:", language='alias'))
@@ -120,7 +120,7 @@ def get_emoji_regexp(language=...): # -> Pattern[str]:
     """
     ...
 
-def emoji_lis(string, language=...): # -> list:
+def emoji_lis(string, language=...): # -> list[Any]:
     """Returns the location and emoji in list of dict format.
         >>> emoji.emoji_lis("Hi, I am fine. 😁")
         [{'location': 15, 'emoji': '😁'}]
@@ -129,7 +129,7 @@ def emoji_lis(string, language=...): # -> list:
     """
     ...
 
-def emoji_list(string): # -> list:
+def emoji_list(string): # -> list[Any]:
     """Returns the location and emoji in list of dict format.
         >>> emoji.emoji_list("Hi, I am fine. 😁")
         [{'match_start': 15, 'match_end': 16, 'emoji': '😁'}]y
@@ -137,14 +137,14 @@ def emoji_list(string): # -> list:
     """
     ...
 
-def distinct_emoji_lis(string, language=...): # -> list:
+def distinct_emoji_lis(string, language=...): # -> list[Any]:
     """Returns distinct list of emojis from the string.
 
     :param language: (optional) Deprecated and has no effect
     """
     ...
 
-def distinct_emoji_list(string): # -> list:
+def distinct_emoji_list(string): # -> list[Any]:
     """Returns distinct list of emojis from the string.
     """
     ...

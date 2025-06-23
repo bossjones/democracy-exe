@@ -1,3 +1,4 @@
+# FIXME: dlete this file
 """Tests for Discord bot functionality.
 
 This module contains tests for the Discord bot's core functionality.
@@ -11,11 +12,14 @@ import tempfile
 
 from typing import TYPE_CHECKING, Any, List
 
+import discord
+
 from structlog.testing import capture_logs
 
 import pytest
 
-from democracy_exe.chatbot.utils.extension_utils import aio_extensions
+from democracy_exe.chatbot.core.bot import DemocracyBot
+from democracy_exe.chatbot.utils.discord_utils import extensions
 
 
 if TYPE_CHECKING:
@@ -27,141 +31,91 @@ if TYPE_CHECKING:
     from pytest_mock.plugin import MockerFixture
 
 
-@pytest.fixture
-def mock_cogs_directory(tmp_path: pathlib.Path) -> pathlib.Path:
-    """Create a mock cogs directory with test files.
+# # FIXME: compare this to the one below 1/20/2025
+# @pytest_asyncio.fixture
+# async def bot() -> AsyncGenerator[DemocracyBot, None]:
+#     """Create a DemocracyBot instance for testing.
 
-    Args:
-        tmp_path: Pytest temporary directory fixture
+#     Args:
+#         event_loop: The event loop fixture
 
-    Returns:
-        Path to mock cogs directory
-    """
-    cogs_dir = tmp_path / "chatbot" / "cogs"
-    cogs_dir.mkdir(parents=True)
+#     Returns:
+#         AsyncGenerator[DemocracyBot, None]: DemocracyBot instance with test configuration
+#     """
+#     # Configure intents
+#     intents = discord.Intents.default()
+#     intents.members = True
+#     intents.message_content = True
+#     intents.messages = True
+#     intents.guilds = True
 
-    # Create test cog files
-    (cogs_dir / "test_cog1.py").write_text("# Test cog 1")
-    (cogs_dir / "test_cog2.py").write_text("# Test cog 2")
-    (cogs_dir / "__init__.py").write_text("")
+#     # Create DemocracyBot with test configuration
+#     bot = DemocracyBot(command_prefix="?", intents=intents, description="Test DemocracyBot instance")
 
-    # Create subdirectory with another cog
-    subcategory = cogs_dir / "subcategory"
-    subcategory.mkdir()
-    (subcategory / "test_cog3.py").write_text("# Test cog 3")
-    (subcategory / "__init__.py").write_text("")
+#     # set up the loop
+#     if isinstance(bot.loop, _LoopSentinel):  # type: ignore
+#         await bot._async_setup_hook()  # type: ignore
 
-    return cogs_dir
+#     # Add test-specific error handling
+#     @bot.event
+#     async def on_command_error(ctx: commands.Context, error: Exception) -> None:  # type: ignore
+#         """Handle command errors in test environment."""
+#         raise error  # Re-raise for pytest to catch
 
+#     # Setup and cleanup
+#     # await bot._async_setup_hook()  # Required for proper initialization
+#     # await dpytest.empty_queue()
+#     dpytest.configure(bot)
+#     yield bot
+#     # await dpytest.empty_queue()
 
-@pytest.mark.asyncio
-@pytest.mark.flaky()
-@pytest.mark.skip(reason="Need to fix this test and make it use dpytest")
-async def test_aio_extensions_finds_cogs(
-    mock_cogs_directory: pathlib.Path, mocker: MockerFixture, monkeypatch: MonkeyPatch, caplog: LogCaptureFixture
-) -> None:
-    """Test that aio_extensions finds and yields correct module paths.
-
-    Args:
-        mock_cogs_directory: Fixture providing mock cogs directory
-        mocker: Pytest mocker fixture
-        monkeypatch: Pytest monkeypatch fixture
-        caplog: Pytest log capture fixture
-    """
-
-    with capture_logs() as cap_logs:
-        caplog.set_level("DEBUG", logger="democracy_exe")
-        # Mock HERE to point to our test directory
-        monkeypatch.setattr("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_directory.parent))
-
-        # Collect all yielded extensions
-        extensions = []
-        async for ext in aio_extensions():
-            extensions.append(ext)
-
-        # Verify expected module paths are found
-        expected = [
-            "cogs.test_cog1",
-            "cogs.test_cog2",
-            "cogs.subcategory.test_cog3",
-        ]
-
-        assert sorted(extensions) == sorted(expected)
-        assert "Successfully initialized async file search" in caplog.text
+#     try:
+#         # Teardown
+#         await dpytest.empty_queue()  # empty the global message queue as test teardown
+#     finally:
+#         pass
 
 
-@pytest.mark.asyncio
-async def test_aio_extensions_handles_missing_directory(
-    tmp_path: pathlib.Path, monkeypatch: MonkeyPatch, caplog: LogCaptureFixture
-) -> None:
-    """Test that aio_extensions handles missing cogs directory gracefully.
+# @pytest.fixture
+# async def bot() -> DemocracyBot:
+#     """Create a DemocracyBot instance for testing.
 
-    Args:
-        tmp_path: Pytest temporary directory fixture
-        monkeypatch: Pytest monkeypatch fixture
-        caplog: Pytest log capture fixture
-    """
-    # Point to non-existent directory
-    monkeypatch.setattr("democracy_exe.chatbot.utils.extension_utils.HERE", str(tmp_path))
-
-    with pytest.raises(FileNotFoundError) as exc_info:
-        async for _ in aio_extensions():
-            pass
-
-    assert "Cogs directory not found" in str(exc_info.value)
-    # assert "Error discovering extensions" in caplog.text
+#     Returns:
+#         DemocracyBot: The bot instance for testing
+#     """
+#     intents = discord.Intents.default()
+#     intents.message_content = True
+#     intents.guilds = True
+#     bot = DemocracyBot(command_prefix="?", intents=intents)
+#     yield bot
+#     if not bot.is_closed():
+#         await bot.close()
+#     if hasattr(bot, "session") and not bot.session.closed:
+#         await bot.session.close()
 
 
-@pytest.mark.asyncio
-async def test_aio_extensions_handles_unreadable_file(
-    mock_cogs_directory: pathlib.Path, monkeypatch: MonkeyPatch, caplog: LogCaptureFixture
-) -> None:
-    """Test that aio_extensions handles unreadable files appropriately.
+# @pytest.fixture
+# def mock_cogs_directory(tmp_path: pathlib.Path) -> pathlib.Path:
+#     """Create a mock cogs directory with test files.
 
-    Args:
-        mock_cogs_directory: Fixture providing mock cogs directory
-        monkeypatch: Pytest monkeypatch fixture
-        caplog: Pytest log capture fixture
-    """
-    monkeypatch.setattr("democracy_exe.chatbot.utils.extension_utils.HERE", str(mock_cogs_directory.parent))
+#     Args:
+#         tmp_path: Pytest temporary directory fixture
 
-    # Make one file unreadable
-    unreadable_file = mock_cogs_directory / "test_cog1.py"
-    os.chmod(unreadable_file, 0o000)
+#     Returns:
+#         Path to mock cogs directory
+#     """
+#     cogs_dir = tmp_path / "chatbot" / "cogs"
+#     cogs_dir.mkdir(parents=True)
 
-    # Should skip unreadable file but continue processing others
-    extensions = []
-    async for ext in aio_extensions():
-        extensions.append(ext)
+#     # Create test cog files
+#     (cogs_dir / "test_cog1.py").write_text("# Test cog 1")
+#     (cogs_dir / "test_cog2.py").write_text("# Test cog 2")
+#     (cogs_dir / "__init__.py").write_text("")
 
-    assert "test_cog1" not in " ".join(extensions)
-    # assert "Skipping inaccessible extension file" in caplog.text
+#     # Create subdirectory with another cog
+#     subcategory = cogs_dir / "subcategory"
+#     subcategory.mkdir()
+#     (subcategory / "test_cog3.py").write_text("# Test cog 3")
+#     (subcategory / "__init__.py").write_text("")
 
-    # Cleanup
-    os.chmod(unreadable_file, 0o644)
-
-
-@pytest.mark.asyncio
-async def test_aio_extensions_empty_directory(
-    tmp_path: pathlib.Path, monkeypatch: MonkeyPatch, caplog: LogCaptureFixture
-) -> None:
-    """Test that aio_extensions handles empty cogs directory appropriately.
-
-    Args:
-        tmp_path: Pytest temporary directory fixture
-        monkeypatch: Pytest monkeypatch fixture
-        caplog: Pytest log capture fixture
-    """
-    # Create empty cogs directory
-    cogs_dir = tmp_path / "chatbot" / "cogs"
-    cogs_dir.mkdir(parents=True)
-    monkeypatch.setattr("democracy_exe.chatbot.utils.extension_utils.HERE", str(tmp_path))
-
-    with pytest.raises(FileNotFoundError):
-        # Should yield no extensions
-        extensions = []
-        async for ext in aio_extensions():
-            extensions.append(ext)
-
-        assert len(extensions) == 0
-        # assert "Successfully initialized async file search" in caplog.text
+#     return cogs_dir

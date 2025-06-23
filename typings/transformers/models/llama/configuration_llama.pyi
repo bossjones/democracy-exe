@@ -105,8 +105,6 @@ class LlamaConfig(PretrainedConfig):
             The dropout ratio for the attention probabilities.
         mlp_bias (`bool`, *optional*, defaults to `False`):
             Whether to use a bias in up_proj, down_proj and gate_proj layers in the MLP layers.
-        head_dim (`int`, *optional*):
-            The attention head dimension. If None, it will default to hidden_size // num_heads
 
     ```python
     >>> from transformers import LlamaModel, LlamaConfig
@@ -122,7 +120,7 @@ class LlamaConfig(PretrainedConfig):
     ```"""
     model_type = ...
     keys_to_ignore_at_inference = ...
-    def __init__(self, vocab_size=..., hidden_size=..., intermediate_size=..., num_hidden_layers=..., num_attention_heads=..., num_key_value_heads=..., hidden_act=..., max_position_embeddings=..., initializer_range=..., rms_norm_eps=..., use_cache=..., pad_token_id=..., bos_token_id=..., eos_token_id=..., pretraining_tp=..., tie_word_embeddings=..., rope_theta=..., rope_scaling=..., attention_bias=..., attention_dropout=..., mlp_bias=..., head_dim=..., **kwargs) -> None:
+    def __init__(self, vocab_size=..., hidden_size=..., intermediate_size=..., num_hidden_layers=..., num_attention_heads=..., num_key_value_heads=..., hidden_act=..., max_position_embeddings=..., initializer_range=..., rms_norm_eps=..., use_cache=..., pad_token_id=..., bos_token_id=..., eos_token_id=..., pretraining_tp=..., tie_word_embeddings=..., rope_theta=..., rope_scaling=..., attention_bias=..., attention_dropout=..., mlp_bias=..., **kwargs) -> None:
         ...
     
 

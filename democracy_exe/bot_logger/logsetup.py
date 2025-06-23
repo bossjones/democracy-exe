@@ -198,8 +198,8 @@ def configure_logging(
             Configured renderer processor
         """
         if environment == "testing":
-            # No renderer needed for testing
-            return lambda _, __, event_dict: event_dict
+            # Return a renderer that accepts sort_keys but just passes through the event dict
+            return lambda _, __, event_dict, **_kw: event_dict
 
         if enable_json_logs or environment == "production":
             return structlog.processors.JSONRenderer(
@@ -309,11 +309,29 @@ def configure_test_logging() -> dict[str, Any]:
         ...     logger = get_logger(__name__)
         ...     # Run test...
     """
-    return configure_logging(
-        enable_json_logs=True,
-        log_level="DEBUG",
-        environment="testing"
+    # Clear any existing context for clean configuration
+    clear_contextvars()
+
+    # Configure with test-specific processors
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.contextvars.merge_contextvars,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            # No renderer in test mode - just return the event dict
+            lambda _, __, event_dict, **_kw: event_dict,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=False,  # Important for test isolation
     )
+
+    return structlog.get_config()
 
 
 if __name__ == "__main__":

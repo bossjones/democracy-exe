@@ -34,7 +34,8 @@ class AqlmHfQuantizer(HfQuantizer):
     def is_trainable(self, model: Optional[PreTrainedModel] = ...): # -> bool:
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> Literal[True]:
+    @property
+    def is_serializable(self): # -> Literal[True]:
         ...
     
 

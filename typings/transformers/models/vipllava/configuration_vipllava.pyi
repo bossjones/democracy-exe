@@ -32,8 +32,6 @@ class VipLlavaConfig(PretrainedConfig):
             The layer norm epsilon of the projector layernorm
         vision_feature_layers (`List[int]`, *optional*, defaults to `[-2, -5, -8, -11, 6]`):
             The list of layers to select the vision features from.
-        image_seq_length (`int`, *optional*, defaults to 576):
-            Sequence length of one image embedding.
 
     Example:
 
@@ -57,7 +55,7 @@ class VipLlavaConfig(PretrainedConfig):
     ```"""
     model_type = ...
     is_composition = ...
-    def __init__(self, vision_config=..., text_config=..., ignore_index=..., image_token_index=..., projector_hidden_act=..., projector_layernorm_eps=..., vision_feature_layers=..., image_seq_length=..., **kwargs) -> None:
+    def __init__(self, vision_config=..., text_config=..., ignore_index=..., image_token_index=..., projector_hidden_act=..., projector_layernorm_eps=..., vision_feature_layers=..., **kwargs) -> None:
         ...
     
 

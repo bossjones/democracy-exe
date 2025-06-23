@@ -37,21 +37,21 @@ IS_RUNNING_ON_GITHUB_ACTIONS = bool(os.environ.get("GITHUB_ACTOR"))
 logger = structlog.get_logger(__name__)
 
 
-@pytest.fixture(autouse=True)
-def configure_structlog() -> None:
-    """Configure structlog for testing."""
-    structlog.configure(
-        processors=[
-            structlog.stdlib.add_log_level,
-            structlog.processors.format_exc_info,
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.JSONRenderer(),
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-        context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=True,
-    )
+# @pytest.fixture(autouse=True, scope="function")
+# def configure_structlog() -> None:
+#     """Configure structlog for testing."""
+#     structlog.configure(
+#         processors=[
+#             structlog.stdlib.add_log_level,
+#             structlog.processors.format_exc_info,
+#             structlog.processors.TimeStamper(fmt="iso"),
+#             structlog.processors.JSONRenderer(),
+#         ],
+#         wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+#         context_class=dict,
+#         logger_factory=structlog.PrintLoggerFactory(),
+#         cache_logger_on_first_use=True,
+#     )
 
 
 @pytest.mark.asyncio(loop_scope="module")

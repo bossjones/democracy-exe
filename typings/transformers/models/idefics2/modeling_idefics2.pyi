@@ -6,12 +6,11 @@ import torch
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 from torch import nn
+from ... import PreTrainedModel
 from ...cache_utils import Cache
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutput, ModelOutput
-from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
-from .configuration_idefics2 import Idefics2Config, Idefics2PerceiverConfig, Idefics2VisionConfig
+from .configuration_idefics2 import Idefics2Config, Idefics2VisionConfig
 
 """PyTorch Idefics2 model."""
 if is_flash_attn_2_available():
@@ -165,7 +164,7 @@ class Idefics2MultiheadAttentionPoolingHead(nn.Module):
 
 
 class Idefics2EncoderLayer(nn.Module):
-    def __init__(self, config: Idefics2VisionConfig) -> None:
+    def __init__(self, config: Idefics2Config) -> None:
         ...
     
     def forward(self, hidden_states: torch.Tensor, attention_mask: torch.Tensor, output_attentions: Optional[bool] = ...) -> Tuple[torch.FloatTensor]:
@@ -221,28 +220,11 @@ class Idefics2Encoder(nn.Module):
     
 
 
-IDEFICS2_START_DOCSTRING = ...
-@add_start_docstrings("The bare Idefics2 Model outputting raw hidden-states without any specific head on top.", IDEFICS2_START_DOCSTRING)
-class Idefics2PreTrainedModel(PreTrainedModel):
-    config_class = Idefics2Config
-    base_model_prefix = ...
-    supports_gradient_checkpointing = ...
-    _no_split_modules = ...
-    _skip_keys_device_placement = ...
-    _supports_flash_attn_2 = ...
-    _supports_sdpa = ...
-    _supports_cache_class = ...
-
-
-IDEFICS2_INPUTS_DOCSTRING = ...
-@add_start_docstrings("""Idefics2 vision encoder model that returnss raw image embeddings.""", IDEFICS2_START_DOCSTRING)
-class Idefics2VisionTransformer(Idefics2PreTrainedModel):
-    _supports_sdpa = ...
-    config_class = Idefics2VisionConfig
+class Idefics2VisionTransformer(nn.Module):
     def __init__(self, config: Idefics2VisionConfig) -> None:
         ...
     
-    def get_input_embeddings(self): # -> Idefics2VisionEmbeddings | Module:
+    def get_input_embeddings(self): # -> Idefics2VisionEmbeddings:
         ...
     
     def set_input_embeddings(self, value): # -> None:
@@ -335,15 +317,17 @@ class Idefics2PerceiverLayer(nn.Module):
     
 
 
-IDEFICS2_INPUTS_DOCSTRING = ...
-@add_start_docstrings("Idefics2 perceiver resampler model that performs `depth` blocks of cross-attention with a fixed ", "`n_latents` inputs to decrease embedding sequence length. The Resampler acts as a form of learned pooling and ", "is derived from [Perceiver: General Perception with Iterative Attention](https://arxiv.org/abs/2103.03206)", IDEFICS2_START_DOCSTRING)
-class Idefics2PerceiverResampler(Idefics2PreTrainedModel):
-    _supports_sdpa = ...
-    config_class = Idefics2PerceiverConfig
+class Idefics2PerceiverResampler(nn.Module):
     def __init__(self, config) -> None:
+        """
+        Instantiates a Perceiver Resampler that operates over a sequence of embeddings (say from a ResNet or ViT or
+        MAE) of a given dimension, performs `depth` blocks of cross-attention with a fixed `n_latents` inputs, then
+        returns a Tensor of shape [bsz, n_latents, embed_dim]. The Resampler acts as a form of learned pooling and
+        is derived from [Perceiver: General Perception with Iterative Attention](https://arxiv.org/abs/2103.03206).
+        """
         ...
     
-    def forward(self, context: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    def forward(self, context: torch.Tensor, attention_mask) -> torch.Tensor:
         ...
     
 
@@ -355,6 +339,18 @@ class Idefics2Connector(nn.Module):
     def forward(self, image_hidden_states, attention_mask): # -> Any:
         ...
     
+
+
+IDEFICS2_START_DOCSTRING = ...
+@add_start_docstrings("The bare Idefics2 Model outputting raw hidden-states without any specific head on top.", IDEFICS2_START_DOCSTRING)
+class Idefics2PreTrainedModel(PreTrainedModel):
+    config_class = Idefics2Config
+    base_model_prefix = ...
+    supports_gradient_checkpointing = ...
+    _no_split_modules = ...
+    _skip_keys_device_placement = ...
+    _supports_flash_attn_2 = ...
+    _supports_cache_class = ...
 
 
 IDEFICS2_INPUTS_DOCSTRING = ...
@@ -372,9 +368,6 @@ class Idefics2Model(Idefics2PreTrainedModel):
 
         Override to set output.requires_grad = True for both the decoder's and vision model's embeddings.
         """
-        ...
-    
-    def disable_input_require_grads(self): # -> None:
         ...
     
     def get_input_embeddings(self):
@@ -414,7 +407,7 @@ class Idefics2Model(Idefics2PreTrainedModel):
 
 
 @add_start_docstrings("""The Idefics2 Model with a language modeling head. It is made up a SigLIP vision encoder, with a language modeling head on top. """, IDEFICS2_START_DOCSTRING)
-class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel, GenerationMixin):
+class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -424,9 +417,6 @@ class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel, GenerationMixin)
         Enables the gradients for the input embeddings. This is useful for fine-tuning adapter weights while keeping
         the model weights fixed.
         """
-        ...
-    
-    def disable_input_require_grads(self): # -> None:
         ...
     
     def get_input_embeddings(self):
@@ -452,7 +442,7 @@ class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel, GenerationMixin)
     
     @add_start_docstrings_to_model_forward(IDEFICS2_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=Idefics2CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
-    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., pixel_attention_mask: Optional[torch.BoolTensor] = ..., image_hidden_states: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ..., num_logits_to_keep: int = ...) -> Union[Tuple, Idefics2CausalLMOutputWithPast]:
+    def forward(self, input_ids: torch.LongTensor = ..., attention_mask: Optional[torch.Tensor] = ..., position_ids: Optional[torch.LongTensor] = ..., past_key_values: Optional[List[torch.FloatTensor]] = ..., inputs_embeds: Optional[torch.FloatTensor] = ..., pixel_values: Optional[torch.FloatTensor] = ..., pixel_attention_mask: Optional[torch.BoolTensor] = ..., image_hidden_states: Optional[torch.FloatTensor] = ..., labels: Optional[torch.LongTensor] = ..., use_cache: Optional[bool] = ..., output_attentions: Optional[bool] = ..., output_hidden_states: Optional[bool] = ..., return_dict: Optional[bool] = ...) -> Union[Tuple, Idefics2CausalLMOutputWithPast]:
         r"""
         Args:
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -460,12 +450,6 @@ class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel, GenerationMixin)
                 config.vocab_size]` or `model.image_token_id` (where `model` is your instance of `Idefics2ForConditionalGeneration`).
                 Tokens with indices set to `model.image_token_id` are ignored (masked), the loss is only
                 computed for the tokens with labels in `[0, ..., config.vocab_size]`.
-
-            num_logits_to_keep (`int`, *optional*):
-                Calculate logits for the last `num_logits_to_keep` tokens. If `0`, calculate logits for all
-                `input_ids` (special case). Only last token logits are needed for generation, and calculating them only for that
-                token can save memory, which becomes pretty significant for long sequences or large vocabulary size.
-
         Returns:
 
         Example:
@@ -496,7 +480,7 @@ class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel, GenerationMixin)
         ...   "In which city is that bridge located?<image>",
         ... ]
         >>> images = [[image1, image2], [image3]]
-        >>> inputs = processor(images=images, text=prompts, padding=True, return_tensors="pt").to("cuda")
+        >>> inputs = processor(text=prompts, images=images, padding=True, return_tensors="pt").to("cuda")
 
         >>> # Generate
         >>> generated_ids = model.generate(**inputs, bad_words_ids=BAD_WORDS_IDS, max_new_tokens=20)
@@ -507,7 +491,7 @@ class Idefics2ForConditionalGeneration(Idefics2PreTrainedModel, GenerationMixin)
         ```"""
         ...
     
-    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., cache_position=..., pixel_values=..., pixel_attention_mask=..., image_hidden_states=..., num_logits_to_keep=..., **kwargs): # -> dict[str, Any]:
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., attention_mask=..., inputs_embeds=..., **kwargs): # -> dict[str, Any]:
         ...
     
 

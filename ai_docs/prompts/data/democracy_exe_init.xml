@@ -434,7 +434,7 @@ class AioSettings(BaseSettings):
     monitor_host: str = "localhost"
     monitor_port: int = 50102
 
-    debug_langchain: bool | None = False
+    debug_langchain: bool | None = True
 
     # tweetpik_background_image = "510"  # a image that you want to use as background. you need to use this as a valid url like https://mysite.com/image.png and it should not be protected by cors
     audit_log_send_channel: str = ""
@@ -2245,8 +2245,6 @@ import structlog
 
 from langchain_core.runnables import ConfigurableField, Runnable, RunnableBranch, RunnableLambda, RunnableMap
 from langchain_openai import ChatOpenAI, OpenAI
-from langsmith import traceable
-from langsmith.wrappers import wrap_openai
 
 
 logger = structlog.get_logger(__name__)
@@ -2504,6 +2502,7 @@ codetiming>=1.4.0
 colorama==0.4.6 ; (os_name != 'nt' and sys_platform == 'win32') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux')
 coloredlogs==15.0.1
 contourpy==1.3.1
+cryptography==43.0.3 ; python_full_version >= '3.11'
 cssselect2==0.7.0
 cycler==0.12.1
 dask>=2024.11.0
@@ -2571,6 +2570,7 @@ jiter==0.8.2
 joblib==1.4.2
 jsonpatch==1.33
 jsonpointer==3.0.0
+jsonschema-rs==0.25.1 ; python_full_version >= '3.11'
 kiwisolver==1.4.8
 kubernetes==31.0.0
 langchain>=0.3.7
@@ -2585,10 +2585,12 @@ langchain-openai>=0.2.6
 langchain-text-splitters==0.3.4
 langchainhub>=0.1.21
 langgraph>=0.2.45
+langgraph-api==0.0.15 ; python_full_version >= '3.11'
 langgraph-checkpoint==2.0.9
 langgraph-checkpoint-sqlite>=2.0.1
+langgraph-cli==0.1.65
 langgraph-sdk>=0.1.36
-langsmith==0.1.147
+langsmith>=0.1.147
 lazy-object-proxy>=1.10.0
 levenshtein==0.26.1
 linkify-it-py==2.0.3
@@ -2680,7 +2682,7 @@ propcache==0.2.1
 proto-plus==1.25.0
 protobuf==4.25.5
 protoc-gen-openapiv2==0.0.1
-psutil==6.1.1
+psutil>=6.1.1
 puremagic==1.28
 pyasn1==0.6.1
 pyasn1-modules==0.4.1
@@ -2693,6 +2695,7 @@ pydantic-settings>=2.6.1
 pydyf==0.11.0
 pygments==2.19.1
 pyinstrument>=5.0.0
+pyjwt==2.10.1 ; python_full_version >= '3.11'
 pymdown-extensions==10.13
 pymongo==4.9.2
 pyparsing==3.2.1
@@ -2745,6 +2748,7 @@ sqlalchemy==2.0.36
 sqlite-fts4==1.0.3
 sqlite-migrate==0.1b0
 sqlite-utils==3.38
+sse-starlette
 starlette==0.41.3
 stone==3.3.1
 strip-tags>=0.5.1
@@ -2754,6 +2758,7 @@ sympy==1.13.1
 tabulate==0.9.0
 tavily-python>=0.5.0
 telnetlib3==2.0.4
+tenacity
 tenacity
 terminaltables==3.1.10
 text-unidecode==1.3

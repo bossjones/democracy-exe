@@ -1,3 +1,11 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
+# pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 """Data models for Twitter content."""
 from __future__ import annotations
 
@@ -11,6 +19,11 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic._internal import _utils
 
 from democracy_exe.utils.twitter_utils.types import TweetDownloadMode
+
+
+# pylint: disable=no-name-in-module
+# pyright: reportInvalidTypeForm=false
+# pyright: reportUndefinedVariable=false
 
 
 class TweetDict(TypedDict, total=False):

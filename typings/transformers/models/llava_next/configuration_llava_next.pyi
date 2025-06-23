@@ -38,8 +38,6 @@ class LlavaNextConfig(PretrainedConfig):
             of the form `(height, width)`.
         tie_word_embeddings (`bool`, *optional*, defaults to `False`):
             Whether the model's input and output word embeddings should be tied.
-        image_seq_length (`int`, *optional*, defaults to 576):
-            Sequence length of one image embedding.
 
     Example:
 
@@ -63,7 +61,7 @@ class LlavaNextConfig(PretrainedConfig):
     ```"""
     model_type = ...
     is_composition = ...
-    def __init__(self, vision_config=..., text_config=..., ignore_index=..., image_token_index=..., projector_hidden_act=..., vision_feature_select_strategy=..., vision_feature_layer=..., image_grid_pinpoints=..., tie_word_embeddings=..., image_seq_length=..., **kwargs) -> None:
+    def __init__(self, vision_config=..., text_config=..., ignore_index=..., image_token_index=..., projector_hidden_act=..., vision_feature_select_strategy=..., vision_feature_layer=..., image_grid_pinpoints=..., tie_word_embeddings=..., **kwargs) -> None:
         ...
     
 

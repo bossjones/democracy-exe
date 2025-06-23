@@ -35,7 +35,8 @@ class GptqHfQuantizer(HfQuantizer):
     def is_trainable(self, model: Optional[PreTrainedModel] = ...): # -> Literal[True]:
         ...
     
-    def is_serializable(self, safe_serialization=...): # -> Literal[True]:
+    @property
+    def is_serializable(self): # -> Literal[True]:
         ...
     
 

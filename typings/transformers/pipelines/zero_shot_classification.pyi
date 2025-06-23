@@ -97,7 +97,7 @@ class ZeroShotClassificationPipeline(ChunkPipeline):
         """
         ...
     
-    def preprocess(self, inputs, candidate_labels=..., hypothesis_template=...): # -> Generator[dict[str | Any, Any], Any, None]:
+    def preprocess(self, inputs, candidate_labels=..., hypothesis_template=...): # -> Generator[dict[Any, Any], Any, None]:
         ...
     
     def postprocess(self, model_outputs, multi_label=...): # -> dict[str, Any]:

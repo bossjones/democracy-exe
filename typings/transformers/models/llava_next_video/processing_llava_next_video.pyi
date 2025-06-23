@@ -32,22 +32,13 @@ class LlavaNextVideoProcessor(ProcessorMixin):
             The tokenizer is a required input.
         chat_template (`str`, *optional*):
             Jinja chat template that will be used in tokenizer's `apply_chat_template`
-        patch_size (`int`, *optional*):
-            Patch size from the vision tower.
-        vision_feature_select_strategy (`str`, *optional*):
-            The feature selection strategy used to select the vision feature from the vision backbone.
-            Shoudl be same as in model's config
-        video_token (`str`, *optional*, defaults to `"<video>"`):
-            Special token used to denote video location.
-        image_token (`str`, *optional*, defaults to `"<image>"`):
-            Special token used to denote image location.
     """
     attributes = ...
     valid_kwargs = ...
     image_processor_class = ...
     video_processor_class = ...
     tokenizer_class = ...
-    def __init__(self, video_processor=..., image_processor=..., tokenizer=..., chat_template=..., patch_size=..., vision_feature_select_strategy=..., video_token=..., image_token=..., **kwargs) -> None:
+    def __init__(self, video_processor=..., image_processor=..., tokenizer=..., chat_template=..., **kwargs) -> None:
         ...
     
     def __call__(self, text: Union[TextInput, PreTokenizedInput, List[TextInput], List[PreTokenizedInput]], images: ImageInput = ..., videos: VideoInput = ..., padding: Union[bool, str, PaddingStrategy] = ..., truncation: Union[bool, str, TruncationStrategy] = ..., max_length: int = ..., return_tensors: Optional[Union[str, TensorType]] = ...) -> BatchFeature:

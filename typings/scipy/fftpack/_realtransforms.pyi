@@ -7,7 +7,7 @@ Real spectrum transforms (DCT, DST, MDCT)
 """
 __all__ = ['dct', 'idct', 'dst', 'idst', 'dctn', 'idctn', 'dstn', 'idstn']
 _inverse_typemap = ...
-def dctn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]]:
+def dctn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]] | NDArray[floating[_32Bit] | floating[_64Bit]]:
     """
     Return multidimensional Discrete Cosine Transform along the specified axes.
 
@@ -60,7 +60,7 @@ def dctn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndar
     """
     ...
 
-def idctn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]]:
+def idctn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]] | NDArray[floating[_32Bit] | floating[_64Bit]]:
     """
     Return multidimensional Discrete Cosine Transform along the specified axes.
 
@@ -113,7 +113,7 @@ def idctn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> nda
     """
     ...
 
-def dstn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]]:
+def dstn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]] | NDArray[floating[_32Bit] | floating[_64Bit]]:
     """
     Return multidimensional Discrete Sine Transform along the specified axes.
 
@@ -166,7 +166,7 @@ def dstn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndar
     """
     ...
 
-def idstn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]]:
+def idstn(x, type=..., shape=..., axes=..., norm=..., overwrite_x=...): # -> ndarray[Any, dtype[floating[_32Bit]]] | ndarray[Any, dtype[floating[_64Bit]]] | NDArray[floating[_32Bit] | floating[_64Bit]]:
     """
     Return multidimensional Discrete Sine Transform along the specified axes.
 

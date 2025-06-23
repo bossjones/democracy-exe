@@ -18,9 +18,7 @@ from ..models.auto.configuration_auto import AutoConfig
 from ..models.auto.feature_extraction_auto import AutoFeatureExtractor, FEATURE_EXTRACTOR_MAPPING
 from ..models.auto.image_processing_auto import AutoImageProcessor, IMAGE_PROCESSOR_MAPPING
 from ..models.auto.modeling_auto import AutoModel, AutoModelForAudioClassification, AutoModelForCTC, AutoModelForCausalLM, AutoModelForDepthEstimation, AutoModelForDocumentQuestionAnswering, AutoModelForImageClassification, AutoModelForImageSegmentation, AutoModelForImageToImage, AutoModelForMaskGeneration, AutoModelForMaskedLM, AutoModelForObjectDetection, AutoModelForQuestionAnswering, AutoModelForSemanticSegmentation, AutoModelForSeq2SeqLM, AutoModelForSequenceClassification, AutoModelForSpeechSeq2Seq, AutoModelForTableQuestionAnswering, AutoModelForTextToSpectrogram, AutoModelForTextToWaveform, AutoModelForTokenClassification, AutoModelForVideoClassification, AutoModelForVision2Seq, AutoModelForVisualQuestionAnswering, AutoModelForZeroShotImageClassification, AutoModelForZeroShotObjectDetection
-from ..models.auto.processing_auto import AutoProcessor, PROCESSOR_MAPPING
 from ..models.auto.tokenization_auto import AutoTokenizer, TOKENIZER_MAPPING
-from ..processing_utils import ProcessorMixin
 from ..tokenization_utils import PreTrainedTokenizer
 from ..utils import CONFIG_NAME, HUGGINGFACE_CO_RESOLVE_ENDPOINT, cached_file, extract_commit_hash, find_adapter_config_file, is_kenlm_available, is_offline_mode, is_peft_available, is_pyctcdecode_available, is_tf_available, is_torch_available, logging
 from .audio_classification import AudioClassificationPipeline
@@ -129,23 +127,15 @@ def check_task(task: str) -> Tuple[str, Dict, Any]:
 def clean_custom_task(task_info): # -> tuple[Any, None]:
     ...
 
-def pipeline(task: str = ..., model: Optional[Union[str, PreTrainedModel, TFPreTrainedModel]] = ..., config: Optional[Union[str, PretrainedConfig]] = ..., tokenizer: Optional[Union[str, PreTrainedTokenizer, PreTrainedTokenizerFast]] = ..., feature_extractor: Optional[Union[str, PreTrainedFeatureExtractor]] = ..., image_processor: Optional[Union[str, BaseImageProcessor]] = ..., processor: Optional[Union[str, ProcessorMixin]] = ..., framework: Optional[str] = ..., revision: Optional[str] = ..., use_fast: bool = ..., token: Optional[Union[str, bool]] = ..., device: Optional[Union[int, str, torch.device]] = ..., device_map=..., torch_dtype=..., trust_remote_code: Optional[bool] = ..., model_kwargs: Dict[str, Any] = ..., pipeline_class: Optional[Any] = ..., **kwargs) -> Pipeline:
+def pipeline(task: str = ..., model: Optional[Union[str, PreTrainedModel, TFPreTrainedModel]] = ..., config: Optional[Union[str, PretrainedConfig]] = ..., tokenizer: Optional[Union[str, PreTrainedTokenizer, PreTrainedTokenizerFast]] = ..., feature_extractor: Optional[Union[str, PreTrainedFeatureExtractor]] = ..., image_processor: Optional[Union[str, BaseImageProcessor]] = ..., framework: Optional[str] = ..., revision: Optional[str] = ..., use_fast: bool = ..., token: Optional[Union[str, bool]] = ..., device: Optional[Union[int, str, torch.device]] = ..., device_map=..., torch_dtype=..., trust_remote_code: Optional[bool] = ..., model_kwargs: Dict[str, Any] = ..., pipeline_class: Optional[Any] = ..., **kwargs) -> Pipeline:
     """
     Utility factory method to build a [`Pipeline`].
 
-    A pipeline consists of:
+    Pipelines are made of:
 
-        - One or more components for pre-processing model inputs, such as a [tokenizer](tokenizer),
-        [image_processor](image_processor), [feature_extractor](feature_extractor), or [processor](processors).
-        - A [model](model) that generates predictions from the inputs.
-        - Optional post-processing steps to refine the model's output, which can also be handled by processors.
-
-    <Tip>
-    While there are such optional arguments as `tokenizer`, `feature_extractor`, `image_processor`, and `processor`,
-    they shouldn't be specified all at once. If these components are not provided, `pipeline` will try to load
-    required ones automatically. In case you want to provide these components explicitly, please refer to a
-    specific pipeline in order to get more details regarding what components are required.
-    </Tip>
+        - A [tokenizer](tokenizer) in charge of mapping raw textual input to token.
+        - A [model](model) to make predictions from the inputs.
+        - Some (optional) post processing for enhancing model's output.
 
     Args:
         task (`str`):
@@ -214,25 +204,6 @@ def pipeline(task: str = ..., model: Optional[Union[str, PreTrainedModel, TFPreT
             `model` is not specified or not a string, then the default feature extractor for `config` is loaded (if it
             is a string). However, if `config` is also not given or not a string, then the default feature extractor
             for the given `task` will be loaded.
-        image_processor (`str` or [`BaseImageProcessor`], *optional*):
-            The image processor that will be used by the pipeline to preprocess images for the model. This can be a
-            model identifier or an actual image processor inheriting from [`BaseImageProcessor`].
-
-            Image processors are used for Vision models and multi-modal models that require image inputs. Multi-modal
-            models will also require a tokenizer to be passed.
-
-            If not provided, the default image processor for the given `model` will be loaded (if it is a string). If
-            `model` is not specified or not a string, then the default image processor for `config` is loaded (if it is
-            a string).
-        processor (`str` or [`ProcessorMixin`], *optional*):
-            The processor that will be used by the pipeline to preprocess data for the model. This can be a model
-            identifier or an actual processor inheriting from [`ProcessorMixin`].
-
-            Processors are used for multi-modal models that require multi-modal inputs, for example, a model that
-            requires both text and image inputs.
-
-            If not provided, the default processor for the given `model` will be loaded (if it is a string). If `model`
-            is not specified or not a string, then the default processor for `config` is loaded (if it is a string).
         framework (`str`, *optional*):
             The framework to use, either `"pt"` for PyTorch or `"tf"` for TensorFlow. The specified framework must be
             installed.

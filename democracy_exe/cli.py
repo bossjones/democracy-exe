@@ -1,10 +1,48 @@
-"""democracy_exe.cli"""
-
-# pyright: reportMissingTypeStubs=false
 # pylint: disable=no-member
+# pylint: disable=no-name-in-module
 # pylint: disable=no-value-for-parameter
+# pylint: disable=possibly-used-before-assignment
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportInvalidTypeForm=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUndefinedVariable=false
 # SOURCE: https://github.com/tiangolo/typer/issues/88#issuecomment-1732469681
+
+"""democracy_exe.cli
+
+This module implements the command-line interface for the democracy_exe application.
+It provides commands for running bots, managing databases, and handling collections.
+
+Implementation Details:
+    - Command Structure: Uses AsyncTyperImproved for both sync and async commands
+    - Bot Management: Supports both Discord and Terminal bot implementations
+    - Error Handling: Comprehensive error capture with debug mode support
+    - Resource Management: Proper cleanup and signal handling
+    - Configuration: Environment-based settings with validation
+    - Dependency Tracking: Version information and compatibility checks
+
+Missing or Needs Improvement:
+    - Comprehensive test coverage for all commands
+    - Structured error handling framework
+    - Command validation patterns
+    - Resource cleanup patterns for long-running commands
+    - Dependency validation and compatibility checks
+    - Command retry and recovery mechanisms
+    - Rate limiting for resource-intensive commands
+    - Input validation framework
+    - Command output formatting standardization
+    - Progress tracking for long-running operations
+
+Usage:
+    Run commands using the CLI:
+    $ democracyctl [command] [options]
+
+    Example:
+    $ democracyctl run-bot
+    $ democracyctl version --verbose
+"""
+
+
 from __future__ import annotations
 
 import asyncio
@@ -42,14 +80,6 @@ import typer
 
 from langchain.globals import set_debug, set_verbose
 from langchain_chroma import Chroma as ChromaVectorStore
-
-
-logger = structlog.get_logger(__name__)
-from pinecone import ServerlessSpec
-from pinecone.core.openapi.data.model.describe_index_stats_response import DescribeIndexStatsResponse
-from pinecone.core.openapi.data.model.query_response import QueryResponse
-from pinecone.core.openapi.data.model.upsert_response import UpsertResponse
-from pinecone.data.index import Index
 from redis.asyncio import ConnectionPool, Redis
 from rich import print_json
 from rich.console import Console
@@ -63,13 +93,14 @@ import democracy_exe
 from democracy_exe.aio_settings import aiosettings, get_rich_console
 from democracy_exe.asynctyper import AsyncTyper, AsyncTyperImproved
 from democracy_exe.chatbot.discord_bot import DemocracyBot
-from democracy_exe.chatbot.terminal_bot import go_terminal_bot
+from democracy_exe.chatbot.terminal_bot import ThreadSafeTerminalBot, go_terminal_bot
 from democracy_exe.types import PathLike
 from democracy_exe.utils import repo_typing
 from democracy_exe.utils.base import print_line_seperator
 from democracy_exe.utils.file_functions import fix_path
 
 
+logger = structlog.get_logger(__name__)
 # from democracy_exe.utils.files_import import index_file_folder
 
 
@@ -119,6 +150,40 @@ def load_commands(directory: str = "subcommands") -> None:
                 logger.debug(f"Adding subcommand: {filename[:-7]}")
                 APP.add_typer(module.APP, name=filename[:-7])
 
+
+async def aload_commands(directory: str = "subcommands") -> None:
+    """
+    Asynchronously load subcommands from the specified directory.
+
+    This function asynchronously loads subcommands from the specified directory and adds them to the main Typer app.
+    It iterates over the files in the directory, imports the modules that end with "_cmd.py", and adds
+    their Typer app to the main app if they have one.
+
+    Args:
+        directory (str, optional): The directory to load subcommands from. Defaults to "subcommands".
+
+    Returns:
+        None
+    """
+    script_dir = Path(__file__).parent
+    subcommands_dir = script_dir / directory
+
+    logger.debug(f"Loading subcommands from {subcommands_dir}")
+
+    async with asyncer.create_task_group() as tg:
+        for filename in os.listdir(subcommands_dir):
+            logger.debug(f"Filename: {filename}")
+            if filename.endswith("_cmd.py"):
+                module_name = f'{__name__.split(".")[0]}.{directory}.{filename[:-3]}'
+                logger.debug(f"Loading subcommand: {module_name}")
+
+                async def _load_module(module_name: str, cmd_name: str) -> None:
+                    module = import_module(module_name)
+                    if hasattr(module, "APP"):
+                        logger.debug(f"Adding subcommand: {cmd_name}")
+                        APP.add_typer(module.APP, name=cmd_name)
+
+                tg.start_soon(_load_module, module_name, filename[:-7])
 
 
 APP = AsyncTyperImproved()

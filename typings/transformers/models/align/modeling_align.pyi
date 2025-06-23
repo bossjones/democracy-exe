@@ -492,7 +492,7 @@ class AlignModel(AlignPreTrainedModel):
         >>> image = Image.open(requests.get(url, stream=True).raw)
 
         >>> inputs = processor(
-        ...     images=image, text=["a photo of a cat", "a photo of a dog"], return_tensors="pt", padding=True
+        ...     text=["a photo of a cat", "a photo of a dog"], images=image, return_tensors="pt", padding=True
         ... )
 
         >>> outputs = model(**inputs)
@@ -503,4 +503,3 @@ class AlignModel(AlignPreTrainedModel):
     
 
 
-__all__ = ["AlignPreTrainedModel", "AlignTextModel", "AlignVisionModel", "AlignModel"]

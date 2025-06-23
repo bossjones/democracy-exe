@@ -36,7 +36,7 @@ class PeftAdapterMixin:
     - Get the `state_dict` of the active adapter.
     """
     _hf_peft_config_loaded = ...
-    def load_adapter(self, peft_model_id: Optional[str] = ..., adapter_name: Optional[str] = ..., revision: Optional[str] = ..., token: Optional[str] = ..., device_map: Optional[str] = ..., max_memory: Optional[str] = ..., offload_folder: Optional[str] = ..., offload_index: Optional[int] = ..., peft_config: Dict[str, Any] = ..., adapter_state_dict: Optional[Dict[str, torch.Tensor]] = ..., low_cpu_mem_usage: bool = ..., adapter_kwargs: Optional[Dict[str, Any]] = ...) -> None:
+    def load_adapter(self, peft_model_id: Optional[str] = ..., adapter_name: Optional[str] = ..., revision: Optional[str] = ..., token: Optional[str] = ..., device_map: Optional[str] = ..., max_memory: Optional[str] = ..., offload_folder: Optional[str] = ..., offload_index: Optional[int] = ..., peft_config: Dict[str, Any] = ..., adapter_state_dict: Optional[Dict[str, torch.Tensor]] = ..., adapter_kwargs: Optional[Dict[str, Any]] = ...) -> None:
         """
         Load adapter weights from file or remote Hub folder. If you are not familiar with adapters and PEFT methods, we
         invite you to read more about them on PEFT official documentation: https://huggingface.co/docs/peft
@@ -56,7 +56,7 @@ class PeftAdapterMixin:
 
                 <Tip>
 
-                To test a pull request you made on the Hub, you can pass `revision="refs/pr/<pr_number>"`.
+                To test a pull request you made on the Hub, you can pass `revision="refs/pr/<pr_number>".
 
                 </Tip>
 
@@ -87,9 +87,6 @@ class PeftAdapterMixin:
             adapter_state_dict (`Dict[str, torch.Tensor]`, *optional*):
                 The state dict of the adapter to load. This argument is used in case users directly pass PEFT state
                 dicts
-            low_cpu_mem_usage (`bool`, *optional*, defaults to `False`):
-                Reduce memory usage while loading the PEFT adapter. This should also speed up the loading process.
-                Requires PEFT version 0.13.0 or higher.
             adapter_kwargs (`Dict[str, Any]`, *optional*):
                 Additional keyword arguments passed along to the `from_pretrained` method of the adapter config and
                 `find_adapter_config_file` method.

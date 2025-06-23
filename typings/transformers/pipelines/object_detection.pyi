@@ -46,7 +46,7 @@ class ObjectDetectionPipeline(Pipeline):
         Detect objects (bounding boxes & classes) in the image(s) passed as inputs.
 
         Args:
-            inputs (`str`, `List[str]`, `PIL.Image` or `List[PIL.Image]`):
+            images (`str`, `List[str]`, `PIL.Image` or `List[PIL.Image]`):
                 The pipeline handles three types of images:
 
                 - A string containing an HTTP(S) link pointing to an image
@@ -57,6 +57,9 @@ class ObjectDetectionPipeline(Pipeline):
                 same format: all as HTTP(S) links, all as local paths, or all as PIL images.
             threshold (`float`, *optional*, defaults to 0.5):
                 The probability necessary to make a prediction.
+            timeout (`float`, *optional*, defaults to None):
+                The maximum time in seconds to wait for fetching images from the web. If None, no timeout is set and
+                the call may block forever.
 
         Return:
             A list of dictionaries or a list of list of dictionaries containing the result. If the input is a single

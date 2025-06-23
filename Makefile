@@ -20,6 +20,10 @@ test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
 	@uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
 
+.PHONY: pytest
+pytest: ## Test the code with pytest
+	@echo "🚀 Testing code: Running pytest"
+	@uv run pytest -s --verbose --showlocals --tb=short --cov-config=pyproject.toml --cov-report=xml
 
 # @echo "🚀 Linting code: mypy"
 # @uv run mypy --config-file=pyproject.toml --html-report typingcov --cobertura-xml-report typingcov_cobertura --xml-report typingcov_xml --txt-report typingcov_txt .

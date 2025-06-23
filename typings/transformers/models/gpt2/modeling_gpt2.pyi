@@ -6,7 +6,6 @@ import torch
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 from torch import nn
-from ...generation import GenerationMixin
 from ...modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions, QuestionAnsweringModelOutput, SequenceClassifierOutputWithPast, TokenClassifierOutput
 from ...modeling_utils import PreTrainedModel
 from ...utils import ModelOutput, add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward, is_flash_attn_2_available, replace_return_docstrings
@@ -147,7 +146,6 @@ PARALLELIZE_DOCSTRING = ...
 DEPARALLELIZE_DOCSTRING = ...
 @add_start_docstrings("The bare GPT2 Model transformer outputting raw hidden-states without any specific head on top.", GPT2_START_DOCSTRING)
 class GPT2Model(GPT2PreTrainedModel):
-    _supports_param_buffer_assignment = ...
     def __init__(self, config) -> None:
         ...
     
@@ -176,7 +174,7 @@ class GPT2Model(GPT2PreTrainedModel):
     The GPT2 Model transformer with a language modeling head on top (linear layer with weights tied to the input
     embeddings).
     """, GPT2_START_DOCSTRING)
-class GPT2LMHeadModel(GPT2PreTrainedModel, GenerationMixin):
+class GPT2LMHeadModel(GPT2PreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -193,6 +191,9 @@ class GPT2LMHeadModel(GPT2PreTrainedModel, GenerationMixin):
         ...
     
     def set_output_embeddings(self, new_embeddings): # -> None:
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=..., inputs_embeds=..., **kwargs): # -> dict[str, Any]:
         ...
     
     @add_start_docstrings_to_model_forward(GPT2_INPUTS_DOCSTRING)
@@ -214,7 +215,7 @@ RocStories/SWAG tasks. The two heads are two linear layers. The language modelin
 input embeddings, the classification head takes as input the input of a specified classification token index in the
 input sequence).
 """, GPT2_START_DOCSTRING)
-class GPT2DoubleHeadsModel(GPT2PreTrainedModel, GenerationMixin):
+class GPT2DoubleHeadsModel(GPT2PreTrainedModel):
     _tied_weights_keys = ...
     def __init__(self, config) -> None:
         ...
@@ -231,6 +232,9 @@ class GPT2DoubleHeadsModel(GPT2PreTrainedModel, GenerationMixin):
         ...
     
     def set_output_embeddings(self, new_embeddings): # -> None:
+        ...
+    
+    def prepare_inputs_for_generation(self, input_ids, inputs_embeds=..., past_key_values=..., **kwargs): # -> dict[str, Any]:
         ...
     
     @add_start_docstrings_to_model_forward(GPT2_INPUTS_DOCSTRING)

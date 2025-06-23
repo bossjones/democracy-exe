@@ -66,6 +66,8 @@ class Mamba2Config(PretrainedConfig):
             Whether or not to rescale `out_proj` weights when initializing.
         use_cache (`bool`, *optional*, defaults to `True`):
             Whether or not the cache should be used.
+        norm_before_gate (`bool`, *optional*, defaults to `True`):
+            Option of cuda kernels -whether to normalize before the gate or not.
         rms_norm (`bool`, *optional*, defaults to `True`):
             Whether to use RMS norm or not.
         chunk_size (`int`, *optional*, defaults to 256):
@@ -89,7 +91,7 @@ class Mamba2Config(PretrainedConfig):
     >>> configuration = model.config
     ```"""
     model_type = ...
-    def __init__(self, num_heads=..., head_dim=..., vocab_size=..., hidden_size=..., state_size=..., num_hidden_layers=..., layer_norm_epsilon=..., pad_token_id=..., bos_token_id=..., eos_token_id=..., expand=..., conv_kernel=..., n_groups=..., use_bias=..., use_conv_bias=..., hidden_act=..., initializer_range=..., residual_in_fp32=..., time_step_rank=..., time_step_min=..., time_step_max=..., time_step_floor=..., time_step_limit=..., rescale_prenorm_residual=..., use_cache=..., rms_norm=..., chunk_size=..., tie_word_embeddings=..., **kwargs) -> None:
+    def __init__(self, num_heads=..., head_dim=..., vocab_size=..., hidden_size=..., state_size=..., num_hidden_layers=..., layer_norm_epsilon=..., pad_token_id=..., bos_token_id=..., eos_token_id=..., expand=..., conv_kernel=..., n_groups=..., use_bias=..., use_conv_bias=..., hidden_act=..., initializer_range=..., residual_in_fp32=..., time_step_rank=..., time_step_min=..., time_step_max=..., time_step_floor=..., time_step_limit=..., rescale_prenorm_residual=..., use_cache=..., norm_before_gate=..., rms_norm=..., chunk_size=..., tie_word_embeddings=..., **kwargs) -> None:
         ...
     
 

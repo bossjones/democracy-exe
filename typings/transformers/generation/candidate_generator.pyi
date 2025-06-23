@@ -6,7 +6,6 @@ import torch
 from typing import Dict, Optional, TYPE_CHECKING, Tuple
 from .logits_process import LogitsProcessorList
 from ..modeling_utils import PreTrainedModel
-from ..tokenization_utils_base import PreTrainedTokenizerBase
 from .configuration_utils import GenerationConfig
 
 if TYPE_CHECKING:
@@ -97,70 +96,6 @@ class AssistedCandidateGenerator(CandidateGenerator):
                 beam search or log softmax for each vocabulary token when using beam search
             num_matches (`int`):
                 The number of matches between the candidate sequences and the model predictions.
-        """
-        ...
-    
-
-
-class AssistedCandidateGeneratorDifferentTokenizers(AssistedCandidateGenerator):
-    """
-    `CandidateGenerator` class to be used for Universal Assisted Generation (UAD): assisted generation with different tokenizers
-    for the assistant and main models. This class generates candidates through the use of a smaller
-    model.
-
-    The main model input tokens are re-encoded into assistant model tokens, then candidate tokens are generated in the assistant encoding, which are
-    in turn re-encoded into main model candidate tokens. Validation then proceeds as explained above.
-    The re-encoding steps involve decoding token ids into text and then encoding the text using a different tokenizer.
-    Since re-encoding the tokens may result in tokenization discrepancies, UAD finds the longest common subsequence between the source and target encodings,
-    to ensure the new tokens include the correct prompt suffix.
-
-    Args:
-        input_ids (`torch.LongTensor` of shape `(batch_size, sequence_length)`):
-            Indices of input sequence tokens in the vocabulary. [What are input IDs?](../glossary#input-ids)
-        assistant_model (`PreTrainedModel`):
-            The model to be used for generating candidates. This model should be smaller than the main model.
-        target_tokenizer (`PreTrainedTokenizerBase`):
-            The tokenizer used for the target model.
-        assistant_tokenizer (`PreTrainedTokenizerBase`):
-            The tokenizer used for the assistant model.
-        generation_config (`~generation.GenerationConfig`, *optional*):
-            The generation configuration to be used as base parametrization for the generation call.
-        logits_processor (`LogitsProcessorList`):
-            An instance of [`LogitsProcessorList`]. List of instances of class derived from [`LogitsProcessor`]
-            used to modify the prediction scores of the language modeling head applied at each generation step.
-        model_kwargs (`Dict`):
-            The keyword arguments that will be passed to the main model, and are used as base inputs for the assistant
-            model as well.
-        inputs_tensor (`torch.Tensor`, *optional*):
-            The model input tensor. In encoder-decoder models, this is the encoder input.
-    """
-    def __init__(self, input_ids: torch.LongTensor, assistant_model: PreTrainedModel, target_tokenizer: PreTrainedTokenizerBase, assistant_tokenizer: PreTrainedTokenizerBase, generation_config: GenerationConfig, model_kwargs: Dict, inputs_tensor: Optional[torch.Tensor] = ..., logits_processor: LogitsProcessorList = ...) -> None:
-        ...
-    
-    def convert_source_tokens_to_target_tokens(self, input_ids, source_tokenizer, destination_tokenizer):
-        """
-        Convert token IDs from one tokenizer to another.
-        Args:
-            input_ids: The input token IDs.
-            source_tokenizer: The source tokenizer.
-            destination_tokenizer: The destination tokenizer.
-        Returns:
-            The converted token IDs.
-        """
-        ...
-    
-    def get_candidates(self, input_ids: torch.LongTensor) -> Tuple[torch.LongTensor, Optional[torch.FloatTensor]]:
-        """
-        Fetches the candidates to be tried for the current input.
-
-        Args:
-            input_ids (`torch.LongTensor` of shape `(batch_size, sequence_length)`):
-                Indices of input sequence tokens in the vocabulary. [What are input IDs?](../glossary#input-ids)
-
-        Return:
-            `torch.LongTensor` of shape `(batch_size, candidate_length)` containing the candidate sequences to be
-            assessed by the model and a `torch.FloatTensor` of shape `(batch_size, candidate_length,
-            vocabulary_size)` containing the logits associated to each candidate.
         """
         ...
     

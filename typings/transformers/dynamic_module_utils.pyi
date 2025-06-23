@@ -8,14 +8,13 @@ from typing import Any, Dict, List, Optional, Union
 
 """Utilities to dynamically load objects from the Hub."""
 logger = ...
-_HF_REMOTE_CODE_LOCK = ...
 def init_hf_modules(): # -> None:
     """
     Creates the cache directory for modules with an init, and adds it to the Python path.
     """
     ...
 
-def create_dynamic_module(name: Union[str, os.PathLike]) -> None:
+def create_dynamic_module(name: Union[str, os.PathLike]): # -> None:
     """
     Creates a dynamic module in the cache directory for modules.
 
@@ -76,16 +75,13 @@ def check_imports(filename: Union[str, os.PathLike]) -> List[str]:
     """
     ...
 
-def get_class_in_module(class_name: str, module_path: Union[str, os.PathLike], *, force_reload: bool = ...) -> typing.Type:
+def get_class_in_module(class_name: str, module_path: Union[str, os.PathLike]) -> typing.Type:
     """
     Import a module on the cache directory for modules and extract a class from it.
 
     Args:
         class_name (`str`): The name of the class to import.
         module_path (`str` or `os.PathLike`): The path to the module to import.
-        force_reload (`bool`, *optional*, defaults to `False`):
-            Whether to reload the dynamic module from file if it already exists in `sys.modules`.
-            Otherwise, the module is only reloaded if the file has changed.
 
     Returns:
         `typing.Type`: The class looked for.
