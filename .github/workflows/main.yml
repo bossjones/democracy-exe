@@ -50,7 +50,7 @@ jobs:
           sudo apt-get update --fix-missing && sudo apt-get install -y --fix-missing build-essential gcc g++ cmake autoconf
           sudo apt-get install -y libmagic-dev poppler-utils libreoffice
           sudo apt-get install -y tesseract-ocr tesseract-ocr-por zsh
-          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
+          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
 
       - name: QUALITY install tesseract and ffmpeg
         run: |
@@ -81,7 +81,7 @@ jobs:
           libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
           xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
           sudo apt-get install libpq5 -y
-          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
+          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
 
       # Allow debugging with tmate
       - name: Setup tmate session
@@ -177,7 +177,8 @@ jobs:
           libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
           xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
           sudo apt-get install libpq5 -y
-          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
+          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-linux-x86_64.gz | gzip -d - | sudo install -m 755 /dev/stdin /usr/local/bin/taplo
+
 
       - name: TYPECHECK Run tests and type check
         run: make ci
